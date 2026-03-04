@@ -180,6 +180,8 @@ const MOCK_AI: AIResponse = {
  */
 export class MockAPIServer {
   private enabled: boolean;
+  private streamTimer?: number | null;
+  private streamSubscribers: Set<(ev: Event) => void> = new Set();
 
   constructor() {
     this.enabled = typeof localStorage !== 'undefined' && localStorage.getItem('USE_MOCK_API') === 'true';
@@ -210,6 +212,56 @@ export class MockAPIServer {
       localStorage.removeItem('USE_MOCK_API');
       this.enabled = false;
     }
+  }
+
+  /**
+   * Start a faux event stream. Calls subscriber callbacks periodically.
+   * Returns an unsubscribe function.
+   */
+  startEventStream(subscriber: (ev: Event) => void, intervalMs = 1500): () => void {
+    if (!this.enabled) {
+      return () => {};
+    }
+
+    this.streamSubscribers.add(subscriber);
+
+    // If timer already running, just return unsubscribe
+    if (this.streamTimer) {
+      return () => this.streamSubscribers.delete(subscriber);
+    }
+
+    // Start periodic emitter
+    this.streamTimer = window.setInterval(() => {
+      if (this.streamSubscribers.size === 0) {
+        return;
+      }
+
+      // Rotate through existing mock events and also sometimes fabricate new ones
+      const base = MOCK_EVENTS[Math.floor(Math.random() * MOCK_EVENTS.length)];
+      const event: Event = {
+        ...base,
+        id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: Date.now(),
+      };
+
+      this.streamSubscribers.forEach(cb => {
+        try {
+          cb(event);
+        } catch (e) {
+          // swallow subscriber errors
+          // eslint-disable-next-line no-console
+          console.warn('mock event subscriber threw', e);
+        }
+      });
+    }, intervalMs) as unknown as number;
+
+    return () => {
+      this.streamSubscribers.delete(subscriber);
+      if (this.streamSubscribers.size === 0 && this.streamTimer) {
+        clearInterval(this.streamTimer as number);
+        this.streamTimer = null;
+      }
+    };
   }
 
   /**
@@ -309,4 +361,17 @@ export function initMockAPI(): void {
 
     return originalFetch.apply(this, args);
   } as typeof fetch;
+}
+
+/**
+ * Convenience export to start the mock event stream from code or console.
+ */
+export function startMockEventStream(subscriber: (ev: Event) => void, intervalMs = 1500): () => void {
+  return mockAPIServer.startEventStream(subscriber, intervalMs);
+}
+
+// Expose a simple global helper in dev for manual testing via console.
+if (typeof window !== 'undefined') {
+  (window as any).__runnercloud_mock_event_stream = (cb: (ev: Event) => void, intervalMs = 1500) =>
+    startMockEventStream(cb, intervalMs);
 }

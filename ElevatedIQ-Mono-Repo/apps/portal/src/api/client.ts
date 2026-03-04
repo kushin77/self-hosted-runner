@@ -13,6 +13,7 @@ import type {
   BillingResponse,
   CacheResponse,
   EventsResponse,
+  Event,
   RunnersResponse,
   AIResponse,
 } from './types';
@@ -152,6 +153,61 @@ export class APIClient {
     return this.request(`/events?runnerId=${runnerId}&page=${page}&pageSize=${pageSize}`, {
       method: 'GET',
     }).then(res => res.data);
+  }
+
+  /**
+   * Subscribe to a real-time events stream. In mock mode this uses the in-memory
+   * mock event emitter; otherwise attempts to open a WebSocket to the backend.
+   * Returns an object with `close()` to unsubscribe.
+   */
+  subscribeToEventStream(onMessage: (ev: Event) => void, onError?: (err: Error) => void): { close: () => void } {
+    // If mock server enabled, use its in-memory emitter
+    try {
+      if (mockAPIServer && mockAPIServer.isEnabled && mockAPIServer.isEnabled()) {
+        const unsubscribe = mockAPIServer.startEventStream(onMessage);
+        return { close: () => unsubscribe() };
+      }
+    } catch (e) {
+      // fallthrough to real WS
+    }
+
+    // Build WebSocket URL from baseURL
+    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = location.host;
+    const base = this.baseURL.startsWith('/') ? `${wsProtocol}://${host}${this.baseURL}` : this.baseURL;
+    const wsUrl = base.replace(/^http/, 'ws') + '/events/stream';
+
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (err) {
+      if (onError) onError(err as Error);
+      return { close: () => {} };
+    }
+
+    ws.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        onMessage(data as Event);
+      } catch (err) {
+        if (onError) onError(err as Error);
+      }
+    };
+
+    ws.onerror = (err) => {
+      if (onError) onError(new Error('WebSocket error'));
+    };
+
+    return {
+      close: () => {
+        try {
+          if (ws) ws.close();
+        } catch (_) {
+          // ignore
+        }
+        ws = null;
+      },
+    };
   }
 
   // ====== Billing Endpoints ======
