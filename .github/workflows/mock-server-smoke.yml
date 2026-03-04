@@ -1,0 +1,32 @@
+name: Mock-server smoke tests
+
+on:
+  pull_request:
+    paths:
+      - 'ElevatedIQ-Mono-Repo/apps/portal/**'
+      - 'apps/portal/**'
+
+jobs:
+  mock-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Start mock-server and run validators
+        run: |
+          cd ElevatedIQ-Mono-Repo/apps/portal/mock-server || cd apps/portal/mock-server
+          if [ -f package.json ]; then npm ci --no-audit --no-fund; fi
+          node validate_event_schema.js
+          # start server in background
+          node server.js &
+          SERVER_PID=$!
+          sleep 1
+          # run a short smoke websocket test (5 clients, 10s)
+          node load_test.js 5 10
+          kill $SERVER_PID || true
