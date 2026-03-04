@@ -1,0 +1,27 @@
+name: P2 Integration Tests
+
+on:
+  push:
+    branches:
+      - 'feature/p2-*'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Run managed-auth provision flow
+        run: |
+          cd services/managed-auth
+          chmod +x tests/provision_flow.sh || true
+          ./tests/provision_flow.sh
