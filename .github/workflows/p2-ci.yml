@@ -19,3 +19,15 @@ jobs:
         run: |
           echo "P2 CI skeleton: branch=$GITHUB_REF"
           echo "Run real tests in feature branches by updating this workflow."
+
+      - name: Run branch smoke test (if present)
+        run: |
+          if [ -x tests/smoke.sh ]; then
+            echo "Found executable tests/smoke.sh — running"
+            ./tests/smoke.sh
+          elif [ -f tests/smoke.sh ]; then
+            echo "Found tests/smoke.sh — running with bash"
+            bash tests/smoke.sh
+          else
+            echo "No smoke test found in tests/smoke.sh — skipping"
+          fi

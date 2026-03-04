@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
 import { Sparkline } from '../components/Charts';
+import { api } from '../api';
 
 /**
  * AI Insight Interface
@@ -18,85 +19,7 @@ export interface AIInsight {
   historicalData?: number[];
 }
 
-/**
- * AI Insights Database
- */
-const AI_INSIGHTS: AIInsight[] = [
-  {
-    id: 'flaky-tests-1',
-    title: 'Flaky Test Suite Detected',
-    severity: 'high',
-    category: 'reliability',
-    description:
-      'Test suite "frontend/e2e" has 18% failure rate but passes when re-run. Suggests timing issues or resource contention.',
-    recommendation:
-      'Increase timeouts by 2s and implement retry logic. Consider moving to dedicated runner pool.',
-    impact: '~$1,200/month in wasted compute cycles',
-    implemented: true,
-    historicalData: [22, 20, 18, 17, 18, 16, 14, 12, 11],
-  },
-  {
-    id: 'cache-miss-1',
-    title: 'Cache Hit Rate Below Threshold',
-    severity: 'warn',
-    category: 'cost',
-    description:
-      'npm cache hit rate dropped to 62% (target: 85%). New packages in monorepo dependencies not cached.',
-    recommendation:
-      'Pre-warm cache with top 100 npm packages. Consider longer TTL (30d → 45d) for stable packages.',
-    impact: '~$600/month in unnecessary npm downloads',
-    historicalData: [82, 84, 78, 68, 65, 64, 62, 61, 60],
-  },
-  {
-    id: 'gpu-underutil',
-    title: 'GPU Runners Underutilized',
-    severity: 'info',
-    category: 'cost',
-    description:
-      'GPU runners are idle 40% of the time. Current allocation is 8 GPUs but usage peaks at 4-5.',
-    recommendation:
-      'Switch to on-demand GPU provisioning. Save $1,200/month by provisioning only during peak hours (9am-6pm UTC).',
-    impact: '~$1,200/month in unnecessary GPU costs',
-    historicalData: [35, 38, 42, 40, 40, 39, 41, 40, 40],
-  },
-  {
-    id: 'dep-vuln-1',
-    title: 'New CVE in Log4j Transitive',
-    severity: 'critical',
-    category: 'security',
-    description:
-      'CVE-2024-50379 (CVSS 9.8) found in transitive dependency via Apache Beam. Any job pulling this version is vulnerable.',
-    recommendation:
-      'Upgrade Apache Beam to ≥2.56.0. Update all pinned transitive dependencies. Run SBOM scan on all jobs.',
-    impact: 'Critical: Potential RCE in private code',
-    implemented: true,
-    historicalData: [0, 0, 0, 0, 0, 0, 1, 1, 1],
-  },
-  {
-    id: 'runner-age',
-    title: 'Runner Fleet Aging',
-    severity: 'warn',
-    category: 'reliability',
-    description:
-      '23 runners haven\'t been recycled in 120+ days. Accumulated dependency cruft and kernel patches missing.',
-    recommendation:
-      'Implement weekly rolling restart policy. Current fleet can handle 2-3 machines offline during rotation.',
-    impact: '~5% increased job failure rate, security gaps',
-    historicalData: [30, 45, 60, 75, 90, 105, 115, 120, 124],
-  },
-  {
-    id: 'api-latency',
-    title: 'GitHub API Rate Limit Approaching',
-    severity: 'warn',
-    category: 'performance',
-    description:
-      'Making 4,200 API calls/hour (limit: 5,000). Sustain at this rate will hit limits within 2 hours.',
-    recommendation:
-      'Implement request batching for artifact uploads. Cache branch info for 5 minutes. Expected reduction: 35%.',
-    impact: '~8% increase in job duration if limits hit',
-    historicalData: [2100, 2800, 3400, 3800, 4100, 4050, 4200, 4150, 4180],
-  },
-];
+const emptyInsights: AIInsight[] = [];
 
 /**
  * AI Oracle Page - ML-powered insights for CI/CD optimization
@@ -106,7 +29,41 @@ export const AIOraclePageContent: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<'all' | 'performance' | 'cost' | 'reliability' | 'security'>('all');
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'info' | 'warn' | 'high' | 'critical'>('all');
 
-  const filteredInsights = AI_INSIGHTS.filter((i) => {
+  const [insights, setInsights] = useState<AIInsight[]>(emptyInsights);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    api
+      .getAIInsights()
+      .then((d) => {
+        if (!mounted) return;
+        const mapped: AIInsight[] = d.map((s: any) => ({
+          id: s.id,
+          title: s.title,
+          severity: (s.severity as any) || 'info',
+          category: s.category || 'performance',
+          description: s.description || '',
+          recommendation: s.recommendation || '',
+          impact: s.impact,
+          implemented: s.implemented,
+          historicalData: s.historicalData,
+        }));
+        setInsights(mapped);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setInsights([]);
+      })
+      .finally(() => mounted && setLoading(false));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filteredInsights = insights.filter((i) => {
     const matchCategory = filterCategory === 'all' || i.category === filterCategory;
     const matchSeverity = filterSeverity === 'all' || i.severity === filterSeverity;
     return matchCategory && matchSeverity;
@@ -126,9 +83,10 @@ export const AIOraclePageContent: React.FC = () => {
     security: '🛡',
   };
 
-  const totalPotentialSavings = AI_INSIGHTS.filter((i) => i.category === 'cost')
+  const totalPotentialSavings = insights
+    .filter((i) => i.category === 'cost')
     .reduce((sum, i) => {
-      const match = i.impact.match(/\$(\d+,?\d*)/);
+      const match = i.impact ? String(i.impact).match(/\$(\d+,?\d*)/) : null;
       return sum + (match ? parseInt(match[1].replace(',', '')) : 0);
     }, 0);
 
@@ -149,12 +107,12 @@ export const AIOraclePageContent: React.FC = () => {
         {[
           {
             label: 'Active Insights',
-            val: AI_INSIGHTS.length,
+            val: insights.length,
             color: COLORS.cyan,
           },
           {
             label: 'Critical Issues',
-            val: AI_INSIGHTS.filter((i) => i.severity === 'critical').length,
+            val: insights.filter((i) => i.severity === 'critical').length,
             color: COLORS.red,
           },
           {
@@ -164,7 +122,7 @@ export const AIOraclePageContent: React.FC = () => {
           },
           {
             label: 'Recommendations Implemented',
-            val: `${Math.round((AI_INSIGHTS.filter((i) => i.implemented).length / AI_INSIGHTS.length) * 100)}%`,
+            val: insights.length ? `${Math.round((insights.filter((i) => i.implemented).length / insights.length) * 100)}%` : '—',
             color: COLORS.green,
           },
         ].map((s) => (
