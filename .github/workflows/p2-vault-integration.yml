@@ -3,21 +3,30 @@ name: p2-managed-auth-vault-integration
 on:
   workflow_dispatch: {}
   push:
-    branches: [ feature/p2-managed-mode, feature/p2-vault-hardening ]
+    branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci ]
 
 jobs:
   vault-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start Vault dev server
+      - name: Use CI-provided Vault secrets (if present)
+        if: ${{ secrets.VAULT_ADDR != '' && secrets.VAULT_TOKEN != '' }}
+        run: |
+          echo "Using provided Vault credentials from GitHub Secrets"
+          echo "VAULT_ADDR=${{ secrets.VAULT_ADDR }}" >> $GITHUB_ENV
+          echo "VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}" >> $GITHUB_ENV
+          echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
+
+      - name: Start Vault dev server (fallback)
+        if: ${{ secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '' }}
         run: |
           docker run --cap-add=IPC_LOCK -d --name vault -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root
 
-      - name: Wait for Vault
+      - name: Wait for Vault (when started locally)
+        if: ${{ secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '' }}
         run: |
           for i in $(seq 1 30); do
             if curl -sSf http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
@@ -26,7 +35,8 @@ jobs:
             sleep 1
           done
 
-      - name: Setup Vault env
+      - name: Setup Vault env (local fallback)
+        if: ${{ secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '' }}
         run: |
           echo "VAULT_ADDR=http://127.0.0.1:8200" >> $GITHUB_ENV
           echo "VAULT_TOKEN=root" >> $GITHUB_ENV
@@ -42,14 +52,14 @@ jobs:
           cd services/managed-auth
           npm ci --no-audit --no-fund || npm install
 
-      - name: Run integration test (Vault)
+      - name: Run provision_flow smoke test (Vault)
         env:
           VAULT_ADDR: ${{ env.VAULT_ADDR }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
           SECRETS_BACKEND: ${{ env.SECRETS_BACKEND }}
         run: |
-          cd services/managed-auth
-          bash tests/integration_with_vault.sh
+          cd services/managed-auth/tests
+          bash provision_flow.sh
 
       - name: Tear down Vault
         if: always()

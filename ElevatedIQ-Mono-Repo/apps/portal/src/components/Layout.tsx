@@ -2,9 +2,6 @@ import React from 'react';
 import { COLORS } from '../theme';
 import { Pill, GlowDot } from './UI';
 
-/**
- * Navigation items for sidebar
- */
 type NavItem = { id: string; icon: string; label: string; badge?: string };
 
 export const NAV_ITEMS: NavItem[] = [
@@ -14,6 +11,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'runners', icon: '🖥', label: 'Runners' },
   { id: 'oracle', icon: '🔮', label: 'AI Oracle' },
   { id: 'cache', icon: '💾', label: 'LiveMirror Cache' },
+  { id: 'events', icon: '📡', label: 'Events' },
   { id: 'security', icon: '🛡', label: 'Security Layer' },
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },
@@ -63,22 +61,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             }}
           >
             ⚡
-          export const NAV_ITEMS = [
-                color: COLORS.text,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              RunnerCloud
-            </div>
-            <div
-              style={{
-                fontSize: 9,
-                color: COLORS.muted,
-          ];
-              }}
-            >
-              acme-corp · BYOC + Managed
-            </div>
+          </div>
+          <div style={{ marginLeft: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.text }}>RunnerCloud</div>
+            <div style={{ fontSize: 9, color: COLORS.muted }}>acme-corp · BYOC + Managed</div>
           </div>
         </div>
         <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>

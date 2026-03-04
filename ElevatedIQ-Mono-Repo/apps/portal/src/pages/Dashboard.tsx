@@ -3,6 +3,7 @@ import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { Panel, PanelHeader, Pill, GlowDot } from '../components/UI';
 import { AreaChart, Gauge } from '../components/Charts';
+import { api } from '../api';
 
 /**
  * Dashboard - Main overview page showing system metrics and status
@@ -33,7 +34,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     setGpuUsage((v) => Math.max(8, Math.min(30, v + rand(-2, 3))));
   }, [_tick]);
 
-  const latestJPM = spark.current[spark.current.length - 1];
+  // Fetch initial metrics from API
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const runnersResp = await api.getRunners();
+        if (!mounted) return;
+        // api.getRunners currently returns an array of RunnerDTO in mocks
+        setRunners(Array.isArray(runnersResp) ? runnersResp.length : runners);
+
+        const billing = await api.getBilling();
+        if (!mounted) return;
+        // derive jobs per minute from monthly runner minutes as an approximation
+        const minutes = billing?.currentMonth?.runnerMinutes ?? null;
+        if (minutes) {
+          const jpm = Math.max(1, Math.round((minutes / 30 / 24 / 60) * 1));
+          setJobsPerMin(jpm);
+        }
+
+        const cache = await api.getCacheLayers();
+        if (!mounted) return;
+        // api.getCacheLayers returns an array of cache layers; compute average hit rate
+        if (Array.isArray(cache) && cache.length) {
+          const avg = Math.round((cache.reduce((s, c) => s + (c.hitRate ?? 0), 0) / cache.length));
+          setCacheHitRate(avg);
+        }
+
+        const ai = await api.getAIInsights();
+        if (!mounted) return;
+        setAiFixedToday((ai?.length) ?? aiFixedToday);
+      } catch (e) {
+        // keep simulated values on error
+        // eslint-disable-next-line no-console
+        console.warn('Dashboard: failed to fetch metrics from API', e);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
+
+  // latestJPM removed — unused variable
 
   return (
     <div

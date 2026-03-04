@@ -1,11 +1,12 @@
 import React from 'react';
-import { COLORS, ColorKey } from '../theme';
+import { COLORS } from '../theme';
 
 /**
  * Pill - Status/label badge component
  */
 interface PillProps {
-  color: ColorKey | string;
+  // Accept named tokens or raw hex/string colors
+  color?: string;
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
@@ -23,7 +24,11 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
     orange: COLORS.orange,
   };
 
+<<<<<<< HEAD
   const c = typeof color === 'string' && colorMap[color] ? colorMap[color] : (color as string);
+=======
+  const c = (colorMap as Record<string, string>)[String(color)] || String(color) || COLORS.muted;
+>>>>>>> feature/ci-portal-staging-e2e
 
   return (
     <span
@@ -202,14 +207,8 @@ interface ProgressBarProps {
   color?: string;
 }
 
-export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 100, height = 8, color = COLORS.accent }) => {
-  const pct = Math.max(0, Math.min(1, value / max));
-  return (
-    <div style={{ background: COLORS.border, borderRadius: 6, height }}>
-      <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 6 }} />
-    </div>
-  );
-};
+// ProgressBar is implemented in `Charts` and re-exported for consumers.
+// Keep the source of truth in `Charts` to avoid duplicate definitions.
 
 /**
  * Global CSS animations
@@ -229,3 +228,5 @@ export const GlobalStyles = () => (
     }
   `}</style>
 );
+// Re-export ProgressBar for convenience
+export { ProgressBar } from './Charts';

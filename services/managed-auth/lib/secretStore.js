@@ -4,62 +4,70 @@ const path = require('path');
 const backend = process.env.SECRETS_BACKEND || 'memory';
 const filePath = process.env.SECRETS_FILE || path.join(__dirname, '..', '..', '.secrets', 'tokens.json');
 
-let memory = [];
-
-<<<<<<< HEAD
-// If backend is vault, try to load vault adapter
-if (backend === 'vault') {
-  try {
-    const vault = require('./vaultStore');
-    module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-  } catch (e) {
-    // fallthrough to in-process implementation that will error when used
-=======
-// If backend is vault, try to load the real adapter first then fall back to
-// the simulate vault store. This lets CI start a real Vault dev server and
-// exercise the adapter while preserving local simulate behavior.
-if (backend === 'vault') {
-  try {
-    const vault = require('./vaultAdapter');
-    module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-  } catch (e) {
-    try {
-      const vault = require('./vaultStore');
-      module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-    } catch (e2) {
-      // fallthrough to in-process implementation that will error when used
-    }
->>>>>>> feature/p2-vault-ci
-  }
-}
-
 function ensureDir(p) {
   const dir = path.dirname(p);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
-function loadFile() {
+function readFile() {
   try {
     if (!fs.existsSync(filePath)) return [];
     const b = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(b || '[]');
   } catch (e) {
     return [];
-    // If backend is vault, try to load the real adapter first then fall back to
-    // the simulate vault store. This lets CI start a real Vault dev server and
-    // exercise the adapter while preserving local simulate behavior.
-    if (backend === 'vault') {
-      try {
-        const vault = require('./vaultAdapter');
-        module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-      } catch (e) {
-        try {
-          const vault = require('./vaultStore');
-          module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-        } catch (e2) {
-          // fallthrough to in-process implementation that will error when used
-        }
-      }
-    }
+  }
+}
 
-module.exports = { setToken, getToken };
+function writeFile(arr) {
+  ensureDir(filePath);
+  fs.writeFileSync(filePath, JSON.stringify(arr, null, 2), 'utf8');
+}
+
+// Memory backend
+const memory = [];
+
+async function setToken_file(tokenObj) {
+  const arr = readFile();
+  arr.push(tokenObj);
+  writeFile(arr);
+  return true;
+}
+
+async function getToken_file(token) {
+  const arr = readFile();
+  return arr.find(t => t && t.token === token) || null;
+}
+
+async function setToken_memory(tokenObj) {
+  memory.push(tokenObj);
+  return true;
+}
+
+async function getToken_memory(token) {
+  return memory.find(t => t && t.token === token) || null;
+}
+
+// Vault-backed: prefer real adapter then fall back to simulate store
+if (backend === 'vault') {
+  try {
+    const va = require('./vaultAdapter');
+    module.exports = { setToken: va.setToken, getToken: va.getToken };
+    return;
+  } catch (e) {
+    try {
+      const vs = require('./vaultStore');
+      module.exports = { setToken: vs.setToken, getToken: vs.getToken };
+      return;
+    } catch (e2) {
+      // fall through to file/memory implementations
+    }
+  }
+}
+
+// Choose file or memory backend
+if (backend === 'file') {
+  module.exports = { setToken: setToken_file, getToken: getToken_file };
+} else {
+  module.exports = { setToken: setToken_memory, getToken: getToken_memory };
+}

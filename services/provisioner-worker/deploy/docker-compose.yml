@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  provisioner-worker:
+    image: ghcr.io/elevatediq/provisioner-worker:latest
+    container_name: provisioner-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=${REDIS_URL}
+      - METRICS_PORT=${METRICS_PORT:-9100}
+      - PROVISION_MAX_RETRIES=${PROVISION_MAX_RETRIES:-5}
+    volumes:
+      - ./data:/var/lib/provisioner/data
+    ports:
+      - "${METRICS_PORT:-9100}:${METRICS_PORT:-9100}"

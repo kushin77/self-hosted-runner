@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { COLORS } from './theme';
-import { useTick } from './hooks';
+// pages manage their own ticks via `useTick` when needed
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -19,7 +19,6 @@ import { Settings } from './pages/Settings';
  */
 function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const tick = useTick(2500);
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (
