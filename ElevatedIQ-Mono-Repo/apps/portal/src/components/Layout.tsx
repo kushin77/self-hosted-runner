@@ -5,7 +5,9 @@ import { Pill, GlowDot } from './UI';
 /**
  * Navigation items for sidebar
  */
-export const NAV_ITEMS = [
+type NavItem = { id: string; icon: string; label: string; badge?: string };
+
+export const NAV_ITEMS: NavItem[] = [
   { id: 'home', icon: '⚡', label: 'Dashboard' },
   { id: 'agents', icon: '🧠', label: 'Agent Studio', badge: 'NEW' },
   { id: 'deploy', icon: '🚀', label: 'Deploy Mode' },
@@ -16,7 +18,7 @@ export const NAV_ITEMS = [
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
-] as const;
+];
 
 /**
  * Sidebar - Main navigation component
@@ -61,12 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             }}
           >
             ⚡
-          </div>
-          <div>
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: 13,
+          export const NAV_ITEMS = [
                 color: COLORS.text,
                 letterSpacing: '-0.01em',
               }}
@@ -77,7 +74,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               style={{
                 fontSize: 9,
                 color: COLORS.muted,
-                marginTop: 1,
+          ];
               }}
             >
               acme-corp · BYOC + Managed

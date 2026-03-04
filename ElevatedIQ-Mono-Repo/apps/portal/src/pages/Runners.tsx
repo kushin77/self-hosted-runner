@@ -116,8 +116,12 @@ const RunnerRow: React.FC<RunnerRowProps> = ({ runner }) => {
 /**
  * Runners Page
  */
-export const Runners: React.FC = () => {
-  const tick = useTick(2500);
+interface RunnersProps {
+  tick?: number;
+}
+
+export const Runners: React.FC<RunnersProps> = ({ tick: propTick }) => {
+  const tick = typeof propTick === 'number' ? propTick : useTick(2500);
   const [runners, setRunners] = useState<Runner[]>(EMPTY_RUNNERS);
   const [filter, setFilter] = useState<'all' | 'running' | 'idle' | 'managed' | 'byoc'>(
     'all'
