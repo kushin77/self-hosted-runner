@@ -1,0 +1,6 @@
+# Ignore common files
+node_modules/
+.env
+*.log
+__pycache__/
+*.pyc
