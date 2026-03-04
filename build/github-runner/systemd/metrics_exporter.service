@@ -1,0 +1,14 @@
+[Unit]
+Description=ElevatedIQ GitHub Runner Metrics Exporter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/akushnir/EIQ_RUNNER_METRICS
+ExecStart=/usr/bin/env python3 /home/akushnir/EIQ_RUNNER_METRICS/metrics_exporter.py
+Restart=on-failure
+RestartSec=10
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
