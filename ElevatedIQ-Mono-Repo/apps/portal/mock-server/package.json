@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon --watch data.js --exec node server.js"
-  },
+    "load-test": "node load_test.js",
+    "validate-schema": "node validate_event_schema.js"
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.18.2"
