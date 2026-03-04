@@ -194,7 +194,7 @@ export class APIClient {
       }
     };
 
-    ws.onerror = (err) => {
+    ws.onerror = () => {
       if (onError) onError(new Error('WebSocket error'));
     };
 

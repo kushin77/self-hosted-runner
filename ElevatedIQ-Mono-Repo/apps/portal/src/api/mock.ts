@@ -4,18 +4,7 @@
  * Enable with: localStorage.setItem('USE_MOCK_API', 'true')
  */
 
-import type {
-  Runner,
-  RunnerPool,
-  RunnersResponse,
-  Event,
-  EventsResponse,
-  BillingResponse,
-  BillingUsage,
-  CacheResponse,
-  AIResponse,
-  AuthToken,
-} from './types';
+import type { Runner, RunnerPool, Event, BillingResponse, CacheResponse, AIResponse, AuthToken } from './types';
 
 const MOCK_RUNNERS: Runner[] = [
   {
@@ -276,8 +265,7 @@ export class MockAPIServer {
     const path = urlObj.pathname;
     const method = options.method || 'GET';
 
-    // Simulate network delay
-    const delay = Math.random() * 300 + 100;
+    // Simulate network delay (kept small during mocks)
 
     // Route handlers
     if (path === '/api/runners' && method === 'GET') {

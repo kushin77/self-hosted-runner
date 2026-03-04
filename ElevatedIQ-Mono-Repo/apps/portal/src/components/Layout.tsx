@@ -5,7 +5,7 @@ import { Pill, GlowDot } from './UI';
 /**
  * Navigation items for sidebar
  */
-export const NAV_ITEMS = [
+export const NAV_ITEMS: Array<{ id: string; icon: string; label: string; badge?: string }> = [
   { id: 'home', icon: '⚡', label: 'Dashboard' },
   { id: 'agents', icon: '🧠', label: 'Agent Studio', badge: 'NEW' },
   { id: 'deploy', icon: '🚀', label: 'Deploy Mode' },
@@ -17,7 +17,7 @@ export const NAV_ITEMS = [
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
-] as const;
+];
 
 /**
  * Sidebar - Main navigation component

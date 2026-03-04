@@ -23,12 +23,11 @@ export const LiveEvents: React.FC = () => {
 
     const sub = apiClient.subscribeToEventStream((ev) => {
       const e: LiveEvent = {
-        id: ev.id || `evt-${Date.now()}`,
-        type: ev.type || 'event',
-        timestamp: ev.timestamp || Date.now(),
-        message: ev.message || JSON.stringify(ev),
-        runnerId: ev.runnerId,
         ...ev,
+        id: ev.id ?? `evt-${Date.now()}`,
+        type: ev.type ?? 'event',
+        timestamp: ev.timestamp ?? Date.now(),
+        message: ev.message ?? JSON.stringify(ev),
       } as LiveEvent;
 
       // simple buffering to avoid excessive re-renders

@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Button, Pill } from '../components/UI';
+import { apiClient } from '../api/client';
 
 interface CostModel {
   name: string;
@@ -42,6 +43,24 @@ export const TCOCalculator: React.FC = () => {
     spotUsagePercent,
     concurrentRunners,
   };
+
+  // Initialize settings from billing if available (prefill monthly minutes)
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const billing = await apiClient.getBilling();
+        if (!mounted) return;
+        if (billing && billing.currentMonth && typeof billing.currentMonth.runnerMinutes === 'number') {
+          setMonthlyMinutes(Math.max(1000, Math.round(billing.currentMonth.runnerMinutes)));
+        }
+      } catch (e) {
+        // ignore - keep defaults
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
 
   // Cost Models
   const costModels: Record<string, CostModel> = {
