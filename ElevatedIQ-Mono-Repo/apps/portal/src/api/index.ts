@@ -1,4 +1,5 @@
 import { RunnerDTO, EventDTO, BillingDTO, CacheLayerDTO, AIInsightDTO } from './types';
+import { apiClient } from './client';
 
 // Minimal API client abstraction with mock responses for local dev.
 // Replace `useMock` with real fetch calls when backend is available.
@@ -58,3 +59,17 @@ export const api = {
   getCacheLayers: async (): Promise<CacheLayerDTO[]> => fetchJson<CacheLayerDTO[]>('/api/cache'),
   getAIInsights: async (): Promise<AIInsightDTO[]> => fetchJson<AIInsightDTO[]>('/api/ai'),
 };
+
+// Subscribe to real-time event stream. Returns an object with `close()`.
+export function subscribeToEventStream(onMessage: (ev: EventDTO) => void, onError?: (err: Error) => void) {
+  try {
+    if (apiClient && typeof apiClient.subscribeToEventStream === 'function') {
+      return apiClient.subscribeToEventStream((e: any) => onMessage(e), onError);
+    }
+  } catch (e) {
+    // fallback to no-op
+  }
+
+  // If fallback, return noop subscription
+  return { close: () => {} };
+}

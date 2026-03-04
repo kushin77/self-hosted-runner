@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
-import { api } from '../api';
+import { api, subscribeToEventStream } from '../api';
 
 /**
  * Security Event Interface
@@ -36,23 +36,38 @@ export const Security: React.FC = () => {
 
   useEffect(() => {
     let mounted = true;
-    api
-      .getEvents()
+    api.getEvents()
       .then((evs: any[]) => {
         if (!mounted) return;
         const mapped: SecurityEvent[] = evs.map((e) => ({
-          time: e.time,
+          time: e.time || new Date(e.timestamp).toLocaleString(),
           type: e.type,
-          severity: e.severity,
-          msg: e.message || e.msg || '',
-          details: e.details,
+          severity: e.severity === 'warn' ? 'warn' : e.severity, // normalize
+          msg: (e.message as string) || (e.msg as string) || '',
+          details: e.details || (e.metadata ? JSON.stringify(e.metadata, null, 2) : undefined),
         }));
         setEvents(mapped);
       })
       .catch(() => setEvents([]));
 
+    // subscribe to live stream and prepend events
+    const sub = subscribeToEventStream((ev: any) => {
+      if (!mounted || !ev) return;
+      const mapped: SecurityEvent = {
+        time: ev.time || new Date(ev.timestamp).toLocaleString(),
+        type: ev.type === 'job_failed' || ev.type === 'runner_failed' ? 'blocked' : (ev.type as any) || 'allowed',
+        severity: ev.severity === 'error' ? 'high' : ev.severity === 'warning' ? 'warn' : 'info',
+        msg: ev.message || ev.msg || `${ev.type} on ${ev.runnerId || 'unknown'}`,
+        details: ev.details || (ev.metadata ? JSON.stringify(ev.metadata, null, 2) : undefined),
+      };
+      setEvents((prev) => [mapped, ...prev].slice(0, 200));
+    }, (err) => {
+      // ignore for now
+    });
+
     return () => {
       mounted = false;
+      try { sub.close(); } catch (_) {}
     };
   }, []);
 
