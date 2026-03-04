@@ -32,9 +32,39 @@ function initVaultClient() {
     const vault = require('node-vault');
     const opts = {};
     if (process.env.VAULT_ADDR) opts.endpoint = process.env.VAULT_ADDR;
+    // if VAULT_TOKEN not set, attempt AppRole auth after client init
     if (process.env.VAULT_TOKEN) opts.token = process.env.VAULT_TOKEN;
     vaultClient = vault(opts);
     usingNodeVault = true;
+
+    // If token not provided, but AppRole info exists, attempt AppRole login
+    if (!process.env.VAULT_TOKEN && process.env.VAULT_ROLE_ID) {
+      try {
+        const roleId = process.env.VAULT_ROLE_ID;
+        let secretId = process.env.VAULT_SECRET_ID || '';
+        const secretPath = process.env.VAULT_SECRET_ID_PATH;
+        if (!secretId && secretPath && fs.existsSync(secretPath)) {
+          secretId = fs.readFileSync(secretPath, 'utf8').trim();
+        }
+        if (!secretId) {
+          // no secret id available; leave unauthenticated
+          return;
+        }
+        // try node-vault approle login
+        if (typeof vaultClient.approleLogin === 'function') {
+          vaultClient.approleLogin({ role_id: roleId, secret_id: secretId })
+            .then(resp => { if (resp && resp.auth && resp.auth.client_token) vaultClient.token = resp.auth.client_token; })
+            .catch(() => {});
+        } else {
+          // fallback raw request
+          vaultClient.request({ method: 'POST', path: '/v1/auth/approle/login', json: { role_id: roleId, secret_id: secretId } })
+            .then(resp => { if (resp && resp.auth && resp.auth.client_token) vaultClient.token = resp.auth.client_token; })
+            .catch(() => {});
+        }
+      } catch (e) {
+        // ignore AppRole errors here; operations will surface errors later
+      }
+    }
   } catch (e) {
     vaultClient = null;
     usingNodeVault = false;
