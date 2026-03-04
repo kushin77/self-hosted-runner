@@ -1,0 +1,79 @@
+global:
+  resolve_timeout: 5m
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+  pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
+
+# Email configuration
+  smtp_smarthost: 'localhost:25'
+  smtp_from: 'alertmanager@elevatediq.local'
+
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Routing tree
+route:
+  receiver: 'default'
+  group_by: ['alertname', 'cluster', 'job', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+
+  # Critical alerts to PagerDuty
+  routes:
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Warnings to Slack
+    - match:
+        severity: warning
+      receiver: 'slack-warnings'
+      group_wait: 1m
+      repeat_interval: 4h
+
+    # Info to default
+    - match:
+        severity: info
+      receiver: 'default'
+
+# Receivers
+receivers:
+  - name: 'default'
+    slack_configs:
+      - channel: '#platform-alerts'
+        title: 'Alert: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+
+  - name: 'slack-warnings'
+    slack_configs:
+      - channel: '#platform-warnings'
+        title: 'Warning: {{ .GroupLabels.alertname }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+        send_resolved: true
+        color: 'warning'
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - routing_key: '${PAGERDUTY_SERVICE_KEY}'
+        description: '{{ .GroupLabels.alertname }}: {{ (index .Alerts 0).Annotations.summary }}'
+        severity: 'critical'
+
+# Inhibition rules (suppress alerts when certain conditions are met)
+inhibit_rules:
+  # Don't send warnings if the instance is down
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance', 'job']
+
+  # Don't send info if warning exists
+  - source_match:
+      severity: 'warning'
+    target_match:
+      severity: 'info'
+    equal: ['alertname', 'instance']
