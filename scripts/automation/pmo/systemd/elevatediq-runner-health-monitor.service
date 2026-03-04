@@ -1,0 +1,19 @@
+[Unit]
+Description=GitHub Actions Runner Health Monitor Service
+Documentation=file:///home/akushnir/self-hosted-runner/docs/management/RUNNER_HEALTH_MONITORING_SYSTEM.md
+Wants=elevatediq-runner-health-monitor.timer
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/akushnir/self-hosted-runner/scripts/automation/pmo/runner_health_monitor.sh --check-once
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=runner-health-monitor
+User=%u
+
+# Restart policy for manual runs (not used when triggered by timer)
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
