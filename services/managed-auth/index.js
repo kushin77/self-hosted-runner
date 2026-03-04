@@ -3,6 +3,8 @@ const http = require('http');
 const { URL } = require('url');
 const crypto = require('crypto');
 const port = process.env.PORT || 4000;
+const secretStore = require('./lib/secretStore');
+const provisioner = require('../provisioner');
 
 const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID || 'YOUR_CLIENT_ID';
 const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
@@ -13,6 +15,9 @@ function makeState() {
 }
 
 const stateStore = new Set();
+
+// token storage is delegated to `secretStore` which can be backed by file, memory
+// or a real secrets manager. Configure via `SECRETS_BACKEND=file` + `SECRETS_FILE`.
 
 function jsonResponse(res, obj, status = 200) {
   const body = JSON.stringify(obj);
@@ -48,7 +53,10 @@ const server = http.createServer(async (req, res) => {
       }
       stateStore.delete(state);
       if (SIMULATE_OAUTH) {
-        return jsonResponse(res, { access_token: 'simulated-token-123', scope: 'repo', token_type: 'bearer' });
+        // Store token via secretStore (file/memory/backed) so tests can opt into file persistence
+        const token = 'simulated-token-' + Math.random().toString(36).slice(2,8);
+        await secretStore.setToken({ token, scope: 'repo', created_at: Date.now() });
+        return jsonResponse(res, { access_token: token, scope: 'repo', token_type: 'bearer' });
       }
       // Exchange code for token with GitHub
       try {
@@ -65,6 +73,24 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // Handle runner provisioning inside main handler to avoid listener ordering issues
+    if (reqUrl.pathname === '/register-runner' && req.method === 'POST') {
+      try {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const payload = body ? JSON.parse(body) : {};
+        const { access_token, runner_meta } = payload;
+        if (!access_token) return jsonResponse(res, { error: 'missing_token' }, 400);
+        const found = await secretStore.getToken(access_token);
+        if (!found) return jsonResponse(res, { error: 'invalid_token' }, 401);
+        // Enqueue provisioning job to provisioner (in-process prototype)
+        const result = await provisioner.enqueue({ access_token, runner_meta });
+        return jsonResponse(res, result);
+      } catch (e) {
+        return jsonResponse(res, { error: 'bad_request', detail: String(e) }, 400);
+      }
+    }
+
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
   } catch (err) {
@@ -73,4 +99,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Start server
 server.listen(port, () => console.log(`Managed Auth skeleton listening on ${port}`));
+
+// No monkey-patching required: provisioning handled in main request handler using provisioner

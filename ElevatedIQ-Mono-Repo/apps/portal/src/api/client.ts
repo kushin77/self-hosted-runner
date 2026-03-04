@@ -4,6 +4,7 @@
  */
 
 import { authManager } from './auth';
+import { initMockAPI, mockAPIServer } from './mock';
 import type {
   APIError,
   APIRequestOptions,
@@ -12,6 +13,7 @@ import type {
   BillingResponse,
   CacheResponse,
   EventsResponse,
+  Event,
   RunnersResponse,
   AIResponse,
 } from './types';
@@ -153,6 +155,61 @@ export class APIClient {
     }).then(res => res.data);
   }
 
+  /**
+   * Subscribe to a real-time events stream. In mock mode this uses the in-memory
+   * mock event emitter; otherwise attempts to open a WebSocket to the backend.
+   * Returns an object with `close()` to unsubscribe.
+   */
+  subscribeToEventStream(onMessage: (ev: Event) => void, onError?: (err: Error) => void): { close: () => void } {
+    // If mock server enabled, use its in-memory emitter
+    try {
+      if (mockAPIServer && mockAPIServer.isEnabled && mockAPIServer.isEnabled()) {
+        const unsubscribe = mockAPIServer.startEventStream(onMessage);
+        return { close: () => unsubscribe() };
+      }
+    } catch (e) {
+      // fallthrough to real WS
+    }
+
+    // Build WebSocket URL from baseURL
+    const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = location.host;
+    const base = this.baseURL.startsWith('/') ? `${wsProtocol}://${host}${this.baseURL}` : this.baseURL;
+    const wsUrl = base.replace(/^http/, 'ws') + '/events/stream';
+
+    let ws: WebSocket | null = null;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (err) {
+      if (onError) onError(err as Error);
+      return { close: () => {} };
+    }
+
+    ws.onmessage = (ev) => {
+      try {
+        const data = JSON.parse(ev.data);
+        onMessage(data as Event);
+      } catch (err) {
+        if (onError) onError(err as Error);
+      }
+    };
+
+    ws.onerror = () => {
+      if (onError) onError(new Error('WebSocket error'));
+    };
+
+    return {
+      close: () => {
+        try {
+          if (ws) ws.close();
+        } catch (_) {
+          // ignore
+        }
+        ws = null;
+      },
+    };
+  }
+
   // ====== Billing Endpoints ======
 
   /**
@@ -247,4 +304,24 @@ export class APIClient {
 }
 
 // Singleton instance
-export const apiClient = new APIClient();
+// Read Vite env overrides when available
+const API_BASE = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_BASE
+  ? String((import.meta as any).env.VITE_API_BASE)
+  : '';
+const USE_MOCK = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_USE_MOCK !== 'false';
+
+export const apiClient = new APIClient(API_BASE || '/api');
+
+// If developer requested in-Vite mock behavior, enable mock API intercepts
+if (USE_MOCK) {
+  try {
+    // Enable mock server flag and initialize fetch interception
+    mockAPIServer.enable();
+    initMockAPI();
+    // eslint-disable-next-line no-console
+    console.info('Portal API: initialized in-client mock API (USE_MOCK=true)');
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Portal API: failed to initialize mock API', e);
+  }
+}

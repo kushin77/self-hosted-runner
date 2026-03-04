@@ -3,6 +3,7 @@ import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { Panel, PanelHeader, Pill, GlowDot } from '../components/UI';
 import { AreaChart, Gauge } from '../components/Charts';
+import { apiClient } from '../api';
 
 /**
  * Dashboard - Main overview page showing system metrics and status
@@ -31,6 +32,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     setMemUsage((v) => Math.max(50, Math.min(88, v + rand(-2, 3))));
     setGpuUsage((v) => Math.max(8, Math.min(30, v + rand(-2, 3))));
   }, [tick]);
+
+  // Fetch initial metrics from API
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const runnersResp = await apiClient.getRunners();
+        if (!mounted) return;
+        setRunners(runnersResp.total ?? (runnersResp.runners?.length ?? runners));
+
+        const billing = await apiClient.getBilling();
+        if (!mounted) return;
+        // derive jobs per minute from monthly runner minutes as an approximation
+        const minutes = billing?.currentMonth?.runnerMinutes ?? null;
+        if (minutes) {
+          const jpm = Math.max(1, Math.round((minutes / 30 / 24 / 60) * 1));
+          setJobsPerMin(jpm);
+        }
+
+        const cache = await apiClient.getCacheMetrics();
+        if (!mounted) return;
+        setCacheHitRate(Math.round(cache?.metrics?.hitRate ?? cacheHitRate));
+
+        const ai = await apiClient.getAIInsights();
+        if (!mounted) return;
+        setAiFixedToday((ai?.failureAnalyses?.length) ?? aiFixedToday);
+      } catch (e) {
+        // keep simulated values on error
+        // eslint-disable-next-line no-console
+        console.warn('Dashboard: failed to fetch metrics from API', e);
+      }
+    })();
+
+    return () => { mounted = false; };
+  }, []);
 
   const latestJPM = spark.current[spark.current.length - 1];
 

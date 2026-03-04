@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { COLORS } from './theme';
 import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { AgentStudio } from './pages/AgentStudio';
+import { DeployMode } from './pages/DeployMode';
 import { Runners } from './pages/Runners';
+import { TCOCalculator } from './pages/TCOCalculator';
 import { Security } from './pages/Security';
-import { Billing } from './pages/Billing';
 
 /**
  * Main App Component
@@ -39,13 +40,18 @@ function App() {
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
-    deploy: <PlaceholderPage title="Deploy Mode Wizard" />,
+    deploy: <DeployMode />,
+      events: (
+        <Suspense fallback={<div>Loading...</div>}>
+          {React.createElement(lazy(() => import('./pages/LiveEvents')))}
+        </Suspense>
+      ),
     runners: <Runners tick={tick} />,
     oracle: <PlaceholderPage title="AI Oracle" />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
     security: <Security />,
     windows: <PlaceholderPage title="Windows Runners" />,
-    billing: <Billing />,
+    billing: <TCOCalculator />,
     settings: <PlaceholderPage title="Settings" />,
   };
 
