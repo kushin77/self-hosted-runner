@@ -4,6 +4,7 @@
  */
 
 import { authManager } from './auth';
+import { initMockAPI, mockAPIServer } from './mock';
 import type {
   APIError,
   APIRequestOptions,
@@ -247,4 +248,24 @@ export class APIClient {
 }
 
 // Singleton instance
-export const apiClient = new APIClient();
+// Read Vite env overrides when available
+const API_BASE = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_BASE
+  ? String((import.meta as any).env.VITE_API_BASE)
+  : '';
+const USE_MOCK = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_API_USE_MOCK !== 'false';
+
+export const apiClient = new APIClient(API_BASE || '/api');
+
+// If developer requested in-Vite mock behavior, enable mock API intercepts
+if (USE_MOCK) {
+  try {
+    // Enable mock server flag and initialize fetch interception
+    mockAPIServer.enable();
+    initMockAPI();
+    // eslint-disable-next-line no-console
+    console.info('Portal API: initialized in-client mock API (USE_MOCK=true)');
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('Portal API: failed to initialize mock API', e);
+  }
+}
