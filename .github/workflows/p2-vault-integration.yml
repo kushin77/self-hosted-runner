@@ -1,0 +1,57 @@
+name: p2-managed-auth-vault-integration
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ feature/p2-managed-mode, feature/p2-vault-hardening ]
+
+jobs:
+  vault-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start Vault dev server
+        run: |
+          docker run --cap-add=IPC_LOCK -d --name vault -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root
+
+      - name: Wait for Vault
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
+              echo "Vault is ready"; break
+            fi
+            sleep 1
+          done
+
+      - name: Setup Vault env
+        run: |
+          echo "VAULT_ADDR=http://127.0.0.1:8200" >> $GITHUB_ENV
+          echo "VAULT_TOKEN=root" >> $GITHUB_ENV
+          echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install managed-auth deps
+        run: |
+          cd services/managed-auth
+          npm ci --no-audit --no-fund || npm install
+
+      - name: Run integration test (Vault)
+        env:
+          VAULT_ADDR: ${{ env.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
+          SECRETS_BACKEND: ${{ env.SECRETS_BACKEND }}
+        run: |
+          cd services/managed-auth
+          bash tests/integration_with_vault.sh
+
+      - name: Tear down Vault
+        if: always()
+        run: |
+          docker rm -f vault || true
