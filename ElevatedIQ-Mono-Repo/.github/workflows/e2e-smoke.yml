@@ -1,0 +1,56 @@
+name: E2E Smoke (mock-server)
+
+on:
+  pull_request:
+    paths:
+      - 'apps/portal/**'
+  workflow_dispatch: {}
+
+jobs:
+  e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install mock-server deps
+        run: npm ci --prefix apps/portal/mock-server
+
+      - name: Start mock-server
+        run: |
+          nohup node apps/portal/mock-server/server.cjs > mock-server.log 2>&1 &
+          echo $! > mock-server.pid
+
+      - name: Wait for mock-server
+        run: |
+          for i in {1..20}; do
+            if curl --silent --fail http://localhost:3001/api/events >/dev/null 2>&1; then
+              echo "mock-server up"; break
+            fi
+            sleep 2
+          done
+
+      - name: Install e2e deps
+        run: npm ci --prefix apps/portal/e2e
+
+      - name: Run e2e smoke test
+        run: node apps/portal/e2e/smoke_test.js
+
+      - name: Upload mock-server log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-server-log
+          path: mock-server.log
+
+      - name: Stop mock-server
+        if: always()
+        run: |
+          if [ -f mock-server.pid ]; then
+            kill $(cat mock-server.pid) || true
+          fi
