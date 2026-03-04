@@ -24,11 +24,7 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
     orange: COLORS.orange,
   };
 
-<<<<<<< HEAD
-  const c = typeof color === 'string' && colorMap[color] ? colorMap[color] : (color as string);
-=======
   const c = (colorMap as Record<string, string>)[String(color)] || String(color) || COLORS.muted;
->>>>>>> feature/ci-portal-staging-e2e
 
   return (
     <span
@@ -196,19 +192,6 @@ export const Spinner: React.FC = () => (
     }}
   />
 );
-
-/**
- * ProgressBar - simple horizontal progress indicator
- */
-interface ProgressBarProps {
-  value: number;
-  max?: number;
-  height?: number;
-  color?: string;
-}
-
-// ProgressBar is implemented in `Charts` and re-exported for consumers.
-// Keep the source of truth in `Charts` to avoid duplicate definitions.
 
 /**
  * Global CSS animations
