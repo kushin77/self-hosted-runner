@@ -10,6 +10,7 @@ import { Security } from './pages/Security';
 import { Billing } from './pages/Billing';
 import { DeployMode } from './pages/DeployMode';
 import { AIOracleContent } from './pages/AIOracleContent';
+import { LiveMirrorCache } from './pages/LiveMirrorCache';
 
 /**
  * Main App Component
@@ -44,7 +45,7 @@ function App() {
     deploy: <DeployMode />,
     runners: <Runners tick={tick} />,
     oracle: <AIOracleContent />,
-    cache: <PlaceholderPage title="LiveMirror Cache" />,
+    cache: <LiveMirrorCache />,
     security: <Security />,
     windows: <PlaceholderPage title="Windows Runners" />,
     billing: <Billing />,
