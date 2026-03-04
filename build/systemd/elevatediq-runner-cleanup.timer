@@ -1,0 +1,16 @@
+[Unit]
+Description=ElevatedIQ Self-Hosted Runner Cleanup Timer (6-hour interval)
+Documentation=https://github.com/kushin77/ElevatedIQ-Mono-Repo/issues/7019
+
+[Timer]
+# Run every 6 hours, starting at system boot
+OnBootSec=5min
+OnUnitActiveSec=6h
+Persistent=true
+Unit=elevatediq-runner-cleanup.service
+
+# Randomize execution by ±5 minutes to prevent thundering herd
+Accuracy=5min
+
+[Install]
+WantedBy=timers.target
