@@ -1,5 +1,5 @@
 import React from 'react';
-import { COLORS } from './theme';
+import { COLORS } from '../theme';
 
 /**
  * Sparkline - Minimal line chart for metrics
@@ -111,7 +111,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
  * BarChart - Animated bar chart
  */
 interface BarChartProps {
-  data: number[];
+  data: number[] | { label: string; value: number; color?: string }[];
   color?: string;
   height?: number;
 }
@@ -121,7 +121,10 @@ export const BarChart: React.FC<BarChartProps> = ({
   color = COLORS.accent,
   height = 50,
 }) => {
-  const max = Math.max(...data);
+  const normalized = Array.isArray(data) && data.length && typeof (data[0] as any) === 'object'
+    ? (data as { label: string; value: number; color?: string }[]).map((d) => d.value)
+    : (data as number[]);
+  const max = Math.max(...normalized);
   const bw = 8,
     gap = 4;
   const w = data.length * (bw + gap);
@@ -137,7 +140,7 @@ export const BarChart: React.FC<BarChartProps> = ({
             y={height - bh}
             width={bw}
             height={bh}
-            fill={color}
+            fill={Array.isArray(data) && data.length && typeof (data[0] as any) === 'object' ? ((data as any)[i].color || color) : color}
             rx={2}
             opacity={0.7 + (i / data.length) * 0.3}
             style={{ filter: `drop-shadow(0 0 4px ${color})` }}
@@ -228,20 +231,23 @@ interface DonutSegment {
 }
 
 interface DonutProps {
-  segments: DonutSegment[];
+  segments?: DonutSegment[];
+  data?: { name: string; value: number; color?: string }[];
 }
 
-export const Donut: React.FC<DonutProps> = ({ segments }) => {
+export const Donut: React.FC<DonutProps> = ({ segments, data }) => {
+  const normalizedSegments: DonutSegment[] = segments
+    ? segments
+    : (data || []).map((d) => ({ pct: d.value, color: d.color || COLORS.accent }));
   const cx = 60;
   const cy = 60;
   const r = 44;
   const stroke = 14;
   let offset = 0;
   const circ = 2 * Math.PI * r;
-
   return (
     <svg width={120} height={120}>
-      {segments.map((s, i) => {
+      {normalizedSegments.map((s, i) => {
         const dash = (s.pct / 100) * circ;
         const el = (
           <circle
@@ -286,6 +292,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   showLabel = true,
 }) => {
   const pct = Math.min((value / max) * 100, 100);
+  const fillColor = pct > 85 ? COLORS.red : pct > 60 ? COLORS.yellow : color;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -294,7 +301,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
           style={{
             width: `${pct}%`,
             height: '100%',
-            background: pct > 85 ? COLORS.red : pct > 60 ? COLORS.yellow : COLORS.green,
+            background: fillColor,
             borderRadius: 2,
             transition: 'width 0.3s ease',
           }}

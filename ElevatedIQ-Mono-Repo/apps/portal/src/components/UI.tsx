@@ -1,5 +1,5 @@
 import React from 'react';
-import { COLORS, ColorKey } from './theme';
+import { COLORS, ColorKey } from '../theme';
 
 /**
  * Pill - Status/label badge component
