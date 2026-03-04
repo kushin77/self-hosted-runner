@@ -56,17 +56,17 @@ wss.on('connection', (ws) => {
     if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
   }, 15000);
 
-  // Simulate new events every 3-8 seconds
+  // Simulate new events every 1-5 seconds using generator from data.js
   const interval = setInterval(() => {
-    const evt = {
-      time: new Date().toISOString(),
-      type: Math.random() > 0.8 ? 'blocked' : Math.random() > 0.5 ? 'sbom' : 'allowed',
-      severity: Math.random() > 0.9 ? 'critical' : Math.random() > 0.7 ? 'high' : Math.random() > 0.4 ? 'warn' : 'info',
-      message: 'Simulated eBPF event ' + Math.floor(Math.random() * 1000),
-      details: 'source: rc-' + Math.random().toString(36).slice(2, 8),
-    };
-    broadcastEvent({ type: 'event', event: evt });
-  }, Math.floor(Math.random() * 5000) + 3000);
+    try {
+      const evt = data.generateEvent();
+      broadcastEvent({ type: 'event', event: evt });
+    } catch (e) {
+      // fallback
+      const fallback = { id: Date.now().toString(), type: 'job_started', timestamp: Date.now(), message: 'simulated', severity: 'info' };
+      broadcastEvent({ type: 'event', event: fallback });
+    }
+  }, Math.floor(Math.random() * 4000) + 1000);
 
   ws.on('close', () => {
     clearInterval(interval);
