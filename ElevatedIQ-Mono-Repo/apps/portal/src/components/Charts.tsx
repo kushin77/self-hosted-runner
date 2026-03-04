@@ -110,8 +110,10 @@ export const AreaChart: React.FC<AreaChartProps> = ({
 /**
  * BarChart - Animated bar chart
  */
+type BarDatum = number | { label: string; value: number; color?: string; maxValue?: number };
+
 interface BarChartProps {
-  data: number[];
+  data: BarDatum[];
   color?: string;
   height?: number;
 }
@@ -121,15 +123,23 @@ export const BarChart: React.FC<BarChartProps> = ({
   color = COLORS.accent,
   height = 50,
 }) => {
-  const max = Math.max(...data);
+  // normalize to values and optional per-bar colors
+  const values = data.map((d) => (typeof d === 'number' ? d : d.value));
+  const colors = data.map((d) => (typeof d === 'number' ? color : d.color || color));
+  const maxFromDatum = data
+    .map((d) => (typeof d === 'number' ? undefined : (d.maxValue as number | undefined)))
+    .filter(Boolean) as number[];
+
+  const globalMax = maxFromDatum.length ? Math.max(...maxFromDatum) : Math.max(...values);
   const bw = 8,
     gap = 4;
   const w = data.length * (bw + gap);
 
   return (
     <svg width={w} height={height}>
-      {data.map((v, i) => {
-        const bh = (v / max) * (height - 4);
+      {values.map((v, i) => {
+        const bh = (v / (globalMax || 1)) * (height - 4);
+        const fill = colors[i] || color;
         return (
           <rect
             key={i}
@@ -137,10 +147,10 @@ export const BarChart: React.FC<BarChartProps> = ({
             y={height - bh}
             width={bw}
             height={bh}
-            fill={color}
+            fill={fill}
             rx={2}
-            opacity={0.7 + (i / data.length) * 0.3}
-            style={{ filter: `drop-shadow(0 0 4px ${color})` }}
+            opacity={0.7 + (i / values.length) * 0.3}
+            style={{ filter: `drop-shadow(0 0 4px ${fill})` }}
           />
         );
       })}
@@ -223,15 +233,27 @@ export const Gauge: React.FC<GaugeProps> = ({
  * Donut Chart - Multi-segment donut
  */
 interface DonutSegment {
-  pct: number;
+  pct?: number;
+  value?: number;
   color: string;
 }
 
 interface DonutProps {
-  segments: DonutSegment[];
+  segments?: DonutSegment[];
+  data?: { name?: string; value: number; color?: string }[]; // legacy pages pass `data`
 }
 
-export const Donut: React.FC<DonutProps> = ({ segments }) => {
+export const Donut: React.FC<DonutProps> = ({ segments = [], data }) => {
+  // if `data` provided, convert to segments with pct
+  let segs: DonutSegment[] = segments;
+  if (data && data.length) {
+    const total = data.reduce((s, d) => s + (d.value || 0), 0) || 1;
+    segs = data.map((d) => ({ pct: ((d.value || 0) / total) * 100, color: d.color || COLORS.accent }));
+  } else if (segments && segments.length && segments[0].value !== undefined) {
+    const total = (segments as DonutSegment[]).reduce((s, d) => s + ((d.value as number) || 0), 0) || 1;
+    segs = (segments as DonutSegment[]).map((d) => ({ pct: ((d.value as number || 0) / total) * 100, color: d.color }));
+  }
+
   const cx = 60;
   const cy = 60;
   const r = 44;
@@ -241,8 +263,9 @@ export const Donut: React.FC<DonutProps> = ({ segments }) => {
 
   return (
     <svg width={120} height={120}>
-      {segments.map((s, i) => {
-        const dash = (s.pct / 100) * circ;
+      {segs.map((s, i) => {
+        const pct = s.pct || 0;
+        const dash = (pct / 100) * circ;
         const el = (
           <circle
             key={i}
@@ -259,7 +282,7 @@ export const Donut: React.FC<DonutProps> = ({ segments }) => {
             transform={`rotate(-90 ${cx} ${cy})`}
           />
         );
-        offset += s.pct;
+        offset += pct;
         return el;
       })}
       <circle cx={cx} cy={cy} r={r - stroke / 2 - 4} fill={COLORS.bg} />
