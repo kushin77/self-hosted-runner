@@ -2,8 +2,20 @@
 # Smoke integration test for services/managed-auth
 set -euo pipefail
 
-PORT=${PORT:-4001}
 SIMULATE_OAUTH=1
+# Pick an available ephemeral port using python3 if available, otherwise default
+if command -v python3 >/dev/null 2>&1; then
+  PORT=$(python3 - <<'PY'
+import socket
+s=socket.socket()
+s.bind(('',0))
+print(s.getsockname()[1])
+s.close()
+PY
+)
+else
+  PORT=${PORT:-54321}
+fi
 
 echo "Starting Managed Auth server (smoke test) on port $PORT"
 # Run the server from the current directory (index.js is colocated here)
