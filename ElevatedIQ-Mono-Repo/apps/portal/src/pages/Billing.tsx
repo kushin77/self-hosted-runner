@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
 import { BarChart } from '../components/Charts';
+import { api } from '../api';
 
 /**
  * Billing & TCO Calculator Page
@@ -10,6 +11,21 @@ export const Billing: React.FC = () => {
   const [monthlyJobs, setMonthlyJobs] = useState(150000);
   const [avgMinutesPerJob, setAvgMinutesPerJob] = useState(8);
   const [gpuPercent, setGpuPercent] = useState(25);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .getBilling()
+      .then((b: any) => {
+        if (!mounted || !b) return;
+        if (typeof b.monthlyJobs === 'number') setMonthlyJobs(b.monthlyJobs);
+        if (typeof b.avgMinutesPerJob === 'number') setAvgMinutesPerJob(b.avgMinutesPerJob);
+        if (typeof b.gpuPercent === 'number') setGpuPercent(b.gpuPercent);
+      })
+      .catch(() => {});
+
+    return () => { mounted = false; };
+  }, []);
 
   // Calculations
   const totalJobMinutes = monthlyJobs * avgMinutesPerJob;
