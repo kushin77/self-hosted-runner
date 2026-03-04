@@ -5,14 +5,14 @@ import { COLORS, ColorKey } from '../theme';
  * Pill - Status/label badge component
  */
 interface PillProps {
-  color: 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'cyan' | 'gray' | 'orange';
+  color: ColorKey | string;
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
 }
 
 export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
-  const colorMap = {
+  const colorMap: Record<string, string> = {
     green: COLORS.green,
     yellow: COLORS.yellow,
     red: COLORS.red,
@@ -23,7 +23,7 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
     orange: COLORS.orange,
   };
 
-  const c = colorMap[color] || COLORS.muted;
+  const c = typeof color === 'string' && colorMap[color] ? colorMap[color] : (color as string);
 
   return (
     <span
@@ -191,6 +191,25 @@ export const Spinner: React.FC = () => (
     }}
   />
 );
+
+/**
+ * ProgressBar - simple horizontal progress indicator
+ */
+interface ProgressBarProps {
+  value: number;
+  max?: number;
+  height?: number;
+  color?: string;
+}
+
+export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 100, height = 8, color = COLORS.accent }) => {
+  const pct = Math.max(0, Math.min(1, value / max));
+  return (
+    <div style={{ background: COLORS.border, borderRadius: 6, height }}>
+      <div style={{ width: `${pct * 100}%`, height: '100%', background: color, borderRadius: 6 }} />
+    </div>
+  );
+};
 
 /**
  * Global CSS animations

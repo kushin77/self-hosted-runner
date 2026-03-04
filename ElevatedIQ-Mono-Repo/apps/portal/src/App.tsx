@@ -42,10 +42,10 @@ function App() {
   );
 
   const pages: Record<string, React.ReactNode> = {
-    home: <Dashboard tick={tick} />,
+    home: <Dashboard />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
-    runners: <Runners tick={tick} />,
+    runners: <Runners />,
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
     security: <Security />,

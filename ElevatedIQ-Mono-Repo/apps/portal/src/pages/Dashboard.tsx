@@ -8,10 +8,11 @@ import { AreaChart, Gauge } from '../components/Charts';
  * Dashboard - Main overview page showing system metrics and status
  */
 interface DashboardProps {
-  tick: number;
+  tick?: number;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
+  const _tick = tick ?? useTick(2500);
   const spark = useRef(Array.from({ length: 28 }, () => rand(60, 420)));
   const [runners, setRunners] = useState(482);
   const [jobsPerMin, setJobsPerMin] = useState(347);
@@ -30,7 +31,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     setCpuUsage((v) => Math.max(55, Math.min(92, v + rand(-3, 4))));
     setMemUsage((v) => Math.max(50, Math.min(88, v + rand(-2, 3))));
     setGpuUsage((v) => Math.max(8, Math.min(30, v + rand(-2, 3))));
-  }, [tick]);
+  }, [_tick]);
 
   const latestJPM = spark.current[spark.current.length - 1];
 
