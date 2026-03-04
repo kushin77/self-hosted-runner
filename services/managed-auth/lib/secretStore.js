@@ -6,6 +6,7 @@ const filePath = process.env.SECRETS_FILE || path.join(__dirname, '..', '..', '.
 
 let memory = [];
 
+<<<<<<< HEAD
 // If backend is vault, try to load vault adapter
 if (backend === 'vault') {
   try {
@@ -13,6 +14,22 @@ if (backend === 'vault') {
     module.exports = { setToken: vault.setToken, getToken: vault.getToken };
   } catch (e) {
     // fallthrough to in-process implementation that will error when used
+=======
+// If backend is vault, try to load the real adapter first then fall back to
+// the simulate vault store. This lets CI start a real Vault dev server and
+// exercise the adapter while preserving local simulate behavior.
+if (backend === 'vault') {
+  try {
+    const vault = require('./vaultAdapter');
+    module.exports = { setToken: vault.setToken, getToken: vault.getToken };
+  } catch (e) {
+    try {
+      const vault = require('./vaultStore');
+      module.exports = { setToken: vault.setToken, getToken: vault.getToken };
+    } catch (e2) {
+      // fallthrough to in-process implementation that will error when used
+    }
+>>>>>>> feature/p2-vault-ci
   }
 }
 
@@ -28,31 +45,21 @@ function loadFile() {
     return JSON.parse(b || '[]');
   } catch (e) {
     return [];
-  }
-}
-
-function saveFile(arr) {
-  ensureDir(filePath);
-  fs.writeFileSync(filePath, JSON.stringify(arr, null, 2), 'utf8');
-}
-
-async function setToken(tokenObj) {
-  if (backend === 'file') {
-    const arr = loadFile();
-    arr.push(tokenObj);
-    saveFile(arr);
-    return true;
-  }
-  memory.push(tokenObj);
-  return true;
-}
-
-async function getToken(token) {
-  if (backend === 'file') {
-    const arr = loadFile();
-    return arr.find(t => t.token === token);
-  }
-  return memory.find(t => t.token === token);
-}
+    // If backend is vault, try to load the real adapter first then fall back to
+    // the simulate vault store. This lets CI start a real Vault dev server and
+    // exercise the adapter while preserving local simulate behavior.
+    if (backend === 'vault') {
+      try {
+        const vault = require('./vaultAdapter');
+        module.exports = { setToken: vault.setToken, getToken: vault.getToken };
+      } catch (e) {
+        try {
+          const vault = require('./vaultStore');
+          module.exports = { setToken: vault.setToken, getToken: vault.getToken };
+        } catch (e2) {
+          // fallthrough to in-process implementation that will error when used
+        }
+      }
+    }
 
 module.exports = { setToken, getToken };
