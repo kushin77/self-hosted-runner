@@ -64,7 +64,8 @@ EOF
 
 # Get all child processes
 get_child_pids() {
-  pgrep -P $JOB_WRAPPER_PID 2>/dev/null || echo ""
+  local target_pid="${1:-$JOB_WRAPPER_PID}"
+  pgrep -P "$target_pid" 2>/dev/null || echo ""
 }
 
 # Graceful termination sequence with escalation
@@ -119,9 +120,12 @@ graceful_terminate() {
 cleanup() {
   log "🧹 Cleaning up resources..."
   
-  # Close file descriptors
-  exec 2>&-
-  exec 1>&-
+  # Only close if they are not already pointing to /dev/null or similar
+  # Avoid breaking subsequent logging in tests
+  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    exec 2>&-
+    exec 1>&-
+  fi
   
   log "✓ Cleanup complete"
 }
@@ -195,19 +199,19 @@ github_actions_wrapper() {
 
 # Health check for running jobs
 job_health_check() {
-  local job_id="$1"
+  local target_pid="$1"
   
-  if [ -z "$job_id" ]; then
-    log "No job ID provided"
+  if [ -z "$target_pid" ]; then
+    log "No job process ID provided"
     return 1
   fi
   
-  # Check if job is still running
-  if get_child_pids > /dev/null 2>&1; then
-    log "✓ Job $job_id is running"
+  # Check if process exists
+  if kill -0 "$target_pid" 2>/dev/null; then
+    log "✓ Job $target_pid is running"
     return 0
   else
-    log "✗ Job $job_id is not running"
+    log "✗ Job $target_pid is not running"
     return 1
   fi
 }
