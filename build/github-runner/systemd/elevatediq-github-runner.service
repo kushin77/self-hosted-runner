@@ -1,0 +1,20 @@
+[Unit]
+Description=ElevatedIQ GitHub Actions Runner (Docker Compose)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+WorkingDirectory=/home/akushnir/ElevatedIQ-Mono-Mono-Repo/build/github-runner
+# Optional environment file: /etc/default/elevatediq-github-runner
+EnvironmentFile=-/etc/default/elevatediq-github-runner
+ExecStart=/usr/bin/docker compose -f /home/akushnir/ElevatedIQ-Mono-Mono-Repo/build/github-runner/docker-compose.yml up --remove-orphans
+ExecStop=/usr/bin/docker compose -f /home/akushnir/ElevatedIQ-Mono-Mono-Repo/build/github-runner/docker-compose.yml down
+
+User=akushnir
+Group=docker
+
+[Install]
+WantedBy=multi-user.target
