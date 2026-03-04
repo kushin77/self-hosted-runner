@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
+import { api } from '../api';
 
 /**
  * Security Event Interface
@@ -13,53 +14,7 @@ export interface SecurityEvent {
   details?: string;
 }
 
-/**
- * Security Events
- */
-const SECURITY_EVENTS: SecurityEvent[] = [
-  {
-    time: '4s ago',
-    type: 'blocked',
-    severity: 'high',
-    msg: 'npm install attempted download from registry.npmjs-cdn.xyz — unknown registry blocked',
-    details: 'Source: rc-managed-a3f9b · Job: frontend/web build · Network intercepted by Falco eBPF probe',
-  },
-  {
-    time: '2m ago',
-    type: 'allowed',
-    severity: 'info',
-    msg: 'apt install curl — approved, hash verified against allowlist',
-    details: 'Package: curl v7.88.1 · Hash: sha256:abc123... · Allowlisted by security policy',
-  },
-  {
-    time: '8m ago',
-    type: 'sbom',
-    severity: 'warn',
-    msg: 'SBOM generated for frontend/web — 847 packages, 2 CVE-LOW flagged',
-    details: 'CVE-2024-1234 in lodash (transitive) · CVE-2024-5678 in express · Both mitigated by policy',
-  },
-  {
-    time: '14m ago',
-    type: 'blocked',
-    severity: 'high',
-    msg: 'Outbound TCP to 185.220.101.x blocked — not in approved endpoint list',
-    details: 'Source: rc-byoc-c1d4e · Est. country: RU · Prevented by network-policy eBPF',
-  },
-  {
-    time: '22m ago',
-    type: 'allowed',
-    severity: 'info',
-    msg: 'Docker pull ghcr.io/your-org/ultra-runner — verified, signed image',
-    details: 'Signature: verified with Cosign · SBOM scanned · 0 vulnerabilities found',
-  },
-  {
-    time: '31m ago',
-    type: 'vulnerability',
-    severity: 'high',
-    msg: 'High-risk syscall sequence detected: ptrace + fork + execve from pip install process',
-    details: 'Potentially malicious package behavior detected · Tetragon eBPF alarm triggered',
-  },
-];
+const EMPTY_EVENTS: SecurityEvent[] = [];
 
 /**
  * Supply Chain Facts
@@ -77,11 +32,38 @@ const SUPPLY_CHAIN_FACTS = [
 export const Security: React.FC = () => {
   const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
   const [filter, setFilter] = useState<'all' | 'blocked' | 'sbom' | 'vulnerability'>('all');
+  const [events, setEvents] = useState<SecurityEvent[]>(EMPTY_EVENTS);
+  const [alertsCleared, setAlertsCleared] = useState(false);
 
-  const filteredEvents = SECURITY_EVENTS.filter((e) => {
+  useEffect(() => {
+    let mounted = true;
+    api
+      .getEvents()
+      .then((evs: any[]) => {
+        if (!mounted) return;
+        const mapped: SecurityEvent[] = evs.map((e) => ({
+          time: e.time,
+          type: e.type,
+          severity: e.severity,
+          msg: e.message || e.msg || '',
+          details: e.details,
+        }));
+        setEvents(mapped);
+      })
+      .catch(() => setEvents([]));
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const filteredEvents = events.filter((e) => {
     if (filter === 'all') return true;
     return e.type === filter;
   });
+
+  // Compute critical events for banner
+  const criticalEvents = events.filter((e) => e.severity === 'high' || e.severity === 'critical');
 
   const sevColorMap = {
     info: COLORS.green,
@@ -111,6 +93,37 @@ export const Security: React.FC = () => {
       </div>
 
       {/* Supply Chain Stats */}
+      {/* Critical Events Banner */}
+      {criticalEvents.length > 0 && !alertsCleared && (
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Panel style={{ padding: '10px 12px', background: `${COLORS.red}12`, border: `1px solid ${COLORS.red}33` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.red }}>
+                  {criticalEvents.length} Critical Security Event{criticalEvents.length > 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.muted }}>
+                  Recent high-severity events detected. Click "Show" to jump to latest events.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { setFilter('all'); setExpandedEvent(0); }}
+                  style={{ background: COLORS.red, color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  Show
+                </button>
+                <button
+                  onClick={() => setAlertsCleared(true)}
+                  style={{ background: 'transparent', border: `1px solid ${COLORS.border}`, padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </Panel>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
         {SUPPLY_CHAIN_FACTS.map((s) => (
           <Panel key={s.label} style={{ padding: '12px 14px' }}>

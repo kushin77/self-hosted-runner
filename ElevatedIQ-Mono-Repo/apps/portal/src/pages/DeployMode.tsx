@@ -1,531 +1,537 @@
 import React, { useState } from 'react';
 import { COLORS } from '../theme';
-import { Panel, PanelHeader, Button, Pill } from '../components/UI';
-
-type DeployMode = 'managed' | 'byoc' | 'onprem' | null;
-type StepIndex = 0 | 1 | 2 | 3;
+import { Panel, Button, Pill } from '../components/UI';
 
 /**
- * Deploy Mode Wizard - Setup flows for all deployment modes
- * Managed (3-step), BYOC (5-step), On-Premise (4-step)
+ * Deploy Mode Wizard Interface
+ */
+interface DeployStep {
+  number: number;
+  title: string;
+  description: string;
+  command?: string;
+  details: string[];
+}
+
+interface DeployMode {
+  id: 'managed' | 'byoc' | 'onprem';
+  name: string;
+  icon: string;
+  color: string;
+  description: string;
+  steps: DeployStep[];
+  benefits: string[];
+  estimatedTime: string;
+}
+
+/**
+ * Deploy Modes Configuration
+ */
+const DEPLOY_MODES: DeployMode[] = [
+  {
+    id: 'managed',
+    name: 'Managed',
+    icon: '☁️',
+    color: COLORS.cyan,
+    description: 'ElevatedIQ Cloud: We manage infrastructure, you manage jobs',
+    benefits: [
+      'Zero infrastructure setup',
+      'Auto-scaling runners',
+      'Built-in monitoring & alerts',
+      'Managed SBOM & compliance',
+      'Global edge endpoints',
+    ],
+    estimatedTime: '5 minutes',
+    steps: [
+      {
+        number: 1,
+        title: 'Create Organization Account',
+        description: 'Sign up and create your ElevatedIQ organization',
+        command: 'curl -X POST https://api.elevatediq.com/orgs',
+        details: [
+          'Visit https://portal.elevatediq.com/signup',
+          'Enter organization name and billing email',
+          'Verify email and set up 2FA',
+        ],
+      },
+      {
+        number: 2,
+        title: 'Generate API Token',
+        description: 'Create token for GitHub Actions integration',
+        command: 'elevatediq token create --name github-runner-token',
+        details: [
+          'Go to Settings → API Tokens',
+          'Click "Generate New Token"',
+          'Copy token (shown only once)',
+        ],
+      },
+      {
+        number: 3,
+        title: 'Add GitHub Secret',
+        description: 'Store API token in GitHub for authentication',
+        command: 'gh secret set ELEVATEDIQ_RUNNER_TOKEN --body "<token>"',
+        details: [
+          'In GitHub repo: Settings → Secrets → New Repository Secret',
+          'Name: ELEVATEDIQ_RUNNER_TOKEN',
+          'Value: Paste your API token',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'byoc',
+    name: 'BYOC (Bring Your Own Cloud)',
+    icon: '🏢',
+    color: COLORS.green,
+    description: 'Your AWS/GCP/Azure account: ElevatedIQ optimizes, you control',
+    benefits: [
+      'Full infrastructure control',
+      'Custom VPC/network policies',
+      'Compliance with your policies',
+      'Cost visibility & attribution',
+      'eBPF security enforcement',
+    ],
+    estimatedTime: '30 minutes',
+    steps: [
+      {
+        number: 1,
+        title: 'Prepare Cloud Environment',
+        description: 'Set up VPC, subnets, and security groups',
+        command: 'terraform apply -var="org_id=myorg"',
+        details: [
+          'Create VPC with CIDR 10.0.0.0/16',
+          'Create private subnet 10.0.1.0/24 for runners',
+          'Configure NAT gateway for outbound traffic',
+          'Create security group allowing 443 outbound to npm/docker registries',
+        ],
+      },
+      {
+        number: 2,
+        title: 'Install BYOC Sidecar',
+        description: 'Deploy ElevatedIQ control plane in your account',
+        command: 'aws cloudformation create-stack --template-body file://byoc-stack.yaml --parameters ParameterKey=OrgId,ParameterValue=myorg',
+        details: [
+          'Download CloudFormation template from portal',
+          'Deploy ElevatedIQ Control Plane (ECS cluster)',
+          'Configure service IAM role with EC2/ECS permissions',
+          'Set log group retention to 30 days',
+        ],
+      },
+      {
+        number: 3,
+        title: 'Configure Network Allowlist',
+        description: 'Lock down external endpoints',
+        command: 'elevatediq network-policy add npm --endpoint registry.npmjs.org --port 443',
+        details: [
+          'Add registry.npmjs.org (NPM packages)',
+          'Add ghcr.io (Docker images)',
+          'Add github.com (Git clone)',
+          'Validate connectivity from private subnet',
+        ],
+      },
+      {
+        number: 4,
+        title: 'Register Runners',
+        description: 'Connect GitHub to your ElevatedIQ deployment',
+        command: 'gh secret set ELEVATEDIQ_SIDECAR_URL --body "https://sidecar.myorg.elevatediq.internal"',
+        details: [
+          'Get sidecar endpoint from CloudFormation outputs',
+          'Add to GitHub Organization Secrets',
+          'Register repository runners through web UI',
+          'Validate runner health in dashboard',
+        ],
+      },
+      {
+        number: 5,
+        title: 'Enable eBPF Monitoring',
+        description: 'Deploy kernel-level security enforcement',
+        command: 'elevatediq ebpf enable --mode strict',
+        details: [
+          'Select eBPF enforcement level (permissive, strict, audit-only)',
+          'Configure allowlist for syscalls and network',
+          'Enable SBOM generation on every job',
+          'Set up alerts for policy violations',
+        ],
+      },
+    ],
+  },
+  {
+    id: 'onprem',
+    name: 'On-Premise',
+    icon: '🖥️',
+    color: COLORS.yellow,
+    description: 'Your physical infrastructure: Maximum control & compliance',
+    benefits: [
+      'Air-gapped deployment',
+      'Zero cloud dependencies',
+      'Custom hardware requirements',
+      'Full data residency control',
+      'On-site support available',
+    ],
+    estimatedTime: '2-4 hours',
+    steps: [
+      {
+        number: 1,
+        title: 'Provision Physical Servers',
+        description: 'Set up bare-metal runner nodes',
+        command: 'packer build runner-image.pkr.hcl',
+        details: [
+          'Min spec: 16 vCPU, 32GB RAM, 500GB SSD per runner node',
+          'Install Ubuntu 22.04 LTS or RHEL 8.8+',
+          'Configure static networking (no DHCP)',
+          'Network mode: "host" for performance',
+        ],
+      },
+      {
+        number: 2,
+        title: 'Install ElevatedIQ Runtime',
+        description: 'Deploy control plane and agents',
+        command: 'curl https://repo.elevatediq.com/install-onprem.sh | sudo bash',
+        details: [
+          'Install container runtime (containerd recommended)',
+          'Deploy control plane (Kubernetes or standalone)',
+          'Configure persistent storage for SBOM/metrics',
+          'Set up logging aggregation (syslog/Filebeat)',
+        ],
+      },
+      {
+        number: 3,
+        title: 'Configure Air-Gapped Registry',
+        description: 'Mirror container dependencies',
+        command: 'elevatediq registry mirror --source ghcr.io --local-registry registry.internal:5000',
+        details: [
+          'Set up private Docker registry (2TB+ storage)',
+          'Mirror base images, tools, SDKs offline',
+          'Configure runners to use internal registry only',
+          'Schedule weekly registry sync from approved sources',
+        ],
+      },
+      {
+        number: 4,
+        title: 'Deploy Security Enforcement',
+        description: 'Kernel-level policy enforcement',
+        command: 'elevatediq security deploy --mode air-gapped',
+        details: [
+          'Deploy Falco + Tetragon for eBPF monitoring',
+          'Load security policies from offline bundle',
+          'Configure SELinux/AppArmor for process isolation',
+          'Enable TPM-based attestation (if available)',
+        ],
+      },
+    ],
+  },
+];
+
+/**
+ * Deploy Mode Wizard Page
  */
 export const DeployMode: React.FC = () => {
-  const [selectedMode, setSelectedMode] = useState<DeployMode>(null);
-  const [currentStep, setCurrentStep] = useState<StepIndex>(0);
-  const [copied, setCopied] = useState<string | null>(null);
+  const [selectedMode, setSelectedMode] = useState<'managed' | 'byoc' | 'onprem' | null>(null);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
 
-  const resetWizard = () => {
-    setSelectedMode(null);
-    setCurrentStep(0);
-  };
-
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(id);
-    setTimeout(() => setCopied(null), 2000);
-  };
-
-  // ===== MODE DEFINITIONS =====
-
-  const modes = {
-    managed: {
-      icon: '☁️',
-      title: 'Managed',
-      subtitle: 'SaaS runners in RunnerCloud fleet',
-      description: 'Pre-warmed, auto-scaling runners hosted by RunnerCloud. Fastest setup, zero infrastructure.',
-      color: COLORS.accent,
-      steps: [
-        {
-          title: 'GitHub App Authorization',
-          description: 'Authorize RunnerCloud to manage runners in your organization',
-          action: 'Click "Authorize" button to sign in with GitHub',
-          codeBlocks: [],
-          validation: 'OAuth flow initiated',
-        },
-        {
-          title: 'Configure Runner Pool',
-          description: 'Set runner specs (CPU, memory, labels)',
-          action: 'Choose instance type and auto-scaling settings',
-          codeBlocks: [
-            {
-              label: 'Pool Configuration',
-              code: `{
-  "pool": "production",
-  "minRunners": 2,
-  "maxRunners": 10,
-  "instanceType": "medium",
-  "labels": ["ubuntu-latest", "x64"],
-  "billingModel": "per-second"
-}`,
-            },
-          ],
-          validation: 'Pool created successfully',
-        },
-        {
-          title: 'Deploy & Verify',
-          description: 'Deploy runners and test with GitHub Actions workflow',
-          action: 'Runners deployed automatically in < 30s',
-          codeBlocks: [
-            {
-              label: 'Test Workflow',
-              code: `name: Test RunnerCloud Managed
-on: [push]
-jobs:
-  build:
-    runs-on: runnercloud-ubuntu-latest
-    steps:
-      - run: echo "Running on RunnerCloud managed runner!"`,
-            },
-          ],
-          validation: 'First job executed successfully',
-        },
-      ],
-    },
-    byoc: {
-      icon: '🔒',
-      title: 'BYOC',
-      subtitle: 'Bring Your Own Cloud (AWS/GCP/Azure)',
-      description: 'RunnerCloud control plane in your VPC. Full compliance: SOC 2, HIPAA, FedRAMP ready.',
-      color: COLORS.purple,
-      steps: [
-        {
-          title: 'Create GitHub App',
-          description: 'Register OAuth app in your GitHub organization',
-          action: 'Create app at: GitHub Org Settings → Developer Settings → New GitHub App',
-          codeBlocks: [],
-          validation: 'GitHub App registered',
-        },
-        {
-          title: 'Add AWS Credentials',
-          description: 'Configure AWS account access for RunnerCloud',
-          action: 'Store AWS credentials (or use OIDC federation)',
-          codeBlocks: [
-            {
-              label: 'IAM Policy (minimal)',
-              code: `{
-  "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": [
-      "ec2:RunInstances",
-      "ec2:TerminateInstances",
-      "ec2:DescribeInstances",
-      "karpenter:*"
-    ],
-    "Resource": "*"
-  }]
-}`,
-            },
-          ],
-          validation: 'AWS credentials verified',
-        },
-        {
-          title: 'Deploy via Terraform',
-          description: 'Generate and apply Terraform configuration',
-          action: 'Generate Terraform module for your environment',
-          codeBlocks: [
-            {
-              label: 'Terraform Apply',
-              code: `terraform init
-terraform plan
-terraform apply
-
-# Deploys:
-# - ARC in your EKS cluster
-# - Karpenter for auto-scaling
-# - RunnerCloud control plane integration`,
-            },
-          ],
-          validation: 'Terraform apply completed',
-        },
-        {
-          title: 'Configure Networking',
-          description: 'Set up network policies and security groups',
-          action: 'Configure inbound rules and OIDC federation',
-          codeBlocks: [
-            {
-              label: 'Network Policy',
-              code: `# Only allow traffic from:
-# - GitHub Actions webhooks (github.com)
-# - Cloud provider APIs (EC2, GKE, AKS)
-# - Internal Kubernetes services
-
-kubectl apply -f network-policy.yaml`,
-            },
-          ],
-          validation: 'Network policies applied',
-        },
-        {
-          title: 'Deploy & Verify',
-          description: 'Test runners in your VPC',
-          action: 'Deploy test runners and validate connectivity',
-          codeBlocks: [
-            {
-              label: 'Test Workflow',
-              code: `name: Test BYOC Runners
-on: [push]
-jobs:
-  build:
-    runs-on: runnercloud-byoc-ubuntu
-    steps:
-      - run: echo "Running in my VPC!"`,
-            },
-          ],
-          validation: 'BYOC runners executing jobs',
-        },
-      ],
-    },
-    onprem: {
-      icon: '🏢',
-      title: 'On-Premise',
-      subtitle: 'Bare metal or VM self-hosted',
-      description: 'Single binary deployment. No Kubernetes required. Scale via systemd or snapshots.',
-      color: COLORS.orange,
-      steps: [
-        {
-          title: 'Download Binary',
-          description: 'Get RunnerCloud On-Prem binary',
-          action: 'Download for your OS (Linux/Windows)',
-          codeBlocks: [
-            {
-              label: 'Download',
-              code: `# Linux
-curl -LO https://releases.runnercloud.io/runnercloud-onprem-linux-x64
-chmod +x runnercloud-onprem-linux-x64
-
-# Windows
-Invoke-WebRequest https://releases.runnercloud.io/runnercloud-onprem-windows-x64.exe`,
-            },
-          ],
-          validation: 'Binary downloaded and verified',
-        },
-        {
-          title: 'Create Configuration',
-          description: 'Configure runner token and pool settings',
-          action: 'Create YAML config file',
-          codeBlocks: [
-            {
-              label: '/etc/runnercloud/config.yaml',
-              code: `token: ghp_xxxxx_runner_token
-runnerGroup: default
-poolSize: 5
-runnerLabels:
-  - ubuntu-latest
-  - x64
-scalingPolicy:
-  minRunners: 2
-  maxRunners: 10
-  scaleUpThreshold: 3
-  scaleDownThreshold: 1`,
-            },
-          ],
-          validation: 'Configuration validated',
-        },
-        {
-          title: 'Install Service',
-          description: 'Register as systemd service',
-          action: 'Enable auto-start on boot',
-          codeBlocks: [
-            {
-              label: 'Install systemd service',
-              code: `sudo tee /etc/systemd/system/runnercloud.service > /dev/null <<EOF
-[Unit]
-Description=RunnerCloud On-Prem Runner
-After=network.target
-
-[Service]
-Type=simple
-User=runnercloud
-ExecStart=/usr/local/bin/runnercloud-onprem-linux-x64 \\
-  --config=/etc/runnercloud/config.yaml
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-sudo systemctl daemon-reload
-sudo systemctl enable runnercloud`,
-            },
-          ],
-          validation: 'Service installed',
-        },
-        {
-          title: 'Deploy & Verify',
-          description: 'Start service and test runners',
-          action: 'Boot runners and execute first job',
-          codeBlocks: [
-            {
-              label: 'Start service',
-              code: `sudo systemctl start runnercloud
-sudo systemctl status runnercloud
-
-# Check logs
-journalctl -u runnercloud -f`,
-            },
-          ],
-          validation: 'First on-prem job executed',
-        },
-      ],
-    },
-  };
-
-  // ===== MODE CARDS =====
-
-  const ModeCard: React.FC<{
-    mode: DeployMode;
-    data: typeof modes[keyof typeof modes];
-  }> = ({ mode, data }) => (
-    <Panel
-      glowColor={selectedMode === mode ? data.color : undefined}
-      style={{
-        padding: 16,
-        cursor: 'pointer',
-        border: `1px solid ${selectedMode === mode ? data.color + '66' : COLORS.border}`,
-        transition: 'all 0.2s',
-        opacity: selectedMode && selectedMode !== mode ? 0.5 : 1,
-      }}
-    >
-      <div
-        onClick={() => {
-          setSelectedMode(mode as DeployMode);
-          setCurrentStep(0);
-        }}
-      >
-        <div style={{ fontSize: 24, marginBottom: 8 }}>{data.icon}</div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: data.color, marginBottom: 4 }}>
-          {data.title}
-        </div>
-        <div style={{ fontSize: 10, color: COLORS.muted, marginBottom: 8 }}>
-          {data.subtitle}
-        </div>
-        <div style={{ fontSize: 10, color: COLORS.textDim, lineHeight: '1.4' }}>
-          {data.description}
-        </div>
-        <div style={{ marginTop: 12 }}>
-          <Pill color={mode === 'managed' ? 'blue' : mode === 'byoc' ? 'purple' : 'orange'}>
-            {data.steps.length} steps
-          </Pill>
-        </div>
-      </div>
-    </Panel>
-  );
-
-  // ===== WIZARD STEPS =====
-
-  const currentModeData = selectedMode ? modes[selectedMode] : null;
-  const currentStepData = currentModeData ? currentModeData.steps[currentStep] : null;
+  const mode = DEPLOY_MODES.find((m) => m.id === selectedMode);
 
   return (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        padding: 16,
-        overflow: 'auto',
-      }}
-    >
+    <div style={{ flex: 1, padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Header */}
       <div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
-          Deploy Mode Wizard
+        <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.text, marginBottom: 4 }}>
+          {selectedMode ? `${mode?.name} Setup Wizard` : 'Choose Deploy Mode'}
         </div>
         <div style={{ fontSize: 12, color: COLORS.muted }}>
-          Choose your deployment architecture and follow the setup flow
+          {selectedMode
+            ? `Estimated time: ${mode?.estimatedTime}`
+            : 'Select how you want to run ElevatedIQ runners'}
         </div>
       </div>
 
       {!selectedMode ? (
-        // Mode Selection View
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: 12,
-          }}
-        >
-          {Object.entries(modes).map(([key, data]) => (
-            <ModeCard key={key} mode={key as DeployMode} data={data} />
-          ))}
-        </div>
-      ) : currentModeData && currentStepData ? (
-        // Wizard Flow View
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Progress */}
-          <Panel style={{ padding: 12 }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 8,
-              }}
-            >
-              <div style={{ fontSize: 11, fontWeight: 700, color: currentModeData.color }}>
-                {currentModeData.title.toUpperCase()} MODE
-              </div>
-              <div style={{ fontSize: 10, color: COLORS.muted }}>
-                Step {currentStep + 1} of {currentModeData.steps.length}
-              </div>
-            </div>
-            <div
-              style={{
-                width: '100%',
-                height: 4,
-                background: COLORS.border,
-                borderRadius: 2,
-                overflow: 'hidden',
-              }}
-            >
-              <div
+        <>
+          {/* Mode Selection Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            {DEPLOY_MODES.map((m) => (
+              <Panel
+                key={m.id}
                 style={{
-                  width: `${((currentStep + 1) / currentModeData.steps.length) * 100}%`,
-                  height: '100%',
-                  background: currentModeData.color,
-                  transition: 'width 0.3s',
+                  padding: '16px 14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  border: `2px solid transparent`,
                 }}
-              />
-            </div>
-          </Panel>
+                glowColor={m.color}
+              >
+                <div
+                  onClick={() => setSelectedMode(m.id)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: 32, marginBottom: 6 }}>{m.icon}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.text }}>
+                      {m.name}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: COLORS.textDim }}>
+                    {m.description}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    {m.benefits.slice(0, 2).map((b, i) => (
+                      <div key={i} style={{ fontSize: 10, color: COLORS.muted }}>
+                        ✓ {b}
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 10, color: COLORS.muted }}>
+                      ✓ +{m.benefits.length - 2} more
+                    </div>
+                  </div>
+                  <button
+                    style={{
+                      marginTop: 8,
+                      background: m.color,
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: 4,
+                      padding: '6px 12px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    Setup {m.name}
+                  </button>
+                </div>
+              </Panel>
+            ))}
+          </div>
 
-          {/* Current Step */}
-          <Panel style={{ padding: 16 }}>
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.text, marginBottom: 4 }}>
-                {currentStepData.title}
+          {/* Quick Comparison */}
+          <Panel>
+            <div style={{ padding: '12px 14px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, marginBottom: 8 }}>
+                Quick Comparison
               </div>
-              <div style={{ fontSize: 11, color: COLORS.muted, marginBottom: 8 }}>
-                {currentStepData.description}
-              </div>
-            </div>
-
-            {/* Action */}
-            <Panel
-              style={{
-                padding: 12,
-                background: currentModeData.color + '08',
-                border: `1px solid ${currentModeData.color}22`,
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ fontSize: 10, color: COLORS.text }}>{currentStepData.action}</div>
-            </Panel>
-
-            {/* Code Blocks */}
-            {currentStepData.codeBlocks.length > 0 && (
-              <div style={{ marginBottom: 12 }}>
-                {currentStepData.codeBlocks.map((block, idx) => (
-                  <div key={idx}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 10 }}>
+                {[
+                  { aspect: 'Setup Time', managed: '5 min', byoc: '30 min', onprem: '2-4 hr' },
+                  { aspect: 'Monthly Cost', managed: '$499-2999', byoc: '$800-1500', onprem: '$5000+' },
+                  { aspect: 'Control Level', managed: 'Low', byoc: 'Medium', onprem: 'Maximum' },
+                  { aspect: 'Maintenance', managed: 'Zero', byoc: 'Shared', onprem: 'Full' },
+                ].map((row) => (
+                  <div key={row.aspect}>
+                    <div style={{ color: COLORS.muted, marginBottom: 4 }}>
+                      {row.aspect}
+                    </div>
                     <div
                       style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        color: COLORS.muted,
-                        textTransform: 'uppercase',
-                        marginBottom: 4,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                        color: COLORS.textDim,
                       }}
                     >
-                      {block.label}
+                      <span style={{ fontSize: 9 }}>M: {row.managed}</span>
+                      <span style={{ fontSize: 9 }}>B: {row.byoc}</span>
+                      <span style={{ fontSize: 9 }}>O: {row.onprem}</span>
                     </div>
-                    <Panel
-                      style={{
-                        padding: 10,
-                        background: COLORS.surfaceHigh,
-                        border: `1px solid ${COLORS.borderBright}`,
-                        marginBottom: 12,
-                        position: 'relative',
-                      }}
-                    >
-                      <pre
-                        style={{
-                          margin: 0,
-                          fontSize: 9,
-                          fontFamily: 'monospace',
-                          color: COLORS.cyan,
-                          lineHeight: '1.4',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                        }}
-                      >
-                        {block.code}
-                      </pre>
-                      <Button
-                        sm
-                        color={COLORS.cyan}
-                        onClick={() => copyToClipboard(block.code, block.label)}
-                        style={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          fontSize: 9,
-                        }}
-                      >
-                        {copied === block.label ? '✓ Copied' : 'Copy'}
-                      </Button>
-                    </Panel>
                   </div>
                 ))}
               </div>
-            )}
-
-            {/* Validation */}
-            <Panel
-              style={{
-                padding: 10,
-                background: COLORS.green + '08',
-                border: `1px solid ${COLORS.green}22`,
-              }}
-            >
-              <div style={{ fontSize: 10, color: COLORS.green }}>
-                ✓ {currentStepData.validation}
-              </div>
-            </Panel>
-          </Panel>
-
-          {/* Navigation */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 8,
-              justifyContent: 'space-between',
-            }}
-          >
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Button
-                color={COLORS.muted}
-                onClick={resetWizard}
-              >
-                ← Back to Modes
-              </Button>
-              {currentStep > 0 && (
-                <Button
-                  color={COLORS.muted}
-                  onClick={() => setCurrentStep((currentStep - 1) as StepIndex)}
-                >
-                  Previous
-                </Button>
-              )}
             </div>
-
-            <Button
-              color={currentModeData.color}
-              onClick={() => {
-                if (currentStep < currentModeData.steps.length - 1) {
-                  setCurrentStep((currentStep + 1) as StepIndex);
-                } else {
-                  alert('Deployment wizard completed! Check dashboard for active runners.');
-                  resetWizard();
-                }
+          </Panel>
+        </>
+      ) : (
+        <>
+          {/* Wizard Steps */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <button
+              onClick={() => setSelectedMode(null)}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${COLORS.border}`,
+                color: COLORS.text,
+                borderRadius: 4,
+                padding: '6px 12px',
+                fontSize: 11,
+                cursor: 'pointer',
               }}
             >
-              {currentStep === currentModeData.steps.length - 1 ? 'Complete' : 'Next →'}
+              ← Back
+            </button>
+            <div style={{ display: 'flex', gap: 6, flex: 1 }}>
+              {mode?.steps.map((step) => (
+                <div
+                  key={step.number}
+                  style={{
+                    flex: 1,
+                    height: 4,
+                    borderRadius: 2,
+                    background: step.number <= (expandedStep ?? 0) ? mode.color : COLORS.border,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Steps List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {mode?.steps.map((step) => (
+              <Panel
+                key={step.number}
+                style={{
+                  padding: 0,
+                  cursor: 'pointer',
+                  border: expandedStep === step.number ? `2px solid ${mode.color}` : '1px solid' + COLORS.border,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <div
+                  onClick={() => setExpandedStep(expandedStep === step.number ? null : step.number)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 14px',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      background: mode.color + '22',
+                      border: `2px solid ${mode.color}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: mode.color,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {step.number}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text }}>
+                      {step.title}
+                    </div>
+                    <div style={{ fontSize: 10, color: COLORS.muted, marginTop: 2 }}>
+                      {step.description}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 14, color: COLORS.textDim }}>
+                    {expandedStep === step.number ? '▲' : '▼'}
+                  </span>
+                </div>
+
+                {/* Expanded Details */}
+                {expandedStep === step.number && (
+                  <div style={{ borderTop: `1px solid ${COLORS.border}`, padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {/* Command */}
+                      {step.command && (
+                        <div>
+                          <div style={{ fontSize: 10, color: COLORS.muted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            Command
+                          </div>
+                          <div
+                            style={{
+                              background: '#000',
+                              border: `1px solid ${COLORS.border}`,
+                              borderRadius: 4,
+                              padding: '8px 10px',
+                              fontFamily: 'monospace',
+                              fontSize: 10,
+                              color: COLORS.green,
+                              wordBreak: 'break-all',
+                              position: 'relative',
+                            }}
+                          >
+                            {step.command}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(step.command!);
+                              }}
+                              style={{
+                                position: 'absolute',
+                                top: 6,
+                                right: 6,
+                                background: COLORS.accent,
+                                color: '#000',
+                                border: 'none',
+                                borderRadius: 2,
+                                padding: '2px 6px',
+                                fontSize: 9,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              COPY
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Details */}
+                      <div>
+                        <div style={{ fontSize: 10, color: COLORS.muted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          Details
+                        </div>
+                        <ul style={{ margin: 0, paddingLeft: 16 }}>
+                          {step.details.map((detail, i) => (
+                            <li
+                              key={i}
+                              style={{
+                                fontSize: 10,
+                                color: COLORS.textDim,
+                                marginBottom: 4,
+                              }}
+                            >
+                              {detail}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </Panel>
+            ))}
+          </div>
+
+          {/* Submit Button */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <Button
+              onClick={() => setSelectedMode(null)}
+              style={{
+                background: COLORS.border,
+                color: COLORS.text,
+                flex: 1,
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                console.log(`Deploy mode ${selectedMode} selected`);
+              }}
+              style={{
+                background: mode?.color,
+                color: '#000',
+                flex: 1,
+              }}
+            >
+              Continue with {mode?.name}
             </Button>
           </div>
-        </div>
-      ) : null}
+        </>
+      )}
     </div>
   );
 };

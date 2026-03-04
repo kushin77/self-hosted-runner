@@ -1,13 +1,14 @@
 {
   "name": "runnercloud-provisioner-worker",
   "version": "0.1.0",
-  "description": "Provisioner worker (scaffold). Dequeues jobs and calls Terraform/cloud APIs.",
+  "description": "Provisioner worker scaffold with metrics and logging",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "engines": { "node": ">=18" },
   "dependencies": {
+    "prom-client": "^14.0.1",
     "redis": "^4.6.7"
   }
 }

@@ -9,6 +9,12 @@ import { DeployMode } from './pages/DeployMode';
 import { Runners } from './pages/Runners';
 import { TCOCalculator } from './pages/TCOCalculator';
 import { Security } from './pages/Security';
+import { Billing } from './pages/Billing';
+import { DeployMode } from './pages/DeployMode';
+import { AIOracleContent } from './pages/AIOracleContent';
+import { LiveMirrorCache } from './pages/LiveMirrorCache';
+import { WindowsRunners } from './pages/WindowsRunners';
+import { Settings } from './pages/Settings';
 
 /**
  * Main App Component
@@ -41,18 +47,13 @@ function App() {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
-      events: (
-        <Suspense fallback={<div>Loading...</div>}>
-          {React.createElement(lazy(() => import('./pages/LiveEvents')))}
-        </Suspense>
-      ),
     runners: <Runners tick={tick} />,
-    oracle: <PlaceholderPage title="AI Oracle" />,
-    cache: <PlaceholderPage title="LiveMirror Cache" />,
+    oracle: <AIOracleContent />,
+    cache: <LiveMirrorCache />,
     security: <Security />,
-    windows: <PlaceholderPage title="Windows Runners" />,
-    billing: <TCOCalculator />,
-    settings: <PlaceholderPage title="Settings" />,
+    windows: <WindowsRunners />,
+    billing: <Billing />,
+    settings: <Settings />,
   };
 
   return (
