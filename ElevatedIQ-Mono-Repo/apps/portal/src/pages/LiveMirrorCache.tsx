@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
-import { BarChart, Donut } from '../components/Charts';
+import { Donut } from '../components/Charts';
 import { api } from '../api';
 
 /**
@@ -108,7 +108,7 @@ export const LiveMirrorCache: React.FC = () => {
   const totalItems = layers.reduce((sum, c) => sum + (c.items || 0), 0);
 
   const monthlySavings = Math.round((totalHitRate / 100) * 2400); // Approx savings
-  const cacheWarmupTime = totalSize / 1024; // ~1GB in 60s
+  // cacheWarmupTime removed — unused
 
   return (
     <div style={{ flex: 1, padding: 20, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -161,7 +161,7 @@ export const LiveMirrorCache: React.FC = () => {
         <PanelHeader icon="📦" title="Cache Composition" color={COLORS.yellow} />
         <div style={{ padding: '10px 14px' }}>
           <Donut
-            data={layers.map((c) => ({ name: c.name, value: c.size, color: c.color }))}
+            segments={layers.length ? layers.map((c) => ({ pct: Math.max(1, Math.round((c.size / totalSize) * 100)), color: c.color })) : []}
           />
         </div>
       </Panel>

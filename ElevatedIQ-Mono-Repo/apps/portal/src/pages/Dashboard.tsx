@@ -3,16 +3,13 @@ import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { Panel, PanelHeader, Pill, GlowDot } from '../components/UI';
 import { AreaChart, Gauge } from '../components/Charts';
-import { apiClient } from '../api';
+import { api } from '../api';
 
 /**
  * Dashboard - Main overview page showing system metrics and status
  */
-interface DashboardProps {
-  tick: number;
-}
-
-export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
+export const Dashboard: React.FC = () => {
+  const tick = useTick(2500);
   const spark = useRef(Array.from({ length: 28 }, () => rand(60, 420)));
   const [runners, setRunners] = useState(482);
   const [jobsPerMin, setJobsPerMin] = useState(347);
@@ -38,11 +35,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     let mounted = true;
     (async () => {
       try {
-        const runnersResp = await apiClient.getRunners();
+        const runnersResp = await api.getRunners();
         if (!mounted) return;
-        setRunners(runnersResp.total ?? (runnersResp.runners?.length ?? runners));
+        // api.getRunners currently returns an array of RunnerDTO in mocks
+        setRunners(Array.isArray(runnersResp) ? runnersResp.length : runners);
 
-        const billing = await apiClient.getBilling();
+        const billing = await api.getBilling();
         if (!mounted) return;
         // derive jobs per minute from monthly runner minutes as an approximation
         const minutes = billing?.currentMonth?.runnerMinutes ?? null;
@@ -51,13 +49,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
           setJobsPerMin(jpm);
         }
 
-        const cache = await apiClient.getCacheMetrics();
+        const cache = await api.getCacheLayers();
         if (!mounted) return;
-        setCacheHitRate(Math.round(cache?.metrics?.hitRate ?? cacheHitRate));
+        // api.getCacheLayers returns an array of cache layers; compute average hit rate
+        if (Array.isArray(cache) && cache.length) {
+          const avg = Math.round((cache.reduce((s, c) => s + (c.hitRate ?? 0), 0) / cache.length));
+          setCacheHitRate(avg);
+        }
 
-        const ai = await apiClient.getAIInsights();
+        const ai = await api.getAIInsights();
         if (!mounted) return;
-        setAiFixedToday((ai?.failureAnalyses?.length) ?? aiFixedToday);
+        setAiFixedToday((ai?.length) ?? aiFixedToday);
       } catch (e) {
         // keep simulated values on error
         // eslint-disable-next-line no-console
@@ -68,7 +70,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     return () => { mounted = false; };
   }, []);
 
-  const latestJPM = spark.current[spark.current.length - 1];
+  // latestJPM removed — unused variable
 
   return (
     <div

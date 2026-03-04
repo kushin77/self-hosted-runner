@@ -19,7 +19,6 @@ import { Settings } from './pages/Settings';
  */
 function App() {
   const [activeTab, setActiveTab] = useState('home');
-  const tick = useTick(2500);
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (

@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { COLORS } from '../theme';
-import { Panel, PanelHeader, Button, Pill } from '../components/UI';
-import { apiClient } from '../api/client';
+import { Panel, Button } from '../components/UI';
+import { api } from '../api';
 
 interface CostModel {
   name: string;
@@ -28,7 +28,7 @@ export const TCOCalculator: React.FC = () => {
   const [monthlyMinutes, setMonthlyMinutes] = useState(50000);
   const [linuxPercent, setLinuxPercent] = useState(70);
   const [windowsPercent, setWindowsPercent] = useState(20);
-  const [macosPercent, setMacosPercent] = useState(10);
+  // macOS percent is auto-calculated from other OSes
   const [spotUsagePercent, setSpotUsagePercent] = useState(75);
 
   // Derived
@@ -49,7 +49,7 @@ export const TCOCalculator: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const billing = await apiClient.getBilling();
+        const billing = await api.getBilling();
         if (!mounted) return;
         if (billing && billing.currentMonth && typeof billing.currentMonth.runnerMinutes === 'number') {
           setMonthlyMinutes(Math.max(1000, Math.round(billing.currentMonth.runnerMinutes)));

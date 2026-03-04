@@ -4,13 +4,16 @@
  * Enable with: localStorage.setItem('USE_MOCK_API', 'true')
  */
 
-import type { Runner, RunnerPool, Event, BillingResponse, CacheResponse, AIResponse, AuthToken } from './types';
+import type { Runner, Event, BillingResponse, CacheResponse, AIResponse, AuthToken } from './types';
 
 const MOCK_RUNNERS: Runner[] = [
   {
     id: 'runner-1',
     name: 'ubuntu-x64-1',
-    status: 'busy',
+    mode: 'managed',
+    status: 'running',
+    cpu: 36,
+    mem: 64,
     labels: ['ubuntu-latest', 'x64'],
     os: 'linux',
     arch: 'x64',
@@ -22,7 +25,10 @@ const MOCK_RUNNERS: Runner[] = [
   {
     id: 'runner-2',
     name: 'ubuntu-arm64-1',
+    mode: 'managed',
     status: 'idle',
+    cpu: 8,
+    mem: 16,
     labels: ['ubuntu-latest', 'arm64'],
     os: 'linux',
     arch: 'arm64',
@@ -34,7 +40,10 @@ const MOCK_RUNNERS: Runner[] = [
   {
     id: 'runner-3',
     name: 'windows-x64-1',
+    mode: 'managed',
     status: 'idle',
+    cpu: 16,
+    mem: 32,
     labels: ['windows-latest', 'x64'],
     os: 'windows',
     arch: 'x64',
@@ -45,7 +54,7 @@ const MOCK_RUNNERS: Runner[] = [
   },
 ];
 
-const MOCK_POOLS: RunnerPool[] = [
+const MOCK_POOLS: any[] = [
   {
     id: 'pool-1',
     name: 'Linux x64 Production',
@@ -139,30 +148,17 @@ const MOCK_CACHE: CacheResponse = {
   },
 };
 
-const MOCK_AI: AIResponse = {
-  failureAnalyses: [
-    {
-      jobId: 'job-456',
-      rootCause: 'Missing environment variable',
-      confidence: 95,
-      fileReference: '.github/workflows/ci.yml:42',
-      suggestedFix: 'Add NODE_ENV=production to job env or GitHub secrets',
-      relatedIssues: [
-        { id: 'issue-12', title: 'Environment setup for Node builds' },
-      ],
-      timestamp: Date.now() - 7200000,
-    },
-  ],
-  insights: {
-    failureRate: 4.2,
-    averageResolutionTime: 45,
-    topFailureCategories: [
-      'Dependency resolution',
-      'Missing environment variables',
-      'Network timeouts',
-    ],
+const MOCK_AI: AIResponse = [
+  {
+    id: 'ins-1',
+    title: 'Missing environment variable in CI',
+    severity: 'high',
+    category: 'configuration',
+    description: 'Some jobs fail when NODE_ENV is not set in the workflow',
+    recommendation: 'Add NODE_ENV or use defaults in workflow',
+    timestamp: Date.now() - 7200000,
   },
-};
+];
 
 /**
  * Mock API Server with request handlers
@@ -347,7 +343,7 @@ export function initMockAPI(): void {
       }
     }
 
-    return originalFetch.apply(this, args);
+    return (originalFetch as any)(...args);
   } as typeof fetch;
 }
 

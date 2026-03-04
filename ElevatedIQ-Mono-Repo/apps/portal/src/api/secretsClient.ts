@@ -6,10 +6,10 @@ const VAULT_BASE = typeof import.meta !== 'undefined' && (import.meta as any).en
   : 'http://localhost:8200';
 const VAULT_TOKEN = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_VAULT_TOKEN
   ? String((import.meta as any).env.VITE_VAULT_TOKEN)
-  : process.env.VITE_VAULT_TOKEN || '';
+  : (typeof globalThis !== 'undefined' && (globalThis as any).process && (globalThis as any).process.env && (globalThis as any).process.env.VITE_VAULT_TOKEN) || '';
 const VAULT_NAMESPACE = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.VITE_VAULT_NAMESPACE
   ? String((import.meta as any).env.VITE_VAULT_NAMESPACE)
-  : process.env.VITE_VAULT_NAMESPACE || '';
+  : (typeof globalThis !== 'undefined' && (globalThis as any).process && (globalThis as any).process.env && (globalThis as any).process.env.VITE_VAULT_NAMESPACE) || '';
 
 async function request(path: string, init: RequestInit = {}) {
   const url = VAULT_BASE.replace(/\/$/, '') + path;

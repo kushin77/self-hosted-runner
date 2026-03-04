@@ -87,7 +87,7 @@ export interface APIRequestOptions {
 }
 
 export interface APIResponse<T = any> {
-  data?: T;
+  data: T;
   error?: APIError | null;
   status?: number;
   timestamp?: number;

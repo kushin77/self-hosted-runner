@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
-import { Panel, PanelHeader, Pill } from '../components/UI';
+import { Panel, Pill } from '../components/UI';
 import { Sparkline } from '../components/Charts';
 import { api } from '../api';
 
@@ -30,11 +30,9 @@ export const AIOraclePageContent: React.FC = () => {
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'info' | 'warn' | 'high' | 'critical'>('all');
 
   const [insights, setInsights] = useState<AIInsight[]>(emptyInsights);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
     api
       .getAIInsights()
       .then((d) => {
@@ -56,7 +54,9 @@ export const AIOraclePageContent: React.FC = () => {
         if (!mounted) return;
         setInsights([]);
       })
-      .finally(() => mounted && setLoading(false));
+      .finally(() => {
+        /* no-op: loading state removed */
+      });
 
     return () => {
       mounted = false;

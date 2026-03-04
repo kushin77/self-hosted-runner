@@ -1,11 +1,12 @@
 import React from 'react';
-import { COLORS, ColorKey } from '../theme';
+import { COLORS } from '../theme';
 
 /**
  * Pill - Status/label badge component
  */
 interface PillProps {
-  color: 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'cyan' | 'gray' | 'orange';
+  // Accept named tokens or raw hex/string colors
+  color: 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'cyan' | 'gray' | 'orange' | string;
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
@@ -23,7 +24,7 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
     orange: COLORS.orange,
   };
 
-  const c = colorMap[color] || COLORS.muted;
+  const c = (colorMap as Record<string, string>)[String(color)] || COLORS.muted;
 
   return (
     <span
@@ -210,3 +211,5 @@ export const GlobalStyles = () => (
     }
   `}</style>
 );
+// Re-export ProgressBar for convenience
+export { ProgressBar } from './Charts';
