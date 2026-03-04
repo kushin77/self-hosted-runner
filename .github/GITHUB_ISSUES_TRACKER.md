@@ -16,6 +16,7 @@ If remote issue creation fails, maintainers can copy these entries to GitHub Iss
    - Labels: feature, infrastructure, backend
    - Body: Add API client abstraction in portal, endpoints for runners, events, billing, cache, ai-oracle.
    - Assignees: backend-team
+   - Status: PARTIALLY IMPLEMENTED — `AIOracle`, `Runners`, `Security`, `Billing`, `LiveMirrorCache` wired to `src/api` (local mock responses). Replace `api.useMock` to `false` when backend is ready.
 
 3. Feature: Instant Deploy (zero-to-live <5m)
    - Labels: critical-path, feature, p2
