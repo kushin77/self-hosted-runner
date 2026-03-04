@@ -1,0 +1,40 @@
+name: Portal Staging E2E Smoke
+
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install portal deps
+        run: |
+          npm ci --prefix ElevatedIQ-Mono-Repo/apps/portal || npm install --prefix ElevatedIQ-Mono-Repo/apps/portal
+
+      - name: Configure staging env (Vite)
+        run: |
+          if [ -n "${{ secrets.STAGING_API_BASE }}" ]; then
+            echo "VITE_API_BASE=${{ secrets.STAGING_API_BASE }}" >> $GITHUB_ENV
+          else
+            echo "VITE_API_BASE=https://staging-api.example.internal" >> $GITHUB_ENV
+          fi
+          if [ -n "${{ secrets.STAGING_VAULT_BASE }}" ]; then
+            echo "VITE_VAULT_BASE=${{ secrets.STAGING_VAULT_BASE }}" >> $GITHUB_ENV
+          else
+            echo "VITE_VAULT_BASE=https://staging-vault.example.internal" >> $GITHUB_ENV
+          fi
+
+      - name: Run portal e2e smoke
+        run: |
+          node ElevatedIQ-Mono-Repo/apps/portal/e2e/smoke_test.js
