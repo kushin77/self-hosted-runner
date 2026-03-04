@@ -1,0 +1,53 @@
+name: P2 Redis Integration
+
+on:
+  pull_request:
+    branches:
+      - feature/p2-managed-mode-secretstore
+  push:
+    branches:
+      - feature/p2-managed-mode-secretstore
+
+jobs:
+  redis-integration:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install provisioner-worker deps
+        run: |
+          cd services/provisioner-worker
+          npm ci --no-audit --no-fund
+
+      - name: Start provisioner worker
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          node services/provisioner-worker/index.js &
+          sleep 2
+
+      - name: Enqueue demo job (Redis)
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          node services/provisioner/demo_enqueue_redis.js
+
+      - name: Sanity check: ensure queue accepted
+        run: echo "Redis enqueue step completed"

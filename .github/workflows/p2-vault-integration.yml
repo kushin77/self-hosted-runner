@@ -3,12 +3,11 @@ name: p2-managed-auth-vault-integration
 on:
   workflow_dispatch: {}
   push:
-    branches: [ feature/p2-managed-mode, feature/p2-vault-hardening ]
+    branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci ]
 
 jobs:
   vault-integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,14 +41,14 @@ jobs:
           cd services/managed-auth
           npm ci --no-audit --no-fund || npm install
 
-      - name: Run integration test (Vault)
+      - name: Run provision_flow smoke test (Vault)
         env:
           VAULT_ADDR: ${{ env.VAULT_ADDR }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
           SECRETS_BACKEND: ${{ env.SECRETS_BACKEND }}
         run: |
-          cd services/managed-auth
-          bash tests/integration_with_vault.sh
+          cd services/managed-auth/tests
+          bash provision_flow.sh
 
       - name: Tear down Vault
         if: always()

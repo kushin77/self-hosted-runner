@@ -298,3 +298,18 @@ pkill -9 failure-predictor
 **Status**: ✅ READY FOR PRODUCTION DEPLOYMENT  
 **Deployment PR**: https://github.com/kushin77/self-hosted-runner/pull/6
 
+
+## Deployment Outcome
+
+- **Deployment executed**: March 4, 2026 (expedited / FAST_DEPLOY + AUTO_APPROVE)
+- **Canary → Gradual → Stabilization**: Completed (expedited windows)
+- **Artifacts**:
+  - Deployment log: `/tmp/p1-deployment.log`
+  - Post-validation log: `/tmp/post-validation.log`
+  - Pre-deployment backup: `/var/backups/p1-pre-deployment.tar.gz`
+  - Stabilization report: `/var/lib/p1-stabilization-report.json`
+  - Deployment report: `/var/lib/p1-deployment-report.json`
+
+Notes:
+- Some permission warnings were observed when writing to `/var/lib` and `/var/backups` during the run; verify service account permissions for automated runs.
+- Pre-deployment checks reported monitoring dashboard and Vault connectivity warnings; follow-up issues have been opened for investigation.

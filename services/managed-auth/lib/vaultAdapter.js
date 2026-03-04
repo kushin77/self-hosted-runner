@@ -1,84 +1,85 @@
-/*
- * Robust Vault adapter for secretStore. Uses `node-vault` when available and
- * configured via `VAULT_ADDR` and `VAULT_TOKEN`. Provides simple retry/backoff
- * and KV v2 compatibility helpers. Falls through by throwing on misconfig.
- */
-const backoff = ms => new Promise(r => setTimeout(r, ms));
+// Vault adapter for secretStore. Uses `node-vault` when configured, or falls
+// back to a local simulate mode when `SIMULATE_VAULT=1`.
+const path = require('path');
+const fs = require('fs');
 
-const MAX_RETRIES = parseInt(process.env.VAULT_ADAPTER_MAX_RETRIES || '5', 10);
-const BASE_DELAY_MS = parseInt(process.env.VAULT_ADAPTER_BASE_DELAY_MS || '200', 10);
+const SIMULATE = process.env.SIMULATE_VAULT === '1' || false;
+const SIM_FILE = process.env.VAULT_SIM_FILE || path.join(__dirname, '..', '..', '.secrets', 'vault_tokens.json');
+
+function ensureDir(p) {
+  const dir = path.dirname(p);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+function loadSim() {
+  try {
+    if (!fs.existsSync(SIM_FILE)) return [];
+    return JSON.parse(fs.readFileSync(SIM_FILE, 'utf8') || '[]');
+  } catch (e) { return []; }
+}
+
+function saveSim(arr) {
+  ensureDir(SIM_FILE);
+  fs.writeFileSync(SIM_FILE, JSON.stringify(arr, null, 2), 'utf8');
+}
 
 let vaultClient = null;
-let initialized = false;
+let usingNodeVault = false;
 
-function initClient() {
-  if (initialized) return;
-  initialized = true;
+function initVaultClient() {
+  if (vaultClient || SIMULATE) return;
   try {
     const vault = require('node-vault');
     const opts = {};
-    if (!process.env.VAULT_ADDR || !process.env.VAULT_TOKEN) {
-      // Caller must provide VAULT_ADDR and VAULT_TOKEN to use real Vault
-      vaultClient = null;
-      return;
-    }
-    opts.endpoint = process.env.VAULT_ADDR;
-    opts.token = process.env.VAULT_TOKEN;
+    if (process.env.VAULT_ADDR) opts.endpoint = process.env.VAULT_ADDR;
+    if (process.env.VAULT_TOKEN) opts.token = process.env.VAULT_TOKEN;
     vaultClient = vault(opts);
+    usingNodeVault = true;
   } catch (e) {
     vaultClient = null;
+    usingNodeVault = false;
   }
 }
 
-function kvV2Path(mount, base, key) {
-  // for KV v2 the path used by node-vault is `${mount}/data/${base}/${key}` for read/write
-  return `${mount}/data/${base}/${key}`;
-}
-
-async function withRetries(fn, actionDesc) {
-  let attempt = 0;
-  while (true) {
-    try {
-      return await fn();
-    } catch (err) {
-      attempt++;
-      if (attempt > MAX_RETRIES) {
-        const e = new Error(`Vault ${actionDesc} failed after ${attempt} attempts: ${err.message}`);
-        e.cause = err;
-        throw e;
-      }
-      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
-      console.error(`Vault ${actionDesc} failed (attempt ${attempt}), retrying in ${delay}ms:`, err.message);
-      await backoff(delay);
-    }
-  }
-}
-
+// KV mount and base path (KV v2).
 const KV_MOUNT = process.env.VAULT_KV_MOUNT || 'secret';
 const BASE_PATH = process.env.VAULT_KV_BASE_PATH || 'runnercloud/tokens';
 
+function tokenPath(token) {
+  // KV v2 path: `${mount}/data/${base}/${token}`
+  return `${KV_MOUNT}/data/${BASE_PATH}/${token}`;
+}
+
 async function setToken(tokenObj) {
-  initClient();
-  if (!vaultClient) throw new Error('Vault client not configured. Set VAULT_ADDR and VAULT_TOKEN in environment.');
-  const key = tokenObj.token;
-  const p = kvV2Path(KV_MOUNT, BASE_PATH, key);
-  return withRetries(async () => {
-    // node-vault write expects { data: {...} } for KV v2
-    await vaultClient.write(p, { data: tokenObj });
+  if (SIMULATE) {
+    const arr = loadSim();
+    arr.push(tokenObj);
+    saveSim(arr);
     return true;
-  }, `write ${p}`);
+  }
+  initVaultClient();
+  if (!usingNodeVault || !vaultClient) throw new Error('Vault client not configured. Set SIMULATE_VAULT=1 for local testing or provide VAULT_ADDR and VAULT_TOKEN and install node-vault.');
+  const token = tokenObj.token;
+  const p = tokenPath(token);
+  // node-vault write expects { data: { ... } } for KV v2
+  await vaultClient.write(p, { data: tokenObj });
+  return true;
 }
 
 async function getToken(token) {
-  initClient();
-  if (!vaultClient) throw new Error('Vault client not configured. Set VAULT_ADDR and VAULT_TOKEN in environment.');
-  const p = kvV2Path(KV_MOUNT, BASE_PATH, token);
-  return withRetries(async () => {
-    const resp = await vaultClient.read(p);
-    if (!resp || !resp.data) return null;
-    const data = resp.data.data || resp.data;
-    return data || null;
-  }, `read ${p}`);
+  if (SIMULATE) {
+    const arr = loadSim();
+    return arr.find(t => t.token === token);
+  }
+  initVaultClient();
+  if (!usingNodeVault || !vaultClient) throw new Error('Vault client not configured. Set SIMULATE_VAULT=1 for local testing or provide VAULT_ADDR and VAULT_TOKEN and install node-vault.');
+  const p = tokenPath(token);
+  const resp = await vaultClient.read(p);
+  // node-vault returns { data: { data: { ... } } } for KV v2 read
+  if (!resp || !resp.data) return null;
+  const data = resp.data.data || resp.data || null;
+  if (!data) return null;
+  return data;
 }
 
 module.exports = { setToken, getToken };
