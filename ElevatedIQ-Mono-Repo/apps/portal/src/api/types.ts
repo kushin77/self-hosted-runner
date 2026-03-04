@@ -46,3 +46,75 @@ export interface AIInsightDTO {
   recommendation?: string;
   [key: string]: any;
 }
+
+// Common aliases expected by other modules
+export type Runner = RunnerDTO;
+export type RunnerPool = { id?: string; name?: string; runners?: Runner[] };
+export type Event = EventDTO;
+export type BillingResponse = BillingDTO;
+export type CacheResponse = CacheLayerDTO;
+export type AIResponse = AIInsightDTO[];
+
+export interface APIError {
+  code?: string;
+  message: string;
+  [key: string]: any;
+}
+
+export interface APIRequestOptions {
+  timeout?: number;
+  retries?: number;
+  headers?: Record<string, string>;
+}
+
+export interface APIResponse<T = any> {
+  data: T;
+  status: number;
+  timestamp: number;
+}
+
+export type EventsResponse = { items: Event[]; page?: number; total?: number };
+export type RunnersResponse = { items: Runner[]; page?: number; total?: number } | Runner[];
+
+export type AuthToken = { token: string; expiresAt?: number };
+export type AuthContext = { user?: string } | any;
+
+
+// Compatibility aliases used across the app
+export type Runner = RunnerDTO;
+export type RunnerPool = Runner[];
+export type Event = EventDTO;
+export type BillingResponse = BillingDTO;
+export type CacheResponse = CacheLayerDTO;
+export type AIResponse = AIInsightDTO;
+
+export interface AuthToken {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+}
+
+export interface AuthContext {
+  token?: AuthToken | null;
+  isAuthenticated: boolean;
+}
+
+export interface APIError {
+  message: string;
+  code?: string | number;
+}
+
+export interface APIRequestOptions {
+  method?: string;
+  body?: any;
+  headers?: Record<string, string>;
+}
+
+export interface APIResponse<T = any> {
+  data?: T;
+  error?: APIError | null;
+}
+
+export interface RunnersResponse {
+  runners: Runner[];
+}
