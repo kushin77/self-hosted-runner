@@ -108,9 +108,16 @@ test_process_tree() {
 test_graceful_termination() {
   log_test "Graceful SIGTERM → SIGKILL escalation"
   
-  # Create long-running job that handles SIGTERM
-  # Use a subshell that waits and explicitly exits
-  (trap 'exit 0' SIGTERM; sleep 100) &
+  # Create a test script that really handles SIGTERM and exits
+  cat > "$TEST_DIR/term-script.sh" << 'EOF'
+#!/bin/bash
+trap "exit 0" SIGTERM
+sleep 100 &
+wait $!
+EOF
+  chmod +x "$TEST_DIR/term-script.sh"
+  
+  "$TEST_DIR/term-script.sh" &
   local job_pid=$!
   
   sleep 1.0
