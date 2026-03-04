@@ -1,0 +1,17 @@
+{
+  "name": "runnercloud-managed-auth",
+  "version": "0.1.0",
+  "description": "Minimal OAuth skeleton for RunnerCloud Managed Mode",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "test": "bash tests/provision_flow.sh"
+  },
+  "dependencies": {
+    "node-vault": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
