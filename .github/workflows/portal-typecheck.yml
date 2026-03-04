@@ -1,0 +1,48 @@
+name: Portal TypeScript Check
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'ElevatedIQ-Mono-Repo/apps/portal/**'
+      - '.github/workflows/portal-typecheck.yml'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths:
+      - 'ElevatedIQ-Mono-Repo/apps/portal/**'
+      - '.github/workflows/portal-typecheck.yml'
+
+jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: 'ElevatedIQ-Mono-Repo/apps/portal/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: ElevatedIQ-Mono-Repo/apps/portal
+        run: npm ci
+
+      - name: TypeScript Type Check
+        working-directory: ElevatedIQ-Mono-Repo/apps/portal
+        run: npm run type-check
+
+      - name: ESLint
+        working-directory: ElevatedIQ-Mono-Repo/apps/portal
+        run: npm run lint
+
+      - name: Build
+        working-directory: ElevatedIQ-Mono-Repo/apps/portal
+        run: npm run build
