@@ -4,6 +4,10 @@ import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
+import { AgentStudio } from './pages/AgentStudio';
+import { Runners } from './pages/Runners';
+import { Security } from './pages/Security';
+import { Billing } from './pages/Billing';
 
 /**
  * Main App Component
@@ -34,14 +38,14 @@ function App() {
 
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
-    agents: <PlaceholderPage title="Agent Studio" />,
+    agents: <AgentStudio />,
     deploy: <PlaceholderPage title="Deploy Mode Wizard" />,
-    runners: <PlaceholderPage title="Runners" />,
+    runners: <Runners tick={tick} />,
     oracle: <PlaceholderPage title="AI Oracle" />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
-    security: <PlaceholderPage title="Security Layer" />,
+    security: <Security />,
     windows: <PlaceholderPage title="Windows Runners" />,
-    billing: <PlaceholderPage title="Billing & TCO" />,
+    billing: <Billing />,
     settings: <PlaceholderPage title="Settings" />,
   };
 
