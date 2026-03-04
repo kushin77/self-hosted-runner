@@ -9,6 +9,7 @@ import { Runners } from './pages/Runners';
 import { Security } from './pages/Security';
 import { Billing } from './pages/Billing';
 import { DeployMode } from './pages/DeployMode';
+import { AIOracleContent } from './pages/AIOracleContent';
 
 /**
  * Main App Component
@@ -42,7 +43,7 @@ function App() {
     agents: <AgentStudio />,
     deploy: <DeployMode />,
     runners: <Runners tick={tick} />,
-    oracle: <PlaceholderPage title="AI Oracle" />,
+    oracle: <AIOracleContent />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
     security: <Security />,
     windows: <PlaceholderPage title="Windows Runners" />,
