@@ -16,6 +16,23 @@ ALERT_CHANNEL="${ALERT_CHANNEL:-slack}"
 ROLLBACK_ENABLED="${ROLLBACK_ENABLED:-true}"
 DRY_RUN="${DRY_RUN:-false}"
 
+# Optional helpers for faster automated runs (useful for CI/demo)
+# Set `FAST_DEPLOY=true` to shorten monitoring windows
+# Set `AUTO_APPROVE=true` to automatically approve rollout gates
+FAST_DEPLOY="${FAST_DEPLOY:-false}"
+AUTO_APPROVE="${AUTO_APPROVE:-false}"
+
+# Monitoring durations (seconds). Overridden when FAST_DEPLOY=true
+CANARY_MONITOR="${CANARY_MONITOR:-86400}"
+GRADUAL_MONITOR="${GRADUAL_MONITOR:-14400}"
+STABILIZE_MONITOR="${STABILIZE_MONITOR:-172800}"
+
+if [ "$FAST_DEPLOY" = "true" ]; then
+  CANARY_MONITOR=10
+  GRADUAL_MONITOR=5
+  STABILIZE_MONITOR=10
+fi
+
 # Deployment state
 DEPLOYMENT_STATE_FILE="/var/lib/p1-deployment-state.json"
 CHECKPOINT_BACKUP="/var/backups/p1-pre-deployment.tar.gz"
@@ -163,8 +180,8 @@ deploy_canary() {
   enable_monitoring "canary"
   
   # Wait and monitor
-  log "  ⏱️  Monitoring canary for 24 hours..."
-  monitor_deployment_phase "canary" 86400  # 24 hours
+  log "  ⏱️  Monitoring canary for ${CANARY_MONITOR}s..."
+  monitor_deployment_phase "canary" "$CANARY_MONITOR"
   
   if [ $? -eq 0 ]; then
     log "  ✓ Canary deployment successful"
@@ -186,7 +203,7 @@ deploy_gradual() {
   initialize_deployment_state "gradual-25" 25
   local deploy_count=$((runner_count / 4))
   deploy_components "gradual-25" "$deploy_count"
-  monitor_deployment_phase "gradual-25" 14400  # 4 hours
+  monitor_deployment_phase "gradual-25" "$GRADUAL_MONITOR"
   
   [ $? -eq 0 ] || { error "25% deployment failed"; return 1; }
   
@@ -195,7 +212,7 @@ deploy_gradual() {
   initialize_deployment_state "gradual-50" 50
   local deploy_count=$((runner_count / 2))
   deploy_components "gradual-50" "$deploy_count"
-  monitor_deployment_phase "gradual-50" 14400  # 4 hours
+  monitor_deployment_phase "gradual-50" "$GRADUAL_MONITOR"
   
   [ $? -eq 0 ] || { error "50% deployment failed"; return 1; }
   
@@ -203,7 +220,7 @@ deploy_gradual() {
   log "  Stage 3: Deploying to 100% of runners..."
   initialize_deployment_state "gradual-100" 100
   deploy_components "gradual-100" "$runner_count"
-  monitor_deployment_phase "gradual-100" 14400  # 4 hours
+  monitor_deployment_phase "gradual-100" "$GRADUAL_MONITOR"
   
   [ $? -eq 0 ] || { error "100% deployment failed"; return 1; }
   
@@ -217,7 +234,7 @@ stabilize_deployment() {
   initialize_deployment_state "stabilization" 100
   
   # Monitor all systems
-  monitor_all_metrics 172800  # 48 hours
+  monitor_all_metrics "$STABILIZE_MONITOR"
   
   # Collect stabilization report
   generate_stabilization_report
@@ -423,7 +440,12 @@ main() {
       
       deploy_canary || { error "Canary failed"; rollback; exit 1; }
       
-      read -p "Approve gradual rollout? (yes/no): " approval
+      if [ "$AUTO_APPROVE" = "true" ]; then
+        approval="yes"
+        log "  ✅ AUTO_APPROVE enabled — approving gradual rollout"
+      else
+        read -p "Approve gradual rollout? (yes/no): " approval
+      fi
       [ "$approval" = "yes" ] || { error "Rollout cancelled"; rollback; exit 1; }
       
       deploy_gradual || { error "Gradual rollout failed"; rollback; exit 1; }
