@@ -1,0 +1,321 @@
+# Phase P1 Monitoring & Alerting Configuration
+# Prometheus alerts and dashboards for all components
+
+groups:
+  - name: phase_p1_job_cancellation
+    interval: 30s
+    rules:
+      # Job cancellation alerts
+      - alert: GracefulTerminationFailures
+        expr: |
+          rate(job_cancellation_failures_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: critical
+          component: job-cancellation
+        annotations:
+          summary: "High job cancellation failure rate"
+          description: >
+            Job cancellation failures detected at {{ humanizePercentage $value }}.
+            This indicates processes are not terminating gracefully.
+            
+      - alert: GracePeriodExceeded
+        expr: |
+          rate(grace_period_exceeded_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: high
+          component: job-cancellation
+        annotations:
+          summary: "Jobs exceeding grace period threshold"
+          description: >
+            {{ humanizePercentage $value }} of jobs are exceeding the 30-second
+            grace period, requiring forced termination.
+      
+      - alert: CheckpointRecoveryFailures
+        expr: |
+          rate(checkpoint_recovery_failures_total[5m]) > 0.001
+        for: 10m
+        labels:
+          severity: high
+          component: job-cancellation
+        annotations:
+          summary: "Checkpoint recovery failures detected"
+          description: >
+            Cannot recover {{ humanizePercentage $value }} of job checkpoints.
+            Data loss risk detected.
+
+  - name: phase_p1_vault_integration
+    interval: 30s
+    rules:
+      # Vault integration alerts
+      - alert: CredentialRotationFailures
+        expr: |
+          rate(vault_rotation_failures_total[5m]) > 0.001
+        for: 5m
+        labels:
+          severity: critical
+          component: vault-integration
+        annotations:
+          summary: "Credential rotation failures"
+          description: >
+            Credential rotation is failing at {{ humanizePercentage $value }}.
+            Credentials may expire in cache.
+      
+      - alert: ExpiredCredentialsInUse
+        expr: |
+          vault_expired_credentials_total > 0
+        for: 2m
+        labels:
+          severity: critical
+          component: vault-integration
+        annotations:
+          summary: "Expired credentials detected in use"
+          description: >
+            {{ $value }} expired credentials are still in the active cache.
+            Immediate remediation required.
+      
+      - alert: VaultServerUnreachable
+        expr: |
+          up{job="vault"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: vault-integration
+        annotations:
+          summary: "Vault server unreachable"
+          description: >
+            Cannot reach Vault server. Credential operations may fail.
+            Fallback mechanism activated.
+      
+      - alert: HighCredentialCacheHitMissRatio
+        expr: |
+          rate(vault_cache_misses_total[5m]) / 
+          (rate(vault_cache_hits_total[5m]) + rate(vault_cache_misses_total[5m])) > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          component: vault-integration
+        annotations:
+          summary: "Low credential cache hit rate"
+          description: >
+            Cache hit rate is only {{ humanizePercentage $value }}.
+            Consider optimizing cache strategy.
+      
+      - alert: RotationDaemonCrashed
+        expr: |
+          up{job="vault-rotation-daemon"} == 0
+        for: 5m
+        labels:
+          severity: high
+          component: vault-integration
+        annotations:
+          summary: "Credential rotation daemon crashed"
+          description: >
+            Rotation daemon is down. Manual restart required.
+      
+      - alert: AuditLogFull
+        expr: |
+          (vault_audit_log_disk_usage_bytes / vault_audit_log_disk_limit_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: vault-integration
+        annotations:
+          summary: "Audit log disk usage near capacity"
+          description: >
+            Audit log disk is {{ humanizePercentage $value }} full.
+            Cleanup or expansion needed.
+
+  - name: phase_p1_failure_prediction
+    interval: 30s
+    rules:
+      # Failure prediction alerts
+      - alert: HighAnomalyDetectionRate
+        expr: |
+          rate(anomalies_detected_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: high
+          component: failure-predictor
+        annotations:
+          summary: "Elevate d anomaly detection rate"
+          description: >
+            {{ humanizePercentage $value }} of jobs are showing anomalies.
+            System may be under stress or experiencing failures.
+      
+      - alert: PredictionModelAccuracyDegraded
+        expr: |
+          prediction_model_accuracy < 0.85
+        for: 1h
+        labels:
+          severity: high
+          component: failure-predictor
+        annotations:
+          summary: "Prediction model accuracy degraded"
+          description: >
+            Model accuracy has dropped to {{ humanizePercentage $value }}.
+            Retraining recommended.
+      
+      - alert: FalsePositiveRateHigh
+        expr: |
+          prediction_false_positive_rate > 0.05
+        for: 30m
+        labels:
+          severity: warning
+          component: failure-predictor
+        annotations:
+          summary: "High false positive rate"
+          description: >
+            {{ humanizePercentage $value }} of alerts are false positives.
+            Consider adjusting thresholds.
+      
+      - alert: WebhookDeliveryFailures
+        expr: |
+          rate(alert_webhook_failures_total[5m]) > 0.01
+        for: 5m
+        labels:
+          severity: high
+          component: failure-predictor
+        annotations:
+          summary: "Alert webhook delivery failures"
+          description: >
+            {{ humanizePercentage $value }} of webhook deliveries are failing.
+            Alerts may not reach on-call team.
+      
+      - alert: ModelTrainingFailed
+        expr: |
+          time() - prediction_model_last_training_timestamp > 86400 * 1.5
+        for: 10m
+        labels:
+          severity: warning
+          component: failure-predictor
+        annotations:
+          summary: "Model training overdue"
+          description: >
+            Model hasn't been retrained in over 36 hours.
+            Performance may degrade.
+      
+      - alert: FeatureExtractionLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(feature_extraction_duration_seconds_bucket[5m])) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: failure-predictor
+        annotations:
+          summary: "Feature extraction latency high"
+          description: >
+            P95 feature extraction latency is {{ $value | humanizeDuration }}.
+            Scoring may be delayed.
+
+  - name: phase_p1_integration
+    interval: 30s
+    rules:
+      # Integration-level alerts
+      - alert: MultiComponentFailure
+        expr: |
+          (up{job="job-cancellation"} == 0) +
+          (up{job="vault-integration"} == 0) +
+          (up{job="failure-predictor"} == 0) >= 2
+        for: 5m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "Multiple Phase P1 components down"
+          description: >
+            {{ $value }} Phase P1 components are down simultaneously.
+            System-wide failure risk.
+      
+      - alert: JobCompletionRateLow
+        expr: |
+          rate(jobs_completed_successfully_total[1h]) / 
+          rate(jobs_started_total[1h]) < 0.95
+        for: 10m
+        labels:
+          severity: high
+          component: integration
+        annotations:
+          summary: "Job completion rate below threshold"
+          description: >
+            Only {{ humanizePercentage $value }} of jobs completing successfully.
+            System reliability compromised.
+      
+      - alert: EndToEndLatencyIncreased
+        expr: |
+          job_total_duration_seconds:p95 > 300
+        for: 15m
+        labels:
+          severity: warning
+          component: integration
+        annotations:
+          summary: "End-to-end job latency increased"
+          description: >
+            P95 job latency is {{ $value | humanizeDuration }}.
+            May indicate performance issues.
+      
+      - alert: ResourceUtilizationCritical
+        expr: |
+          (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1 or
+          (100 - node_filesystem_avail_percent{mountpoint="/"}) > 90
+        for: 5m
+        labels:
+          severity: critical
+          component: integration
+        annotations:
+          summary: "Critical resource utilization"
+          description: >
+            System running low on memory or disk space.
+            Immediate action required.
+
+# Recording rules for dashboard efficiency
+recording_rules:
+  - name: phase_p1_rates
+    interval: 1m
+    rules:
+      - record: job_success_rate_5m
+        expr: rate(jobs_completed_successfully_total[5m])
+      
+      - record: job_failure_rate_5m
+        expr: rate(jobs_failed_total[5m])
+      
+      - record: credential_rotation_success_rate_5m
+        expr: rate(vault_rotations_successful_total[5m]) / 
+            rate(vault_rotations_total[5m])
+      
+      - record: anomaly_detection_rate_5m
+        expr: rate(anomalies_detected_total[5m])
+
+# Dashboard configuration references
+dashboards:
+  - name: phase_p1_overview
+    description: "Overall Phase P1 system health"
+    panels:
+      - job_completion_rate
+      - error_rate_trend
+      - component_health_status
+      - alert_summary
+  
+  - name: job_cancellation_detail
+    description: "Job cancellation handler metrics"
+    panels:
+      - graceful_terminations_count
+      - grace_period_compliance
+      - checkpoint_save_success_rate
+  
+  - name: vault_integrity_detail
+    description: "Vault credentials and rotation"
+    panels:
+      - credential_rotation_timeline
+      - cache_hit_rate
+      - ttl_compliance
+      - audit_trail_summary
+  
+  - name: prediction_detail
+    description: "Model performance and predictions"
+    panels:
+      - model_accuracy_trend
+      - anomaly_score_distribution
+      - false_positive_rate
+      - feature_importance_ranking
