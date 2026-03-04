@@ -3,7 +3,13 @@
  * Provides a lightweight in-memory token store and refresh scheduling.
  */
 
-import type { AuthToken } from './types';
+// Minimal AuthToken shape used by the frontend auth manager
+type AuthToken = {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: number;
+  tokenType?: string;
+};
 
 class AuthManager {
   private token: AuthToken | null = null;
