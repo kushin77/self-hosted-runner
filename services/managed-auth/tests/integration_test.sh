@@ -5,7 +5,7 @@ PORT=4000
 export SIMULATE_OAUTH=1
 
 # Start server in background
-node ../index.js &
+node index.js &
 PID=$!
 trap "kill $PID" EXIT
 
