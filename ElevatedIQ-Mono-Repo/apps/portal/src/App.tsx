@@ -11,6 +11,8 @@ import { Billing } from './pages/Billing';
 import { DeployMode } from './pages/DeployMode';
 import { AIOracleContent } from './pages/AIOracleContent';
 import { LiveMirrorCache } from './pages/LiveMirrorCache';
+import { WindowsRunners } from './pages/WindowsRunners';
+import { Settings } from './pages/Settings';
 
 /**
  * Main App Component
@@ -47,9 +49,9 @@ function App() {
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
     security: <Security />,
-    windows: <PlaceholderPage title="Windows Runners" />,
+    windows: <WindowsRunners />,
     billing: <Billing />,
-    settings: <PlaceholderPage title="Settings" />,
+    settings: <Settings />,
   };
 
   return (
