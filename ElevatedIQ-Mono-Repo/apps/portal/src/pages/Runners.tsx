@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
+import { api } from '../api';
 import { Panel, PanelHeader, Pill, ProgressBar } from '../components/UI';
 
 /**
@@ -21,116 +22,7 @@ export interface Runner {
   lastHeartbeat: number;
 }
 
-/**
- * Sample Runners Data
- */
-const INITIAL_RUNNERS: Runner[] = [
-  {
-    id: 'rc-managed-a3f9b',
-    name: 'rc-managed-a3f9b',
-    mode: 'managed',
-    os: 'linux',
-    status: 'running',
-    cpu: 72,
-    mem: 58,
-    currentJob: 'frontend/web · build',
-    age: '4m 12s',
-    pool: 'spot',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-byoc-c1d4e',
-    name: 'rc-byoc-c1d4e',
-    mode: 'byoc',
-    os: 'linux',
-    status: 'running',
-    cpu: 45,
-    mem: 33,
-    currentJob: 'backend/api · deploy',
-    age: '1m 48s',
-    pool: 'on-demand',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-byoc-b7f2a',
-    name: 'rc-byoc-b7f2a',
-    mode: 'byoc',
-    os: 'linux',
-    status: 'running',
-    cpu: 88,
-    mem: 91,
-    currentJob: 'frontend/web · lint',
-    age: '7m 03s',
-    pool: 'spot',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-windows-f5a1b',
-    name: 'rc-windows-f5a1b',
-    mode: 'managed',
-    os: 'windows',
-    status: 'running',
-    cpu: 61,
-    mem: 44,
-    currentJob: 'unity-game · il2cpp-build',
-    age: '12m 30s',
-    pool: 'windows-2025-4x',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-onprem-e9c3d',
-    name: 'rc-onprem-e9c3d',
-    mode: 'onprem',
-    os: 'linux',
-    status: 'idle',
-    cpu: 2,
-    mem: 8,
-    currentJob: null,
-    age: '22s',
-    pool: 'datacenter-nyc',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-byoc-gpu-d8',
-    name: 'rc-byoc-gpu-d8',
-    mode: 'byoc',
-    os: 'linux',
-    status: 'running',
-    cpu: 34,
-    mem: 52,
-    gpu: 80,
-    currentJob: 'ml/training · finetune',
-    age: '2m 30s',
-    pool: 'gpu-g6e',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-managed-provisioning',
-    name: 'rc-managed-provisioning',
-    mode: 'managed',
-    os: 'linux',
-    status: 'provisioning',
-    cpu: 0,
-    mem: 0,
-    currentJob: null,
-    age: '3s',
-    pool: 'spot',
-    lastHeartbeat: Date.now(),
-  },
-  {
-    id: 'rc-byoc-draining',
-    name: 'rc-byoc-draining',
-    mode: 'byoc',
-    os: 'linux',
-    status: 'draining',
-    cpu: 12,
-    mem: 18,
-    currentJob: null,
-    age: '45m 22s',
-    pool: 'on-demand',
-    lastHeartbeat: Date.now(),
-  },
-];
+const EMPTY_RUNNERS: Runner[] = [];
 
 /**
  * Runner Row Component
@@ -226,10 +118,42 @@ const RunnerRow: React.FC<RunnerRowProps> = ({ runner }) => {
  */
 export const Runners: React.FC = () => {
   const tick = useTick(2500);
-  const [runners, setRunners] = useState<Runner[]>(INITIAL_RUNNERS);
+  const [runners, setRunners] = useState<Runner[]>(EMPTY_RUNNERS);
   const [filter, setFilter] = useState<'all' | 'running' | 'idle' | 'managed' | 'byoc'>(
     'all'
   );
+
+  // Load runners from API on mount
+  useEffect(() => {
+    let mounted = true;
+    api
+      .getRunners()
+      .then((rs: any[]) => {
+        if (!mounted) return;
+        const mapped: Runner[] = rs.map((r) => ({
+          id: r.id,
+          name: r.name,
+          mode: r.mode === 'on-prem' ? 'onprem' : (r.mode as any),
+          os: /win|windows/i.test(r.os) ? 'windows' : /mac|darwin/i.test(r.os) ? 'macos' : 'linux',
+          status: r.status,
+          cpu: r.cpu ?? 0,
+          mem: r.mem ?? 0,
+          gpu: r.gpu,
+          currentJob: r.currentJob ?? null,
+          age: r.age ?? '—',
+          pool: r.pool ?? 'default',
+          lastHeartbeat: r.lastHeartbeat ?? Date.now(),
+        }));
+        setRunners(mapped);
+      })
+      .catch(() => {
+        // keep empty list on error
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Update runner metrics on tick
   useEffect(() => {
