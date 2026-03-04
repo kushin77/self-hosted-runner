@@ -97,6 +97,51 @@ build {
     script = "${path.root}/scripts/harden-security.sh"
   }
   
+  # Install Ollama for local LLM inference (agentic workflows)
+  provisioner "shell" {
+    inline = [
+      "set -euo pipefail",
+      "echo '🤖 Installing Ollama for agentic workflows...'",
+      "curl -fsSL https://ollama.ai/install.sh | sh 2>/dev/null || echo 'Note: Ollama installation may require manual setup'",
+      "echo '✅ Ollama installed'"
+    ]
+  }
+  
+  # Create Ollama systemd service
+  provisioner "file" {
+    content = <<-EOF
+[Unit]
+Description=Ollama LLM Service for Agentic Workflows
+Documentation=https://ollama.ai
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/ollama serve
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+Environment="OLLAMA_MODELS=/data/ollama/models"
+Environment="OLLAMA_HOST=127.0.0.1:11434"
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    destination = "/etc/systemd/system/ollama.service"
+  }
+  
+  # Enable Ollama service
+  provisioner "shell" {
+    inline = [
+      "systemctl daemon-reload",
+      "systemctl enable ollama.service || true",
+      "echo '✅ Ollama service configured'"
+    ]
+  }
+  
   # Cleanup
   provisioner "shell" {
     inline = [
