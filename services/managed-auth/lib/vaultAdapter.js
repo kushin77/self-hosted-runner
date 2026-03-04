@@ -1,0 +1,84 @@
+/*
+ * Robust Vault adapter for secretStore. Uses `node-vault` when available and
+ * configured via `VAULT_ADDR` and `VAULT_TOKEN`. Provides simple retry/backoff
+ * and KV v2 compatibility helpers. Falls through by throwing on misconfig.
+ */
+const backoff = ms => new Promise(r => setTimeout(r, ms));
+
+const MAX_RETRIES = parseInt(process.env.VAULT_ADAPTER_MAX_RETRIES || '5', 10);
+const BASE_DELAY_MS = parseInt(process.env.VAULT_ADAPTER_BASE_DELAY_MS || '200', 10);
+
+let vaultClient = null;
+let initialized = false;
+
+function initClient() {
+  if (initialized) return;
+  initialized = true;
+  try {
+    const vault = require('node-vault');
+    const opts = {};
+    if (!process.env.VAULT_ADDR || !process.env.VAULT_TOKEN) {
+      // Caller must provide VAULT_ADDR and VAULT_TOKEN to use real Vault
+      vaultClient = null;
+      return;
+    }
+    opts.endpoint = process.env.VAULT_ADDR;
+    opts.token = process.env.VAULT_TOKEN;
+    vaultClient = vault(opts);
+  } catch (e) {
+    vaultClient = null;
+  }
+}
+
+function kvV2Path(mount, base, key) {
+  // for KV v2 the path used by node-vault is `${mount}/data/${base}/${key}` for read/write
+  return `${mount}/data/${base}/${key}`;
+}
+
+async function withRetries(fn, actionDesc) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err) {
+      attempt++;
+      if (attempt > MAX_RETRIES) {
+        const e = new Error(`Vault ${actionDesc} failed after ${attempt} attempts: ${err.message}`);
+        e.cause = err;
+        throw e;
+      }
+      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      console.error(`Vault ${actionDesc} failed (attempt ${attempt}), retrying in ${delay}ms:`, err.message);
+      await backoff(delay);
+    }
+  }
+}
+
+const KV_MOUNT = process.env.VAULT_KV_MOUNT || 'secret';
+const BASE_PATH = process.env.VAULT_KV_BASE_PATH || 'runnercloud/tokens';
+
+async function setToken(tokenObj) {
+  initClient();
+  if (!vaultClient) throw new Error('Vault client not configured. Set VAULT_ADDR and VAULT_TOKEN in environment.');
+  const key = tokenObj.token;
+  const p = kvV2Path(KV_MOUNT, BASE_PATH, key);
+  return withRetries(async () => {
+    // node-vault write expects { data: {...} } for KV v2
+    await vaultClient.write(p, { data: tokenObj });
+    return true;
+  }, `write ${p}`);
+}
+
+async function getToken(token) {
+  initClient();
+  if (!vaultClient) throw new Error('Vault client not configured. Set VAULT_ADDR and VAULT_TOKEN in environment.');
+  const p = kvV2Path(KV_MOUNT, BASE_PATH, token);
+  return withRetries(async () => {
+    const resp = await vaultClient.read(p);
+    if (!resp || !resp.data) return null;
+    const data = resp.data.data || resp.data;
+    return data || null;
+  }, `read ${p}`);
+}
+
+module.exports = { setToken, getToken };
