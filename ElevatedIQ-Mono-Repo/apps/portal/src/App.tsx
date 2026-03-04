@@ -5,6 +5,7 @@ import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { AgentStudio } from './pages/AgentStudio';
+import { DeployMode } from './pages/DeployMode';
 import { Runners } from './pages/Runners';
 import { Security } from './pages/Security';
 import { Billing } from './pages/Billing';
@@ -39,7 +40,7 @@ function App() {
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
-    deploy: <PlaceholderPage title="Deploy Mode Wizard" />,
+    deploy: <DeployMode />,
     runners: <Runners tick={tick} />,
     oracle: <PlaceholderPage title="AI Oracle" />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
