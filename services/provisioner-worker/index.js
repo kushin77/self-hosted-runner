@@ -24,8 +24,10 @@ async function runRedisWorker() {
   console.log('Connected to Redis. Blocking on', QUEUE_KEY);
   while (true) {
     try {
+      // brPop returns [key, element] when a value is popped
       const res = await client.brPop(QUEUE_KEY, 0);
-      const payload = JSON.parse(res.element || res[1] || '{}');
+      const element = Array.isArray(res) ? (res[1] || res.element) : (res.element || '');
+      const payload = JSON.parse(element || '{}');
       console.log('Dequeued job:', payload);
       // TODO: call Terraform/cloud APIs here and update job status.
     } catch (e) {
