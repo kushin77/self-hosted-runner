@@ -1,0 +1,21 @@
+name: P2 CI skeleton
+
+on:
+  push:
+    branches:
+      - 'feature/p2-*'
+      - 'feature/instant-deploy'
+      - 'feature/tco-calculator'
+
+jobs:
+  p2-check:
+    name: P2 CI check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print context
+        run: |
+          echo "P2 CI skeleton: branch=$GITHUB_REF"
+          echo "Run real tests in feature branches by updating this workflow."
