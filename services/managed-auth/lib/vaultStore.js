@@ -1,20 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const backend = process.env.SECRETS_BACKEND || 'memory';
-const filePath = process.env.SECRETS_FILE || path.join(__dirname, '..', '..', '.secrets', 'tokens.json');
-
-let memory = [];
-
-// If backend is vault, try to load vault adapter
-if (backend === 'vault') {
-  try {
-    const vault = require('./vaultStore');
-    module.exports = { setToken: vault.setToken, getToken: vault.getToken };
-  } catch (e) {
-    // fallthrough to in-process implementation that will error when used
-  }
-}
+const simulate = process.env.SIMULATE_VAULT === '1' || false;
+const filePath = process.env.VAULT_SIM_FILE || path.join(__dirname, '..', '..', '.secrets', 'vault_tokens.json');
 
 function ensureDir(p) {
   const dir = path.dirname(p);
@@ -37,22 +25,21 @@ function saveFile(arr) {
 }
 
 async function setToken(tokenObj) {
-  if (backend === 'file') {
+  if (simulate) {
     const arr = loadFile();
     arr.push(tokenObj);
     saveFile(arr);
     return true;
   }
-  memory.push(tokenObj);
-  return true;
+  throw new Error('Vault adapter not configured. Set SIMULATE_VAULT=1 for local testing or implement real Vault calls.');
 }
 
 async function getToken(token) {
-  if (backend === 'file') {
+  if (simulate) {
     const arr = loadFile();
     return arr.find(t => t.token === token);
   }
-  return memory.find(t => t.token === token);
+  throw new Error('Vault adapter not configured. Set SIMULATE_VAULT=1 for local testing or implement real Vault calls.');
 }
 
 module.exports = { setToken, getToken };
