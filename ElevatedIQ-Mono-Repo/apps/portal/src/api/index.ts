@@ -1,9 +1,12 @@
 import { RunnerDTO, EventDTO, BillingDTO, CacheLayerDTO, AIInsightDTO } from './types';
 
-// Minimal API client abstraction with mock responses for local dev.
-// Replace `useMock` with real fetch calls when backend is available.
+// API client abstraction with env-driven mock and base URL support.
+// Use Vite env vars to control behavior in dev and CI:
+// - `VITE_USE_MOCK` = "true" to use in-client mocks (default: true)
+// - `VITE_API_BASE` = "/" or a staging URL to prefix runtime fetches
 
-const useMock = true;
+const useMock = typeof import.meta !== 'undefined' && (import.meta.env?.VITE_USE_MOCK ?? 'true') === 'true';
+const API_BASE: string = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_API_BASE ?? '') : '';
 
 const mockRunners: RunnerDTO[] = [
   { id: 'r-1', name: 'runner-1', mode: 'managed', os: 'ubuntu-latest', status: 'running', cpu: 36, mem: 64, gpu: 0, currentJob: 'build/front', pool: 'default', lastHeartbeat: '3s ago' },
@@ -46,7 +49,8 @@ async function fetchJson<T>(path: string): Promise<T> {
     }
   }
 
-  const res = await fetch(path, { headers: { 'Accept': 'application/json' } });
+  const url = path.startsWith('http') ? path : `${API_BASE}${path}`;
+  const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
   if (!res.ok) throw new Error(`API error ${res.status} ${res.statusText}`);
   return (await res.json()) as T;
 }
