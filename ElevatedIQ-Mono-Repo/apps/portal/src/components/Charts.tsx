@@ -1,5 +1,5 @@
 import React from 'react';
-import { COLORS } from './theme';
+import { COLORS } from '../theme';
 
 /**
  * Sparkline - Minimal line chart for metrics
