@@ -10,7 +10,7 @@ const REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 min before expiry
 
 export class AuthManager {
   private token: AuthToken | null = null;
-  private refreshTimer: NodeJS.Timeout | null = null;
+  private refreshTimer: number | null = null;
   private listeners: Set<(context: AuthContext) => void> = new Set();
 
   constructor() {
@@ -61,7 +61,7 @@ export class AuthManager {
       const delay = Math.max(0, refreshAt - now);
 
       if (delay > 0) {
-        this.refreshTimer = setTimeout(() => this.refreshToken(), delay);
+        this.refreshTimer = window.setTimeout(() => this.refreshToken(), delay) as unknown as number;
       }
     }
   }
@@ -131,7 +131,7 @@ export class AuthManager {
     this.token = null;
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
+      window.clearTimeout(this.refreshTimer as number);
       this.refreshTimer = null;
     }
     this.notifyListeners();

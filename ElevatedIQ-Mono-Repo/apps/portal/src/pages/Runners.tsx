@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { api } from '../api';
-import { Panel, PanelHeader, Pill, ProgressBar } from '../components/UI';
+import { Panel, PanelHeader, Pill } from '../components/UI';
+import { ProgressBar } from '../components/Charts';
 
 /**
  * Runner Interface

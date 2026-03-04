@@ -5,25 +5,37 @@ import { COLORS, ColorKey } from '../theme';
  * Pill - Status/label badge component
  */
 interface PillProps {
-  color: 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'cyan' | 'gray' | 'orange';
+  color: PillColor;
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
 }
 
-export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
-  const colorMap = {
-    green: COLORS.green,
-    yellow: COLORS.yellow,
-    red: COLORS.red,
-    blue: COLORS.accent,
-    purple: COLORS.purple,
-    cyan: COLORS.cyan,
-    gray: COLORS.muted,
-    orange: COLORS.orange,
-  };
+type PillColor = ColorKey | string;
 
-  const c = colorMap[color] || COLORS.muted;
+export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
+  const resolved = typeof color === 'string' && (color in COLORS ? (COLORS as any)[color] : color) as string;
+  const c = resolved || (COLORS as any).muted;
+
+  return (
+    <span
+      style={{
+        background: c + '22',
+        color: c,
+        border: `1px solid ${c}44`,
+        borderRadius: 3,
+        padding: sm ? '1px 5px' : '2px 8px',
+        fontSize: sm ? 9 : 10,
+        fontWeight: 700,
+        letterSpacing: '0.05em',
+        whiteSpace: 'nowrap',
+        animation: pulse ? 'pulse 2s infinite' : undefined,
+        display: 'inline-block',
+      }}
+    >
+      {children}
+    </span>
+  );
 
   return (
     <span

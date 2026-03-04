@@ -94,11 +94,31 @@ export interface AuthContext {
 }
 
 export type BillingResponse = BillingDTO;
-export type CacheResponse = CacheLayerDTO[];
 export type EventsResponse = EventDTO[];
 export type Event = EventDTO;
-export type RunnersResponse = RunnerDTO[];
-export type AIResponse = AIInsightDTO[];
+export interface RunnersResponse {
+  runners?: RunnerDTO[];
+  total?: number;
+  page?: number;
+  pageSize?: number;
+  pools?: any[];
+}
+
+export interface CacheResponse {
+  metrics?: {
+    hitRate?: number;
+    missRate?: number;
+    totalSize?: number;
+    itemCount?: number;
+    lastInvalidation?: number;
+  };
+  packages?: Record<string, any>;
+}
+
+export interface AIResponse {
+  failureAnalyses?: any[];
+  insights?: any;
+}
 
 // Compatibility aliases expected by some modules/mocks
 export type Runner = RunnerDTO;

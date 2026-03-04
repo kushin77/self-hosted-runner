@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import { COLORS } from './theme';
 import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
@@ -7,10 +7,8 @@ import { Dashboard } from './pages/Dashboard';
 import { AgentStudio } from './pages/AgentStudio';
 import { DeployMode } from './pages/DeployMode';
 import { Runners } from './pages/Runners';
-import { TCOCalculator } from './pages/TCOCalculator';
 import { Security } from './pages/Security';
 import { Billing } from './pages/Billing';
-import { DeployMode } from './pages/DeployMode';
 import { AIOracleContent } from './pages/AIOracleContent';
 import { LiveMirrorCache } from './pages/LiveMirrorCache';
 import { WindowsRunners } from './pages/WindowsRunners';
@@ -47,7 +45,7 @@ function App() {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
-    runners: <Runners tick={tick} />,
+    runners: <Runners />,
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
     security: <Security />,

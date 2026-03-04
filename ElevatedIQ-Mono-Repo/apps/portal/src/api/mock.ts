@@ -4,9 +4,11 @@
  * Enable with: localStorage.setItem('USE_MOCK_API', 'true')
  */
 
-import type { Runner, RunnerPool, Event, BillingResponse, CacheResponse, AIResponse, AuthToken } from './types';
+// Local lightweight Runner/Pool shapes used only inside this mock module
+// (intentionally minimal mock module - avoid importing strict DTOs to reduce
+// coupling with upstream API types during local development)
 
-const MOCK_RUNNERS: Runner[] = [
+const MOCK_RUNNERS = [
   {
     id: 'runner-1',
     name: 'ubuntu-x64-1',
@@ -45,7 +47,7 @@ const MOCK_RUNNERS: Runner[] = [
   },
 ];
 
-const MOCK_POOLS: RunnerPool[] = [
+const MOCK_POOLS = [
   {
     id: 'pool-1',
     name: 'Linux x64 Production',
@@ -68,7 +70,7 @@ const MOCK_POOLS: RunnerPool[] = [
   },
 ];
 
-const MOCK_EVENTS: Event[] = [
+const MOCK_EVENTS = [
   {
     id: 'event-1',
     type: 'job_completed',
@@ -96,7 +98,7 @@ const MOCK_EVENTS: Event[] = [
   },
 ];
 
-const MOCK_BILLING: BillingResponse = {
+const MOCK_BILLING = {
   currentMonth: {
     runnerMinutes: 15420,
     cacheHits: 8234,
@@ -123,7 +125,7 @@ const MOCK_BILLING: BillingResponse = {
   currency: 'USD',
 };
 
-const MOCK_CACHE: CacheResponse = {
+const MOCK_CACHE = {
   metrics: {
     hitRate: 87.3,
     missRate: 12.7,
@@ -139,7 +141,7 @@ const MOCK_CACHE: CacheResponse = {
   },
 };
 
-const MOCK_AI: AIResponse = {
+const MOCK_AI = {
   failureAnalyses: [
     {
       jobId: 'job-456',
@@ -170,7 +172,7 @@ const MOCK_AI: AIResponse = {
 export class MockAPIServer {
   private enabled: boolean;
   private streamTimer?: number | null;
-  private streamSubscribers: Set<(ev: Event) => void> = new Set();
+  private streamSubscribers: Set<(ev: any) => void> = new Set();
 
   constructor() {
     this.enabled = typeof localStorage !== 'undefined' && localStorage.getItem('USE_MOCK_API') === 'true';
@@ -227,11 +229,11 @@ export class MockAPIServer {
 
       // Rotate through existing mock events and also sometimes fabricate new ones
       const base = MOCK_EVENTS[Math.floor(Math.random() * MOCK_EVENTS.length)];
-      const event: Event = {
+      const event = {
         ...base,
         id: `evt-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         timestamp: Date.now(),
-      };
+      } as any;
 
       this.streamSubscribers.forEach(cb => {
         try {
@@ -300,7 +302,7 @@ export class MockAPIServer {
     }
 
     if (path === '/api/auth/login' && method === 'POST') {
-      const token: AuthToken = {
+      const token = {
         accessToken: 'mock_token_' + Date.now(),
         refreshToken: 'mock_refresh_' + Date.now(),
         expiresAt: Date.now() + 3600000,
@@ -347,7 +349,7 @@ export function initMockAPI(): void {
       }
     }
 
-    return originalFetch.apply(this, args);
+    return originalFetch.apply(window, args);
   } as typeof fetch;
 }
 
@@ -360,6 +362,6 @@ export function startMockEventStream(subscriber: (ev: Event) => void, intervalMs
 
 // Expose a simple global helper in dev for manual testing via console.
 if (typeof window !== 'undefined') {
-  (window as any).__runnercloud_mock_event_stream = (cb: (ev: Event) => void, intervalMs = 1500) =>
+  (window as any).__runnercloud_mock_event_stream = (cb: (ev: any) => void, intervalMs = 1500) =>
     startMockEventStream(cb, intervalMs);
 }

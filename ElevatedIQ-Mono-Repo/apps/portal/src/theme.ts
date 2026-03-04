@@ -16,6 +16,9 @@ export const COLORS = {
   // Primary accent (blue)
   accent: "#3b82f6",
   accentGlow: "#3b82f655",
+  // aliases for historical keys used in pages
+  blue: "#3b82f6",
+  magenta: "#d946ef",
 
   // Status colors
   green: "#22c55e",

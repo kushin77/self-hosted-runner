@@ -111,7 +111,7 @@ export const AreaChart: React.FC<AreaChartProps> = ({
  * BarChart - Animated bar chart
  */
 interface BarChartProps {
-  data: number[] | { label: string; value: number; color?: string }[];
+  data: number[] | { label: string; value: number; color?: string; maxValue?: number }[];
   color?: string;
   height?: number;
 }
@@ -122,16 +122,16 @@ export const BarChart: React.FC<BarChartProps> = ({
   height = 50,
 }) => {
   const normalized = Array.isArray(data) && data.length && typeof (data[0] as any) === 'object'
-    ? (data as { label: string; value: number; color?: string }[]).map((d) => d.value)
+    ? (data as { label: string; value: number; color?: string; maxValue?: number }[]).map((d) => d.value)
     : (data as number[]);
   const max = Math.max(...normalized);
   const bw = 8,
     gap = 4;
-  const w = data.length * (bw + gap);
+  const w = normalized.length * (bw + gap);
 
   return (
     <svg width={w} height={height}>
-      {data.map((v, i) => {
+      {normalized.map((v, i) => {
         const bh = (v / max) * (height - 4);
         return (
           <rect
@@ -142,7 +142,7 @@ export const BarChart: React.FC<BarChartProps> = ({
             height={bh}
             fill={Array.isArray(data) && data.length && typeof (data[0] as any) === 'object' ? ((data as any)[i].color || color) : color}
             rx={2}
-            opacity={0.7 + (i / data.length) * 0.3}
+            opacity={0.7 + (i / normalized.length) * 0.3}
             style={{ filter: `drop-shadow(0 0 4px ${color})` }}
           />
         );
@@ -176,8 +176,6 @@ export const Gauge: React.FC<GaugeProps> = ({
   const circumference = Math.PI * r; // half circle
   const arc = circumference * pct;
 
-  const x2 = cx + r * Math.cos(Math.PI + Math.PI * pct);
-  const y2 = cy + r * Math.sin(Math.PI + Math.PI * pct);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

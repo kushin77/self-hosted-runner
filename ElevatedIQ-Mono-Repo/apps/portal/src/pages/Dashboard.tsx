@@ -3,7 +3,7 @@ import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { Panel, PanelHeader, Pill, GlowDot } from '../components/UI';
 import { AreaChart, Gauge } from '../components/Charts';
-import { apiClient } from '../api';
+import { apiClient } from '../api/client';
 
 /**
  * Dashboard - Main overview page showing system metrics and status
