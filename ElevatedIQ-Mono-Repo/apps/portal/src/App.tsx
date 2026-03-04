@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { COLORS } from './theme';
 import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
@@ -19,6 +19,7 @@ import { Settings } from './pages/Settings';
  */
 function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [liveEventCount, setLiveEventCount] = useState<number | undefined>(undefined);
   const tick = useTick(2500);
 
   // Placeholder for other pages
@@ -48,6 +49,11 @@ function App() {
     runners: <Runners tick={tick} />,
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
+    events: (
+      <Suspense fallback={<div>Loading...</div>}>
+        {React.createElement(lazy(() => import('./pages/LiveEvents')), { onCountChange: setLiveEventCount })}
+      </Suspense>
+    ),
     security: <Security />,
     windows: <WindowsRunners />,
     billing: <Billing />,
@@ -75,7 +81,7 @@ function App() {
           overflow: 'hidden',
         }}
       >
-        <StatusBar />
+        <StatusBar liveEventCount={liveEventCount} />
         <div
           style={{
             flex: 1,
