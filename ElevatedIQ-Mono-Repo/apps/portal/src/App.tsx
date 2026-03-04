@@ -7,8 +7,8 @@ import { Dashboard } from './pages/Dashboard';
 import { AgentStudio } from './pages/AgentStudio';
 import { DeployMode } from './pages/DeployMode';
 import { Runners } from './pages/Runners';
+import { TCOCalculator } from './pages/TCOCalculator';
 import { Security } from './pages/Security';
-import { Billing } from './pages/Billing';
 
 /**
  * Main App Component
@@ -46,7 +46,7 @@ function App() {
     cache: <PlaceholderPage title="LiveMirror Cache" />,
     security: <Security />,
     windows: <PlaceholderPage title="Windows Runners" />,
-    billing: <Billing />,
+    billing: <TCOCalculator />,
     settings: <PlaceholderPage title="Settings" />,
   };
 
