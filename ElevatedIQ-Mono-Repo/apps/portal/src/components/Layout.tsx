@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { id: 'runners', icon: '🖥', label: 'Runners' },
   { id: 'oracle', icon: '🔮', label: 'AI Oracle' },
   { id: 'cache', icon: '💾', label: 'LiveMirror Cache' },
+  { id: 'events', icon: '📡', label: 'Events' },
   { id: 'security', icon: '🛡', label: 'Security Layer' },
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },

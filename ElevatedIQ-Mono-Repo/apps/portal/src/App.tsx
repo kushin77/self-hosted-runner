@@ -41,6 +41,7 @@ function App() {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
+      events: <React.Suspense fallback={<div>Loading...</div>}><React.lazy(() => import('./pages/LiveEvents')) /></React.Suspense>,
     runners: <Runners tick={tick} />,
     oracle: <PlaceholderPage title="AI Oracle" />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
