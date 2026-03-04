@@ -160,7 +160,13 @@ export class APIClient {
    * mock event emitter; otherwise attempts to open a WebSocket to the backend.
    * Returns an object with `close()` to unsubscribe.
    */
-  subscribeToEventStream(onMessage: (ev: Event) => void, onError?: (err: Error) => void): { close: () => void } {
+  subscribeToEventStream(
+    onMessage: (ev: Event) => void,
+    onError?: (err: Error) => void,
+    opts: { reconnect?: boolean; maxReconnects?: number; heartbeatMs?: number } = {}
+  ): { close: () => void; sendAck?: (id: string) => void } {
+    const { reconnect = true, maxReconnects = 6, heartbeatMs = 20000 } = opts;
+
     // If mock server enabled, use its in-memory emitter
     try {
       if (mockAPIServer && mockAPIServer.isEnabled && mockAPIServer.isEnabled()) {
@@ -171,43 +177,94 @@ export class APIClient {
       // fallthrough to real WS
     }
 
-    // Build WebSocket URL from baseURL
     const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
     const host = location.host;
     const base = this.baseURL.startsWith('/') ? `${wsProtocol}://${host}${this.baseURL}` : this.baseURL;
-    const wsUrl = base.replace(/^http/, 'ws') + '/events/stream';
+    const wsBase = base.replace(/^http/, 'ws');
+    const wsUrl = wsBase + '/events/stream';
 
     let ws: WebSocket | null = null;
-    try {
-      ws = new WebSocket(wsUrl);
-    } catch (err) {
-      if (onError) onError(err as Error);
-      return { close: () => {} };
-    }
+    let closed = false;
+    let reconnectAttempts = 0;
+    let heartbeatTimer: number | null = null;
+    let reconnectTimer: number | null = null;
 
-    ws.onmessage = (ev) => {
+    const start = () => {
+      if (closed) return;
       try {
-        const data = JSON.parse(ev.data);
-        onMessage(data as Event);
+        ws = new WebSocket(wsUrl);
       } catch (err) {
         if (onError) onError(err as Error);
+        scheduleReconnect();
+        return;
       }
-    };
 
-    ws.onerror = (err) => {
-      if (onError) onError(new Error('WebSocket error'));
-    };
+      ws.onopen = () => {
+        reconnectAttempts = 0;
+        // start heartbeat
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        heartbeatTimer = window.setInterval(() => {
+          try {
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'ping', ts: Date.now() }));
+          } catch (_) {}
+        }, heartbeatMs) as unknown as number;
+      };
 
-    return {
-      close: () => {
+      ws.onmessage = (ev) => {
         try {
-          if (ws) ws.close();
-        } catch (_) {
-          // ignore
+          const data = JSON.parse(ev.data);
+          onMessage(data as Event);
+        } catch (err) {
+          if (onError) onError(err as Error);
         }
-        ws = null;
-      },
+      };
+
+      ws.onerror = (err) => {
+        if (onError) onError(new Error('WebSocket error'));
+      };
+
+      ws.onclose = (_ev) => {
+        if (heartbeatTimer) {
+          clearInterval(heartbeatTimer);
+          heartbeatTimer = null;
+        }
+        if (!closed && reconnect) scheduleReconnect();
+      };
     };
+
+    const scheduleReconnect = () => {
+      if (reconnectAttempts >= maxReconnects) {
+        if (onError) onError(new Error('Max reconnect attempts reached'));
+        return;
+      }
+      reconnectAttempts += 1;
+      const delay = Math.min(30000, 1000 * Math.pow(2, reconnectAttempts));
+      reconnectTimer = window.setTimeout(() => {
+        start();
+      }, delay) as unknown as number;
+    };
+
+    start();
+
+    const close = () => {
+      closed = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer as number);
+      if (heartbeatTimer) clearInterval(heartbeatTimer as number);
+      try {
+        if (ws) ws.close();
+      } catch (_){ }
+      ws = null;
+    };
+
+    const sendAck = (id: string) => {
+      try {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ack', id }));
+        }
+      } catch (_) {}
+    };
+
+    return { close, sendAck };
   }
 
   // ====== Billing Endpoints ======
