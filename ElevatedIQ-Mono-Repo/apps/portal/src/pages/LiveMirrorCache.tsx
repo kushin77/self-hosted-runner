@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill } from '../components/UI';
 import { BarChart, Donut } from '../components/Charts';
+import { api } from '../api';
 
 /**
  * Cache Layer Interface
@@ -21,74 +22,7 @@ export interface CacheLayer {
 /**
  * Cache Layers
  */
-const CACHE_LAYERS: CacheLayer[] = [
-  {
-    name: 'npm Monorepo',
-    type: 'npm',
-    hitRate: 82,
-    size: 450,
-    sizeGB: '14.2GB',
-    items: 18400,
-    lastWarmup: '2 hours ago',
-    ttl: '30 days',
-    color: COLORS.yellow,
-  },
-  {
-    name: 'Python Deps',
-    type: 'pip',
-    hitRate: 91,
-    size: 280,
-    sizeGB: '8.7GB',
-    items: 6200,
-    lastWarmup: '18 hours ago',
-    ttl: '45 days',
-    color: COLORS.cyan,
-  },
-  {
-    name: 'Java/Maven',
-    type: 'maven',
-    hitRate: 76,
-    size: 620,
-    sizeGB: '22.1GB',
-    items: 3400,
-    lastWarmup: '4 hours ago',
-    ttl: '60 days',
-    color: COLORS.red,
-  },
-  {
-    name: 'Docker Images',
-    type: 'docker',
-    hitRate: 95,
-    size: 1200,
-    sizeGB: '47.3GB',
-    items: 240,
-    lastWarmup: '1 hour ago',
-    ttl: '90 days',
-    color: COLORS.blue,
-  },
-  {
-    name: 'Gradle Deps',
-    type: 'gradle',
-    hitRate: 88,
-    size: 340,
-    sizeGB: '11.2GB',
-    items: 2100,
-    lastWarmup: '6 hours ago',
-    ttl: '30 days',
-    color: COLORS.green,
-  },
-  {
-    name: '.NET NuGet',
-    type: 'nuget',
-    hitRate: 79,
-    size: 180,
-    sizeGB: '6.8GB',
-    items: 4200,
-    lastWarmup: '8 hours ago',
-    ttl: '45 days',
-    color: COLORS.magenta,
-  },
-];
+const EMPTY_CACHE: CacheLayer[] = [];
 
 /**
  * Popular Packages in Cache
@@ -143,12 +77,35 @@ const WARMUP_STRATEGIES: WarmupStrategy[] = [
 export const LiveMirrorCache: React.FC = () => {
   const [expandedLayer, setExpandedLayer] = useState<string | null>(null);
   const [selectedStrategy, setSelectedStrategy] = useState<number>(0);
+  const [layers, setLayers] = useState<CacheLayer[]>(EMPTY_CACHE);
 
-  const totalHitRate = Math.round(
-    CACHE_LAYERS.reduce((sum, c) => sum + c.hitRate, 0) / CACHE_LAYERS.length
-  );
-  const totalSize = CACHE_LAYERS.reduce((sum, c) => sum + c.size, 0);
-  const totalItems = CACHE_LAYERS.reduce((sum, c) => sum + c.items, 0);
+  useEffect(() => {
+    let mounted = true;
+    api
+      .getCacheLayers()
+      .then((c: any[]) => {
+        if (!mounted) return;
+        const mapped: CacheLayer[] = c.map((l, idx) => ({
+          name: l.name || `layer-${idx}`,
+          type: l.type || 'npm',
+          hitRate: l.hitRate ?? 0,
+          size: l.size ?? 0,
+          sizeGB: l.sizeGB || (l.size ? `${(l.size / 1024).toFixed(1)}GB` : '0GB'),
+          items: l.items ?? 0,
+          lastWarmup: l.lastWarmup || 'unknown',
+          ttl: l.ttl || '30 days',
+          color: l.color || COLORS.border,
+        }));
+        setLayers(mapped);
+      })
+      .catch(() => setLayers([]));
+
+    return () => { mounted = false; };
+  }, []);
+
+  const totalHitRate = layers.length ? Math.round(layers.reduce((sum, c) => sum + c.hitRate, 0) / layers.length) : 0;
+  const totalSize = layers.reduce((sum, c) => sum + (c.size || 0), 0);
+  const totalItems = layers.reduce((sum, c) => sum + (c.items || 0), 0);
 
   const monthlySavings = Math.round((totalHitRate / 100) * 2400); // Approx savings
   const cacheWarmupTime = totalSize / 1024; // ~1GB in 60s
@@ -204,11 +161,7 @@ export const LiveMirrorCache: React.FC = () => {
         <PanelHeader icon="📦" title="Cache Composition" color={COLORS.yellow} />
         <div style={{ padding: '10px 14px' }}>
           <Donut
-            data={CACHE_LAYERS.map((c) => ({
-              name: c.name,
-              value: c.size,
-              color: c.color,
-            }))}
+            data={layers.map((c) => ({ name: c.name, value: c.size, color: c.color }))}
           />
         </div>
       </Panel>
@@ -217,7 +170,7 @@ export const LiveMirrorCache: React.FC = () => {
       <Panel>
         <PanelHeader icon="🔄" title="Cache Layers Status" color={COLORS.cyan} />
         <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {CACHE_LAYERS.map((layer) => (
+          {layers.map((layer) => (
             <div
               key={layer.name}
               onClick={() => setExpandedLayer(expandedLayer === layer.name ? null : layer.name)}
@@ -278,7 +231,7 @@ export const LiveMirrorCache: React.FC = () => {
               }}
             >
               {(() => {
-                const layer = CACHE_LAYERS.find((l) => l.name === expandedLayer);
+                const layer = layers.find((l) => l.name === expandedLayer);
                 return layer ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -325,7 +278,7 @@ export const LiveMirrorCache: React.FC = () => {
       <Panel>
         <PanelHeader icon="⭐" title="Top Packages in Cache" color={COLORS.yellow} />
         <div style={{ padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {TOP_PACKAGES.map((pkg, i) => (
+                  {TOP_PACKAGES.map((pkg, i) => (
             <div
               key={i}
               style={{
