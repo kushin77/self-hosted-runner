@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
-
 # Graceful Job Cancellation Handler
 # Phase P1: Implements SIGTERM-based job cancellation with process cleanup
 #
@@ -11,11 +9,12 @@ set -euo pipefail
 #   - Graceful timeout enforcement
 #   - Child process tracking and termination
 
-JOB_WRAPPER_PID=$$
+JOB_WRAPPER_PID="${JOB_WRAPPER_PID:-$$}"
 JOB_TIMEOUT="${JOB_TIMEOUT:-3600}"
 GRACE_PERIOD="${GRACE_PERIOD:-30}"
 SIGTERM_TIMEOUT="${SIGTERM_TIMEOUT:-60}"
 CHECKPOINT_DIR="${CHECKPOINT_DIR:-.job-checkpoints}"
+PGID="${PGID:-$(ps -o pgid= -p $$ | tr -d ' ')}"
 
 mkdir -p "$CHECKPOINT_DIR"
 
@@ -264,5 +263,6 @@ HELP
 
 # Only run main if script is executed directly (not sourced)
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  set -euo pipefail
   main "$@"
 fi
