@@ -33,6 +33,7 @@ export const Security: React.FC = () => {
   const [expandedEvent, setExpandedEvent] = useState<number | null>(null);
   const [filter, setFilter] = useState<'all' | 'blocked' | 'sbom' | 'vulnerability'>('all');
   const [events, setEvents] = useState<SecurityEvent[]>(EMPTY_EVENTS);
+  const [alertsCleared, setAlertsCleared] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -60,6 +61,9 @@ export const Security: React.FC = () => {
     if (filter === 'all') return true;
     return e.type === filter;
   });
+
+  // Compute critical events for banner
+  const criticalEvents = events.filter((e) => e.severity === 'high' || e.severity === 'critical');
 
   const sevColorMap = {
     info: COLORS.green,
@@ -89,6 +93,37 @@ export const Security: React.FC = () => {
       </div>
 
       {/* Supply Chain Stats */}
+      {/* Critical Events Banner */}
+      {criticalEvents.length > 0 && !alertsCleared && (
+        <div style={{ gridColumn: '1 / -1' }}>
+          <Panel style={{ padding: '10px 12px', background: `${COLORS.red}12`, border: `1px solid ${COLORS.red}33` }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 800, color: COLORS.red }}>
+                  {criticalEvents.length} Critical Security Event{criticalEvents.length > 1 ? 's' : ''}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.muted }}>
+                  Recent high-severity events detected. Click "Show" to jump to latest events.
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => { setFilter('all'); setExpandedEvent(0); }}
+                  style={{ background: COLORS.red, color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  Show
+                </button>
+                <button
+                  onClick={() => setAlertsCleared(true)}
+                  style={{ background: 'transparent', border: `1px solid ${COLORS.border}`, padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </Panel>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
         {SUPPLY_CHAIN_FACTS.map((s) => (
           <Panel key={s.label} style={{ padding: '12px 14px' }}>
