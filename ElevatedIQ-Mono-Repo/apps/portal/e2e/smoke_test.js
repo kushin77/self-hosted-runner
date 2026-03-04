@@ -26,8 +26,26 @@ async function wsSmoke(timeoutSec = 8) {
     const ws = new WebSocket(WS_URL);
     let got = 0;
     ws.on('open', () => {});
-    ws.on('message', () => {
-      got++;
+    ws.on('message', (m) => {
+      try {
+        const data = JSON.parse(m.toString());
+        // accept either snapshot or event envelopes
+        if (data && data.type === 'snapshot' && Array.isArray(data.events)) {
+          data.events.forEach((ev) => validateEvent(ev));
+          got += data.events.length;
+        } else if (data && data.type === 'event' && data.event) {
+          validateEvent(data.event);
+          got++;
+        } else if (data && Array.isArray(data)) {
+          data.forEach((ev) => validateEvent(ev));
+          got += data.length;
+        } else if (data && data.id) {
+          validateEvent(data);
+          got++;
+        }
+      } catch (e) {
+        // ignore parse errors here
+      }
     });
     ws.on('error', () => {
       resolve({ ok: false, got });
@@ -37,6 +55,16 @@ async function wsSmoke(timeoutSec = 8) {
       resolve({ ok: got > 0, got });
     }, timeoutSec * 1000);
   });
+}
+
+function validateEvent(ev) {
+  if (!ev || typeof ev !== 'object') throw new Error('event not object');
+  // required fields: id or time, type, severity, message/msg
+  if (!(ev.id || ev.time)) throw new Error('missing id/time');
+  if (typeof ev.type !== 'string') throw new Error('missing type');
+  if (typeof ev.severity !== 'string') throw new Error('missing severity');
+  if (!(typeof ev.message === 'string' || typeof ev.msg === 'string')) throw new Error('missing message');
+  return true;
 }
 
 (async function main() {
