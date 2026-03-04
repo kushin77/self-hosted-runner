@@ -3,7 +3,7 @@ name: p2-managed-auth-vault-integration
 on:
   workflow_dispatch: {}
   push:
-    branches: [ feature/p2-managed-mode, main ]
+    branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci ]
 
 jobs:
   vault-integration:
