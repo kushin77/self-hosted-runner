@@ -10,7 +10,7 @@ const REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 min before expiry
 
 export class AuthManager {
   private token: AuthToken | null = null;
-  private refreshTimer: NodeJS.Timeout | null = null;
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
   private listeners: Set<(context: AuthContext) => void> = new Set();
 
   constructor() {
@@ -25,7 +25,7 @@ export class AuthManager {
       const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as AuthToken;
-        if (parsed.expiresAt > Date.now()) {
+        if (parsed.expiresAt && parsed.expiresAt > Date.now()) {
           this.token = parsed;
           this.scheduleRefresh();
         } else {
@@ -52,12 +52,12 @@ export class AuthManager {
    */
   private scheduleRefresh(): void {
     if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
+      clearTimeout(this.refreshTimer as number);
     }
 
     if (this.token) {
       const now = Date.now();
-      const refreshAt = this.token.expiresAt - REFRESH_THRESHOLD;
+      const refreshAt = (this.token?.expiresAt ?? 0) - REFRESH_THRESHOLD;
       const delay = Math.max(0, refreshAt - now);
 
       if (delay > 0) {
@@ -131,7 +131,7 @@ export class AuthManager {
     this.token = null;
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     if (this.refreshTimer) {
-      clearTimeout(this.refreshTimer);
+      clearTimeout(this.refreshTimer as number);
       this.refreshTimer = null;
     }
     this.notifyListeners();
@@ -144,7 +144,7 @@ export class AuthManager {
     return {
       token: this.token,
       isAuthenticated: this.token !== null,
-      expiresIn: this.token ? Math.max(0, this.token.expiresAt - Date.now()) : 0,
+      expiresIn: this.token ? Math.max(0, (this.token.expiresAt ?? 0) - Date.now()) : 0,
     };
   }
 

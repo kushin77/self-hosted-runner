@@ -1,6 +1,6 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState } from 'react';
 import { COLORS } from './theme';
-import { useTick } from './hooks';
+// pages manage their own ticks via `useTick` when needed
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
@@ -42,10 +42,10 @@ function App() {
   );
 
   const pages: Record<string, React.ReactNode> = {
-    home: <Dashboard tick={tick} />,
+    home: <Dashboard />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
-    runners: <Runners tick={tick} />,
+    runners: <Runners />,
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
     security: <Security />,
