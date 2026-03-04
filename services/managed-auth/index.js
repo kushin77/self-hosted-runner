@@ -13,6 +13,8 @@ function makeState() {
 }
 
 const stateStore = new Set();
+// In-memory token store for prototype. Replace with secure secrets manager (Vault/KMS) in production.
+const tokenStore = [];
 
 function jsonResponse(res, obj, status = 200) {
   const body = JSON.stringify(obj);
@@ -48,7 +50,10 @@ const server = http.createServer(async (req, res) => {
       }
       stateStore.delete(state);
       if (SIMULATE_OAUTH) {
-        return jsonResponse(res, { access_token: 'simulated-token-123', scope: 'repo', token_type: 'bearer' });
+        // Store token in in-memory store (replace with secure secrets manager in prod)
+        const token = 'simulated-token-123';
+        tokenStore.push({ token, scope: 'repo', created_at: Date.now() });
+        return jsonResponse(res, { access_token: token, scope: 'repo', token_type: 'bearer' });
       }
       // Exchange code for token with GitHub
       try {
@@ -73,4 +78,31 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+// Start server
 server.listen(port, () => console.log(`Managed Auth skeleton listening on ${port}`));
+
+// Add a simple runner registration endpoint (provisioning stub)
+// NOTE: We implement this by attaching a listener that inspects incoming requests and
+// handles POST /register-runner. It uses the in-memory token store for validation.
+
+const { once } = require('events');
+
+// Monkey-patch: wrap the server's 'request' event to handle register-runner before other handlers
+server.on('request', async (req, res) => {
+  try {
+    const reqUrl = new URL(req.url, `http://localhost:${port}`);
+    if (reqUrl.pathname === '/register-runner' && req.method === 'POST') {
+      let body = '';
+      for await (const chunk of req) body += chunk;
+      const payload = body ? JSON.parse(body) : {};
+      const { access_token, runner_meta } = payload;
+      if (!access_token) return jsonResponse(res, { error: 'missing_token' }, 400);
+      const found = tokenStore.find(t => t.token === access_token);
+      if (!found) return jsonResponse(res, { error: 'invalid_token' }, 401);
+      const runnerId = `runner-${Math.random().toString(36).slice(2,10)}`;
+      return jsonResponse(res, { status: 'provisioned', runner_id: runnerId, meta: runner_meta || {} });
+    }
+  } catch (err) {
+    // fallthrough to main handler
+  }
+});
