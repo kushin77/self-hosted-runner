@@ -70,6 +70,23 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    // Handle runner provisioning inside main handler to avoid listener ordering issues
+    if (reqUrl.pathname === '/register-runner' && req.method === 'POST') {
+      try {
+        let body = '';
+        for await (const chunk of req) body += chunk;
+        const payload = body ? JSON.parse(body) : {};
+        const { access_token, runner_meta } = payload;
+        if (!access_token) return jsonResponse(res, { error: 'missing_token' }, 400);
+        const found = tokenStore.find(t => t.token === access_token);
+        if (!found) return jsonResponse(res, { error: 'invalid_token' }, 401);
+        const runnerId = `runner-${Math.random().toString(36).slice(2,10)}`;
+        return jsonResponse(res, { status: 'provisioned', runner_id: runnerId, meta: runner_meta || {} });
+      } catch (e) {
+        return jsonResponse(res, { error: 'bad_request', detail: String(e) }, 400);
+      }
+    }
+
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('not found');
   } catch (err) {
