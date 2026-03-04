@@ -8,6 +8,7 @@ import { AgentStudio } from './pages/AgentStudio';
 import { Runners } from './pages/Runners';
 import { Security } from './pages/Security';
 import { Billing } from './pages/Billing';
+import { DeployMode } from './pages/DeployMode';
 
 /**
  * Main App Component
@@ -39,7 +40,7 @@ function App() {
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
-    deploy: <PlaceholderPage title="Deploy Mode Wizard" />,
+    deploy: <DeployMode />,
     runners: <Runners tick={tick} />,
     oracle: <PlaceholderPage title="AI Oracle" />,
     cache: <PlaceholderPage title="LiveMirror Cache" />,
