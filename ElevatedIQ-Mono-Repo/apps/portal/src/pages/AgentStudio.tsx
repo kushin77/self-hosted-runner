@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
 import { Panel, PanelHeader, Pill, GlowDot, Button } from '../components/UI';
+import { api } from '../api';
 
 /**
  * Agent Persona Definition
@@ -491,7 +492,38 @@ export const AgentStudio: React.FC = () => {
   const [selectedAgent, setSelectedAgent] = useState<string>('oracle');
   const [activeTab, setActiveTab] = useState<'roster' | 'intent'>('roster');
 
-  const selected = AGENT_PERSONAS.find((a) => a.id === selectedAgent);
+  const [agents, setAgents] = useState<AgentPersona[]>(AGENT_PERSONAS);
+
+  useEffect(() => {
+    let mounted = true;
+    const loader = (api as any).getAgents ? (api as any).getAgents() : Promise.resolve(AGENT_PERSONAS);
+    loader
+      .then((res: any[]) => {
+        if (!mounted || !res) return;
+        const mapped: AgentPersona[] = res.map((a: any) => ({
+          id: a.id,
+          icon: a.icon || '🤖',
+          name: a.name || a.id,
+          color: a.color || COLORS.accent,
+          status: a.status || 'idle',
+          runs: a.runs ?? 0,
+          desc: a.description || a.desc || '',
+          tags: a.tags || [],
+          config: a.config || {},
+        }));
+        setAgents(mapped.length ? mapped : AGENT_PERSONAS);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setAgents(AGENT_PERSONAS);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const selected = agents.find((a) => a.id === selectedAgent) || agents[0] || AGENT_PERSONAS[0];
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -534,7 +566,7 @@ export const AgentStudio: React.FC = () => {
         {activeTab === 'roster' && selected ? (
           <>
             <AgentRoster
-              agents={AGENT_PERSONAS}
+              agents={agents}
               selected={selectedAgent}
               onSelect={setSelectedAgent}
             />
