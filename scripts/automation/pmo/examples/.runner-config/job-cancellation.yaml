@@ -1,0 +1,139 @@
+# Graceful Job Cancellation Configuration (Phase P1)
+# Configures termination behavior and grace periods
+
+cancellation:
+  enabled: true
+  handler-path: /usr/local/bin/job-cancellation-handler.sh
+  log-level: info
+
+timeouts:
+  # Default job timeout (override per workflow)
+  default-job-timeout-secs: 3600  # 1 hour
+
+  # Grace period for SIGTERM handling
+  sigterm-grace-period-secs: 30
+
+  # Additional time for cleanup after SIGKILL
+  post-kill-wait-secs: 10
+
+  # Total time from signal to exit
+  total-termination-timeout-secs: 120
+
+phases:
+  # Phase 1: SIGTERM (graceful)
+  sigterm:
+    enabled: true
+    signal: SIGTERM
+    duration-secs: 30
+    alerts: true
+    log-level: info
+
+  # Phase 2: SIGKILL (forced)
+  sigkill:
+    enabled: true
+    signal: SIGKILL
+    duration-secs: 60
+    alerts: true
+    log-level: warning
+
+    # Send to each child process
+    children-first: true
+    parent-delay-secs: 2
+
+checkpointing:
+  enabled: true
+  directory: /tmp/job-checkpoints
+  compress: true
+  retention-days: 7
+  include-environment: true
+  include-working-directory: true
+  exclude-secrets: true
+
+hooks:
+  # Run before SIGTERM
+  pre-termination:
+    - "./scripts/pre-termination-hook.sh"
+
+  # Run after SIGTERM handling
+  post-termination:
+    - "./scripts/post-termination-hook.sh"
+
+  # Cleanup on complete
+  cleanup:
+    - "./scripts/cleanup.sh"
+
+resources-cleanup:
+  # Kill child processes
+  kill-children: true
+
+  # Close open files
+  close-files: true
+
+  # Flush buffers
+  flush-buffers: true
+
+  # Remove temporary files
+  remove-temp-files: true
+  temp-patterns:
+    - "/tmp/job-*"
+    - "/tmp/runner-*"
+
+  # Kill spawned services
+  stop-services: true
+  service-patterns:
+    - "docker.*"
+    - "dind"
+
+monitoring:
+  # Track cancellations
+  track-enabled: true
+  metrics:
+    - graceful_terminations_total
+    - forced_terminations_total
+    - grace_period_exceeded_total
+    - checkpoint_saves_total
+    - checkpoint_restores_total
+  export-to: prometheus
+  export-interval-secs: 60
+
+logging:
+  enabled: true
+  level: info
+  log-file: /var/log/job-cancellation.log
+  include-timestamps: true
+  include-pid: true
+  include-resource-stats: true
+
+alerts:
+  # Alert on long grace period usage
+  long-grace-period:
+    threshold-secs: 25  # >25s of 30s grace
+    alert: true
+
+  # Alert on forced terminations
+  forced-termination:
+    alert: true
+
+  # Alert on resource cleanup failures
+  cleanup-failure:
+    alert: true
+
+statistics:
+  track-samples: 1000  # Keep last N cancellations
+  average-termination-time: 500ms  # Expected
+  p99-termination-time: 2000ms     # 99th percentile
+  p99-checkpoint-time: 500ms
+
+integration:
+  # Integration with GitHub Actions
+  github-actions:
+    enabled: true
+    status-update: true
+    conclusion: cancelled
+    auto-cancellation: true
+
+  # Integration with runner protocols
+  runner-protocol:
+    enabled: true
+    notify-worker: true
+    graceful-shutdown-message: "org.github.runner.graceful-shutdown"
