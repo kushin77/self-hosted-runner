@@ -6,7 +6,8 @@ PORT=${PORT:-4001}
 SIMULATE_OAUTH=1
 
 echo "Starting Managed Auth server (smoke test) on port $PORT"
-PORT=$PORT SIMULATE_OAUTH=1 node ../index.js &
+# Run the server from the current directory (index.js is colocated here)
+PORT=$PORT SIMULATE_OAUTH=1 node index.js &
 PID=$!
 
 cleanup() {
