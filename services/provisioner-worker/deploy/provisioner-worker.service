@@ -1,0 +1,15 @@
+[Unit]
+Description=Provisioner Worker (RunnerCloud)
+After=network.target docker.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/provisioner-worker
+EnvironmentFile=/opt/provisioner-worker/.env
+ExecStart=/usr/bin/docker-compose -f /opt/provisioner-worker/docker-compose.yml up --no-build
+ExecStop=/usr/bin/docker-compose -f /opt/provisioner-worker/docker-compose.yml down
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
