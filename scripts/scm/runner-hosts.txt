@@ -1,0 +1,11 @@
+# GitHub Actions / GitLab CI Runner Hosts
+# Used by: scripts/scm/provision-dual-ssh-keys.sh
+#          scripts/scm/setup-github-runners.sh
+#
+# Format: one hostname or IP per line
+# Lines starting with # are comments
+#
+# Add your runner node IPs/hostnames below:
+# runner-node-01.internal.elevatediq.com
+# runner-node-02.internal.elevatediq.com
+# 10.0.1.50
