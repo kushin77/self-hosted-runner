@@ -5,6 +5,7 @@ const jobStore = require('./jobStore');
 const terraform = require('./terraform_runner');
 const promClient = require('prom-client');
 const http = require('http');
+const crypto = require('crypto');
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -33,8 +34,33 @@ http.createServer(async (req, res) => {
 }).listen(METRICS_PORT);
 log('info', 'metrics-server-started', { port: METRICS_PORT });
 
+const preferCli = process.env.USE_TERRAFORM_CLI === '1';
+if (preferCli) log('info', 'terraform-runner-mode', { mode: 'cli' });
+else log('info', 'terraform-runner-mode', { mode: 'lib' });
+
 async function handleJob(job) {
   const jobId = job.request_id || `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
+
+  // compute a planHash when TF files are supplied to enable idempotency
+  let planHash = null;
+  try {
+    if (job && job.payload && job.payload.tfFiles) {
+      const h = crypto.createHash('sha256');
+      h.update(JSON.stringify(job.payload.tfFiles));
+      planHash = h.digest('hex');
+      if (typeof jobStore.getByPlanHash === 'function') {
+        const byHash = jobStore.getByPlanHash(planHash);
+        if (byHash && byHash.status === 'provisioned') {
+          log('info', 'job-already-provisioned-by-planhash', { jobId: byHash.request_id || byHash.jobId, planHash });
+          return byHash;
+        }
+      }
+    }
+  } catch (e) {
+    // non-fatal; continue to normal flow
+    log('warn', 'planhash-failed', { error: String(e) });
+  }
+
   const existing = jobStore.get(jobId);
   if (existing && existing.status === 'provisioned') {
     console.log('Job', jobId, 'already provisioned, skipping');
@@ -46,18 +72,24 @@ async function handleJob(job) {
   while (attempt <= maxRetries) {
     try {
       attempt++;
-      jobStore.set(jobId, { status: 'in-progress', attempts: attempt, updated_at: Date.now() });
+      jobStore.set(jobId, { request_id: jobId, status: 'in-progress', attempts: attempt, updated_at: Date.now() });
       jobAttempts.inc();
       log('info', 'job-attempt', { jobId, attempt });
+      // If using CLI mode and tfFiles present, prefer the CLI runner (shim will choose correctly too)
+      if (preferCli && job && job.payload && job.payload.tfFiles) log('info', 'using-cli-runner', { jobId });
       const res = await terraform.apply(job);
-      const record = { status: 'provisioned', result: res, attempts: attempt, updated_at: Date.now() };
+      const record = { request_id: jobId, status: 'provisioned', result: res, attempts: attempt, updated_at: Date.now() };
+      if (planHash && typeof jobStore.setPlanHash === 'function') {
+        record.planHash = planHash;
+        jobStore.setPlanHash(planHash, jobId);
+      }
       jobStore.set(jobId, record);
       jobProcessed.inc();
       log('info', 'job-provisioned', { jobId, result: res });
       return record;
     } catch (e) {
       log('error', 'provision-attempt-failed', { jobId, attempt, error: String(e) });
-      jobStore.set(jobId, { status: 'error', attempts: attempt, error: String(e), updated_at: Date.now() });
+      jobStore.set(jobId, { request_id: jobId, status: 'error', attempts: attempt, error: String(e), updated_at: Date.now() });
       if (attempt > maxRetries) throw e;
       jobFailed.inc();
       const backoff = Math.min(1000 * Math.pow(2, attempt), 30000);
