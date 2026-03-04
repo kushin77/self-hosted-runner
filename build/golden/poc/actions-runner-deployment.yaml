@@ -1,0 +1,23 @@
+apiVersion: actions.summerwind.dev/v1alpha1
+kind: RunnerDeployment
+metadata:
+  name: golden-runner-deployment
+  namespace: ci-poc
+spec:
+  replicas: 1
+  template:
+    spec:
+      repository: elevatediq-ai/ElevatedIQ-Mono-Repo
+      image: ghcr.io/elevatediq-ai/golden-image:latest
+      resources:
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+      env:
+        - name: RUNNER_LABELS
+          value: "golden,ci,ephemeral"
+      readinessProbe:
+        exec:
+          command: ["/bin/sh", "-c", "curl -fsS --max-time 2 http://localhost:8080 || exit 1"]
+      # Adjust volumeMounts/workspace size per cluster requirements
+      # Use RunnerDeployment to create ephemeral runners which pull the golden image

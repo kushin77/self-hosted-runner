@@ -1,0 +1,15 @@
+[Unit]
+Description=ElevatedIQ Runner Watchdog Service
+PartOf=runner-watchdog.timer
+
+[Service]
+EnvironmentFile=%h/.config/systemd/user/runner-watchdog.env
+Type=simple
+ExecStart=/home/akushnir/ElevatedIQ-Mono-Mono-Repo/build/github-runner/runner-watchdog.sh
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target
