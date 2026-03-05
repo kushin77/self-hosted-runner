@@ -1,4 +1,5 @@
 const RetryStrategy = require('../strategies/retry');
+const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -18,10 +19,18 @@ class RepairService {
   constructor(config = {}) {
     this.config = config;
     this.strategies = [
-      new RetryStrategy()
-      // new TimeoutStrategy() // Roadmap
+      new RetryStrategy(),
+      new TimeoutIncreaseStrategy()
     ];
     this.approvalThreshold = config.threshold || 0.7; // Confidence score to auto-repair
+  }
+
+  /**
+   * Get all registered strategies
+   * @returns {Array} Registered strategies
+   */
+  getStrategies() {
+    return this.strategies;
   }
 
   /**
@@ -58,6 +67,7 @@ class RepairService {
       status: 'REPAIR_IDENTIFIED',
       confidence: topStrategy.score,
       requiresApproval: topStrategy.score < this.approvalThreshold,
+      risk: topStrategy.score > 0.8 ? 'LOW' : 'MEDIUM',
       recommendation
     };
   }
