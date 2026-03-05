@@ -8,8 +8,10 @@ if [ -z "$NODE" ]; then
   exit 1
 fi
 
+BASEDIR=$(cd "$(dirname "$0")/.." && pwd)
+
 # Start server in background
-PORT=$PORT node ../lib/server.js &
+PORT=$PORT node "$BASEDIR/lib/server.js" &
 PID=$!
 sleep 1
 
