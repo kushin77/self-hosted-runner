@@ -1,8 +1,5 @@
-.terraform/
-terraform.tfstate*
-node_modules/
-dist/
-*.log
-*.zip
-*.bin
-*.exe
+# Ignore terraform plugin caches and provider artifacts
+**/.terraform/
+
+# Runner externals (binaries)
+actions-runner-*/externals/
