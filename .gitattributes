@@ -1,0 +1,8 @@
+# Track runner externals and Node binaries with Git LFS
+actions-runner-*/externals/**/bin/* filter=lfs diff=lfs merge=lfs -text
+
+# Track any provider binaries accidentally committed
+terraform/**/.terraform/** filter=lfs diff=lfs merge=lfs -text
+
+# Empirical patterns
+**/externals/**/* bin filter=lfs diff=lfs merge=lfs -text
