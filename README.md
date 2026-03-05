@@ -17,44 +17,42 @@ Complete, production-grade infrastructure and automation tooling for self-hosted
 
 ## 📊 Feature Completion Dashboard
 
-| Feature | Status | Completion | Notes |
-|---------|--------|------------|-------|
-| Multi-tier Runner Provisioning | ✅ | 100% | `ubuntu-latest` & `high-mem` — Terraform IaC complete |
-| Terraform Infrastructure as Code | ✅ | 100% | Full IaC (AWS/GCP) with modules and production-ready defaults |
-| Zero-Trust (GCP/Vault) | ✅ | 100% | KMS/GCS-backed Vault with auditable Service Account provisioning |
-| Observability Stack (P3) | ✅ | 100% | Prometheus v2.45, Alertmanager, Grafana (dashboards automated) |
-| Supply-Chain & SLSA | ✅ | 100% | SBOM (CycloneDX), SLSA Provenance, Gated Promotions |
-| E2E Testing Framework | ✅ | 100% | Ephemeral Docker-based validation for all major flows |
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Multi-tier Runner Provisioning | ✅ | `ubuntu-latest` & `high-mem` pools wired via Terraform.
+| Terraform Infrastructure as Code | ✅ | Fully modular AWS/GCP stacks with audited variables & outputs.
+| Zero-Trust (GCP/Vault) | ✅ | KMS-/GCS-backed Vault with auditable service-account module.
+| Observability Stack (P3) | ✅ | Prometheus v2.45 + Alertmanager + Grafana dashboards deployed.
+| Supply-Chain & SLSA | ✅ | CycloneDX SBOMs, provenance verification, gated release workflows.
+| E2E Testing Framework | ✅ | Ephemeral Docker tests exercising monitoring + alert routing.
 
 ---
 
 ## 🏗️ Getting Started (Operations)
 
-### 1. Configure Repository Secrets
-Follow [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241) to populate the following in GitHub Actions:
-- `GOOGLE_CREDENTIALS`
-- `PROD_TFVARS`
-- `SLACK_WEBHOOK_URL`
-- `PAGERDUTY_SERVICE_KEY`
-
-### 2. Validation & Deployment
-Run the following GitHub Actions workflows on `main`:
-1. **Terraform Plan**: Review changes for sign-off (Issue #231)
-2. **Observability E2E**: Verify alert routing to Slack/PagerDuty
-3. **Terraform Apply**: Provision production infrastructure
+1. **Configure Secrets** — Follow [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241) and add:
+   - `GOOGLE_CREDENTIALS`
+   - `PROD_TFVARS`
+   - `SLACK_WEBHOOK_URL`
+   - `PAGERDUTY_SERVICE_KEY`
+2. **Validate** — Run GitHub Actions on `main`:
+   1. Terraform Plan (review before apply; see [Issue #231](https://github.com/kushin77/self-hosted-runner/issues/231)).
+   2. Observability E2E (real receiver validation).
+   3. Terraform Apply (production rollout once plans are signed off).
+3. **Post-Apply** — Confirm dashboards, targets, and alert receivers remain healthy via the E2E suite.
 
 ---
 
-## 🛠️ Project Structure
+## 📚 Supporting References
 
-- `terraform/`: Root infrastructure for AWS Runners and GCP Vault backend
-- `scripts/automation/pmo/prometheus/`: Modern monitoring & alerting stack
-- `scripts/supplychain/`: SLSA/SBOM automation tools
-- `docs/`: Comprehensive architectural and operational documentation
+* `docs/PHASE_P3_FINAL_HANDOFF.md` — Detailed architecture + handoff instructions.
+* `docs/PHASE_2_3_OPS_RUNBOOK.md` — Step-by-step Terraform apply/runbook guidance.
+* `docs/PHASE_P2_OPS_QUICK_START.md` — GCP Vault operational quick start.
+* `docs/PROJECT_COMPLETION_SUMMARY.md` — Holistic delivery overview across phases.
 
 ---
 
-## 🤝 Contribution & Maintenance
-This repository follows Phase-based engineering delivery.  
-- **Current Phase**: Phase P3 (Complete)
-- **Upcoming**: Phase P4 (Advanced Hardening & Multi-Tenancy)
+## 🤝 Lifecycle Notes
+
+* **Current Phase**: Phase P3 — Engineering delivery is locked and awaiting Ops execution.
+* **Next Phase**: Phase P4 — Advanced hardening and multi-tenancy isolation (roadmap recorded in [Issue #243](https://github.com/kushin77/self-hosted-runner/issues/243)).
