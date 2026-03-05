@@ -1,0 +1,62 @@
+---
+- name: Provision self-hosted GitHub Actions runners
+  hosts: runners
+  gather_facts: yes
+  vars:
+    workdir: "{{ workdir | default('/opt/actions-runner') }}"
+    runner_repo_url: "{{ runner_repo_url | default('https://github.com/kushin77/self-hosted-runner') }}"
+    runner_name_prefix: "{{ runner_name_prefix | default('eiq-runner') }}"
+  tasks:
+    - name: Ensure required packages are installed
+      apt:
+        name:
+          - curl
+          - jq
+          - tar
+          - libicu66
+          - libssl1.1
+        state: present
+        update_cache: yes
+
+    - name: Create workdir
+      file:
+        path: "{{ workdir }}"
+        state: directory
+        owner: "{{ ansible_user | default('root') }}"
+        mode: '0755'
+
+    - name: Download GitHub Actions runner archive
+      get_url:
+        url: https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64.tar.gz
+        dest: "{{ workdir }}/actions-runner.tar.gz"
+        mode: '0644'
+
+    - name: Extract runner
+      unarchive:
+        src: "{{ workdir }}/actions-runner.tar.gz"
+        dest: "{{ workdir }}"
+        remote_src: yes
+
+    - name: Create runner registration token (prompt)
+      pause:
+        prompt: "Obtain a registration token and paste it here (repo admin):"
+      register: reg_token_input
+
+    - name: Configure runner (unattended)
+      command: ./config.sh --unattended --url "{{ runner_repo_url }}" --token "{{ reg_token_input.user_input }}" --name "{{ runner_name_prefix }}-{{ inventory_hostname }}"
+      args:
+        chdir: "{{ workdir }}"
+
+    - name: Install runner service
+      command: ./svc.sh install
+      args:
+        chdir: "{{ workdir }}"
+
+    - name: Start runner service
+      command: ./svc.sh start
+      args:
+        chdir: "{{ workdir }}"
+
+    - name: Show runner status hint
+      debug:
+        msg: "Runner configured on {{ inventory_hostname }}. Verify at {{ runner_repo_url }}/settings/actions/runners"
