@@ -1,6 +1,5 @@
 global:
   resolve_timeout: 5m
-  slack_api_url: '${SLACK_WEBHOOK_URL}'
   pagerduty_url: 'https://events.pagerduty.com/v2/enqueue'
 
 # Email configuration
@@ -41,20 +40,11 @@ route:
 # Receivers
 receivers:
   - name: 'default'
-    slack_configs:
-      - channel: '#platform-alerts'
-        title: 'Alert: {{ .GroupLabels.alertname }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-        color: '{{ if eq .Status "firing" }}danger{{ else }}good{{ end }}'
+    # Slack receiver temporarily removed; re-enable by setting SLACK_WEBHOOK_URL
+    # and restoring slack_configs below.
 
   - name: 'slack-warnings'
-    slack_configs:
-      - channel: '#platform-warnings'
-        title: 'Warning: {{ .GroupLabels.alertname }}'
-        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
-        send_resolved: true
-        color: 'warning'
+    # slack-warnings removed until Slack webhook is provided
 
   - name: 'pagerduty-critical'
     pagerduty_configs:
