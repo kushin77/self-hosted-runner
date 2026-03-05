@@ -7,21 +7,29 @@ on:
         description: 'If true, run apply after successful plan'
         required: false
         default: 'false'
+      force_no_secrets:
+        description: 'If true, skip evaluating repository secrets and attempt plan without them (use carefully)'
+        required: false
+        default: 'false'
 
 jobs:
   plan:
     runs-on: ubuntu-latest
+    env:
+      GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
       - name: Configure Google credentials
-        if: \${{ env.GCP_SA_KEY != '' }}
+        if: ${{ github.event.inputs.force_no_secrets == 'true' || env.GCP_SA_KEY != '' }}
         run: |
-          echo "$GCP_SA_KEY" > sa.json
-          export GOOGLE_APPLICATION_CREDENTIALS=sa.json
-        env:
-          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          if [ "${{ github.event.inputs.force_no_secrets }}" = "true" ]; then
+            echo "Force no-secrets mode enabled; skipping credential write"
+          else
+            echo "$GCP_SA_KEY" > sa.json
+            export GOOGLE_APPLICATION_CREDENTIALS=sa.json
+          fi
       - name: Terraform init
         run: terraform init -input=false
       - name: Terraform plan
