@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const RetryStrategy = require('../strategies/retry');
 const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
 const AuditLog = require('./audit-log');
@@ -12,9 +14,6 @@ const logger = winston.createLogger({
   ),
   transports: [new winston.transports.Console()]
 });
-
-const fs = require('fs');
-const path = require('path');
 
 // DB adapters: sqlite (`./db`) and postgres (`./pg_db`).
 let db;
