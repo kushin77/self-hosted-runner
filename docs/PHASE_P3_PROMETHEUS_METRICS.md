@@ -336,6 +336,25 @@ groups:
    - Token provisioning metrics
    - Auth endpoint latency
    - Token refresh tracking
+   - Add similar modules to other services (e.g. vault‑shim)
+
+   Phase P3.5 extends observability beyond the provisioner-worker. Each HTTP service should export its own
+   `/metrics` port (default 9091/9092) with request counts, latencies, and health probes. The helper libraries
+   live in `services/*/lib/metrics.js` and `metricsServer.js`.
+
+   Example instrumentation middleware:
+   ```js
+   app.use((req,res,next)=>{
+     const start = Date.now();
+     metrics.incActive();
+     res.once('finish', ()=>{
+       metrics.decActive();
+       metrics.recordRequest(res.statusCode<400?'success':'failure',Date.now()-start);
+     });
+     next();
+   });
+   ```
+   Once metrics are running, update `prometheus.yml` to add a new `scrape_config` for each service.
 
 ---
 
