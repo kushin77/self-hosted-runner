@@ -357,7 +357,31 @@ groups:
    Once metrics are running, update `prometheus.yml` to add a new `scrape_config` for each service.
 
 ---
+### OpenTelemetry Integration (P3.5b)
 
+The control plane now includes an optional OpenTelemetry SDK which can be enabled with
+`ENABLE_OTEL=true`. When enabled the service will attempt to load the OTEL packages and
+initialize a tracer and meter.  Spans are created around each job execution and basic
+metrics are also exported via the OTEL meter.
+
+Configuration is via standard OTEL environment variables:
+
+* `OTEL_EXPORTER_OTLP_ENDPOINT` – HTTP endpoint for the collector (`http://localhost:4318/v1/traces` by default)
+* `OTEL_SERVICE_NAME` – service name used in traces (defaults to `provisioner-worker`)
+* `OTEL_TRACES_SAMPLER` – sampling policy (`parentbased_traceidratio` with ratio 0.1 by default)
+
+If the OTEL packages are not installed the initialization code logs a warning and continues
+without telemetry (useful for development or CI runs).
+
+A lightweight sanity script (`services/provisioner-worker/tests/otel_init.sh`) verifies
+that the module loads safely even when the dependencies are absent.
+
+To enable in production, add the OTEL collector sidecar or run the
+[OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) and point
+`OTEL_EXPORTER_OTLP_ENDPOINT` at it.
+
+Examples of exporting to Datadog and Splunk are covered in the main OTEL user guide
+(see issue #165 once complete).
 ## Testing the Metrics
 
 ### Manual Verification
