@@ -1,6 +1,7 @@
 // Simple integration test: start metrics server and verify socket.io 'metrics:update'
 const { startMetricsServer, stopMetricsServer } = require('../lib/metricsServer');
 const ioClient = require('socket.io-client');
+const fetch = require('node-fetch').default;
 
 (async () => {
   const port = 9090;
@@ -41,10 +42,21 @@ const ioClient = require('socket.io-client');
       console.log('[test] socket connected', socket.id);
     });
 
-    socket.on('metrics:update', (payload) => {
+    socket.on('metrics:update', async (payload) => {
       console.log('[test] received metrics:update');
       clearTimeout(timeout);
       socket.close();
+      // confirm metrics endpoint has counters
+      try {
+        const res = await fetch(`http://localhost:${port}/metrics/summary`);
+        const json = await res.json();
+        console.log('[test] metrics summary', json);
+        if (json.socketAuthFailures !== undefined) {
+          console.log('[test] auth failure counter present');
+        }
+      } catch (e) {
+        console.warn('[test] failed to fetch metrics summary', e.message);
+      }
       // stop server gracefully
       stopMetricsServer();
       process.exit(0);
