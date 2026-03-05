@@ -9,6 +9,7 @@ const logger = require('./logger');
 const metrics = require('./metrics');
 
 let metricsServer = null;
+let io = null;
 
 /**
  * Start metrics HTTP server
@@ -74,6 +75,32 @@ async function startMetricsServer(port = 9090, app = null) {
       log.info('endpoint','/ready readiness check');
       log.info('endpoint','/alive liveness check');
       });
+
+      // Initialize Socket.IO for Phase 2 real-time migration
+      const { Server } = require('socket.io');
+      io = new Server(metricsServer, {
+        cors: { origin: '*', methods: ['GET', 'POST'] },
+        path: '/socket.io',
+      });
+
+      io.on('connection', (socket) => {
+        const log = require('./logger').child({ component: 'socket.io' });
+        log.info('client connected', { id: socket.id });
+
+        // Phase 2: send initial state upon connection
+        socket.emit('metrics:update', metrics.getSummaryStats());
+
+        socket.on('disconnect', () => {
+          log.info('client disconnected', { id: socket.id });
+        });
+      });
+
+      // Periodic broadcast for connected clients (Phase 2)
+      setInterval(() => {
+        if (io && io.engine.clientsCount > 0) {
+          io.emit('metrics:update', metrics.getSummaryStats());
+        }
+      }, 5000);
     }
     
     return metricsServer || finalApp;
