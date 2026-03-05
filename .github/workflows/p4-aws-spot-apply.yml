@@ -14,8 +14,12 @@ on:
 jobs:
   terraform-apply:
     name: Terraform Apply (aws-spot)
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     environment: prod-terraform-apply
+    permissions:
+      contents: read
+    # Note: this workflow will attempt to fetch AWS credentials from Vault
+    # on self-hosted runners if `VAULT_ADDR` and `VAULT_GITHUB_TOKEN` are set.
     steps:
       - name: Validate manual confirmation
         run: |
@@ -32,7 +36,26 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      - name: Configure AWS Credentials
+      - name: Fetch AWS creds from Vault
+        if: ${{ secrets.VAULT_ADDR && secrets.VAULT_GITHUB_TOKEN }}
+        uses: hashicorp/vault-action@v2
+        id: vault
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: github
+          role: "ci-runner-role"
+          secret: "secret/data/aws/ci"
+        env:
+          VAULT_TOKEN: ${{ secrets.VAULT_GITHUB_TOKEN }}
+
+      - name: Export AWS creds from Vault
+        if: steps.vault.outputs.aws_access_key_id
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ steps.vault.outputs.aws_access_key_id }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ steps.vault.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
+          echo "AWS_SESSION_TOKEN=${{ steps.vault.outputs.aws_session_token }}" >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials (fallback to repo secrets)
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
