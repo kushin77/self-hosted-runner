@@ -15,7 +15,19 @@ const logger = winston.createLogger({
 
 const fs = require('fs');
 const path = require('path');
-const db = require('./db');
+// DB adapters: sqlite (`./db`) and postgres (`./pg_db`).
+let db;
+try {
+  if (process.env.REPAIR_DB === 'postgres') {
+    db = require('./pg_db');
+  } else {
+    db = require('./db');
+  }
+} catch (e) {
+  // If adapter load fails, we'll fallback to NDJSON
+  logger.warn('[DB] failed to load DB adapter, falling back to NDJSON', { err: e.message });
+  db = null;
+}
 
 // Persistence for repair proposals (NDJSON)
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
