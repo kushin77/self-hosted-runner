@@ -9,9 +9,9 @@ variable "subnet_ids" {
 }
 
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "EC2 instance type (use t2.small or smaller for free-tier eligibility)"
   type        = string
-  default     = "t3.medium"
+  default     = "t2.small"
 }
 
 variable "desired_capacity" {
