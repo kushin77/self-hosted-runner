@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +26,18 @@ jobs:
         run: |
           if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install --no-audit --prefer-offline; fi
 
-      - name: Run tests
+      - name: Run tests (with retry)
         run: |
-          if [ -f package.json ] && npm test --silent; then echo "Tests passed"; else echo "No tests or tests failed"; fi
+          if [ -f package.json ]; then
+            n=0
+            until [ $n -ge 2 ]; do
+              npm test --silent && break
+              n=$((n+1))
+              echo "Test run $n failed, retrying..."
+            done
+            if [ $n -ge 2 ]; then
+              echo "Tests failed after retries"; exit 1
+            fi
+          else
+            echo "No package.json, skipping tests"
+          fi
