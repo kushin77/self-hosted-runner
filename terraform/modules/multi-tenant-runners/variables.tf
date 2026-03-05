@@ -119,4 +119,13 @@ variable "inject_vault_agent_metadata" {
   type        = bool
   default     = false
 }
+<<<<<<< HEAD
 
+variable "inject_vault_agent_metadata" {
+  description = "When true, embed Vault Agent config, template, and systemd unit into instance metadata so images don't need to be rebuilt."
+  type        = bool
+  default     = false
+}
+
+=======
+>>>>>>> 2efc2c6d66f0eb54f68202fdf351dbdd9f050108
