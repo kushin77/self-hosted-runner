@@ -24,20 +24,22 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
   };
 
   const c = (color && (colorMap as Record<string, string>)[String(color)]) || String(color) || COLORS.muted;
+  const bgLight = c + '09';
 
   return (
     <span
       style={{
-        background: '#f3f6fb',
+        background: bgLight,
         color: c,
-        border: `1px solid ${COLORS.border}`,
-        borderRadius: 6,
-        padding: sm ? '2px 6px' : '4px 10px',
+        border: `1px solid ${c}33`,
+        borderRadius: 'var(--radius-sm)',
+        padding: sm ? '3px 8px' : '5px 12px',
         fontSize: sm ? 11 : 12,
         fontWeight: 600,
         letterSpacing: '0.02em',
         whiteSpace: 'nowrap',
         display: 'inline-block',
+        animation: pulse ? 'pulse 2s ease-in-out infinite' : 'none',
       }}
     >
       {children}
@@ -77,11 +79,13 @@ interface PanelProps {
 
 export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor }) => (
   <div
+    className="panel"
     style={{
       background: COLORS.surface,
       border: `1px solid ${glowColor ? COLORS.borderBright : COLORS.border}`,
-      borderRadius: 8,
-      boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
+      borderRadius: 'var(--radius-md)',
+      boxShadow: glowColor ? `0 0 12px ${glowColor}22, var(--shadow-md)` : 'var(--shadow-sm)',
+      transition: 'box-shadow 200ms ease',
       ...style,
     }}
   >
@@ -154,23 +158,24 @@ export const Button: React.FC<ButtonProps> = ({
     background: color,
     border: `1px solid ${color}`,
     color: '#ffffff',
-    borderRadius: 6,
-    padding: sm ? '6px 10px' : '8px 16px',
+    borderRadius: 'var(--radius-sm)',
+    padding: sm ? '7px 12px' : '10px 18px',
     fontSize: sm ? 12 : 13,
     fontWeight: 600,
     cursor: 'pointer',
     letterSpacing: '0.02em',
-    boxShadow: '0 1px 2px rgba(16,24,40,0.06)',
-    transition: 'transform 120ms ease, box-shadow 120ms ease',
+    boxShadow: 'var(--shadow-sm)',
+    transition: 'all 150ms cubic-bezier(0.2, 0, 0.13, 1.5)',
     ...style,
   };
 
   return (
     <button
+      className="primary"
       style={baseStyle}
       onClick={onClick}
-      onMouseDown={(e) => (e.currentTarget.style.transform = 'translateY(1px)')}
-      onMouseUp={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+      onMouseDown={(e) => (e.currentTarget.style.transform = 'translateY(1px) scale(0.97)')}
+      onMouseUp={(e) => (e.currentTarget.style.transform = 'translateY(0) scale(1)')}
     >
       {children}
     </button>
@@ -199,23 +204,239 @@ export const Spinner: React.FC = () => (
  */
 export const GlobalStyles = () => (
   <style>{`
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    /* Keyframes */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+    /* Design tokens exposed as CSS variables for consistency */
+    :root {
+      --color-bg: ${COLORS.bg};
+      --color-surface: ${COLORS.surface};
+      --color-surface-high: ${COLORS.surfaceHigh};
+      --color-border: ${COLORS.border};
+      --color-border-bright: ${COLORS.borderBright};
+      --color-accent: ${COLORS.accent};
+      --color-text: ${COLORS.text};
+      --color-text-dim: ${COLORS.textDim};
+      --color-muted: ${COLORS.muted};
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 3px rgba(16,24,40,0.06);
+      --shadow-md: 0 6px 18px rgba(11,95,255,0.06);
+      --gap-sm: 8px;
+      --gap-md: 16px;
+      --gap-lg: 24px;
+      --max-width: 1200px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      --text-size-base: 13px;
+      --text-size-lg: 16px;
+      --text-weight-regular: 400;
+      --text-weight-medium: 600;
+      --text-weight-bold: 800;
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    /* Global typographic and element resets for enterprise look */
+
+    /* Base resets and layout */
     html, body, #root { height: 100%; }
-    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: ${COLORS.bg}; color: ${COLORS.text}; -webkit-font-smoothing:antialiased; }
-    button { font-family: inherit; }
-    a { color: ${COLORS.accent}; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    :focus { outline: 2px solid ${COLORS.accent}; outline-offset: 2px; }
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-size: var(--text-size-base);
+      background: var(--color-bg);
+      color: var(--color-text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      line-height: 1.35;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 { margin: 0; color: var(--color-text); font-weight: var(--text-weight-bold); }
+    h1 { font-size: 20px; }
+    h2 { font-size: 16px; }
+    p, label, span, a { color: var(--color-text); }
+    small, .muted { color: var(--color-text-dim); font-size: 12px; }
+
+    /* Links and focus styles */
+    a { color: var(--color-accent); text-decoration: none; }
+    a:hover, a:focus { text-decoration: underline; }
+    :focus { outline: 3px solid rgba(11,95,255,0.12); outline-offset: 2px; }
+
+    /* Buttons */
+    button { font-family: inherit; font-weight: var(--text-weight-medium); border-radius: var(--radius-sm); }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.primary:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+    /* Form controls */
+    input, textarea, select {
+      height: 36px;
+      padding: 8px 10px;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      background: var(--color-surface);
+      color: var(--color-text);
+      font-size: 13px;
+    }
+    textarea { min-height: 96px; padding-top: 10px; }
+    input:focus, textarea:focus, select:focus { border-color: var(--color-accent); box-shadow: 0 0 0 3px rgba(11,95,255,0.06); }
+
+    /* Panels, cards, lists */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 var(--gap-md); }
+    .card, .panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); }
+    .card.padded { padding: var(--gap-md); }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { text-align: left; padding: 10px; font-weight: 600; color: var(--color-text-dim); border-bottom: 1px solid var(--color-border); }
+    tbody td { padding: 10px; border-bottom: 1px solid var(--color-surface-high); }
+
+    /* Sidebar helpers */
+    .sidebar { background: var(--color-surface); border-right: 1px solid var(--color-border); }
+    .sidebar .nav-item { padding: 12px 14px; display:flex; gap:10px; align-items:center; cursor:pointer; color:var(--color-text-dim); }
+    .sidebar .nav-item.active { background: linear-gradient(90deg, rgba(11,95,255,0.04), transparent); color: var(--color-accent); font-weight: 700; }
+
+    /* Scrollbars (subtle) */
+    ::-webkit-scrollbar { height:10px; width:10px; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(11,95,255,0.12), rgba(11,95,255,0.06)); border-radius: 8px; }
+
+    /* Responsive tweaks */
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .container { padding: 0 12px; }
+    }
+
+    /* Utility helpers */
+    .flex { display:flex; }
+    .gap-sm { gap: var(--gap-sm); }
+    .gap-md { gap: var(--gap-md); }
+    .muted { color: var(--color-text-dim); }
   `}</style>
 );
 
-// Re-export ProgressBar for convenience (many pages import from UI)
-export { ProgressBar } from './Charts';
+/**
+ * FormControl - Input field wrapper with label and error state
+ */
+interface FormControlProps {
+  label?: string;
+  error?: string;
+  children: React.ReactNode;
+  required?: boolean;
+  id?: string;
+}
+
+export const FormControl: React.FC<FormControlProps> = ({
+  label,
+  error,
+  children,
+  required,
+  id,
+}) => (
+  <div style={{ marginBottom: 16 }}>
+    {label && (
+      <label
+        htmlFor={id}
+        style={{
+          display: 'block',
+          fontSize: 12,
+          fontWeight: 600,
+          color: COLORS.text,
+          marginBottom: 6,
+          letterSpacing: '0.02em',
+        }}
+      >
+        {label}
+        {required && <span style={{ color: COLORS.red }}>*</span>}
+      </label>
+    )}
+    {children}
+    {error && (
+      <div
+        style={{
+          marginTop: 4,
+          fontSize: 11,
+          color: COLORS.red,
+          fontWeight: 500,
+        }}
+        role="alert"
+      >
+        {error}
+      </div>
+    )}
+  </div>
+);
+
+/**
+ * Card - Simplified container for data display
+ */
+interface CardProps {
+  children: React.ReactNode;
+  padding?: number;
+  hoverEffect?: boolean;
+}
+
+export const Card: React.FC<CardProps> = ({ children, padding = 16, hoverEffect }) => (
+  <div
+    style={{
+      background: COLORS.surface,
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 'var(--radius-md)',
+      padding,
+      boxShadow: 'var(--shadow-sm)',
+      transition: hoverEffect ? 'all 150ms ease' : 'none',
+      cursor: hoverEffect ? 'pointer' : 'default',
+    }}
+    onMouseEnter={(e) => {
+      if (hoverEffect) {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-md)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (hoverEffect) {
+        (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-sm)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+      }
+    }}
+  >
+    {children}
+  </div>
+);
+
+/**
+ * Badge - Simple semantic badge component
+ */
+interface BadgeProps {
+  children: React.ReactNode;
+  variant?: 'primary' | 'success' | 'warning' | 'danger';
+}
+
+export const Badge: React.FC<BadgeProps> = ({ children, variant = 'primary' }) => {
+  const variantMap = {
+    primary: { bg: COLORS.accent + '12', color: COLORS.accent },
+    success: { bg: COLORS.green + '12', color: COLORS.green },
+    warning: { bg: COLORS.yellow + '12', color: COLORS.yellow },
+    danger: { bg: COLORS.red + '12', color: COLORS.red },
+  };
+
+  const v = variantMap[variant];
+
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        background: v.bg,
+        color: v.color,
+        padding: '4px 10px',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: '0.02em',
+      }}
+    >
+      {children}
+    </span>
+  );
+};
+
+// Re-export chart components for convenience across pages
+export { Sparkline, AreaChart, BarChart, ProgressBar, Gauge, Donut } from './Charts';

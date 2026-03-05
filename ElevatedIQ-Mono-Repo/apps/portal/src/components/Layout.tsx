@@ -28,17 +28,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
   return (
-    <div
-      style={{
-        width: 210,
-        background: COLORS.surface,
-        borderRight: `1px solid ${COLORS.border}`,
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        overflow: 'hidden',
-      }}
-    >
+    <div className="sidebar" style={{ width: 210 }}>
       {/* Header */}
       <div
         style={{
@@ -91,45 +81,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
       </div>
 
       {/* Nav Items */}
-      <div
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          padding: '8px 0',
-        }}
-      >
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
             onClick={() => setActive(item.id)}
-            style={{
-              width: '100%',
-              background: active === item.id ? COLORS.surfaceHigh : 'transparent',
-              border: 'none',
-              borderLeft:
-                active === item.id
-                  ? `2px solid ${COLORS.accent}`
-                  : '2px solid transparent',
-              color: active === item.id ? COLORS.accent : COLORS.textDim,
-              padding: '9px 14px',
-              textAlign: 'left',
-              cursor: 'pointer',
-              fontSize: 12,
-              fontWeight: active === item.id ? 700 : 400,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              transition: 'all 0.2s ease',
-            }}
+            className={`nav-item ${active === item.id ? 'active' : ''}`}
+            aria-current={active === item.id ? 'page' : undefined}
+            style={{ border: 'none', background: 'transparent', width: '100%' }}
           >
             <span style={{ fontSize: 13 }}>{item.icon}</span>
             <span style={{ flex: 1 }}>{item.label}</span>
             {((item as any).badge) && (
               <span
                 style={{
-                  fontSize: 8,
-                  background: COLORS.surfaceHigh,
-                  color: COLORS.muted,
+                  fontSize: 10,
+                  background: 'var(--color-surface-high)',
+                  color: 'var(--color-muted)',
                   border: `1px solid ${COLORS.border}`,
                   borderRadius: 4,
                   padding: '2px 6px',
