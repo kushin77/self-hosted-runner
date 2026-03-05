@@ -9,6 +9,7 @@ interface PillProps {
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
+  variant?: 'primary' | 'info' | 'warning' | 'success' | 'danger' | string;
 }
 
 export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
@@ -24,6 +25,15 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
   };
 
   const c = (color && (colorMap as Record<string, string>)[String(color)]) || String(color) || COLORS.muted;
+
+  // variant support (e.g. <Pill variant="warning">)
+  const variantMap: Record<string, string> = {
+    warning: COLORS.yellow,
+    info: COLORS.accent,
+    success: COLORS.green,
+    danger: COLORS.red,
+    primary: COLORS.accent,
+  };
 
   return (
     <span
