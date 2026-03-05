@@ -1,3 +1,4 @@
+---
 name: EIQ Nexus CI
 permissions:
   contents: read
@@ -26,7 +27,7 @@ jobs:
     runs-on: [self-hosted, linux]
     permissions:
       contents: read
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -97,7 +98,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -133,7 +134,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -176,7 +177,7 @@ jobs:
       packages: write
     needs: [validate, test, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -224,7 +225,7 @@ jobs:
       contents: read
     needs: [validate, test]
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -249,7 +250,7 @@ jobs:
     permissions:
       contents: read
     needs: [validate, test]
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -288,7 +289,7 @@ jobs:
     runs-on: [self-hosted, linux]
     needs: [validate, test, security, build, performance, integration]
     if: always()
-    
+
     steps:
       - name: Check Status
         run: |

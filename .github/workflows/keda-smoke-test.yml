@@ -1,3 +1,4 @@
+---
 name: KEDA Smoke Test
 permissions:
   contents: read
