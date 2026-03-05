@@ -7,9 +7,13 @@
 
 const express = require('express');
 const bodyParser = require('body-parser');
-const logger = require('./lib/logger');
-const metrics = require('./lib/metrics');
-const metricsServer = require('./lib/metricsServer');
+const logger = require('./lib/logger.cjs');
+const metrics = require('./lib/metrics.cjs');
+const metricsServer = require('./lib/metricsServer.cjs');
+const otel = require('./lib/otel.cjs');
+
+// optional OpenTelemetry for vault-shim
+otel.init();
 
 const app = express();
 const port = process.env.PORT || 4200;
@@ -25,6 +29,10 @@ app.use((req, res, next) => {
   req.log = logger.child({ correlation_id: req.correlation_id });
   req.log.info('incoming request', { path: req.path, method: req.method });
 
+  // OTEL tracing
+  const tracer = otel.getTracer();
+  const span = tracer ? tracer.startSpan('http_request', { attributes: { path: req.path, method: req.method } }) : null;
+  if (span) req.span = span;
   const start = Date.now();
   metrics.incActive();
   res.once('finish', () => {
@@ -32,6 +40,11 @@ app.use((req, res, next) => {
     const ms = Date.now() - start;
     const status = res.statusCode < 400 ? 'success' : 'failure';
     metrics.recordRequest(status, ms);
+    if (span) {
+      span.setAttribute('http.status_code', res.statusCode);
+      span.addEvent('response_sent', { duration_ms: ms });
+      span.end();
+    }
   });
 
   next();
