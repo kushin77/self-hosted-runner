@@ -1,0 +1,44 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: commit-intelligence-task
+  labels:
+    layer: commit-intelligence
+spec:
+  params:
+    - name: git-url
+      type: string
+    - name: git-revision
+      type: string
+  results:
+    - name: affected
+      description: >-
+        JSON list of affected services/artifacts detected by change analysis.
+  steps:
+    - name: fetch-repo
+      image: alpine/git
+      script: |
+        git clone --no-tags $(params.git-url) repo
+        cd repo
+        git checkout $(params.git-revision)
+    - name: dependency-graph
+      image: alpine
+      script: |
+        # placeholder: run language-specific dependency analysis
+        echo '["service-a","service-b"]' > /workspace/output/affected.json
+    - name: unit-and-lint
+      image: registry.access.redhat.com/ubi8/nodejs-14
+      script: |
+        # run lint and unit tests for affected services
+        echo "lint OK"
+    - name: sast-secret-scan
+      image: aquasec/trivy:latest
+      script: |
+        # run SAST/secret detection placeholder
+        echo "sast OK"
+    - name: write-result
+      image: alpine
+      script: |
+        mkdir -p /workspace/output
+        cat /workspace/output/affected.json
+        echo -n "[\"service-a\"]" > /tekton/results/affected

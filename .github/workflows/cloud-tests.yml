@@ -1,0 +1,58 @@
+name: Cloud Provider Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: 'Comma-separated providers to run (aws,gcp,azure) - empty = all available'
+        required: false
+        default: ''
+  push:
+    branches:
+      - main
+
+jobs:
+  aws-ec2:
+    if: ${{ secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      - name: Run EC2 cloud test
+        run: |
+          chmod +x ./tests/run-cloud-tests.sh
+          AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }} ./tests/run-cloud-tests.sh
+
+  gcp:
+    if: ${{ secrets.GCP_SA_KEY != '' && secrets.GCP_PROJECT != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          project_id: ${{ secrets.GCP_PROJECT }}
+      - name: Run GCP cloud test
+        run: |
+          chmod +x ./tests/run-cloud-tests.sh
+          GCP_PROJECT=${{ secrets.GCP_PROJECT }} ./tests/run-cloud-tests.sh
+
+  azure:
+    if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Run Azure cloud test
+        run: |
+          chmod +x ./tests/run-cloud-tests.sh
+          AZURE_SUBSCRIPTION=${{ fromJSON(secrets.AZURE_CREDENTIALS).subscriptionId }} ./tests/run-cloud-tests.sh

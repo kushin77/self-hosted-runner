@@ -1,0 +1,3 @@
+ephemeral_workspaces: true
+signing_required: true
+sandbox_type: docker

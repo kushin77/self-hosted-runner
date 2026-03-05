@@ -1,0 +1,22 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sbom-scan-sign-task
+  labels:
+    layer: artifact-build
+spec:
+  steps:
+    - name: trivy-scan
+      image: aquasec/trivy:latest
+      script: |
+        echo "Running vulnerability scan against built images"
+        # trivy image --format json --output /workspace/output/scan.json <image>
+    - name: sign-artifact
+      image: sigstore/cosign:latest
+      script: |
+        echo "Signing artifacts with cosign (placeholder)"
+        # cosign sign --key $(params.cosign_key) <image>
+    - name: attest
+      image: sigstore/cosign:latest
+      script: |
+        echo "Upload attestation to transparency log (rekor)"

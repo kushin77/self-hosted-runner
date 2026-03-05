@@ -1,0 +1,4 @@
+{
+  "sbom": "syft",
+  "packages": [ { "name": "fake-release", "version": "0.0.1" } ]
+}

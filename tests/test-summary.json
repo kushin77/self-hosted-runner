@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-03-05T21:48:38+00:00",
+  "status": "success",
+  "total_suites": 1,
+  "passed_suites": 1,
+  "failed_suites": 0,
+  "tests": {
+    "integration": true,
+    "security": false,
+    "cloud_ec2": false,
+    "cloud_gcp": false,
+    "cloud_azure": false
+  }
+}

@@ -1,0 +1,116 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: runner-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: actions-runner
+  policyTypes:
+    - Ingress
+    - Egress
+
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              role: runner-controller
+      ports:
+        - protocol: TCP
+          port: 9100
+
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow HTTPS to GitHub
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+      destinations:
+        - api.github.com
+        - github.com
+
+    # Allow HTTPS to container registries
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+      destinations:
+        - registry.docker.io
+        - gcr.io
+        - quay.io
+
+    # Deny all other egress
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runner-feature-flags
+  namespace: default
+data:
+  features.yaml: |
+    features:
+      ephemeral_workspaces:
+        enabled: true
+        description: "Destroy job workspaces after execution"
+        rollout_percentage: 100
+
+      artifact_signing:
+        enabled: true
+        description: "Sign all artifacts with Cosign"
+        rollout_percentage: 100
+
+      progressive_rollout:
+        enabled: true
+        description: "Use canary/blue-green deployments"
+        rollout_percentage: 100
+
+      auto_remediation:
+        enabled: true
+        description: "Automatically fix common job failures"
+        rollout_percentage: 50
+
+      ai_anomaly_detection:
+        enabled: false
+        description: "Use ML models for anomaly detection"
+        rollout_percentage: 0
+
+      secret_scanning:
+        enabled: true
+        description: "Scan for hardcoded secrets"
+        rollout_percentage: 100
+
+      sbom_generation:
+        enabled: true
+        description: "Generate SBOMs for all artifacts"
+        rollout_percentage: 100
+
+      distributed_caching:
+        enabled: true
+        description: "Use distributed build cache (Buildkit or similar)"
+        rollout_percentage: 75
+
+      container_isolation:
+        enabled: true
+        description: "Run jobs in isolated containers"
+        rollout_percentage: 100
+        sandbox_type: docker  # Options: docker, gvisor, firecracker
+
+      runtime_security:
+        enabled: true
+        description: "Enable runtime security monitoring (Falco)"
+        rollout_percentage: 50
+
+      cost_optimization:
+        enabled: true
+        description: "Optimize resource usage per job"
+        rollout_percentage: 75

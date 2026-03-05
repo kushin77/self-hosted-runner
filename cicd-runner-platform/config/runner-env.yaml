@@ -1,0 +1,81 @@
+# Runner Configuration
+# These environment variables and settings control runner behavior
+
+# GitHub Configuration
+RUNNER_URL: https://github.com
+RUNNER_ORG: YOUR_ORG
+RUNNER_REPO: YOUR_REPO
+RUNNER_LABELS: linux,self-hosted,docker,kubernetes
+
+# Runner Identity (generated on registration)
+RUNNER_ID: runner-001
+RUNNER_TYPE: build
+RUNNER_REGION: us-east-1
+RUNNER_CAPABILITIES:
+  - docker
+  - kubernetes
+  - buildkit
+  - nix
+
+# Security
+EPHEMERAL_WORKSPACE: true
+SECURE_WORKSPACE_WIPE: false  # Set to true for regulated environments (slower)
+REQUIRE_SIGNED_ARTIFACTS: true
+ENABLE_SECRET_SCANNING: true
+ENABLE_SAST: true
+
+# Observability
+ENABLE_METRICS: true
+METRICS_ENDPOINT: http://prometheus:9090
+ENABLE_LOGGING: true
+LOGGING_ENDPOINT: http://loki:3100
+ENABLE_TRACING: true
+TRACING_ENDPOINT: http://tempo:4317
+
+# Self-Update
+AUTO_UPDATE_RUNNER: true
+AUTO_UPDATE_INTERVAL: 3600  # 1 hour
+UPDATE_CHECK_HOUR_LIMIT: "22-23"  # Only update between 10-11 PM UTC
+
+# Health & Self-Healing
+ENABLE_HEALTH_CHECK: true
+HEALTH_CHECK_INTERVAL: 300  # 5 minutes
+ENABLE_AUTO_HEALING: true
+QUARANTINE_ON_HEALTH_FAILURE: true
+
+# Resource Limits
+MAX_JOBS_CONCURRENT: 1
+JOB_TIMEOUT: 3600  # 1 hour
+WORKSPACE_CLEANUP_AFTER_JOB: true
+DISK_CLEANUP_THRESHOLD: 80  # % usage
+
+# Network
+NETWORK_POLICY: strict
+ALLOW_INTERNET_EGRESS: false
+ALLOWED_DOMAINS:
+  - api.github.com
+  - github.com
+  - registry.docker.io
+  - gcr.io
+
+# Sandbox Configuration
+CONTAINER_RUNTIME: docker
+SANDBOX_TYPE: docker  # Options: docker, gvisor, firecracker
+ENABLE_READONLY_ROOTFS: true
+DISABLE_CAPABILITIES:
+  - SYS_ADMIN
+  - NET_ADMIN
+  - SYS_PTRACE
+
+# Artifact Signing
+COSIGN_KEY: /etc/runner/cosign.key
+COSIGN_PASSWORD: ${COSIGN_PASSWORD}  # From environment
+ENABLE_ATTESTATION: true
+
+# Compliance & Audit
+ENABLE_AUDIT_LOG: true
+AUDIT_LOG_RETENTION: 90  # days
+AUDIT_LOG_DESTINATION: /var/log/runner-audit.log
+PCI_COMPLIANCE_MODE: false
+HIPAA_COMPLIANCE_MODE: false
+SOC2_COMPLIANCE_MODE: true

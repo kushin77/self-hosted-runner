@@ -1,0 +1,3 @@
+○ elevatediq-devenv-monitor.service - ElevatedIQ Dev Environment Monitor (OOM + fileWatcher protection)
+     Loaded: loaded (]8;;file://dev-elevatediq-2/home/akushnir/.config/systemd/user/elevatediq-devenv-monitor.service/home/akushnir/.config/systemd/user/elevatediq-devenv-monitor.service]8;;; [0;1;38;5;185mdisabled[0m; preset: [0;1;32menabled[0m)
+     Active: inactive (dead)

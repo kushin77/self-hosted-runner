@@ -1,0 +1,13 @@
+# Immutable ephemeral Vault image with baked-in AppRole policy
+FROM hashicorp/vault:1.15.4
+
+# Copy init script (will be executed at startup)
+COPY vault-init.sh /usr/local/bin/vault-init.sh
+RUN chmod +x /usr/local/bin/vault-init.sh
+
+# Set environment defaults (can be overridden at run time)
+ENV VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+ENV VAULT_LOG_LEVEL=info
+
+# Use the init script as entrypoint to configure AppRole before starting server
+ENTRYPOINT ["/usr/local/bin/vault-init.sh"]

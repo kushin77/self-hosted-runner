@@ -1,0 +1,11 @@
+# OpenTelemetry config placeholder (opentelemetry / otel)
+opentelemetry:
+  exporters:
+    otlp:
+      endpoint: localhost:4317
+
+service:
+  pipelines:
+    traces:
+      exporters: [otlp]
+

@@ -1,0 +1,13 @@
+# Fluent Bit config placeholder (fluent-bit)
+service:
+  flush: 1
+  log_level: info
+
+outputs:
+  - name: stdout
+  - name: loki
+    match: '*'
+
+# fluentbit / fluent-bit reference for tests
+fluent-bit: true
+

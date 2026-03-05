@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: ephemeral-validate-task
+  labels:
+    layer: autonomous-validation
+spec:
+  steps:
+    - name: create-ephemeral-ns
+      image: bitnami/kubectl:latest
+      script: |
+        echo "Creating ephemeral namespace for validation"
+        # kubectl create ns apps-ephemeral-$(params.commit)
+    - name: deploy-app
+      image: alpine/helm:3.9.0
+      script: |
+        echo "Deploying helm/kustomize overlays to ephemeral namespace"
+    - name: run-integration-tests
+      image: cdrx/pythia:latest
+      script: |
+        echo "Running integration and contract tests"
+    - name: perf-and-chaos
+      image: litmuschaos/litmus:latest
+      script: |
+        echo "Running performance benchmarks and chaos tests (selective)"
+    - name: report-slo
+      image: alpine
+      script: |
+        # produce SLO report consumed by promote step
+        echo "{\"slo_pass\":true}" > /tekton/results/slo

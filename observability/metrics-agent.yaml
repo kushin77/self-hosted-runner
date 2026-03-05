@@ -1,0 +1,7 @@
+# Prometheus scrape config placeholder (prometheus)
+prometheus:
+  scrape_configs:
+    - job_name: 'runner'
+      static_configs:
+        - targets: ['localhost:9100']
+

@@ -1,0 +1,43 @@
+%% Mermaid architecture for 4-layer CI/CD
+flowchart LR
+  subgraph L1[Layer 1 — Commit Intelligence]
+    A[Git Repo / Webhook] --> B[Commit Trigger]
+    B --> C[Dependency Graph & Impact Analysis]
+    C --> D[Selective Tasks: Lint, Unit Tests, SAST, Secret Scan]
+    D --> E[Change Manifest (affected services)]
+  end
+
+  subgraph L2[Layer 2 — Artifact & Environment Build]
+    E --> F[Incremental Build Orchestrator]
+    F --> G[Hermetic Build (BuildKit/Nix)]
+    G --> H[SBOM + Vulnerability Scan]
+    H --> I[Sign & Push to OCI Registry]
+  end
+
+  subgraph L3[Layer 3 — Autonomous Validation]
+    I --> J[Ephemeral Env Provisioner (K8s Namespaces)]
+    J --> K[Integration / Contract / Perf / Chaos / Security Tests]
+    K --> L[Validation Engine & SLO Evaluator]
+  end
+
+  subgraph L4[Layer 4 — Progressive Production Deployment]
+    L --> M[Promotion Controller (GitOps PR)]
+    M --> N[Progressive Rollout (Canary / Blue-Green / Argo Rollouts)]
+    N --> O[Telemetry & Anomaly Detection]
+    O --> P[Auto-Rollback or Promote]
+  end
+
+  style L1 fill:#f7f7ff,stroke:#333
+  style L2 fill:#f0fff4,stroke:#333
+  style L3 fill:#fff8e6,stroke:#333
+  style L4 fill:#fff0f0,stroke:#333
+
+  subgraph Infra[Platform Services]
+    R[GitOps (ArgoCD/Flux)]
+    S[Pipeline Engine (Tekton/Concourse)]
+    T[Registry + SBOM Store]
+    U[Signing KMS & Vault]
+    V[Observability (Prometheus, OTel, Loki)]
+    W[Policy (OPA/Gatekeeper)]
+    R & S & T & U & V & W --- C
+  end

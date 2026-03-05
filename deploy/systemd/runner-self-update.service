@@ -1,0 +1,11 @@
+[Unit]
+Description=Runner Self-Update Service (example)
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /home/akushnir/self-hosted-runner/self-update/apply-update.sh --current /home/akushnir/self-hosted-runner/self-update/version --artifact-url "$ARTIFACT_URL"
+Environment=ARTIFACT_URL=
+
+[Install]
+WantedBy=multi-user.target

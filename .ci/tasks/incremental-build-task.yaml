@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: incremental-build-task
+  labels:
+    layer: artifact-build
+spec:
+  params:
+    - name: affected-services
+      type: string
+  resources: {}
+  steps:
+    - name: setup-buildkit
+      image: moby/buildkit:latest
+      script: |
+        echo "Preparing hermetic build environment"
+    - name: build-images
+      image: docker:24-dind
+      securityContext:
+        privileged: true
+      script: |
+        # Example: loop over affected services and build with BuildKit
+        echo "Building images for: $(params.affected-services)"
+        # In production use BuildKit/Nix with pinned builder images and cache
+    - name: generate-sbom
+      image: cyclonedx/cyclonedx-cli:latest
+      script: |
+        echo "Generating SBOM"
+        # produce SBOMs for built artifacts and place into /workspace/output
+    - name: push-artifacts
+      image: bitnami/kubectl:latest
+      script: |
+        echo "Pushing artifacts to OCI registry (placeholder)"

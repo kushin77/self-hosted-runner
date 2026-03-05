@@ -1,0 +1,54 @@
+# Example Tekton-style pipeline (conceptual)
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: ci-cd-4layer-pipeline
+spec:
+  params:
+    - name: git-url
+    - name: git-revision
+    - name: commit-sha
+  tasks:
+    - name: commit-intel
+      taskRef:
+        name: commit-intelligence-task
+      params:
+        - name: git-url
+          value: $(params.git-url)
+        - name: git-revision
+          value: $(params.git-revision)
+
+    - name: build-artifacts
+      runAfter: [commit-intel]
+      taskRef:
+        name: incremental-build-task
+      params:
+        - name: affected-services
+          value: $(tasks.commit-intel.results.affected)
+
+    - name: sbom-and-scan
+      runAfter: [build-artifacts]
+      taskRef:
+        name: sbom-scan-sign-task
+
+    - name: ephemeral-validate
+      runAfter: [sbom-and-scan]
+      taskRef:
+        name: ephemeral-validate-task
+
+    - name: promote-to-gitops
+      runAfter: [ephemeral-validate]
+      taskRef:
+        name: promote-task
+
+# Tasks (outline) - implement Task/ClusterTask CRs with proper steps:
+# - commit-intelligence-task: runs dependency graph analysis, change impact, unit tests, SAST, secret-detection
+# - incremental-build-task: builds only affected services in hermetic containers; produces SBOM
+# - sbom-scan-sign-task: runs vulnerability scanning and codesign via cosign; pushes images
+# - ephemeral-validate-task: creates ephemeral namespace, deploys Helm/Kustomize, runs integration, contract, perf, chaos, security tests; reports SLOs
+# - promote-task: if SLOs met, create GitOps PR or directly update Git release branch and tag; attach provenance and signed artifacts
+
+# Notes:
+# - Use persistent caching volumes (CacheVolume) for build cache
+# - Use Tekton Results to pass 'affected' list and artifact metadata
+# - Integrate with SPI for secret injection and Vault for dynamic secrets

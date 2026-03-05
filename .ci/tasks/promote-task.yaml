@@ -1,0 +1,27 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: promote-task
+  labels:
+    layer: promotion
+spec:
+  params:
+    - name: git-ops-repo
+      type: string
+    - name: artifact-digest
+      type: string
+  steps:
+    - name: check-slo
+      image: alpine
+      script: |
+        echo "Checking SLO result and policy gates"
+        # if /tekton/results/slo is true, continue
+    - name: create-gitops-pr
+      image: alpine/git
+      script: |
+        echo "Cloning GitOps repo and creating PR to promote artifact"
+        # git clone $(params.git-ops-repo) repo && update manifests to reference $(params.artifact-digest)
+    - name: annotate-provenance
+      image: curlimages/curl:7.90.0
+      script: |
+        echo "Attach attestation and provenance to PR or release"

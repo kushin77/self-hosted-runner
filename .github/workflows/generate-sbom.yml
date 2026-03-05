@@ -1,0 +1,28 @@
+name: Generate SBOM
+
+on:
+  push:
+    paths:
+      - 'self-update/**'
+      - 'src/**'
+  workflow_dispatch: {}
+
+jobs:
+  syft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+      - name: Build artifact (example)
+        run: |
+          mkdir -p build/sbom-example && echo "example" > build/sbom-example/app.txt && tar -czf build/sbom-example.tar.gz -C build/sbom-example app.txt
+      - name: Generate SBOM
+        run: |
+          syft packages dir:build/sbom-example -o json > build/sbom-example-sbom.json
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: build/sbom-example-sbom.json

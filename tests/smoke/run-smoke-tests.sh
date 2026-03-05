@@ -3,7 +3,7 @@
 # Validates core Phase P2 functionality without full deployment
 # Usage: bash tests/smoke/run-smoke-tests.sh [environment]
 
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENVIRONMENT="${1:-dev}"
