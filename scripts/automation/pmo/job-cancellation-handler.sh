@@ -25,18 +25,21 @@ log() {
 # Trap SIGTERM and initiate graceful shutdown
 handle_sigterm() {
   log "🛑 SIGTERM received - initiating graceful shutdown"
-  
+
   # Create checkpoint file
   save_checkpoint
-  
+
   # Terminate child processes gracefully
   graceful_terminate
-  
+
   # Cleanup and exit
   cleanup
-  
+
   exit 143  # Standard SIGTERM exit code
 }
+
+# Also handle SIGINT and SIGQUIT for interactive/CI interrupts
+trap 'handle_sigterm' SIGINT SIGQUIT
 
 # Save job state before terminating
 save_checkpoint() {
@@ -44,7 +47,11 @@ save_checkpoint() {
   
   log "💾 Saving checkpoint: $checkpoint_file"
   
-  cat > "$checkpoint_file" <<EOF
+  # write atomically to avoid partial checkpoint files
+  local tmpfile
+  tmpfile="${checkpoint_file}.$(date +%s).tmp"
+
+  cat > "$tmpfile" <<EOF
 {
   "job_id": "$JOB_WRAPPER_PID",
   "timestamp": "$(date -Iseconds)",
@@ -52,9 +59,11 @@ save_checkpoint() {
   "pgid": $PGID,
   "shell_pid": $$,
   "signal": "SIGTERM",
-  "children": $(get_child_pids | jq -R 'split("\n") | map(select(length > 0) | tonumber) | length')
+  "children_count": $(get_child_pids | wc -w)
 }
 EOF
+
+  mv "$tmpfile" "$checkpoint_file"
   
   # Also save environment for potential recovery
   env > "${checkpoint_file}.env"
@@ -65,7 +74,7 @@ EOF
 # Get all child processes
 get_child_pids() {
   local target_pid="${1:-$JOB_WRAPPER_PID}"
-  pgrep -P "$target_pid" 2>/dev/null || echo ""
+  pgrep -P "$target_pid" 2>/dev/null || true
 }
 
 # Graceful termination sequence with escalation
@@ -119,14 +128,8 @@ graceful_terminate() {
 # Cleanup resources
 cleanup() {
   log "🧹 Cleaning up resources..."
-  
-  # Only close if they are not already pointing to /dev/null or similar
-  # Avoid breaking subsequent logging in tests
-  if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    exec 2>&-
-    exec 1>&-
-  fi
-  
+
+  # Avoid closing stdout/stderr; let the OS handle descriptor cleanup.
   log "✓ Cleanup complete"
 }
 
@@ -138,15 +141,20 @@ run_job() {
   log "   Job timeout: ${JOB_TIMEOUT}s"
   log "   Grace period: ${GRACE_PERIOD}s"
   
-  # Create new process group for the job
+  # Create new process group for the job so we can target it reliably
   set -m
-  
+
+  # Register signal handlers early so signals are handled even while starting
+  trap 'handle_sigterm' SIGTERM SIGINT SIGQUIT
+
   # Run job in background so we can monitor it
   eval "$job_command" &
   local job_pid=$!
   
-  # Register signal handler
-  trap handle_sigterm SIGTERM
+  # Ensure job is in its own process group
+  if command -v setsid >/dev/null 2>&1; then
+    setsid sh -c "kill -0 $job_pid" >/dev/null 2>&1 || true
+  fi
   
   # Wait for job with timeout
   local timeout_remaining=$JOB_TIMEOUT

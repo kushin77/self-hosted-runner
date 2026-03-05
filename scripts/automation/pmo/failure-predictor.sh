@@ -18,7 +18,7 @@ ALERT_WEBHOOK="${ALERT_WEBHOOK:-}"
 LOG_FILE="${LOG_FILE:-/var/log/failure-prediction.log}"
 
 mkdir -p "$(dirname "$MODEL_PATH")"
-mkdir -p "$(dirname "$METRICS_DB")"
+mkdir -p "$(dirname "$METRICS_DB")" && chmod 700 "$(dirname "$METRICS_DB")"
 mkdir -p "$(dirname "$LOG_FILE")"
 
 log() {
@@ -108,7 +108,7 @@ send_alert() {
   
   log "⚠️  Job anomaly detected: $job_id (score: $anomaly_score, risk: $risk_level)"
   
-  # Send to webhook if configured
+  # Send to webhook if configured (with retries)
   if [ -n "$ALERT_WEBHOOK" ]; then
     local payload=$(cat <<EOF
 {
@@ -121,17 +121,29 @@ send_alert() {
 }
 EOF
 )
-    
-    curl -s -X POST "$ALERT_WEBHOOK" \
-      -H "Content-Type: application/json" \
-      -d "$payload" > /dev/null 2>&1 || true
+
+    local attempt=0
+    local max_attempts=3
+    local backoff=2
+    while [ $attempt -lt $max_attempts ]; do
+      if curl -s -S -X POST "$ALERT_WEBHOOK" -H "Content-Type: application/json" -d "$payload" --connect-timeout 5 --max-time 10 > /dev/null 2>&1; then
+        break
+      fi
+      attempt=$((attempt+1))
+      sleep $((backoff * attempt))
+    done
   fi
   
   # Log to local database
-  sqlite3 "$METRICS_DB" <<SQL
-INSERT INTO predictions (job_id, anomaly_score, risk_level, timestamp)
-VALUES ('$job_id', $anomaly_score, '$risk_level', datetime('now'));
-SQL
+  # Write prediction with a simple retry in case of transient DB lock
+  local db_attempt=0
+  while [ $db_attempt -lt 3 ]; do
+    if sqlite3 "$METRICS_DB" "INSERT INTO predictions (job_id, anomaly_score, risk_level, timestamp) VALUES ('$job_id', $anomaly_score, '$risk_level', datetime('now'));"; then
+      break
+    fi
+    db_attempt=$((db_attempt+1))
+    sleep 1
+  done
 }
 
 # Monitor running jobs and detect anomalies
@@ -140,9 +152,14 @@ monitor_jobs() {
   
   while true; do
     # Get all running jobs from health monitor
-    local running_jobs=$(pgrep -f "github-runner" | while read pid; do
-      echo "job-$pid"
-    done)
+    local running_jobs
+    running_jobs=$(pgrep -f "github-runner" 2>/dev/null || true)
+    if [ -z "$running_jobs" ]; then
+      sleep "$SCORING_INTERVAL"
+      continue
+    fi
+
+    running_jobs=$(echo "$running_jobs" | awk '{print "job-"$1}')
     
     for job_id in $running_jobs; do
       # Extract features
