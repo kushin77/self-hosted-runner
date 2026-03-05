@@ -399,13 +399,13 @@ headers based on `OTEL_EXPORTER` and environment variables.  Additional exporter
 ## Air-Gapped Deployment (P3.6b)
 
 A companion script `scripts/airgap_setup.sh` outlines namespace creation and a
-restrictive egress network policy, suitable for customer clusters.  A verification
+restrictive egress network policy, suitable for customer clusters. A verification
 script `services/provisioner-worker/tests/airgap_verify.sh` checks the default
-`iptables` OUTPUT policy and prints any allowed egress rules.  Both scripts are
-executable and can be incorporated into CICD for compliance validation.
+`iptables` OUTPUT policy and prints any allowed egress rules. Both scripts are
+executable and can be incorporated into CI for compliance validation.
 
 Audit events (scaling decisions, job startups) are logged by the helper
-`services/provisioner-worker/lib/audit.cjs`.  Records are written locally to
+`services/provisioner-worker/lib/audit.cjs`. Records are written locally to
 `/var/log/rc-audit.log` and optionally uploaded to a bucket via
 `AUDIT_BUCKET`.
 
