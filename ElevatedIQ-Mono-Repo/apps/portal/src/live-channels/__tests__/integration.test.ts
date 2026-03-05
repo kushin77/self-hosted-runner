@@ -4,7 +4,7 @@
  * Complete fixture examples and test patterns for each channel adapter.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { loadChannels, shutdownChannels } from '../loader';
 import type { ChannelConfig } from '../loader';
 
@@ -14,9 +14,10 @@ const mockApp = {
   ws: vi.fn(),
 } as any;
 
-const mockHttpServer = {
+const _mockHttpServer = {
   on: vi.fn(),
 } as any;
+void _mockHttpServer;
 
 describe('Live Channel Adapters', () => {
   let activeChannels: any[] = [];
@@ -171,16 +172,18 @@ describe('Live Channel Adapters', () => {
 describe('Message Handlers', () => {
   it('should handle WebSocket message', async () => {
     // Mock WebSocket client
-    const mockClient = {
+    const _mockClient = {
       send: vi.fn(),
       close: vi.fn(),
     };
+    void _mockClient;
 
     // Simulate incoming message
-    const incomingMessage = {
+    const _incomingMessage = {
       type: 'ping',
       payload: { test: true },
     };
+    void _incomingMessage;
 
     // Your adapter should process this:
     // const result = await adapter.handleMessage(mockClient, incomingMessage);
@@ -188,7 +191,7 @@ describe('Message Handlers', () => {
   });
 
   it('should handle Slack command', async () => {
-    const mockSlackCommand = {
+    const _mockSlackCommand = {
       token: 'test-token',
       team_id: 'T12345',
       channel_id: 'C12345',
@@ -197,6 +200,7 @@ describe('Message Handlers', () => {
       text: 'staging',
       response_url: 'https://hooks.slack.com/commands/...',
     };
+    void _mockSlackCommand;
 
     // Your adapter should handle this and respond
     // const result = await adapter.handleCommand(mockSlackCommand);

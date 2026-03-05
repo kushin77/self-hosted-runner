@@ -9,9 +9,10 @@ interface PillProps {
   children: React.ReactNode;
   sm?: boolean;
   pulse?: boolean;
+  variant?: 'primary' | 'info' | 'warning' | 'success' | 'danger' | string;
 }
 
-export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
+export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse, variant }) => {
   const colorMap: Record<string, string> = {
     green: COLORS.green,
     yellow: COLORS.yellow,
@@ -25,11 +26,22 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
 
   const c = (color && (colorMap as Record<string, string>)[String(color)]) || String(color) || COLORS.muted;
 
+  // variant support (e.g. <Pill variant="warning">)
+  const variantMap: Record<string, string> = {
+    warning: COLORS.yellow,
+    info: COLORS.accent,
+    success: COLORS.green,
+    danger: COLORS.red,
+    primary: COLORS.accent,
+  };
+
+  const finalColor = (variant && variantMap[String(variant)]) || c;
+
   return (
     <span
       style={{
         background: '#f3f6fb',
-        color: c,
+        color: finalColor,
         border: `1px solid ${COLORS.border}`,
         borderRadius: 6,
         padding: sm ? '2px 6px' : '4px 10px',
@@ -38,6 +50,7 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
         letterSpacing: '0.02em',
         whiteSpace: 'nowrap',
         display: 'inline-block',
+        animation: pulse ? 'pulse 1.6s infinite' : undefined,
       }}
     >
       {children}
@@ -73,21 +86,26 @@ interface PanelProps {
   children: React.ReactNode;
   style?: React.CSSProperties;
   glowColor?: string;
+  variant?: string;
+  color?: string;
 }
 
-export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor }) => (
-  <div
-    style={{
-      background: COLORS.surface,
-      border: `1px solid ${glowColor ? COLORS.borderBright : COLORS.border}`,
-      borderRadius: 8,
-      boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor, variant, color }) => {
+  const bg = variant === 'dark' ? (COLORS.surfaceHigh || COLORS.surface) : COLORS.surface;
+  return (
+    <div
+      style={{
+        background: bg,
+        border: `1px solid ${color || (glowColor ? COLORS.borderBright : COLORS.border)}`,
+        borderRadius: 8,
+        boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 /**
  * Button - Primary button component
@@ -148,9 +166,10 @@ interface PanelHeaderProps {
   icon: string;
   title: string;
   right?: React.ReactNode;
+  color?: string;
 }
 
-export const PanelHeader: React.FC<PanelHeaderProps> = ({ icon, title, right }) => (
+export const PanelHeader: React.FC<PanelHeaderProps> = ({ icon, title, right, color }) => (
   <div
     style={{
       display: 'flex',
@@ -163,7 +182,7 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({ icon, title, right }) 
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
       <span style={{ fontSize: 15, fontWeight: 700 }}>{icon}</span>
-      <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: COLORS.text }}>{title}</h3>
+      <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: color || COLORS.text }}>{title}</h3>
     </div>
     {right && <div>{right}</div>}
   </div>
@@ -213,9 +232,10 @@ interface CardProps {
   children: React.ReactNode;
   padding?: number;
   hoverEffect?: boolean;
+  style?: React.CSSProperties;
 }
 
-export const Card: React.FC<CardProps> = ({ children, padding = 16, hoverEffect }) => (
+export const Card: React.FC<CardProps> = ({ children, padding = 16, hoverEffect, style = {} }) => (
   <div
     style={{
       background: COLORS.surface,
@@ -225,6 +245,7 @@ export const Card: React.FC<CardProps> = ({ children, padding = 16, hoverEffect 
       boxShadow: '0 1px 3px rgba(16,24,40,0.06)',
       transition: hoverEffect ? 'all 150ms ease' : 'none',
       cursor: hoverEffect ? 'pointer' : 'default',
+      ...style,
     }}
     onMouseEnter={(e) => {
       if (hoverEffect) {

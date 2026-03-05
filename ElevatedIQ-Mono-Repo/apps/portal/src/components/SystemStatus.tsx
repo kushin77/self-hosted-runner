@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from '../api/store';
 import { Panel } from './UI';
-import { Activity, Database, Shield, Zap, Cpu, HardDrive } from 'lucide-react';
+import { Activity, Database, Shield, Zap, Cpu } from 'lucide-react';
 
 interface StatusIndicatorProps {
   icon: React.ReactNode;

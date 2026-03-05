@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useStore, MetricsSummary, Alert } from './store';
+import { useStore, MetricsSummary } from './store';
 
 const API_BASE = 'http://localhost:9090';
 
