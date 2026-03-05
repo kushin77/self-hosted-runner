@@ -46,6 +46,10 @@ curl -s -X POST "$BASE/usage" -H 'Content-Type: application/json' -d '{"runnerId
 billing=$(curl -s "$BASE/billing")
 echo "billing: $billing"
 
+# instant deploy call
+deploy=$(curl -s -X POST "$BASE/instant-deploy" -H 'Content-Type: application/json' -d '{"mode":"managed"}')
+echo "instant deploy response: $deploy"
+
 kill $PID
 
 echo "managed-auth tests completed successfully."
