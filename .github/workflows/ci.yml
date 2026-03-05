@@ -32,6 +32,27 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify Node lockfiles and Git LFS pointers
+        run: |
+          missing_lockfiles=()
+          while IFS= read -r -d '' pkg; do
+            dir=$(dirname "$pkg")
+            if [ ! -f "$dir/package-lock.json" ] && [ ! -f "$dir/yarn.lock" ] && [ ! -f "$dir/pnpm-lock.yaml" ]; then
+              missing_lockfiles+=("$dir")
+            fi
+          done < <(find . -name package.json -print0)
+          if [ ${#missing_lockfiles[@]} -ne 0 ]; then
+            echo "Missing lockfiles for the following package.json locations:" >&2
+            for d in "${missing_lockfiles[@]}"; do echo " - $d" >&2; done
+            echo "Please add appropriate lockfiles (package-lock.json / yarn.lock / pnpm-lock.yaml)." >&2
+            exit 1
+          fi
+          if command -v git-lfs >/dev/null; then
+            git lfs status || true
+          else
+            echo "git-lfs not installed on runner; skipping LFS pointer check" >&2
+          fi
+
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
