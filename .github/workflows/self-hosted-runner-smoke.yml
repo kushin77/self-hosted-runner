@@ -32,7 +32,7 @@ jobs:
 
       - name: Quick environment check
         run: |
-          echo "CI_RUNNER=$(hostname)" 
+          echo "CI_RUNNER=$(hostname)"
           echo "Listing /etc/os-release:" 
           cat /etc/os-release || true
           echo "Checking disk usage:"
@@ -48,4 +48,5 @@ jobs:
           echo "AGENT-TRIGGER: 2026-03-05T00:00:00Z"
 
       - name: Echo success
-        run: echo "SELF-HOSTED RUNNER SMOKE: OK"
+        run: |
+          echo 'SELF-HOSTED RUNNER SMOKE: OK'
