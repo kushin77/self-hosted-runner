@@ -1,8 +1,10 @@
+---
 name: CI — Self-hosted
 
 on:
   push:
-    branches-ignore: [ 'docs/**' ]
+    branches-ignore:
+      - 'docs/**'
   pull_request:
   workflow_dispatch:
 
@@ -49,7 +51,8 @@ jobs:
             if npm test --silent; then
               echo "Node tests passed"
             else
-              echo "Node tests failed"; exit 1
+              echo "Node tests failed"
+              exit 1
             fi
           elif [ -f requirements.txt ]; then
             python -m pip install --upgrade pip
