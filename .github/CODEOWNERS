@@ -1,0 +1,46 @@
+# CODEOWNERS for self-hosted-runner
+# Defines automatic code reviewers based on changed files
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Global owners (all PRs require their review)
+* @kushin77
+
+# Infrastructure & Terraform (P4 AWS Spot)
+terraform/ @kushin77
+terraform/modules/aws_spot_runner/ @kushin77
+terraform/examples/aws-spot/ @kushin77
+deploy/charts/ @kushin77
+
+# CI/CD Workflows & Ops Scripts
+.github/workflows/ @kushin77
+scripts/ops/ @kushin77
+scripts/ci/ @kushin77
+
+# Provisioner Service (auto-scaling runners)
+services/provisioner-worker/ @kushin77
+services/provisioner-api/ @kushin77
+
+# Pipeline Repair Service
+services/pipeline-repair/ @kushin77
+
+# Portal & Live Channels
+ElevatedIQ-Mono-Repo/apps/portal/ @kushin77
+ElevatedIQ-Mono-Repo/apps/portal/src/live-channels/ @kushin77
+
+# Security & Vault Integration
+config/vault/ @kushin77
+services/provisioner-worker/lib/vault*.js @kushin77
+
+# Documentation & Governance
+docs/ @kushin77
+*.md @kushin77
+.github/PULL_REQUEST_TEMPLATE.md @kushin77
+
+# AI Agent Safety & Approval Framework
+services/pipeline-repair/lib/approval*.js @kushin77
+docs/AI_AGENT_SAFETY_FRAMEWORK.md @kushin77
+
+# Config & Monitoring
+config/cicd/ @kushin77
+alerts/ @kushin77
+deploy/dashboards/ @kushin77
