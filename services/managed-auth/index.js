@@ -11,13 +11,32 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { setToken, getToken } = require('./lib/secretStore.cjs');
 const logger = require('./lib/logger');
+const metrics = require('./lib/metrics');
+const metricsServer = require('./lib/metricsServer');
 
 const app = express();
 const port = process.env.PORT || 4000;
 
+// start metrics listener separately
+if (process.env.ENABLE_METRICS !== 'false') {
+  metricsServer.start();
+}
+
 // each request can have a correlation id header; fallback to generated
 app.use((req, res, next) => {
   req.correlation_id = req.headers['x-correlation-id'] || logger.genCorrelationId();
+  req.log = logger.child({ correlation_id: req.correlation_id });
+
+  // metrics instrumentation: track active requests and latency
+  const start = Date.now();
+  metrics.incActive();
+  res.once('finish', () => {
+    metrics.decActive();
+    const ms = Date.now() - start;
+    const status = res.statusCode < 400 ? 'success' : 'failure';
+    metrics.recordRequest(status, ms);
+  });
+
   next();
 });
 
@@ -107,6 +126,6 @@ app.post('/usage', (req, res) => {
 // healthcheck
 app.get('/health', (req, res) => res.send('ok'));
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   logger.info('managed-auth service listening', { port });
 });
