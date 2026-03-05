@@ -88,6 +88,13 @@ This will:
 - CI/CD: GitHub Actions workflows with Vault integration
 - Documentation: 1,000+ lines across Phase P2 guides
 
+### Portal UI Theme Update
+
+- A fresh enterprise-friendly theme was applied to the Portal UI to improve readability and accessibility.
+- Key changes: neutral palette, refined buttons, panels, badges, improved typography (Inter), and global focus outlines.
+- PR: https://github.com/kushin77/self-hosted-runner/pull/260
+- Review & QA: Issue https://github.com/kushin77/self-hosted-runner/issues/259
+
 ---
 
 ## 🔒 Git Commit Trail
