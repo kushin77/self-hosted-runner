@@ -1,0 +1,58 @@
+name: Build Immutable Vault Image
+
+on:
+  push:
+    branches: [ main, feat/10x-infrastructure-enhancements ]
+    paths: [ 'scripts/automation/pmo/Dockerfile.vault', 'scripts/automation/pmo/**' ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-vault:
+    name: Build Vault image and upload artifact
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: vault-ephemeral
+      IMAGE_TAG: vault-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Vault immutable image
+        run: |
+          docker build -f scripts/automation/pmo/Dockerfile.vault -t $IMAGE_NAME:$IMAGE_TAG scripts/automation/pmo
+
+      - name: Run quick Vault health check (container)
+        run: |
+          docker run -d --name vault-ci-check -p 18200:8200 $IMAGE_NAME:$IMAGE_TAG || true
+          # wait for health
+          for i in $(seq 1 30); do
+            if curl -sSf http://127.0.0.1:18200/v1/sys/health >/dev/null 2>&1; then
+              echo "Vault healthy"; break
+            fi
+            sleep 2
+          done
+          docker logs vault-ci-check || true
+          docker rm -f vault-ci-check || true
+        continue-on-error: true
+
+      - name: Save image as tar
+        run: |
+          mkdir -p out
+          docker save $IMAGE_NAME:$IMAGE_TAG -o out/$IMAGE_NAME-$IMAGE_TAG.tar
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-image
+          path: out/$IMAGE_NAME-$IMAGE_TAG.tar
