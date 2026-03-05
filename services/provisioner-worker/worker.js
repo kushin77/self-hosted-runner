@@ -29,7 +29,6 @@ async function processJob(job) {
   let jobLog = logger.child({correlation_id: job.request_id || logger.genCorrelationId()});
   jobLog.info('processing job', {status: job.status});
   if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs + 1);
-
   const tfFiles = job.payload && job.payload.tfFiles ? job.payload.tfFiles : null;
   const planHash = shaForTfFiles(tfFiles);
   if (planHash) {
