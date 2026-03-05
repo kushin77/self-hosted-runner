@@ -100,6 +100,16 @@ services:
       timeout: 10s
       retries: 3
 
+  # Mock webhook: temporary test receiver for E2E validation (remove after tests)
+  mock-webhook:
+    image: python:3-slim
+    restart: unless-stopped
+    volumes:
+      - ./mock_webhook.py:/app/mock_webhook.py:ro
+    command: ["python3", "/app/mock_webhook.py"]
+    networks:
+      - monitoring
+
 volumes:
   prometheus_data:
     driver: local
