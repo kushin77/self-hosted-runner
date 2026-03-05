@@ -52,12 +52,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: `linear-gradient(135deg, ${COLORS.accent}, ${COLORS.purple})`,
+              background: COLORS.accent,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 14,
-              boxShadow: `0 0 14px ${COLORS.accentGlow}`,
+              boxShadow: '0 1px 4px rgba(16,24,40,0.06)',
             }}
           >
             ⚡
@@ -104,8 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             onClick={() => setActive(item.id)}
             style={{
               width: '100%',
-              background:
-                active === item.id ? COLORS.accent + '18' : 'transparent',
+              background: active === item.id ? COLORS.surfaceHigh : 'transparent',
               border: 'none',
               borderLeft:
                 active === item.id
@@ -129,16 +128,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               <span
                 style={{
                   fontSize: 8,
-                  background:
-                    (item as any).badge === 'BETA' ? COLORS.yellow + '33' : COLORS.green + '33',
-                  color: (item as any).badge === 'BETA' ? COLORS.yellow : COLORS.green,
-                  border: `1px solid ${
-                    (item as any).badge === 'BETA' ? COLORS.yellow : COLORS.green
-                  }44`,
-                  borderRadius: 3,
-                  padding: '1px 4px',
-                  fontWeight: 800,
-                  letterSpacing: '0.05em',
+                  background: COLORS.surfaceHigh,
+                  color: COLORS.muted,
+                  border: `1px solid ${COLORS.border}`,
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
                 }}
               >
                 {(item as any).badge}

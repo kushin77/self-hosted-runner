@@ -5,11 +5,11 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/self-hosted-runner
+WorkingDirectory=/home/akushnir/runnercloud
 Environment=USE_TERRAFORM_CLI=1
 Environment=JOBSTORE_PERSIST=1
 Environment=JOBSTORE_FILE=/var/lib/provisioner-worker/jobstore.json
-ExecStart=/usr/bin/node /opt/self-hosted-runner/services/provisioner-worker/worker.js
+ExecStart=/usr/bin/node /home/akushnir/runnercloud/services/provisioner-worker/worker.js
 Restart=on-failure
 
 [Install]
