@@ -93,6 +93,15 @@ terraform plan -var-file=terraform.tfvars
 terraform apply -var-file=terraform.tfvars
 ```
 
+### 🛠️ Fully automated CI provisioning
+
+There is a GitHub Actions workflow to automate bootstrap and subsequent applies: `.github/workflows/infra-provision.yml`.
+
+- `bootstrap` mode: provide a short-lived Service Account key (one-time) via `GCP_SA_KEY` secret to provision initial infra (GCS backend, KMS, Service Account).
+- `apply` mode: after Workload Identity is configured, the workflow can authenticate via OIDC and run non-interactive `terraform apply`.
+
+Trigger the workflow from the Actions UI (Workflow Dispatch) and choose `bootstrap` or `apply`.
+
 ### 3. **Install Health Monitoring (Recommended)**
 ```bash
 ./scripts/automation/pmo/runner_health_monitor.sh --install
@@ -115,9 +124,104 @@ jobs:
       - run: ./my-heavy-workload.sh
 ```
 
+### 📦 Secrets from GSM (Google Secret Manager)
+We avoid storing credentials on disk by retrieving them at runtime from **Google Secret Manager**.
+
+1. **Define secrets** in GSM (e.g., service account key, GitHub token, project ID).
+2. On any machine with `gcloud` authenticated, run:
+
+```bash
+SECRET_PROJECT=my-gcp-project \
+  GCP_SA_SECRET=sa-key-secret-name \
+  GH_TOKEN_SECRET=github-token-secret-name \
+  PROJECT_ID_SECRET=project-id-secret-name \
+  ./scripts/load_gsm_secrets.sh
+```
+
+3. The script exports `GOOGLE_APPLICATION_CREDENTIALS`, `GITHUB_TOKEN`, and `PROJECT_ID` for subsequent commands, including `./scripts/terraform_apply.sh` or `python3 scripts/manage_github_issues.py`.
+
+See `docs/WORKLOAD_IDENTITY_RUNBOOK.md` for more details.
+
 ---
 
-## 📁 Project Structure
+## � Environment Variables
+
+### Required Variables (Terraform Deployment)
+
+| Variable | Description | Example |
+|----------|-------------|---------|| `GITHUB_TOKEN` | GitHub Personal Access Token (for runner registration) | `ghp_xxxxxxxxxxxx` |
+| `GITHUB_OWNER` | GitHub organization or username | `your-org` || `AWS_REGION` | AWS region for runner deployment | `us-east-1` |
+| `AWS_PROFILE` | AWS CLI profile | `default` |
+| `TF_VAR_vpc_id` | VPC ID where runners will be deployed | `vpc-12345abc` |
+| `TF_VAR_subnet_ids` | List of subnet IDs (private subnets recommended) | `subnet-xxx,subnet-yyy` |
+| `TF_VAR_runner_token` | GitHub Actions runner token | Generated from GitHub Settings |
+| `TF_VAR_github_owner` | GitHub organization or username | `your-org` |
+| `TF_VAR_github_repo` | GitHub repository name | `your-repo` |
+
+### Optional Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `TF_VAR_runner_count` | `2` | Total number of runners to create |
+| `TF_VAR_environment` | `prod` | Environment name (dev, staging, prod) |
+| `TF_VAR_instance_type_standard` | `t3.medium` | EC2 instance type for standard runners |
+| `TF_VAR_instance_type_highmem` | `r5.xlarge` | EC2 instance type for high-memory runners |
+
+### Health Monitoring Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HEALTH_CHECK_INTERVAL` | `300` (5 min) | Interval between health checks (seconds) |
+| `HEALTH_CHECK_TIMEOUT` | `30` | Timeout for each health check (seconds) |
+| `RUNNER_DIR` | `/home/ubuntu/actions-runner` | Runner installation directory |
+| `LOG_DIR` | `/var/log/runner` | Logging directory |
+
+### Observability Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_METRICS` | `true` | Enable Prometheus metrics export |
+| `METRICS_PORT` | `9090` | Prometheus exporter port |
+| `GRAFANA_ADMIN_PASSWORD` | _required_ | Grafana dashboard password |
+
+### Getting Required Values
+
+#### GitHub Runner Token
+
+```bash
+# Via GitHub CLI
+gh api repos/YOUR-ORG/YOUR-REPO/actions/runners -H "Accept: application/vnd.github+json" \
+  | jq '.runners[0].id'
+
+# Or manually:
+# Settings → Actions → Runners → Register new runner
+```
+
+#### AWS Credentials
+
+```bash
+# Configure AWS CLI
+aws configure --profile self-hosted-runner
+
+# Export for Terraform
+export AWS_PROFILE=self-hosted-runner
+```
+
+#### VPC/Subnet IDs
+
+```bash
+# List VPCs
+aws ec2 describe-vpcs --filters "Name=tag:Name,Values=*production*" \
+  | jq '.Vpcs[].VpcId'
+
+# List subnets
+aws ec2 describe-subnets --filters "Name=tag:Type,Values=private" \
+  | jq '.Subnets[] | {SubnetId, AvailabilityZone}'
+```
+
+---
+
+## �📁 Project Structure
 
 ```
 .

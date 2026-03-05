@@ -4,15 +4,16 @@
 
 set -euo pipefail
 
-BASE="http://localhost:4000"
-# choose an unused port in the 9100-9200 range to avoid conflicts
+# pick random ports for the service and metrics to avoid collisions
+SERVICE_PORT=$((4000 + RANDOM % 100))
+BASE="http://localhost:$SERVICE_PORT"
 MET_PORT=$((9100 + RANDOM % 100))
 METRICS="http://localhost:$MET_PORT"
 
 cd "$(dirname "$0")" || exit 1
 
-echo "Starting managed-auth service with metrics in background (METRICS_PORT=$MET_PORT)..."
-METRICS_PORT=$MET_PORT node ../index.js &
+echo "Starting managed-auth service with metrics (METRICS_PORT=$MET_PORT) on port $SERVICE_PORT..."
+PORT=$SERVICE_PORT METRICS_PORT=$MET_PORT node ../index.js &
 PID=$!
 trap "kill $PID" EXIT
 sleep 1

@@ -3,9 +3,6 @@ receivers:
     protocols:
       http: {}
       grpc: {}
-  prometheus:
-    config:
-      scrape_configs: []
 
 exporters:
   logging:
