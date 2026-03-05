@@ -33,7 +33,6 @@ app.use((req, res, next) => {
   const tracer = otel.getTracer();
   const span = tracer ? tracer.startSpan('http_request', { attributes: { path: req.path, method: req.method } }) : null;
   if (span) req.span = span;
-
   const start = Date.now();
   metrics.incActive();
   res.once('finish', () => {
