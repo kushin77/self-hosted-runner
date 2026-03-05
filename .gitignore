@@ -13,3 +13,5 @@ terraform/examples/**/.terraform/
 
 # Ignore runner externals (local copies)
 actions-runner-*/externals/
+actions-runner/
+/tmp/
