@@ -107,11 +107,16 @@ test_readme() {
 
 # Test 12: Security: No hardcoded credentials
 test_no_credentials() {
-  if grep -r "GITHUB_TOKEN=" "${GIT_ROOT}" 2>/dev/null | grep -v ".gitignore" | grep -qv "#"; then
+  # Exclude test files themselves from search
+  if grep -r "GITHUB_TOKEN=" "${GIT_ROOT}" \
+    --exclude-dir=tests --exclude-dir=.git --exclude="*.test.sh" 2>/dev/null | \
+    grep -v ".gitignore" | grep -qv "#"; then
     return 1
   fi
   
-  if grep -r "aws_secret" "${GIT_ROOT}" 2>/dev/null | grep -v ".gitignore" | grep -qv "#"; then
+  if grep -r "aws_secret" "${GIT_ROOT}" \
+    --exclude-dir=tests --exclude-dir=.git 2>/dev/null | \
+    grep -v ".gitignore" | grep -qv "#"; then
     return 1
   fi
   
