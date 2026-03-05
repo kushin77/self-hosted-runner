@@ -1,5 +1,13 @@
 name: p2-managed-mode-prod-integration
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+on:
+  workflow_dispatch: {}
 # This workflow is intended to run the full provisioning pipeline against a
 # production-like configuration. It launches supporting services (Vault dev,
 # Redis) and then exercises the managed-auth & provisioner workflows using the
@@ -13,7 +21,7 @@ on:
 
 jobs:
   prod-integration:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     services:
       redis:
         image: redis:7-alpine

@@ -1,4 +1,10 @@
 name: Self-hosted Runner Smoke Test
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch: {}

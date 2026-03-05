@@ -1,7 +1,16 @@
 name: CI - pipeline-repair (Postgres)
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+on:
+  workflow_dispatch: {}
 # Nudged at 2026-03-05T17:30:00Z to trigger CI run
 
 on:
+  workflow_dispatch: {}
   pull_request:
     paths:
       - 'services/pipeline-repair/**'
@@ -14,7 +23,7 @@ on:
 jobs:
   test-postgres:
     name: Test (Postgres)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     services:
       postgres:
         image: postgres:15
