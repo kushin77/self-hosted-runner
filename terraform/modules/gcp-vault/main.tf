@@ -7,6 +7,8 @@ resource "google_storage_bucket" "vault_storage" {
   force_destroy = false
   storage_class = "STANDARD"
 
+  uniform_bucket_level_access = true
+
   versioning {
     enabled = true
   }
