@@ -8,15 +8,12 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
 # This workflow is intended to run the full provisioning pipeline against a
 # production-like configuration. It launches supporting services (Vault dev,
 # Redis) and then exercises the managed-auth & provisioner workflows using the
 # production image built from the repository. At present this is a stub; when
 # the production container is available update the image reference below.
 
-on:
-  workflow_dispatch: {}
   push:
     branches: [ main ]
 
