@@ -87,6 +87,18 @@ variable "github_repo" {
   description = "GitHub repository name"
 }
 
+variable "create_vault_ops_sa" {
+  type        = bool
+  description = "Whether to create the audited GCP service account for Vault (opt-in)"
+  default     = false
+}
+
+variable "gcp_project_id" {
+  type        = string
+  description = "GCP project id for optional service account creation"
+  default     = ""
+}
+
 # CI Runners module
 module "runners" {
   source = "./modules/ci-runners"
@@ -127,4 +139,17 @@ output "highmem_runner_private_ips" {
 output "security_group_id" {
   description = "Security group ID for runners"
   value       = module.runners.security_group_id
+}
+
+# Optional: create an auditable GCP Service Account for Vault (opt-in)
+module "gcp_iam_vault_sa" {
+  count      = var.create_vault_ops_sa ? 1 : 0
+  source     = "./modules/gcp-iam"
+  project_id = var.gcp_project_id
+  sa_name    = "vault-ops-sa"
+}
+
+output "vault_ops_sa_email" {
+  description = "Email of the vault ops service account (if created)"
+  value       = try(module.gcp_iam_vault_sa[0].sa_email, "")
 }
