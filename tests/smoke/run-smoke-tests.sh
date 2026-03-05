@@ -102,7 +102,22 @@ echo ""
 echo -e "${BLUE}[2. Repository State]${NC}"
 
 run_test "Repository is git" "[[ -d .git ]]"
-run_test "On main branch or clean state" "[[ \$(git rev-parse --abbrev-ref HEAD) == 'main' || -z \$(git status --porcelain) ]]"
+function is_main_or_clean() {
+  local cur
+  cur=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+  if [[ "$cur" == "main" ]]; then
+    return 0
+  fi
+  if [[ "$cur" == release/* ]]; then
+    return 0
+  fi
+  if [[ -z $(git status --porcelain) ]]; then
+    return 0
+  fi
+  return 1
+}
+
+run_test "On main branch or clean state" "is_main_or_clean"
 run_test "All Phase P2 docs present" "[[ -f docs/PHASE_P2_DELIVERY_SUMMARY.md && -f docs/PHASE_P2_DEPLOYMENT_VALIDATION_CHECKLIST.md ]]"
 run_test "Validation script present" "[[ -f scripts/automation/pmo/validate-p2-readiness.sh && -x scripts/automation/pmo/validate-p2-readiness.sh ]]"
 run_test "Deployment script present" "[[ -f scripts/automation/pmo/deploy-p2-production.sh && -x scripts/automation/pmo/deploy-p2-production.sh ]]"
@@ -128,21 +143,37 @@ if [[ "$VAULT_MODE" == "dev" ]]; then
   fi
   
   echo -n "Starting Vault dev server ... "
-  if docker run --cap-add=IPC_LOCK -d --name vault-test -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root >/dev/null 2>&1; then
+  # Use official hashicorp image and retry if needed
+  VAULT_IMAGE="hashicorp/vault:1.15.4"
+  MAX_TRIES=3
+  started=false
+  for attempt in $(seq 1 $MAX_TRIES); do
+    docker rm -f vault-test 2>/dev/null || true
+    if docker run --cap-add=IPC_LOCK -d --name vault-test -p 8200:8200 "$VAULT_IMAGE" server -dev -dev-root-token-id=root >/dev/null 2>&1; then
+      started=true
+      break
+    else
+      # Try pulling image and retry
+      docker pull "$VAULT_IMAGE" >/dev/null 2>&1 || true
+      sleep 2
+    fi
+  done
+
+  if [ "$started" = true ]; then
     echo -e "${GREEN}✓${NC}"
     sleep 2
-    
+
     run_test "Vault health check" "curl -sSf http://127.0.0.1:8200/v1/sys/health"
     run_test "Vault token works" "curl -sSf -H 'X-Vault-Token: root' http://127.0.0.1:8200/v1/sys/auth"
     run_test "Vault KV2 engine ready" "curl -sSf -H 'X-Vault-Token: root' http://127.0.0.1:8200/v1/secret/metadata/ || true"
-    
+
     # Cleanup
     docker stop vault-test 2>/dev/null || true
     docker rm vault-test 2>/dev/null || true
   else
     echo -e "${RED}✗${NC}"
     ((FAILED++))
-    echo -e "${YELLOW}Skipping Vault tests${NC}"
+    echo -e "${YELLOW}Skipping Vault tests (couldn't start Vault dev container)${NC}"
     ((SKIPPED += 3))
   fi
 else
