@@ -16,3 +16,4 @@ actions-runner-*/externals/
 actions-runner/
 /tmp/
 tests/cloud-creds.env
+artifacts/*.tar.gz
