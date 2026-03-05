@@ -1,0 +1,84 @@
+name: Build and Deploy Immutable Images
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure SSH deploy key is provided
+        run: |
+          if [ -z "${{ secrets.SSH_PRIVATE_KEY || '' }}" ]; then
+            echo 'ERROR: SSH_PRIVATE_KEY secret is not set.  Add it to the repo or abort.'
+            exit 1
+          fi
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Remote build and deploy on worker
+        env:
+          GIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 bash -s <<'REMOTE'
+          set -euo pipefail
+          cd /home/akushnir/self-hosted-runner
+          git fetch --all --quiet
+          git reset --hard ${GIT_SHA}
+          docker build -t eiq/eiq-api:${GIT_SHA} services/managed-auth
+          docker build -t eiq/eiq-portal:${GIT_SHA} ElevatedIQ-Mono-Repo/apps/portal
+          docker build -t eiq/pipeline-repair:${GIT_SHA} services/pipeline-repair
+          mkdir -p /home/akushnir/deploy
+          # choose free host ports (avoid collisions with existing services)
+          find_free_port(){
+            for p in $(seq 30000 30100); do
+              if ! ss -ltn | awk '{print $4}' | grep -qE ":${p}$|:${p}->"; then
+                echo $p
+                return 0
+              fi
+            done
+            return 1
+          }
+          PORT_PORTAL=$(find_free_port) || { echo 'no free port for portal'; exit 1; }
+          PORT_PIPELINE=$(find_free_port) || { echo 'no free port for pipeline'; exit 2; }
+          cat > /home/akushnir/deploy/docker-compose.eiq.yml <<'EOF'
+          version: '3.8'
+          services:
+            eiq-api:
+              image: eiq/eiq-api:${GIT_SHA}
+              # api runs as a standalone process on the host, do not bind port here
+              deploy: { }
+
+            eiq-portal:
+              image: eiq/eiq-portal:${GIT_SHA}
+              ports:
+                - "${PORT_PORTAL}:3919"
+              restart: unless-stopped
+
+            pipeline-repair:
+              image: eiq/pipeline-repair:${GIT_SHA}
+              ports:
+                - "${PORT_PIPELINE}:8081"
+              restart: unless-stopped
+          EOF
+          echo "PORT_MAPPING: portal=${PORT_PORTAL}, pipeline=${PORT_PIPELINE}"
+          docker compose -f /home/akushnir/deploy/docker-compose.eiq.yml pull || true
+          docker compose -f /home/akushnir/deploy/docker-compose.eiq.yml up -d --force-recreate
+          # post-deploy health check: read port mapping and curl services
+          grep -E 'PORT_MAPPING' /home/akushnir/deploy/docker-compose.eiq.yml || true
+          MAPS=$(grep -E 'ports:' -A1 /home/akushnir/deploy/docker-compose.eiq.yml | grep -oE '[0-9]+:')
+          echo "Port forwards: $MAPS"
+          # try each host port
+          for hostport in $(echo "$MAPS" | tr '\n' ' ' | sed 's/://g'); do
+            echo "checking host port $hostport";
+            curl -sS --max-time 5 http://localhost:$hostport/health || echo "no health endpoint on $hostport";
+          done
+          REMOTE
