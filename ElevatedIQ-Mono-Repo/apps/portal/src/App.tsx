@@ -17,6 +17,7 @@ import { ComponentShowcase } from './pages/ComponentShowcase';
 import { RepoFunctions } from './pages/RepoFunctions';
 import { Observability } from './pages/Observability';
 import { useMetrics } from './api/client';
+import { useSocket } from './api/socket';
 
 /**
  * Theme Context for global theme management
@@ -39,6 +40,9 @@ function App() {
 
   // Initialize real-time metrics
   useMetrics({ interval: 5000 });
+  
+  // Initialize Phase 2 WebSocket listener
+  useSocket({ url: 'http://localhost:9090' });
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (
