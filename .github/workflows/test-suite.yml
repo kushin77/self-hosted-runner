@@ -222,16 +222,16 @@ jobs:
             const allPassed = [smokeTests, integrationTests, vaultTests, codeQuality].every(r => r === 'success');
             
             const comment = `
-## Test Results
+            ## Test Results
 
-| Test Suite | Status |
-|-----------|--------|
-| 🟢 Smoke Tests | ${smokeTests === 'success' ? '✅ PASSED' : '❌ ' + smokeTests.toUpperCase()} |
-| 🟢 Integration Tests | ${integrationTests === 'success' ? '✅ PASSED' : '❌ ' + integrationTests.toUpperCase()} |
-| 🔐 Vault Security | ${vaultTests === 'success' ? '✅ PASSED' : '❌ ' + vaultTests.toUpperCase()} |
-| 📋 Code Quality | ${codeQuality === 'success' ? '✅ PASSED' : '❌ ' + codeQuality.toUpperCase()} |
+            | Test Suite | Status |
+            |-----------|--------|
+            | 🟢 Smoke Tests | ${smokeTests === 'success' ? '✅ PASSED' : '❌ ' + smokeTests.toUpperCase()} |
+            | 🟢 Integration Tests | ${integrationTests === 'success' ? '✅ PASSED' : '❌ ' + integrationTests.toUpperCase()} |
+            | 🔐 Vault Security | ${vaultTests === 'success' ? '✅ PASSED' : '❌ ' + vaultTests.toUpperCase()} |
+            | 📋 Code Quality | ${codeQuality === 'success' ? '✅ PASSED' : '❌ ' + codeQuality.toUpperCase()} |
 
-${allPassed ? '✅ All production tests passed! Ready for merge.' : '❌ Some tests failed. Please review and fix.'}
+            ${allPassed ? '✅ All production tests passed! Ready for merge.' : '❌ Some tests failed. Please review and fix.'}
             `;
             
             github.rest.issues.createComment({

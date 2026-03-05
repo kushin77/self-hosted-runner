@@ -1,4 +1,10 @@
 name: Self-hosted Runner Smoke Test
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch: {}
@@ -9,7 +15,7 @@ on:
 jobs:
   smoke:
     name: Smoke test on self-hosted runner
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v4
 
@@ -26,7 +32,7 @@ jobs:
 
       - name: Quick environment check
         run: |
-          echo "CI_RUNNER=$(hostname)" 
+          echo "CI_RUNNER=$(hostname)"
           echo "Listing /etc/os-release:" 
           cat /etc/os-release || true
           echo "Checking disk usage:"
@@ -42,4 +48,5 @@ jobs:
           echo "AGENT-TRIGGER: 2026-03-05T00:00:00Z"
 
       - name: Echo success
-        run: echo "SELF-HOSTED RUNNER SMOKE: OK"
+        run: |
+          echo 'SELF-HOSTED RUNNER SMOKE: OK'
