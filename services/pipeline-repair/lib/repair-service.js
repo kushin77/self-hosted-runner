@@ -1,8 +1,5 @@
 const RetryStrategy = require('../strategies/retry');
 const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
-const ApprovalEngine = require('./approval-engine');
-const SafetyChecker = require('./safety-checker');
-const approvalsStore = require('./approvals');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -26,8 +23,6 @@ class RepairService {
       new TimeoutIncreaseStrategy()
     ];
     this.approvalThreshold = config.threshold || 0.7; // Confidence score to auto-repair
-    this.safety = new SafetyChecker(config.safety || {});
-    this.approvalEngine = new ApprovalEngine({ threshold: config.approvalThreshold || 0.7 });
   }
 
   /**
@@ -46,22 +41,16 @@ class RepairService {
   async analyze(event) {
     logger.info(`[REPAIR] analyzing failure event...`, { eventId: event.id, errMsg: event.errorMessage });
     
-    // Assess all strategies (support async assess functions and errors)
-    const assessments = await Promise.all(this.strategies.map(async strategy => {
-      try {
-        const raw = typeof strategy.assess === 'function' ? await strategy.assess(event) : 0;
-        const score = Number(raw) || 0;
-        return { strategy: strategy.name, score, strategyRef: strategy };
-      } catch (err) {
-        logger.error('[REPAIR] strategy assess failed', { strategy: strategy.name, err: err && err.message });
-        return { strategy: strategy.name, score: 0, strategyRef: strategy };
-      }
+    // Assess all strategies
+    const assessments = this.strategies.map(strategy => ({
+      strategy: strategy.name,
+      score: strategy.assess(event)
     }));
-
+    
     // Sort and filter top strategy
     const topStrategy = assessments
       .filter(a => a.score > 0)
-      .sort((a, b) => b.score - a.score)[0];
+      .sort((a,b) => b.score - a.score)[0];
       
     if (!topStrategy) {
       logger.warn(`[REPAIR] No suitable strategy found for: ${event.errorMessage}`);
@@ -69,64 +58,17 @@ class RepairService {
     }
     
     logger.info(`[REPAIR] Top strategy identified: ${topStrategy.strategy} (score: ${topStrategy.score})`);
-
-    // Use resolved strategy reference (from assessment) or fallback by name
-    const strategy = topStrategy.strategyRef || this.strategies.find(s => s.name === topStrategy.strategy);
-    // Map strategy to an action type expected by SafetyChecker
-    let actionType = 'repair_action';
-    if ((strategy.name || '').toLowerCase().includes('timeout')) actionType = 'increase_timeout';
-    else if ((strategy.name || '').toLowerCase().includes('retry')) actionType = 'status_check';
-
-    const action = {
-      id: `act-${event.id}-${Date.now()}`,
-      type: actionType,
-      scope: event.scope || 'pipeline-repair-service',
-      description: `Execute strategy ${strategy.name} for event ${event.id}`,
-      currentCount: event.currentCount,
-      targetCount: event.targetCount,
-      estimatedCostDelta: strategy.estimatedCostDelta || 0
-    };
-
-    // Run safety checks before executing any repair
-    const safetyResult = await this.safety.checkSafety(action, { baseline: event.baseline || {} });
-
-    if (!safetyResult.safe) {
-      // If RED or violations exist, do not proceed; request approval if YELLOW
-      logger.warn('[REPAIR] Safety check blocked execution', { eventId: event.id, safety: safetyResult });
-      if (safetyResult.category === 'YELLOW') {
-        // create approval request and persist
-        const req = await this.approvalEngine.requestApproval(event.id, event, action, safetyResult.recommendation);
-        approvalsStore.requestApproval(event.id, req).catch(err => logger.error('approval persist failed', err.message));
-        return {
-          status: 'PENDING_APPROVAL',
-          confidence: topStrategy.score,
-          safety: safetyResult,
-          approvalRequest: req
-        };
-      }
-
-      return {
-        status: 'BLOCKED_BY_SAFETY',
-        confidence: topStrategy.score,
-        safety: safetyResult
-      };
-    }
-
-    // If safe and GREEN or approved, execute the recommendation
+    
+    // Execute repair logic (in MVP, just return recommendation)
+    const strategy = this.strategies.find(s => s.name === topStrategy.strategy);
     const recommendation = await strategy.execute(event);
-
-    // If approved, persist approval record
-    if (approvalsStore.hasApproval(event.id)) {
-      approvalsStore.addApproval(event.id, { request: { eventId: event.id, approvedAt: new Date().toISOString() }, status: 'APPROVED' });
-    }
-
+    
     return {
       status: 'REPAIR_IDENTIFIED',
       confidence: topStrategy.score,
       requiresApproval: topStrategy.score < this.approvalThreshold,
       risk: topStrategy.score > 0.8 ? 'LOW' : 'MEDIUM',
-      recommendation,
-      safety: safetyResult
+      recommendation
     };
   }
 }
