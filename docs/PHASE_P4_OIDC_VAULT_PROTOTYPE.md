@@ -26,13 +26,18 @@ scripts/identity/vault-oidc-bootstrap.sh
 
 Integration with runner startup
 
-- The repository includes `scripts/identity/runner-startup.sh` which wraps the Vault bootstrapper and then runs the GitHub runner `config.sh`.
-- To integrate the prototype into the Terraform module, set the module's `custom_startup_script` to fetch and invoke the startup wrapper (example shown in `terraform/environments/staging-tenant-a/main.tf`).
+- The repository includes `scripts/identity/runner-startup.sh` which wraps the
+	Vault bootstrapper and then runs the GitHub runner `config.sh`.
+- To integrate the prototype into the Terraform module, set the module's
+	`custom_startup_script` to fetch and invoke the startup wrapper (example
+	shown in `terraform/environments/staging-tenant-a/main.tf`).
 
 Token renewal
 
-- A simple renewal loop `scripts/identity/vault-renewal.sh` is included for prototypes to keep Vault tokens/registry logins fresh; in production use Vault agent or a process manager and robust error handling.
-
+- A simple renewal loop `scripts/identity/vault-renewal.sh` is included for
+	prototypes to keep Vault tokens/registry logins fresh. In production, use
+	the Vault Agent, a process manager, or a robust controller that handles
+	retries, backoff, and lease lifecycle to avoid credential gaps.
 Notes & Next steps
 - This prototype reads secrets from `secret/data/registries/staging`. Replace with your KV paths or a dedicated secrets engine.
 - For production use, do not store `ID_TOKEN` in plaintext; use the cloud provider's workload identity features (e.g., GCP Workload Identity Federation) to mint tokens.
