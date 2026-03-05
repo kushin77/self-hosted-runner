@@ -12,13 +12,13 @@ Production-grade infrastructure and automation for self-hosted GitHub Actions ru
 > **Load testing**: a simple load test script is available at `services/provisioner-worker/tests/socket_load_test.js` and can be run with `npm --prefix services/provisioner-worker run test:load -- <port> <clients>`.
 
 
-**Status:** ✅ Production Ready — Awaiting Ops Secrets | **Last Updated:** 2026-03-05
+**Status:** ✅ Production Ready — Using Self-Hosted Runner | **Last Updated:** 2026-03-05
 
 ---
 
 ## Overview
 
-This repository contains Terraform modules, deployment automation, monitoring, and CI/CD configuration to run and operate self-hosted GitHub Actions runners at scale. It is intended for SRE/Platform teams who will operate the runner fleet and integrate it into an enterprise deployment pipeline.
+This repository has been migrated to use a self-hosted runner infrastructure. All CI/CD workflows run locally on designated [self-hosted, linux] nodes for enhanced security and performance. See [docs/SELF_HOSTED_MIGRATION_SUMMARY_2026.md](docs/SELF_HOSTED_MIGRATION_SUMMARY_2026.md) for details.
 
 ---
 

@@ -1,4 +1,10 @@
 name: Hosted Runner Debug
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch: {}
@@ -8,7 +14,7 @@ on:
 jobs:
   hosted-debug:
     name: Hosted runner diagnostic
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

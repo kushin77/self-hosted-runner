@@ -1,6 +1,15 @@
 name: Portal TypeScript/Lint Check
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
+  workflow_dispatch: {}
+on:
+  workflow_dispatch: {}
   pull_request:
     paths:
       - 'apps/portal/**'

@@ -1,5 +1,13 @@
 name: Terraform Plan & Apply
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+on:
+  workflow_dispatch: {}
 on:
   workflow_dispatch:
     inputs:
