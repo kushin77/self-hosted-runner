@@ -113,3 +113,10 @@ variable "extra_metadata" {
   type        = map(string)
   default     = {}
 }
+
+variable "inject_vault_agent_metadata" {
+  description = "When true, embed Vault Agent config, template, and systemd unit into instance metadata so images don't need to be rebuilt."
+  type        = bool
+  default     = false
+}
+
