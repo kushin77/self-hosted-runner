@@ -1,3 +1,4 @@
+---
 name: CD - Release Promotion (gated)
 permissions:
   contents: read

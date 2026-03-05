@@ -1,3 +1,4 @@
+---
 name: p2-managed-auth-vault-integration
 permissions:
   contents: read

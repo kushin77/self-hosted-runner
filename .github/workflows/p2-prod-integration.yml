@@ -1,3 +1,4 @@
+---
 name: p2-managed-mode-prod-integration
 permissions:
   contents: read
