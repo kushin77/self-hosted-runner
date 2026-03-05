@@ -103,7 +103,7 @@ export const Security: React.FC = () => {
                   {criticalEvents.length} Critical Security Event{criticalEvents.length > 1 ? 's' : ''}
                 </div>
                 <div style={{ fontSize: 11, color: COLORS.muted }}>
-                  Recent high-severity events detected. Click "Show" to jump to latest events.
+                  Recent high-severity events detected. Click &quot;Show&quot; to jump to latest events.
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
