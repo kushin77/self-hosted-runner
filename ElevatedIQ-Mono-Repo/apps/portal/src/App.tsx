@@ -16,6 +16,7 @@ import { Settings } from './pages/Settings';
 import { ComponentShowcase } from './pages/ComponentShowcase';
 import { RepoFunctions } from './pages/RepoFunctions';
 import { Observability } from './pages/Observability';
+import { LandingPage } from './pages/LandingPage';
 import { useMetrics } from './api/client';
 import { useSocket } from './api/socket';
 
@@ -33,7 +34,7 @@ export const useTheme = () => useContext(ThemeContext);
  * Main App Component
  */
 function App() {
-  const [activeTab, setActiveTab] = useState('home');
+  const [activeTab, setActiveTab] = useState('landing');
   const [theme, setTheme] = useState<Theme>('light');
   const tick = useTick(2500);
   const colors = theme === 'light' ? COLORS : COLORS_DARK;
@@ -65,6 +66,7 @@ function App() {
   );
 
   const pages: Record<string, React.ReactNode> = {
+    landing: <LandingPage />,
     home: <Dashboard tick={tick} />,
     observability: <Observability />,
     agents: <AgentStudio />,
