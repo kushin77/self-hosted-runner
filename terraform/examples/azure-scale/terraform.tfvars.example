@@ -1,0 +1,8 @@
+# Example terraform.tfvars for the azure-scale example
+resource_group_name = "example-rg"
+location            = "eastus"
+vm_sku              = "Standard_DS2_v2"
+capacity            = 1
+admin_username      = "azureuser"
+# Put your SSH public key here
+admin_ssh_public_key = "ssh-rsa AAAA... your-key ..."

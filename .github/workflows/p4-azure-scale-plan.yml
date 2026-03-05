@@ -19,4 +19,10 @@ jobs:
         working-directory: terraform/examples/azure-scale
         run: |
           terraform init -input=false
-          terraform plan -input=false
+          terraform plan -out=azure-scale.tfplan -input=false
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-scale-plan
+          path: terraform/examples/azure-scale/azure-scale.tfplan
