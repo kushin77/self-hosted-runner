@@ -1,4 +1,10 @@
 name: Observability E2E
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -45,3 +51,5 @@ jobs:
           name: observability-e2e-logs
           path: |
             /tmp/observability-e2e.*/**
+on:
+  workflow_dispatch: {}

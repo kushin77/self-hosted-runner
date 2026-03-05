@@ -1,5 +1,13 @@
 name: CI - Generate Provenance & Optional Attestations
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+on:
+  workflow_dispatch: {}
 on:
   release:
     types: [created]
@@ -7,7 +15,7 @@ on:
 
 jobs:
   provenance:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -1,4 +1,10 @@
 name: "P4 — AWS Spot Runner Apply"
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch:
@@ -14,7 +20,7 @@ on:
 jobs:
   terraform-apply:
     name: Terraform Apply (aws-spot)
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux]
     environment: prod-terraform-apply
     permissions:
       contents: read

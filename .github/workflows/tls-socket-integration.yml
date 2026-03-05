@@ -1,5 +1,13 @@
 name: TLS Socket Integration Test
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+on:
+  workflow_dispatch: {}
 on:
   pull_request:
   workflow_dispatch:
