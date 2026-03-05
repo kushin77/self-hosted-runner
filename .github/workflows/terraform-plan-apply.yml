@@ -16,7 +16,7 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
       - name: Configure Google credentials
-        if: secrets.GCP_SA_KEY != ''
+        if: \${{ secrets.GCP_SA_KEY != '' }}
         run: |
           echo "$GCP_SA_KEY" > sa.json
           export GOOGLE_APPLICATION_CREDENTIALS=sa.json
