@@ -12,23 +12,50 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
   const spark = useRef(Array.from({ length: 28 }, () => rand(60, 420)));
-  const [runners, setRunners] = useState(482);
-  const [jobsPerMin, setJobsPerMin] = useState(347);
-  const [cacheHitRate, setCacheHitRate] = useState(94);
-  const [aiFixedToday, setAiFixedToday] = useState(7);
-  const [cpuUsage, setCpuUsage] = useState(72);
-  const [memUsage, setMemUsage] = useState(68);
-  const [gpuUsage, setGpuUsage] = useState(14);
+  // metrics state; default to zero while loading
+  const [runners, setRunners] = useState(0);
+  const [jobsPerMin, setJobsPerMin] = useState(0);
+  const [cacheHitRate, setCacheHitRate] = useState(0);
+  const [aiFixedToday, setAiFixedToday] = useState(0);
+  const [cpuUsage, setCpuUsage] = useState(0);
+  const [memUsage, setMemUsage] = useState(0);
+  const [gpuUsage, setGpuUsage] = useState(0);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
 
   useEffect(() => {
     spark.current = [...spark.current.slice(1), rand(60, 420)];
-    setRunners((v) => Math.max(400, Math.min(580, v + rand(-8, 10))));
-    setJobsPerMin((v) => Math.max(200, Math.min(500, v + rand(-15, 18))));
-    setCacheHitRate((v) => Math.max(70, Math.min(99, v + rand(-2, 2))));
-    setAiFixedToday((v) => Math.max(0, Math.min(20, v + rand(-1, 1))));
-    setCpuUsage((v) => Math.max(55, Math.min(92, v + rand(-3, 4))));
-    setMemUsage((v) => Math.max(50, Math.min(88, v + rand(-2, 3))));
-    setGpuUsage((v) => Math.max(8, Math.min(30, v + rand(-2, 3))));
+
+    // fetch metrics from local metrics server every tick
+    const host = window.location.hostname;
+    const url = `http://${host}:9090/metrics/summary`;
+
+    fetch(url)
+      .then((r) => {
+        if (!r.ok) throw new Error(`status ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        // expecting fields matching our state names
+        setRunners(data.runners || 0);
+        setJobsPerMin(data.jobsPerMin || 0);
+        setCacheHitRate(data.cacheHitRate || 0);
+        setAiFixedToday(data.aiFixedToday || 0);
+        setCpuUsage(data.cpuUsage || 0);
+        setMemUsage(data.memUsage || 0);
+        setGpuUsage(data.gpuUsage || 0);
+        setMetricsError(null);
+      })
+      .catch((err) => {
+        setMetricsError(err.message);
+        // fall back to some small random drift so charts remain alive
+        setRunners((v) => Math.max(0, v + rand(-3, 5)));
+        setJobsPerMin((v) => Math.max(0, v + rand(-10, 10)));
+        setCacheHitRate((v) => Math.max(0, v + rand(-1, 1)));
+        setAiFixedToday((v) => Math.max(0, v + rand(-1, 1)));
+        setCpuUsage((v) => Math.max(0, v + rand(-2, 2)));
+        setMemUsage((v) => Math.max(0, v + rand(-2, 2)));
+        setGpuUsage((v) => Math.max(0, v + rand(-1, 2)));
+      });
   }, [tick]);
 
   
@@ -44,6 +71,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
         gap: 10,
       }}
     >
+      {metricsError && (
+        <div
+          style={{
+            background: '#ffebe9',
+            color: '#611a15',
+            border: '1px solid #f0a8a1',
+            borderRadius: 6,
+            padding: '8px 12px',
+            marginBottom: 10,
+            fontSize: 12,
+          }}
+        >
+          Error fetching live metrics: {metricsError}
+        </div>
+      )}
       {/* Deployment Modes */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         {[

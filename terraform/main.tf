@@ -22,7 +22,7 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-  
+
   # Normal credential validation is required for production runs.
   # Removed temporary skip flags used during one-off GCP import.
 
