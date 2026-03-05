@@ -18,7 +18,7 @@
   - [ ] Port 3919 (Portal UI): `nc -zv 192.168.168.42 3919`
   - [ ] Port 9090 (Metrics): `nc -zv 192.168.168.42 9090`
   - [ ] Port 4000 (Managed-Auth): `nc -zv 192.168.168.42 4000`
-- [ ] **Directory Permissions**: Can create `/opt/self-hosted-runner` (test: `ssh cloud@192.168.168.42 mkdir -p /opt/test && rm -rf /opt/test`)
+- [ ] **Directory Permissions**: Can create `/home/akushnir/runnercloud` (test: `ssh cloud@192.168.168.42 mkdir -p /opt/test && rm -rf /opt/test`)
 
 ### Local Prerequisites
 
@@ -76,8 +76,8 @@ cd /home/akushnir/self-hosted-runner
 ```
 
 **What Happens**:
-- SSH copies portal `dist/` to `/opt/portal/` on remote
-- Backend services copied to `/opt/backend/services/`
+- SSH copies portal `dist/` to `/home/akushnir/runnercloud/portal/` on remote
+- Backend services copied to `/home/akushnir/runnercloud/backend/services/`
 - Automation scripts copied for operational use
 
 **Checklist**:
@@ -101,11 +101,11 @@ cd /home/akushnir/self-hosted-runner
 ```
 
 **Checklist**:
-- [ ] `/opt/backend/.env` created with:
+- [ ] `/home/akushnir/runnercloud/backend/.env` created with:
   - `ENABLE_METRICS=true`
   - `METRICS_PORT=9090`
   - `USE_TERRAFORM_CLI=1`
-- [ ] `/opt/backend/data/` directory writable
+- [ ] `/home/akushnir/runnercloud/backend/data/` directory writable
 
 ### Step 4: Start Services
 
@@ -208,7 +208,7 @@ Once deployment succeeds:
 npm run build --prefix ElevatedIQ-Mono-Repo/apps/portal
 
 # Verify on remote
-ssh cloud@192.168.168.42 ls -la /opt/portal/dist/index.html
+ssh cloud@192.168.168.42 ls -la /home/akushnir/runnercloud/portal/dist/index.html
 ```
 
 ### Metrics endpoint returns 404
@@ -223,7 +223,7 @@ ssh cloud@192.168.168.42 ps aux | grep provisioner-worker
 ssh cloud@192.168.168.42 cat /tmp/provisioner-worker.log | tail -50
 
 # Restart manually
-ssh cloud@192.168.168.42 'cd /opt/backend/services/provisioner-worker && ENABLE_METRICS=true METRICS_PORT=9090 nohup node worker.js > /tmp/pw-manual.log 2>&1 &'
+ssh cloud@192.168.168.42 'cd /home/akushnir/runnercloud/backend/services/provisioner-worker && ENABLE_METRICS=true METRICS_PORT=9090 nohup node worker.js > /tmp/pw-manual.log 2>&1 &'
 ```
 
 ### SSH Permission Denied

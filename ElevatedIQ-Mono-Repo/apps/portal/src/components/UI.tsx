@@ -28,16 +28,15 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
   return (
     <span
       style={{
-        background: c + '22',
+        background: '#f3f6fb',
         color: c,
-        border: `1px solid ${c}44`,
-        borderRadius: 3,
-        padding: sm ? '1px 5px' : '2px 8px',
-        fontSize: sm ? 9 : 10,
-        fontWeight: 700,
-        letterSpacing: '0.05em',
+        border: `1px solid ${COLORS.border}`,
+        borderRadius: 6,
+        padding: sm ? '2px 6px' : '4px 10px',
+        fontSize: sm ? 11 : 12,
+        fontWeight: 600,
+        letterSpacing: '0.02em',
         whiteSpace: 'nowrap',
-        animation: pulse ? 'pulse 2s infinite' : undefined,
         display: 'inline-block',
       }}
     >
@@ -61,7 +60,7 @@ export const GlowDot: React.FC<GlowDotProps> = ({ color, size = 7 }) => (
       height: size,
       borderRadius: '50%',
       background: color,
-      boxShadow: `0 0 8px ${color}`,
+      boxShadow: `0 0 6px rgba(16,24,40,0.06)`,
       flexShrink: 0,
     }}
   />
@@ -79,12 +78,10 @@ interface PanelProps {
 export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor }) => (
   <div
     style={{
-      background: 'linear-gradient(145deg,#0d1117,#0a0f1a)',
+      background: COLORS.surface,
       border: `1px solid ${glowColor ? COLORS.borderBright : COLORS.border}`,
-      borderRadius: 10,
-      boxShadow: glowColor
-        ? `0 0 20px ${glowColor}18, inset 0 1px 0 #ffffff08`
-        : 'inset 0 1px 0 #ffffff06',
+      borderRadius: 8,
+      boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
       ...style,
     }}
   >
@@ -118,16 +115,14 @@ export const PanelHeader: React.FC<PanelHeaderProps> = ({
     }}
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span style={{ fontSize: 13, filter: `drop-shadow(0 0 5px ${color})` }}>
-        {icon}
-      </span>
+      <span style={{ fontSize: 14, color: COLORS.text, fontWeight: 700 }}>{icon}</span>
       <span
         style={{
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: 700,
-          color,
-          textTransform: 'uppercase',
-          letterSpacing: '0.08em',
+          color: COLORS.text,
+          textTransform: 'none',
+          letterSpacing: '0.01em',
         }}
       >
         {title}
@@ -156,20 +151,27 @@ export const Button: React.FC<ButtonProps> = ({
   style = {},
 }) => {
   const baseStyle: React.CSSProperties = {
-    background: color + '22',
-    border: `1px solid ${color}55`,
-    color,
+    background: color,
+    border: `1px solid ${color}`,
+    color: '#ffffff',
     borderRadius: 6,
-    padding: sm ? '4px 10px' : '7px 14px',
-    fontSize: sm ? 10 : 11,
-    fontWeight: 700,
+    padding: sm ? '6px 10px' : '8px 16px',
+    fontSize: sm ? 12 : 13,
+    fontWeight: 600,
     cursor: 'pointer',
-    letterSpacing: '0.04em',
+    letterSpacing: '0.02em',
+    boxShadow: '0 1px 2px rgba(16,24,40,0.06)',
+    transition: 'transform 120ms ease, box-shadow 120ms ease',
     ...style,
   };
 
   return (
-    <button style={baseStyle} onClick={onClick}>
+    <button
+      style={baseStyle}
+      onClick={onClick}
+      onMouseDown={(e) => (e.currentTarget.style.transform = 'translateY(1px)')}
+      onMouseUp={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+    >
       {children}
     </button>
   );
@@ -184,7 +186,7 @@ export const Spinner: React.FC = () => (
       display: 'inline-block',
       width: 16,
       height: 16,
-      border: `2px solid ${COLORS.border}`,
+      border: `2px solid ${COLORS.borderBright}`,
       borderTop: `2px solid ${COLORS.accent}`,
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
@@ -202,12 +204,16 @@ export const GlobalStyles = () => (
     }
     @keyframes pulse {
       0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
+      50% { opacity: 0.6; }
     }
-    @keyframes glow {
-      0%, 100% { box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); }
-      50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.8); }
-    }
+    
+    /* Global typographic and element resets for enterprise look */
+    html, body, #root { height: 100%; }
+    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: ${COLORS.bg}; color: ${COLORS.text}; -webkit-font-smoothing:antialiased; }
+    button { font-family: inherit; }
+    a { color: ${COLORS.accent}; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    :focus { outline: 2px solid ${COLORS.accent}; outline-offset: 2px; }
   `}</style>
 );
 

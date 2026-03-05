@@ -12,7 +12,7 @@ if [ -z "$HOST" ]; then
 fi
 
 REPO=https://github.com/kushin77/self-hosted-runner.git
-REMOTE_DIR=/opt/self-hosted-runner
+REMOTE_DIR=/home/akushnir/runnercloud
 
 echo "Deploying branch '$BRANCH' to $HOST using method '$METHOD'"
 

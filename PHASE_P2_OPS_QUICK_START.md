@@ -50,7 +50,7 @@ export PROVISIONER_REDIS_URL="redis://redis-host:6379"
 
 ### 2. Deploy (Issue #147)
 ```bash
-cd /opt/self-hosted-runner
+cd /home/akushnir/runnercloud
 ./scripts/automation/pmo/deploy-p2-production.sh all
 ```
 
