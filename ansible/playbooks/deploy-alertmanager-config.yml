@@ -1,0 +1,39 @@
+---
+- name: Deploy Alertmanager config for ElevatedIQ
+  hosts: monitoring
+  become: yes
+  vars:
+    alert_src: monitoring/alertmanager/alertmanager.yml
+    alert_dest: /etc/alertmanager/alertmanager.yml
+
+  tasks:
+    - name: Ensure /etc/alertmanager exists
+      file:
+        path: /etc/alertmanager
+        state: directory
+        owner: alertmanager
+        group: alertmanager
+        mode: '0755'
+
+    - name: Copy Alertmanager config
+      copy:
+        src: "{{ alert_src }}"
+        dest: "{{ alert_dest }}"
+        owner: alertmanager
+        group: alertmanager
+        mode: '0640'
+
+    - name: Restart Alertmanager
+      systemd:
+        name: alertmanager
+        state: restarted
+        daemon_reload: yes
+
+    - name: Verify Alertmanager API
+      uri:
+        url: http://localhost:9093/-/ready
+        status_code: 200
+      register: am_ready
+      retries: 5
+      delay: 2
+      until: am_ready.status == 200
