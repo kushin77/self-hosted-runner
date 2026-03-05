@@ -1,58 +1,66 @@
 # self-hosted-runner
 
-Complete, production-grade infrastructure and automation tooling for self-hosted GitHub Actions runners with advanced monitoring, health management, and security controls.
+Production-grade infrastructure and automation for self-hosted GitHub Actions runners, including provisioning, observability, security, and lifecycle tooling.
 
 **Status:** ✅ Production Ready — Awaiting Ops Secrets | **Last Updated:** 2026-03-05
 
 ---
 
-## 🚀 Quick Access (Operational Handoff)
+## Overview
 
-* **Rollout Master Checklist**: [Issue #240](https://github.com/kushin77/self-hosted-runner/issues/240)
-* **Ops Execution Checklist (Secrets)**: [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241)
-* **Final Handoff Summary**: [docs/PHASE_P3_FINAL_HANDOFF.md](docs/PHASE_P3_FINAL_HANDOFF.md)
-* **Terraform Apply Guide**: [docs/PHASE_2_3_OPS_RUNBOOK.md](docs/PHASE_2_3_OPS_RUNBOOK.md)
+This repository contains Terraform modules, deployment automation, monitoring, and CI/CD configuration to run and operate self-hosted GitHub Actions runners at scale. It is intended for SRE/Platform teams who will operate the runner fleet and integrate it into an enterprise deployment pipeline.
 
 ---
 
-## 📊 Feature Completion Dashboard
+## Quick Start (for Ops)
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Multi-tier Runner Provisioning | ✅ | `ubuntu-latest` & `high-mem` pools wired via Terraform.
-| Terraform Infrastructure as Code | ✅ | Fully modular AWS/GCP stacks with audited variables & outputs.
-| Zero-Trust (GCP/Vault) | ✅ | KMS-/GCS-backed Vault with auditable service-account module.
-| Observability Stack (P3) | ✅ | Prometheus v2.45 + Alertmanager + Grafana dashboards deployed.
-| Supply-Chain & SLSA | ✅ | CycloneDX SBOMs, provenance verification, gated release workflows.
-| E2E Testing Framework | ✅ | Ephemeral Docker tests exercising monitoring + alert routing.
+Prerequisites:
+- Git, Terraform (1.5+), kubectl (if deploying to k8s), appropriate cloud CLI and credentials.
 
----
+Steps:
+1. Clone the repo:
 
-## 🏗️ Getting Started (Operations)
+   git clone https://github.com/kushin77/self-hosted-runner.git
+   cd self-hosted-runner
 
-1. **Configure Secrets** — Follow [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241) and add:
-   - `GOOGLE_CREDENTIALS`
-   - `PROD_TFVARS`
-   - `SLACK_WEBHOOK_URL`
-   - `PAGERDUTY_SERVICE_KEY`
-2. **Validate** — Run GitHub Actions on `main`:
-   1. Terraform Plan (review before apply; see [Issue #231](https://github.com/kushin77/self-hosted-runner/issues/231)).
-   2. Observability E2E (real receiver validation).
-   3. Terraform Apply (production rollout once plans are signed off).
-3. **Post-Apply** — Confirm dashboards, targets, and alert receivers remain healthy via the E2E suite.
+2. Place required secrets (see `docs/PHASE_P2_OPS_QUICK_START.md`): `GOOGLE_CREDENTIALS`, `PROD_TFVARS`, `SLACK_WEBHOOK_URL`, `PAGERDUTY_SERVICE_KEY`.
 
----
+3. Preview infrastructure changes:
 
-## 📚 Supporting References
+   cd terraform/environments/production
+   terraform init
+   terraform plan -var-file=prod.tfvars
 
-* `docs/PHASE_P3_FINAL_HANDOFF.md` — Detailed architecture + handoff instructions.
-* `docs/PHASE_2_3_OPS_RUNBOOK.md` — Step-by-step Terraform apply/runbook guidance.
-* `docs/PHASE_P2_OPS_QUICK_START.md` — GCP Vault operational quick start.
-* `docs/PROJECT_COMPLETION_SUMMARY.md` — Holistic delivery overview across phases.
+4. Apply after review:
+
+   terraform apply -var-file=prod.tfvars
+
+5. Run the E2E/observability checks (see `tests/` and `docs/PHASE_2_3_OPS_RUNBOOK.md`).
 
 ---
 
-## 🤝 Lifecycle Notes
+## Operational Handoff Resources
 
-* **Current Phase**: Phase P3 — Engineering delivery is locked and awaiting Ops execution.
-* **Next Phase**: Phase P4 — Advanced hardening and multi-tenancy isolation (roadmap recorded in [Issue #243](https://github.com/kushin77/self-hosted-runner/issues/243)).
+- Rollout checklist: [Issue #240](https://github.com/kushin77/self-hosted-runner/issues/240)
+- Ops execution & secrets: [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241)
+- Terraform apply runbook: [docs/PHASE_2_3_OPS_RUNBOOK.md](docs/PHASE_2_3_OPS_RUNBOOK.md)
+- Final handoff summary: [docs/PHASE_P3_FINAL_HANDOFF.md](docs/PHASE_P3_FINAL_HANDOFF.md)
+
+---
+
+## Contributing
+
+If you are contributing updates or fixes:
+- Open a branch: `git checkout -b feat/your-change`
+- Run linters and tests under `tests/`
+- Create a PR and link relevant issues; include terraform plan output for infra changes.
+
+---
+
+## License & Contact
+
+This project is maintained by the platform team. For questions or operational help, open an issue or ping the `#platform` Slack channel.
+
+---
+
+<!-- EOF -->
