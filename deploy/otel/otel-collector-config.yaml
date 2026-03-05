@@ -1,0 +1,26 @@
+receivers:
+  otlp:
+    protocols:
+      http: {}
+      grpc: {}
+  prometheus:
+    config:
+      scrape_configs: []
+
+exporters:
+  logging:
+    loglevel: info
+
+processors:
+  batch: {}
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]

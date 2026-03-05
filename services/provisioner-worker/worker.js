@@ -7,6 +7,7 @@ const metricsServer = require('./lib/metricsServer');
 const metrics = require('./lib/metrics');
 const logger = require('./lib/logger');
 const otel = require('./lib/otel.cjs');
+const audit = require('./lib/audit.cjs');
 
 // initialize telemetry (no-op if packages missing or ENABLE_OTEL!=true)
 otel.init();
@@ -32,6 +33,7 @@ async function processJob(job) {
   const startTime = Date.now();
   let jobLog = logger.child({correlation_id: job.request_id || logger.genCorrelationId()});
   jobLog.info('processing job', {status: job.status});
+  audit.log({event: 'job_started', request_id: job.request_id, status: job.status});
 
   // start a tracing span if tracer is available
   const tracer = otel.getTracer();
@@ -76,11 +78,13 @@ async function processJob(job) {
     if (planHash) jobStore.setPlanHash(planHash, job.request_id);
     if (ENABLE_METRICS) metrics.recordJobCompletion('succeeded', Date.now() - startTime);
     jobLog.info('job provisioned');
+    audit.log({event: 'job_succeeded', request_id: job.request_id});
   } else {
     job.status = 'failed';
     job.result = res;
     if (ENABLE_METRICS) metrics.recordJobCompletion('failed', Date.now() - startTime);
     jobLog.error('job failed', {result: res});
+    audit.log({event: 'job_failed', request_id: job.request_id, result: res});
   }
   job.completed_at = new Date().toISOString();
   const storeStart2 = Date.now();
