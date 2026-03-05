@@ -1,0 +1,46 @@
+name: Governance — Enforce Runner Labels
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+permissions:
+  contents: read
+concurrency:
+  group: "governance-${{ github.event.pull_request.number }}"
+  cancel-in-progress: true
+
+jobs:
+  check-workflows:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch base branch
+        run: git fetch origin ${{ github.event.pull_request.base.ref }} --depth=1
+
+      - name: Check changed workflows for forbidden runner labels
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -e
+          FORBIDDEN='ubuntu-latest|windows-latest|macos-latest|runs-on:\s*ubuntu|runs-on:\s*windows|runs-on:\s*macos'
+          CHANGED=$(git diff --name-only origin/${BASE_REF} HEAD || true)
+          echo "Changed files:\n$CHANGED"
+          EXIT_CODE=0
+          for f in $CHANGED; do
+            case "$f" in
+              .github/workflows/*)
+                if grep -E -n "$FORBIDDEN" "$f"; then
+                  echo "\nERROR: Forbidden runner label found in $f"
+                  EXIT_CODE=1
+                fi
+                ;;
+            esac
+          done
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "One or more workflows use disallowed hosted-runner labels. Please update to [self-hosted, linux] or approved labels."
+            exit 1
+          fi
+          echo "No forbidden runner labels found in changed workflows."
