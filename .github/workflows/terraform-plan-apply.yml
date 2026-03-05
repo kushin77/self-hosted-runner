@@ -14,7 +14,7 @@ on:
 
 jobs:
   plan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     env:
       GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
     steps:
@@ -42,7 +42,7 @@ jobs:
           path: plan.out
   apply:
     if: github.event.inputs.auto_apply == 'true'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
     needs: plan
     steps:
       - uses: actions/checkout@v4
