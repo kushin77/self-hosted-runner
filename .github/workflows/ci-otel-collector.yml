@@ -28,8 +28,9 @@ jobs:
       - name: Setup Docker Compose (ensure available)
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y python3-pip
-          pip3 install docker-compose==1.29.2 || true
+          sudo apt-get install -y python3-pip python3-venv
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install 'docker-compose==1.29.2' || true
 
       - name: Start OTEL Collector (docker-compose)
         working-directory: deploy/otel
