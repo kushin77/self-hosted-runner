@@ -1,0 +1,28 @@
+name: P4 - AWS Spot Runner Plan (dry-run)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  terraform-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.5.0'
+
+      - name: Terraform Init & Plan
+        working-directory: terraform/examples/aws-spot
+        run: |
+          terraform init -input=false
+          terraform plan -out=aws-spot.tfplan -input=false
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-spot-plan
+          path: terraform/examples/aws-spot/aws-spot.tfplan
