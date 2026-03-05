@@ -1,3 +1,4 @@
+---
 name: TLS Socket Integration Test
 permissions:
   contents: read
