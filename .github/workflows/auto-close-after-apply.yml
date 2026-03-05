@@ -1,3 +1,4 @@
+---
 name: Auto-close Phase P3 after Terraform Apply
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
