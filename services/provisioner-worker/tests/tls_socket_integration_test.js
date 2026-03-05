@@ -2,6 +2,7 @@
 const { startMetricsServer, stopMetricsServer } = require('../lib/metricsServer');
 const ioClient = require('socket.io-client');
 const selfsigned = require('selfsigned');
+const nock = require('nock');
 
 (async () => {
   const port = 9443;
@@ -11,10 +12,19 @@ const selfsigned = require('selfsigned');
     const pems = selfsigned.generate(attrs, { days: 1 });
 
     process.env.SOCKET_TLS = 'true';
-    // Provide inline PEMs to avoid writing secret files
-    process.env.SOCKET_CERT = pems.cert;
-    process.env.SOCKET_KEY = pems.private;
-    process.env.SOCKET_AUTH_TOKEN = 'tls-secret';
+    // for this test we exercise Vault paths rather than direct env vars
+    const vaultPath = 'secret/data/socket';
+    process.env.SOCKET_TOKEN_VAULT_PATH = vaultPath;
+    process.env.SOCKET_CERT_VAULT_PATH = vaultPath;
+    process.env.VAULT_ADDR = 'http://localhost:8200';
+    process.env.VAULT_TOKEN = 'vault-test-token';
+
+    // prepare nock to return both token and cert/key
+    nock(process.env.VAULT_ADDR)
+      .persist()
+      .get(`/v1/${vaultPath}`)
+      .matchHeader('X-Vault-Token', process.env.VAULT_TOKEN)
+      .reply(200, { data: { token: 'tls-secret', cert: pems.cert, key: pems.private } });
 
     const server = await startMetricsServer(port);
     console.log(`[test] TLS metrics server started on ${port}`);

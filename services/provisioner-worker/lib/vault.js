@@ -6,7 +6,8 @@
  * Uses VAULT_ADDR and VAULT_TOKEN from env; returns JSON data from a secret path.
  * If VAULT_ADDR is not set, functions resolve to undefined.
  */
-const fetch = global.fetch || require('node-fetch');
+// use node-fetch explicitly so that HTTP traffic can be intercepted in tests
+const fetch = require('node-fetch').default;
 
 async function getSecret(path) {
   if (!process.env.VAULT_ADDR) {
