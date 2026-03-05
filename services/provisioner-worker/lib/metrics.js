@@ -7,6 +7,39 @@
 
 const os = require('os');
 
+// try to initialize OTEL meter (optional)
+let otelMeter;
+let otelCounters = {};
+try {
+  const otel = require('./otel.cjs');
+  otel.init();
+  otelMeter = otel.getMeter();
+  if (otelMeter) {
+    // pre-create counters/gauges we'll use
+    otelCounters.jobsProcessed = otelMeter.createCounter('provisioner_jobs_processed_total');
+    otelCounters.jobsSucceeded = otelMeter.createCounter('provisioner_jobs_succeeded_total');
+    otelCounters.jobsFailed = otelMeter.createCounter('provisioner_jobs_failed_total');
+    otelCounters.jobsDuplicated = otelMeter.createCounter('provisioner_jobs_duplicated_total');
+    otelCounters.terraformApplies = otelMeter.createCounter('provisioner_terraform_applies_total');
+    otelCounters.terraformErrors = otelMeter.createCounter('provisioner_terraform_errors_total');
+    // gauges can be implemented with ObservableGauge if needed
+    otelCounters.queueDepth = otelMeter.createObservableGauge('provisioner_queue_depth', {
+      callback: (observableResult) => observableResult.observe(metrics.queue_depth)
+    });
+    otelCounters.activeJobs = otelMeter.createObservableGauge('provisioner_active_jobs', {
+      callback: (observableResult) => observableResult.observe(metrics.active_jobs)
+    });
+    otelCounters.vaultConnected = otelMeter.createObservableGauge('provisioner_vault_connected', {
+      callback: (observableResult) => observableResult.observe(metrics.vault_connected ? 1 : 0)
+    });
+    otelCounters.jobStoreOperational = otelMeter.createObservableGauge('provisioner_jobstore_operational', {
+      callback: (observableResult) => observableResult.observe(metrics.jobstore_operational ? 1 : 0)
+    });
+  }
+} catch (e) {
+  // OTEL not available or initialization failed
+}
+
 // Metric storage (in-memory Prometheus format)
 const metrics = {
   // Counters
@@ -47,11 +80,15 @@ function recordJobCompletion(status, duration_ms) {
   
   if (status === 'succeeded') {
     metrics.jobs_succeeded_total++;
+    if (otelCounters.jobsSucceeded) otelCounters.jobsSucceeded.add(1);
   } else if (status === 'failed') {
     metrics.jobs_failed_total++;
+    if (otelCounters.jobsFailed) otelCounters.jobsFailed.add(1);
   } else if (status === 'duplicated') {
     metrics.jobs_duplicated_total++;
+    if (otelCounters.jobsDuplicated) otelCounters.jobsDuplicated.add(1);
   }
+  if (otelCounters.jobsProcessed) otelCounters.jobsProcessed.add(1, {status});
   
   metrics.last_job_duration_ms = duration_ms;
   metrics.last_job_completed_at = new Date().toISOString();
@@ -70,8 +107,10 @@ function recordJobCompletion(status, duration_ms) {
  */
 function recordTerraformApply(duration_ms, success) {
   metrics.terraform_applies_total++;
+  if (otelCounters.terraformApplies) otelCounters.terraformApplies.add(1);
   if (!success) {
     metrics.terraform_errors_total++;
+    if (otelCounters.terraformErrors) otelCounters.terraformErrors.add(1);
   }
   
   metrics.terraform_apply_latency_ms.push(duration_ms);
@@ -97,6 +136,9 @@ function recordJobStoreWrite(duration_ms) {
  */
 function updateQueueDepth(depth) {
   metrics.queue_depth = depth;
+  if (otelMeter && otelCounters.queueDepth) {
+    // ObservableGauge callbacks run periodically so we could store depth in a variable to read inside callback.
+  }
 }
 
 /**
@@ -105,6 +147,7 @@ function updateQueueDepth(depth) {
  */
 function updateActiveJobs(count) {
   metrics.active_jobs = count;
+  // same as above, gauge value updated via observable callback
 }
 
 /**

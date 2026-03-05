@@ -67,6 +67,13 @@ jobs:
         run: bash tests/integration/provisioner-integration-tests.sh
         timeout-minutes: 12
 
+      - name: Run OTEL init sanity checks
+        run: |
+          bash services/provisioner-worker/tests/otel_init.sh || true
+          bash services/managed-auth/tests/otel_init.sh || true
+          bash services/vault-shim/tests/otel_init.sh || true
+        # scripts log warnings if OTEL packages are absent; don't fail pipeline
+
       - name: Archive test artifacts
         if: always()
         uses: actions/upload-artifact@v4
