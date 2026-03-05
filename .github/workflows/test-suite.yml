@@ -1,13 +1,6 @@
 name: Test Suite
-permissions:
-  contents: read
-  id-token: write
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
   pull_request:
     branches: [main, develop]
   push:
@@ -19,7 +12,7 @@ on:
 jobs:
   smoke-tests:
     name: Smoke Tests
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     
     steps:
@@ -50,7 +43,7 @@ jobs:
 
   integration-tests:
     name: Integration Tests
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: smoke-tests
 
@@ -119,7 +112,7 @@ jobs:
 
   vault-security-tests:
     name: Vault Security Tests
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
@@ -152,7 +145,7 @@ jobs:
 
   lint-and-format:
     name: Code Quality
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     
     steps:
       - name: Checkout code
@@ -184,7 +177,7 @@ jobs:
 
   test-results:
     name: Test Results Summary
-    runs-on: [self-hosted, linux]
+    runs-on: ubuntu-latest
     if: always()
     needs: [smoke-tests, integration-tests, vault-security-tests, lint-and-format]
 
