@@ -57,8 +57,7 @@ locals {
   metadata_base = {
     "startup-script" = chomp(local.metadata_script)
   }
-
-  metadata = merge(
+  metadata_pre = merge(
     local.metadata_base,
     var.ssh_public_key != "" ? { "ssh-keys" = "runner-deployer:${var.ssh_public_key}" } : {},
     var.extra_metadata
@@ -67,12 +66,11 @@ locals {
   # Optionally inject Vault Agent artifacts into instance metadata so images
   # need not bundle them. This allows the startup script to write files from
   # metadata on first boot and enable Vault Agent.
-  metadata = var.inject_vault_agent_metadata ? merge(local.metadata, {
+  metadata = var.inject_vault_agent_metadata ? merge(local.metadata_pre, {
     "vault-agent.hcl"        = file("${path.root}/scripts/identity/vault-agent/vault-agent.hcl")
     "vault-agent.service"    = file("${path.root}/scripts/identity/vault-agent/vault-agent.service")
     "registry-creds.tpl"     = file("${path.root}/scripts/identity/vault-agent/registry-creds.tpl")
-  }) : local.metadata
-  )
+  }) : local.metadata_pre
 
   effective_allowed_egress_cidrs = distinct(compact(concat(var.required_egress_cidrs, var.allowed_egress_cidrs)))
 
