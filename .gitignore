@@ -6,8 +6,10 @@ dist/
 *.zip
 *.bin
 *.exe
-# Ignore bundled node binaries for actions-runner distributions (they are large)
-actions-runner-*/externals/**/bin/node
-actions-runner-*/externals/**/bin/node*
-# Ignore artifacts directory used for storing large binaries externally
-artifacts/
+actions-runner-1772733156/
+
+# Ignore example local terraform provider caches
+terraform/examples/**/.terraform/
+
+# Ignore runner externals (local copies)
+actions-runner-*/externals/
