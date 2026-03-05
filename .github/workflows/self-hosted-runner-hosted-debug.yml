@@ -37,4 +37,5 @@ jobs:
             .
 
       - name: Echo success
-        run: echo "HOSTED RUNNER DEBUG: OK"
+        run: |
+          echo 'HOSTED RUNNER DEBUG: OK'
