@@ -15,7 +15,10 @@ const logger = winston.createLogger({
 
 const fs = require('fs');
 const path = require('path');
+<<<<<<< HEAD
 const db = require('./db');
+=======
+>>>>>>> origin/main
 
 // Persistence for repair proposals (NDJSON)
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
@@ -30,6 +33,7 @@ async function ensureDataDir() {
 }
 
 async function persistProposal(obj) {
+<<<<<<< HEAD
   // If configured, persist to durable DB
   if (process.env.REPAIR_USE_DB === 'true') {
     try {
@@ -39,12 +43,15 @@ async function persistProposal(obj) {
       logger.warn('[DB] failed to save proposal, falling back to NDJSON', { err: e.message });
     }
   }
+=======
+>>>>>>> origin/main
   await ensureDataDir();
   const line = JSON.stringify(obj) + '\n';
   await fs.promises.appendFile(PROPOSALS_FILE, line, { encoding: 'utf8' });
 }
 
 async function readAllProposals() {
+<<<<<<< HEAD
   if (process.env.REPAIR_USE_DB === 'true') {
     try {
       return await db.listProposals();
@@ -53,6 +60,8 @@ async function readAllProposals() {
     }
   }
 
+=======
+>>>>>>> origin/main
   try {
     const content = await fs.promises.readFile(PROPOSALS_FILE, 'utf8');
     return content
