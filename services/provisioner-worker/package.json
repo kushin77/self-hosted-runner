@@ -89,7 +89,7 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:integration": "node test/socket_integration_test.js"
+    "test:integration": "node tests/socket_integration_test.js"
   },
   "keywords": [],
   "author": "",
