@@ -1,3 +1,68 @@
+# Phase P4 — Final Ops Handoff
+
+Status: Ready for Ops verification (requires staging cluster access and self-hosted runners)
+
+Summary
+-------
+This document consolidates the final steps for Phase P4 rollout, verification, and operational handoff. Automation, CI workflows, and an approval flow are implemented in the repository. Remaining operational prerequisites are listed below.
+
+Prerequisites (Ops)
+- Register at least one self-hosted runner with labels: `self-hosted`, `linux`, `x64`. (Optional: add `runner-type=ci` for heavy jobs.)
+- Add repository/org secrets: `AWS_ROLE_TO_ASSUME`, `STAGING_KUBECONFIG`, `PROD_TFVARS` as needed.
+- Ensure staging cluster API is reachable and provide kubeconfig for validation.
+
+Key files added/updated
+- `.github/SELF_HOSTED_RUNNERS.md` — Runner labels and quick checklist
+- `.github/workflows/self-hosted-runner-smoke.yml` — Manual smoke workflow to validate runners
+- `.github/workflows/*` — All CI workflows migrated to run on self-hosted labels
+- `services/pipeline-repair` — Repair engine and approval flow (unit tests verified locally)
+
+Ops Tasks (high-level)
+1. Provision runner host(s) and register them with GitHub Actions (see below sample `systemd` unit). Ensure runner labels match workflows.
+2. Add required secrets to repository (`AWS_ROLE_TO_ASSUME`, `STAGING_KUBECONFIG`, `ADMIN_API_KEY`, `PROD_TFVARS`).
+3. Dispatch `.github/workflows/self-hosted-runner-smoke.yml` via the Actions UI to confirm the runner picks up jobs.
+4. When smoke test passes, run `keda-smoke-test.yml` workflow (or run locally) to validate KEDA scaling hooks against staging.
+5. Run Terraform plan in targeted environment and perform apply with required approvals.
+
+Runner registration & systemd sample
+1. Download and extract the runner on the host and register it (example):
+
+```bash
+# Create working dir
+mkdir -p /opt/actions-runner && cd /opt/actions-runner
+# Download runner (replace version as needed)
+curl -O -L https://github.com/actions/runner/releases/download/v2.308.0/actions-runner-linux-x64-2.308.0.tar.gz
+tar xzf ./actions-runner-linux-x64-2.308.0.tar.gz
+# Register (replace ORG/REPO and TOKEN)
+./config.sh --url https://github.com/kushin77/self-hosted-runner --token YOUR_REGISTRATION_TOKEN --labels "self-hosted,linux,x64,runner-type=ci"
+```
+
+2. Example `systemd` unit to run the runner as a service:
+
+```ini
+[Unit]
+Description=GitHub Actions Runner
+After=network.target
+
+[Service]
+Type=simple
+User=actions
+WorkingDirectory=/opt/actions-runner
+ExecStart=/opt/actions-runner/run.sh
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Verification checklist
+- [ ] Smoke workflow is picked up and completes on self-hosted runner
+- [ ] `STAGING_KUBECONFIG` secret added and validated by KEDA smoke test
+- [ ] `AWS_ROLE_TO_ASSUME` and `PROD_TFVARS` added for Terraform apply
+- [ ] Post-apply observability endpoints (Prometheus/Pushgateway) verified
+- [ ] Final signoff recorded in issue #240 (master tracking)
+
+If you want, I can: register and dispatch the smoke workflow once you confirm at least one runner is online, or add a runbook with automated runner bootstrap scripts for ephemeral instances.
 # Phase P4 Final Handoff - March 5, 2026
 
 ## Executive Summary
