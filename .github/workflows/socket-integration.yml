@@ -8,9 +8,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
-on:
-  workflow_dispatch: {}
   push:
     branches: [ main, 'feature/**' ]
   pull_request:
