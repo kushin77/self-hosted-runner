@@ -7,7 +7,9 @@
 
 import express from 'express';
 import crypto from 'crypto';
-import { setToken, getToken } from './lib/secretStore.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { setToken, getToken } = require('./lib/secretStore.cjs');
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -73,6 +75,16 @@ app.get('/billing', (req, res) => {
   const totalSeconds = billingRecords.reduce((sum, r) => sum + (r.seconds || 0), 0);
   const costPerSecond = parseFloat(process.env.COST_PER_SECOND || '0.0015');
   res.json({ totalSeconds, costPerSecond, estimate: (totalSeconds * costPerSecond).toFixed(2) });
+});
+
+// instant deploy orchestration (UI uses this to kick off mode selection)
+app.post('/instant-deploy', (req, res) => {
+  const { mode } = req.body || {};
+  if (!mode) return res.status(400).json({ error: 'mode required' });
+  // In a real system we would route to appropriate service (managed, byoc, onprem)
+  // For now we return a simple success token and a fake runner URL
+  const deployId = crypto.randomBytes(8).toString('hex');
+  res.json({ deployId, mode, status: 'initiated', runnerUrl: `https://runnercloud.example.com/${deployId}` });
 });
 
 // record usage (called by runner agents periodically)
