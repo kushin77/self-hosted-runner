@@ -1,10 +1,11 @@
+---
 name: Manual Dispatch & Release — Self-hosted
 
 on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Target environment (dev/staging/prod)'
+        description: Target environment (dev/staging/prod)
         required: true
         default: staging
 
