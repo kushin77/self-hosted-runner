@@ -11,7 +11,7 @@ on:
 jobs:
   e2e:
     name: Ephemeral E2E
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
