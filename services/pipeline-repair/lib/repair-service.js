@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const RetryStrategy = require('../strategies/retry');
 const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
 const AuditLog = require('./audit-log');
@@ -13,21 +15,9 @@ const logger = winston.createLogger({
   transports: [new winston.transports.Console()]
 });
 
-const fs = require('fs');
-const path = require('path');
-// DB adapters: sqlite (`./db`) and postgres (`./pg_db`).
-let db;
-try {
-  if (process.env.REPAIR_DB === 'postgres') {
-    db = require('./pg_db');
-  } else {
-    db = require('./db');
-  }
-} catch (e) {
-  // If adapter load fails, we'll fallback to NDJSON
-  logger.warn('[DB] failed to load DB adapter, falling back to NDJSON', { err: e.message });
-  db = null;
-}
+// Note: DB adapters (sqlite, postgres) are optional for MVP
+// For production, implement persistent storage via ./db or ./pg_db
+let db = null;
 
 // Persistence for repair proposals (NDJSON)
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
