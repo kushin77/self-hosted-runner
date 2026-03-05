@@ -1,3 +1,11 @@
+collector:
+  enabled: false
+  image: otel/opentelemetry-collector-contrib
+  tag: "0.79.0"
+  resources: {}
+
+networkPolicy:
+  enabled: true
 # default values for airgap-control-plane
 namespace: runnercloud
 replicaCount: 1
