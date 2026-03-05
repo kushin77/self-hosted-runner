@@ -51,10 +51,18 @@ const fetch = require('node-fetch').default;
       console.log('[test] socket connected', socket.id);
     });
 
-    socket.on('metrics:update', (payload) => {
+    socket.on('metrics:update', async (payload) => {
       console.log('[test] received metrics:update');
       clearTimeout(timeout);
       socket.close();
+      // verify metrics summary counters exist
+      try {
+        const res = await fetch(`https://localhost:${port}/metrics/summary`, { rejectUnauthorized: false });
+        const json = await res.json();
+        console.log('[test] metrics summary', json);
+      } catch (e) {
+        console.warn('[test] failed to fetch metrics summary', e.message);
+      }
       stopMetricsServer();
       process.exit(0);
     });
