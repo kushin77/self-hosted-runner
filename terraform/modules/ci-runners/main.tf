@@ -178,10 +178,13 @@ resource "aws_iam_instance_profile" "runner" {
 # User data for runner setup
 locals {
   runner_setup_script = base64encode(templatefile("${path.module}/runner_setup.sh", {
-    runner_token  = var.runner_token
-    github_owner  = var.github_owner
-    github_repo   = var.github_repo
-    runner_dir    = "/home/ubuntu/actions-runner"
+    runner_token         = var.runner_token
+    github_owner         = var.github_owner
+    github_repo          = var.github_repo
+    runner_dir           = "/home/ubuntu/actions-runner"
+    RUNNER_VERSION       = ""  # Fetched dynamically
+    RUNNER_ARCH          = ""  # Fetched dynamically
+    RUNNER_USER          = "ubuntu"
   }))
 }
 
