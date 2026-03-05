@@ -11,8 +11,6 @@ terraform {
   }
 }
 
-provider "aws" {}
-
 locals {
   webhook_secret_arn_effective = var.webhook_secret_arn != "" ? var.webhook_secret_arn : (var.create_webhook_secret ? (aws_secretsmanager_secret.webhook[0].arn) : "")
 }
