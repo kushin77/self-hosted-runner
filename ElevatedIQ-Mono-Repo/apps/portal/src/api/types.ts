@@ -13,32 +13,36 @@ export interface RunnerDTO {
 }
 
 export interface EventDTO {
-  time: string;
-  type: string;
-  severity: 'info' | 'warn' | 'high' | 'critical';
-  message: string;
+  time?: string;
+  type?: string;
+  severity?: 'info' | 'warn' | 'high' | 'critical';
+  message?: string;
   details?: string;
+  [key: string]: any;
 }
 
 export interface BillingDTO {
-  monthlyJobs: number;
-  avgMinutesPerJob: number;
-  gpuPercent: number;
-  estimate: number;
+  monthlyJobs?: number;
+  avgMinutesPerJob?: number;
+  gpuPercent?: number;
+  estimate?: number;
+  [key: string]: any;
 }
 
 export interface CacheLayerDTO {
-  name: string;
-  hitRate: number;
-  sizeGB: string;
-  items: number;
+  name?: string;
+  hitRate?: number;
+  sizeGB?: string;
+  items?: number;
+  [key: string]: any;
 }
 
 export interface AIInsightDTO {
-  id: string;
-  title: string;
-  severity: string;
-  category: string;
-  description: string;
-  recommendation: string;
+  id?: string;
+  title?: string;
+  severity?: string;
+  category?: string;
+  description?: string;
+  recommendation?: string;
+  [key: string]: any;
 }
