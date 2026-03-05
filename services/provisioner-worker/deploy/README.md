@@ -6,7 +6,7 @@ This folder contains simple artifacts to deploy `provisioner-worker` to a stagin
 Files:
 
 - `docker-compose.yml` — run worker in a container mounting the repository (useful for quick smoke runs on hosts with Docker).
-- `provisioner-worker.service` — systemd unit that runs `worker.js` from a checked-out repo under `/opt/self-hosted-runner`.
+- `provisioner-worker.service` — systemd unit that runs `worker.js` from a checked-out repo under `/home/akushnir/runnercloud`.
 - `deploy_to_host.sh` — helper script to SSH to a staging host, clone/update the repo, and start the service (systemd or docker).
 
 Usage (example):

@@ -1,42 +1,37 @@
 /**
- * RunnerCloud Portal - Design System & Colors
- * Dark theme with glowing accents for ultra-modern CI/CD dashboard
+ * RunnerCloud Portal - Enterprise Design System & Colors
+ * Neutral, professional palette with high readability and subtle elevation
  */
 
 export const COLORS = {
-  // Core backgrounds
-  bg: "#070a0f",
-  surface: "#0d1117",
-  surfaceHigh: "#111827",
+  // Core backgrounds (light, enterprise-friendly)
+  bg: '#f5f7fa',
+  surface: '#ffffff',
+  surfaceHigh: '#f0f2f5',
 
   // Borders
-  border: "#1a2236",
-  borderBright: "#243050",
+  border: '#e6e9ef',
+  borderBright: '#d0d5dd',
 
-  // Primary accent (blue)
-  accent: "#3b82f6",
-  accentGlow: "#3b82f655",
+  // Primary accent (brand blue)
+  accent: '#0b5fff',
 
   // Status colors
-  green: "#22c55e",
-  greenGlow: "#22c55e33",
-  yellow: "#f59e0b",
-  red: "#ef4444",
-  purple: "#a855f7",
-  cyan: "#06b6d4",
-  orange: "#f97316",
-  // Aliases for legacy keys used across components
-  blue: "#3b82f6",
-  magenta: "#a855f7",
+  green: '#0f9d58',
+  yellow: '#f6c343',
+  red: '#d93025',
+  purple: '#6f42c1',
+  cyan: '#0891b2',
+  orange: '#f97316',
 
-  // Aliases for older naming used across the codebase
-  blue: "#3b82f6",
-  magenta: "#d946ef",
+  // Aliases for legacy keys used across components
+  blue: '#0b5fff',
+  magenta: '#6f42c1',
 
   // Text
-  muted: "#4b5563",
-  text: "#e2e8f0",
-  textDim: "#94a3b8",
+  muted: '#607088',
+  text: '#0b1a2b',
+  textDim: '#7b8794',
 } as const;
 
 export type ColorKey = keyof typeof COLORS;
