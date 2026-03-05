@@ -29,6 +29,10 @@ export const COLORS = {
   blue: "#3b82f6",
   magenta: "#a855f7",
 
+  // Aliases for older naming used across the codebase
+  blue: "#3b82f6",
+  magenta: "#d946ef",
+
   // Text
   muted: "#4b5563",
   text: "#e2e8f0",
