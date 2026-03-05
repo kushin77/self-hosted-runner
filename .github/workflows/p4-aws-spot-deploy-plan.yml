@@ -1,4 +1,10 @@
 name: "P4 — AWS Spot Runner Plan"
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
   workflow_dispatch: {}
@@ -9,7 +15,7 @@ on:
 jobs:
   terraform-plan:
     name: Terraform Plan (aws-spot)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
     steps:
@@ -57,3 +63,5 @@ jobs:
         with:
           name: aws-spot-plan-txt
           path: terraform/examples/aws-spot/plan.txt
+on:
+  workflow_dispatch: {}

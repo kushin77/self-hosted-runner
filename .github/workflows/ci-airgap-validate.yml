@@ -1,5 +1,13 @@
 name: CI - Airgap Image Validation
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
+on:
+  workflow_dispatch: {}
 on:
   pull_request:
     branches: [ main ]
@@ -7,7 +15,7 @@ on:
 
 jobs:
   validate-images:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

@@ -1,6 +1,13 @@
 name: EIQ Nexus CI
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
+  workflow_dispatch: {}
   pull_request:
     branches: [ main, develop ]
   push:
@@ -16,7 +23,7 @@ env:
 jobs:
   validate:
     name: Validate & Lint
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
     
@@ -56,7 +63,7 @@ jobs:
 
   test:
     name: Unit Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
     services:
@@ -101,7 +108,7 @@ jobs:
 
   security:
     name: Security Scanning
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
       security-events: write
@@ -142,7 +149,7 @@ jobs:
 
   build:
     name: Build Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
       packages: write
@@ -184,7 +191,7 @@ jobs:
 
   performance:
     name: Performance Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
     needs: [validate, test]
@@ -210,7 +217,7 @@ jobs:
 
   integration:
     name: Integration Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     permissions:
       contents: read
     needs: [validate, test]
@@ -250,7 +257,7 @@ jobs:
 
   notify:
     name: Notifications
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     needs: [validate, test, security, build, performance, integration]
     if: always()
     
@@ -289,3 +296,5 @@ jobs:
                 }
               ]
             }
+on:
+  workflow_dispatch: {}
