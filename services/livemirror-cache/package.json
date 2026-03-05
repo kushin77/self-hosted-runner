@@ -1,0 +1,17 @@
+{
+  "name": "runnercloud-livemirror-cache",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Simple HTTP service exposing LiveMirror cache metrics and operations (Issue #9)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "bash tests/cache_flow.sh"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

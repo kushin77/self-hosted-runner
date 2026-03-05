@@ -45,7 +45,7 @@ function App() {
     home: <Dashboard tick={tick} />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
-    runners: <Runners tick={tick} />,
+    runners: <Runners />,
     oracle: <AIOracleContent />,
     cache: <LiveMirrorCache />,
     security: <Security />,
