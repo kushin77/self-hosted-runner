@@ -75,3 +75,4 @@ cat <<EOF
 Smoke test completed. Next steps:
  - Inspect ScaledObject and KEDA operator logs if scaling didn't occur.
  - Run cleanup: kubectl delete -f $SAMPLE_SCALED -f $SAMPLE_DEPLOY -f $PUSHGATEWAY_YAML -n $NAMESPACE
+EOF

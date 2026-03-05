@@ -16,7 +16,7 @@ resource "azurerm_linux_virtual_machine_scale_set" "vmss" {
   resource_group_name = var.resource_group_name
   location            = var.location
 
-  sku = var.vm_sku
+  sku       = var.vm_sku
   instances = var.capacity
 
   admin_username = var.admin_username
