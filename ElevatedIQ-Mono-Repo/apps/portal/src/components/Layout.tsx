@@ -7,6 +7,7 @@ import { Pill, GlowDot, Button } from './UI';
  */
 export const NAV_ITEMS = [
   { id: 'home', icon: '⚡', label: 'Dashboard' },
+  { id: 'observability', icon: '📊', label: 'Observability', badge: 'ENHANCED' },
   { id: 'agents', icon: '🧠', label: 'Agent Studio', badge: 'NEW' },
   { id: 'deploy', icon: '🚀', label: 'Deploy Mode' },
   { id: 'runners', icon: '🖥', label: 'Runners' },

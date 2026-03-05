@@ -5,7 +5,7 @@ import {
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { useStore } from '../api/store';
-import { Panel, GlowDot, Pill } from './UI';
+import { Panel, GlowDot, Pill } from '../components/UI';
 
 export const AdvancedAnalytics: React.FC = () => {
   const metrics = useStore((s) => s.metrics);
