@@ -1,0 +1,13 @@
+# default values for airgap-control-plane
+namespace: runnercloud
+replicaCount: 1
+image:
+  repository: runnercloud/control-plane
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# egress whitelist CIDRs
+egress:
+  enable: true
+  cidrs:
+    - "0.0.0.0/0" # replace with GitHub, AWS, etc
