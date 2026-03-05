@@ -60,8 +60,10 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 TARGET_HOST="${TARGET_HOST:-192.168.168.42}"
-TARGET_USER="${TARGET_USER:-cloud}"
-TARGET_BASE="/opt/self-hosted-runner"
+TARGET_USER="${TARGET_USER:-akushnir}"
+TARGET_BASE="/home/$TARGET_USER/runnercloud"
+PORTAL_BASE="$TARGET_BASE/portal"
+BACKEND_BASE="$TARGET_BASE/backend"
 STAGE="${STAGE:-all}"
 DRY_RUN="${DRY_RUN:-false}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
@@ -122,12 +124,12 @@ stage2_deploy() {
 
   # Create target directories
   log_info "Preparing target directories..."
-  ssh "$TARGET_USER@$TARGET_HOST" "mkdir -p $TARGET_BASE && mkdir -p /opt/portal/dist && mkdir -p /opt/backend/services"
+  ssh "$TARGET_USER@$TARGET_HOST" "mkdir -p $TARGET_BASE/scripts/automation && mkdir -p $PORTAL_BASE/dist && mkdir -p $BACKEND_BASE/services"
 
   # Deploy portal dist
   log_info "Copying portal distribution..."
   if [[ -d "$REPO_ROOT/ElevatedIQ-Mono-Repo/apps/portal/dist" ]]; then
-    scp -r "$REPO_ROOT/ElevatedIQ-Mono-Repo/apps/portal/dist" "$TARGET_USER@$TARGET_HOST:/opt/portal/" 2>&1 | tail -3 | tee -a "$DEPLOYMENT_LOG"
+    scp -r "$REPO_ROOT/ElevatedIQ-Mono-Repo/apps/portal/dist" "$TARGET_USER@$TARGET_HOST:$PORTAL_BASE/" 2>&1 | tail -3 | tee -a "$DEPLOYMENT_LOG"
     log_success "Portal deployed"
   else
     log_error "Portal dist not found"
@@ -138,14 +140,14 @@ stage2_deploy() {
   log_info "Copying backend services..."
   for svc in provisioner-worker managed-auth vault-shim; do
     if [[ -d "$REPO_ROOT/services/$svc" ]]; then
-      scp -r "$REPO_ROOT/services/$svc" "$TARGET_USER@$TARGET_HOST:/opt/backend/services/" 2>&1 | tail -2 | tee -a "$DEPLOYMENT_LOG"
+      scp -r "$REPO_ROOT/services/$svc" "$TARGET_USER@$TARGET_HOST:$BACKEND_BASE/services/" 2>&1 | tail -2 | tee -a "$DEPLOYMENT_LOG"
       log_success "Service $svc copied"
     fi
   done
 
   # Copy configuration and utility scripts
   log_info "Copying configuration files..."
-  scp -r "$REPO_ROOT/scripts/automation/pmo" "$TARGET_USER@$TARGET_HOST:/opt/self-hosted-runner/scripts/automation/" 2>&1 | tail -2 | tee -a "$DEPLOYMENT_LOG"
+  scp -r "$REPO_ROOT/scripts/automation/pmo" "$TARGET_USER@$TARGET_HOST:$TARGET_BASE/scripts/automation/" 2>&1 | tail -2 | tee -a "$DEPLOYMENT_LOG"
 
   log_success "Stage 2 complete: all files deployed"
 }
@@ -159,12 +161,12 @@ stage3_configure() {
 
   # Configure environment variables
   log_info "Creating environment configuration..."
-  ssh "$TARGET_USER@$TARGET_HOST" bash << 'REMOTE_SCRIPT'
+  ssh "$TARGET_USER@$TARGET_HOST" bash << REMOTE_SCRIPT
 
 set -euo pipefail
 
 # Create .env files for services
-cat > /opt/backend/.env << 'EOF'
+cat > $BACKEND_BASE/.env << 'EOF'
 # Backend environment
 NODE_ENV=production
 PORT=3000
@@ -175,17 +177,17 @@ METRICS_PORT=9090
 WORKER_POLL_MS=5000
 USE_TERRAFORM_CLI=1
 JOBSTORE_PERSIST=1
-JOBSTORE_FILE=/opt/backend/data/jobstore.json
+JOBSTORE_FILE=$BACKEND_BASE/data/jobstore.json
 
 # Vault (if needed)
-VAULT_ADDR=${VAULT_ADDR:-http://vault:8200}
+VAULT_ADDR=\${VAULT_ADDR:-http://vault:8200}
 
 # Redis (optional)
-PROVISIONER_REDIS_URL=${PROVISIONER_REDIS_URL:-redis://localhost:6379}
+PROVISIONER_REDIS_URL=\${PROVISIONER_REDIS_URL:-redis://localhost:6379}
 EOF
 
-mkdir -p /opt/backend/data
-chmod 755 /opt/backend/data
+mkdir -p $BACKEND_BASE/data
+chmod 755 $BACKEND_BASE/data
 echo "Configuration created"
 
 REMOTE_SCRIPT
@@ -200,7 +202,7 @@ REMOTE_SCRIPT
 stage4_start() {
   log_info "===== STAGE 4: Start Services on $TARGET_HOST ====="
 
-  ssh "$TARGET_USER@$TARGET_HOST" bash << 'REMOTE_SCRIPT'
+  ssh "$TARGET_USER@$TARGET_HOST" bash << REMOTE_SCRIPT
 
 set -euo pipefail
 
@@ -213,25 +215,25 @@ sleep 2
 
 # Start provisioner-worker
 echo "Starting provisioner-worker..."
-cd /opt/backend/services/provisioner-worker
+cd $BACKEND_BASE/services/provisioner-worker
 nohup node worker.js > /tmp/provisioner-worker.log 2>&1 &
 sleep 2
 
 # Start managed-auth (if available)
-if [[ -d /opt/backend/services/managed-auth ]]; then
+if [[ -d $BACKEND_BASE/services/managed-auth ]]; then
   echo "Starting managed-auth..."
-  cd /opt/backend/services/managed-auth
+  cd $BACKEND_BASE/services/managed-auth
   nohup node server.js 2>/dev/null || nohup npm start > /tmp/managed-auth.log 2>&1 &
   sleep 2
 fi
 
 # Start portal (use npm or http-server)
 echo "Starting portal UI on port 3919..."
-cd /opt/portal/dist
+cd $PORTAL_BASE/dist
 if command -v npm &> /dev/null; then
   nohup npm install -g http-server 2>/dev/null || true
 fi
-nohup http-server -p 3919 -c-1 > /tmp/portal.log 2>&1 &
+nohup http-server -a 0.0.0.0 -p 3919 -c-1 > /tmp/portal.log 2>&1 &
 sleep 2
 
 # Verify processes
