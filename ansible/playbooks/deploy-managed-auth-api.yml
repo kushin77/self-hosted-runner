@@ -1,0 +1,59 @@
+---
+# Deploy the managed-auth service as the canonical API (PORT=8080) on worker nodes
+- name: Deploy managed-auth as API on workers
+  hosts: workers
+  become: yes
+  vars:
+    workspace_dir: /home/akushnir/self-hosted-runner
+    service_name: eiq-api
+    ssh_user: akushnir
+
+  tasks:
+    - name: Ensure workspace services directory exists
+      file:
+        path: "{{ workspace_dir }}/services"
+        state: directory
+        owner: "{{ ssh_user }}"
+
+    - name: Copy managed-auth service from control host (local) to remote
+      synchronize:
+        src: "services/managed-auth/"
+        dest: "{{ workspace_dir }}/services/managed-auth/"
+        rsync_opts:
+          - "--delete"
+
+    - name: Install Node dependencies
+      become: yes
+      become_user: "{{ ssh_user }}"
+      shell: |
+        set -euo pipefail
+        cd "{{ workspace_dir }}/services/managed-auth"
+        if command -v npm >/dev/null 2>&1; then
+          npm ci || npm install --no-audit --no-fund
+        fi
+
+    - name: Upload systemd unit template
+      template:
+        src: ../../../services/eiq-api/eiq-api.service.template
+        dest: /etc/systemd/system/{{ service_name }}.service
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload systemd and enable service
+      systemd:
+        name: "{{ service_name }}"
+        daemon_reload: yes
+        enabled: yes
+        state: restarted
+
+    - name: Wait for API health endpoint
+      uri:
+        url: http://localhost:8080/health
+        method: GET
+        return_content: no
+        status_code: 200
+      register: api_health
+      retries: 6
+      delay: 2
+      until: api_health.status == 200
