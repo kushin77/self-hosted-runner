@@ -34,6 +34,10 @@ http.createServer(async (req, res) => {
 }).listen(METRICS_PORT);
 log('info', 'metrics-server-started', { port: METRICS_PORT });
 
+const preferCli = process.env.USE_TERRAFORM_CLI === '1';
+if (preferCli) log('info', 'terraform-runner-mode', { mode: 'cli' });
+else log('info', 'terraform-runner-mode', { mode: 'lib' });
+
 async function handleJob(job) {
   const jobId = job.request_id || `${Date.now()}-${Math.random().toString(36).slice(2,6)}`;
 
@@ -71,6 +75,8 @@ async function handleJob(job) {
       jobStore.set(jobId, { request_id: jobId, status: 'in-progress', attempts: attempt, updated_at: Date.now() });
       jobAttempts.inc();
       log('info', 'job-attempt', { jobId, attempt });
+      // If using CLI mode and tfFiles present, prefer the CLI runner (shim will choose correctly too)
+      if (preferCli && job && job.payload && job.payload.tfFiles) log('info', 'using-cli-runner', { jobId });
       const res = await terraform.apply(job);
       const record = { request_id: jobId, status: 'provisioned', result: res, attempts: attempt, updated_at: Date.now() };
       if (planHash && typeof jobStore.setPlanHash === 'function') {
