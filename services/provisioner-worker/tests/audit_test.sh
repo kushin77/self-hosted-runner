@@ -2,12 +2,20 @@
 # verify audit entries are written when jobs processed
 set -euo pipefail
 
+# use node to log a dummy event using the audit module
 node - <<'EOFJS'
-const fs = require('fs');
-const worker = require('../worker.js');
-// simulate by calling record directly? simpler to run small snippet:
-console.log('audit test placeholder');
+const audit = require('../lib/audit.cjs');
+audit.log({event:'test_event', detail:'audit_test'});
+console.log('node audit.log invoked');
 EOFJS
 
-# This is placeholder: actual e2e would require starting worker and posting job.
-echo "audit_test script executed." 
+# check for audit file entry
+FILE=${AUDIT_FILE:-/var/log/rc-audit.log}
+if grep -q 'test_event' "$FILE"; then
+  echo "audit entry found in $FILE"
+else
+  echo "audit entry NOT found, check $FILE" >&2
+  exit 1
+fi
+
+echo "audit_test script completed." 
