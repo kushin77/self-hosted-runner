@@ -5,12 +5,14 @@
 set -euo pipefail
 
 BASE="http://localhost:4000"
-METRICS="http://localhost:9091"
+# choose an unused port in the 9100-9200 range to avoid conflicts
+MET_PORT=$((9100 + RANDOM % 100))
+METRICS="http://localhost:$MET_PORT"
 
 cd "$(dirname "$0")" || exit 1
 
-echo "Starting managed-auth service with metrics in background..."
-node ../index.js &
+echo "Starting managed-auth service with metrics in background (METRICS_PORT=$MET_PORT)..."
+METRICS_PORT=$MET_PORT node ../index.js &
 PID=$!
 trap "kill $PID" EXIT
 sleep 1
@@ -27,10 +29,10 @@ else
 fi
 
 # confirm counters increment after another request
-before=$(curl -sf "$METRICS/metrics" | grep managed_auth_requests_total | awk '{print $2}')
+before=$(curl -sf "$METRICS/metrics" | grep '^managed_auth_requests_total ' | awk '{print $2}')
 curl -sf "$BASE/health" > /dev/null
 sleep 0.2
-after=$(curl -sf "$METRICS/metrics" | grep managed_auth_requests_total | awk '{print $2}')
+after=$(curl -sf "$METRICS/metrics" | grep '^managed_auth_requests_total ' | awk '{print $2}')
 if [ "$after" -gt "$before" ]; then
   echo "request counter incremented"
 else
