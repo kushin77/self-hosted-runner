@@ -5,12 +5,13 @@
 set -euo pipefail
 
 BASE="http://localhost:4200"
-METRICS="http://localhost:9092"
+MET_PORT=$((9200 + RANDOM % 100))
+METRICS="http://localhost:$MET_PORT"
 
 cd "$(dirname "$0")" || exit 1
 
-echo "Starting vault-shim service with metrics in background..."
-node ../index.js &
+echo "Starting vault-shim service with metrics in background (METRICS_PORT=$MET_PORT)..."
+METRICS_PORT=$MET_PORT node ../index.cjs &
 PID=$!
 trap "kill $PID" EXIT
 sleep 1
@@ -26,10 +27,10 @@ else
   echo "metrics missing"; kill $PID; exit 1
 fi
 
-before=$(curl -sf "$METRICS/metrics" | grep vault_shim_requests_total | awk '{print $2}')
+before=$(curl -sf "$METRICS/metrics" | grep '^vault_shim_requests_total ' | awk '{print $2}')
 curl -sf "$BASE/health" > /dev/null
 sleep 0.2
-after=$(curl -sf "$METRICS/metrics" | grep vault_shim_requests_total | awk '{print $2}')
+after=$(curl -sf "$METRICS/metrics" | grep '^vault_shim_requests_total ' | awk '{print $2}')
 if [ "$after" -gt "$before" ]; then
   echo "vault-shim counter incremented"
 else
