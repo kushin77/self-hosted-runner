@@ -46,16 +46,22 @@ class RepairService {
   async analyze(event) {
     logger.info(`[REPAIR] analyzing failure event...`, { eventId: event.id, errMsg: event.errorMessage });
     
-    // Assess all strategies
-    const assessments = this.strategies.map(strategy => ({
-      strategy: strategy.name,
-      score: strategy.assess(event)
+    // Assess all strategies (support async assess functions and errors)
+    const assessments = await Promise.all(this.strategies.map(async strategy => {
+      try {
+        const raw = typeof strategy.assess === 'function' ? await strategy.assess(event) : 0;
+        const score = Number(raw) || 0;
+        return { strategy: strategy.name, score, strategyRef: strategy };
+      } catch (err) {
+        logger.error('[REPAIR] strategy assess failed', { strategy: strategy.name, err: err && err.message });
+        return { strategy: strategy.name, score: 0, strategyRef: strategy };
+      }
     }));
-    
+
     // Sort and filter top strategy
     const topStrategy = assessments
       .filter(a => a.score > 0)
-      .sort((a,b) => b.score - a.score)[0];
+      .sort((a, b) => b.score - a.score)[0];
       
     if (!topStrategy) {
       logger.warn(`[REPAIR] No suitable strategy found for: ${event.errorMessage}`);
@@ -63,9 +69,9 @@ class RepairService {
     }
     
     logger.info(`[REPAIR] Top strategy identified: ${topStrategy.strategy} (score: ${topStrategy.score})`);
-    
-    // Prepare action object for safety checks
-    const strategy = this.strategies.find(s => s.name === topStrategy.strategy);
+
+    // Use resolved strategy reference (from assessment) or fallback by name
+    const strategy = topStrategy.strategyRef || this.strategies.find(s => s.name === topStrategy.strategy);
     // Map strategy to an action type expected by SafetyChecker
     let actionType = 'repair_action';
     if ((strategy.name || '').toLowerCase().includes('timeout')) actionType = 'increase_timeout';
