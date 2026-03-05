@@ -1,0 +1,35 @@
+name: Terraform Binary Guard
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main, 'feature/**']
+
+jobs:
+  check:
+    name: Prevent .terraform directories in repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search for .terraform directories or provider binaries
+        run: |
+          ERROR_FOUND=0
+          if git ls-files | grep -E "\.terraform/"; then
+            echo "Error: committed .terraform directory detected";
+            git ls-files | grep -E "\.terraform/";
+            ERROR_FOUND=1
+          fi
+          
+          # Check for artifacts or large binaries that shouldn't be in git
+          # Find files larger than 50MB that aren't in git lfs
+          LARGE_FILES=$(find . -type f -not -path '*/.*' -size +50M)
+          if [ ! -z "$LARGE_FILES" ]; then
+            echo "Error: Large files (>50MB) detected in repository:"
+            echo "$LARGE_FILES"
+            ERROR_FOUND=1
+          fi
+
+          if [ $ERROR_FOUND -ne 0 ]; then
+            exit 1
+          fi

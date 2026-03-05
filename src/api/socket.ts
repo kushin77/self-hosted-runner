@@ -11,6 +11,12 @@ export function createSocket(url = 'http://localhost:9090') {
     path: '/socket.io',
     autoConnect: false,
     transports: ['websocket', 'polling'],
+    reconnection: true,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 2000,
+    reconnectionDelayMax: 10000,
+    randomizationFactor: 0.5,
+    timeout: 20000,
   })
 }
 
@@ -24,10 +30,34 @@ export function useSocket(opts?: { url?: string; autoConnect?: boolean }) {
 
     function onConnect() {
       /* eslint-disable no-console */
-      console.debug('[socket] connected', sock.id)
+      console.info('[socket] connected successfully:', sock.id)
+    }
+
+    function onConnectError(err: Error) {
+      console.error('[socket] connection error:', err.message)
+    }
+
+    function onDisconnect(reason: string) {
+      console.warn('[socket] disconnected:', reason)
+      if (reason === 'io server disconnect') {
+        // the disconnection was initiated by the server, you need to reconnect manually
+        sock.connect()
+      }
+    }
+
+    function onReconnect(attempt: number) {
+      console.info('[socket] reconnected after', attempt, 'attempts')
+    }
+
+    function onReconnectError(err: Error) {
+      console.error('[socket] reconnection error:', err.message)
     }
 
     sock.on('connect', onConnect)
+    sock.on('connect_error', onConnectError)
+    sock.on('disconnect', onDisconnect)
+    sock.on('reconnect', onReconnect)
+    sock.on('reconnect_error', onReconnectError)
 
     // Example listeners - replace with real handlers that update Zustand store
     sock.on('metrics:update', (payload) => {
