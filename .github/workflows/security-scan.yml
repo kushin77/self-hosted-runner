@@ -1,0 +1,38 @@
+---
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          if [ -f package.json ]; then npm ci; fi
+      - name: Run npm audit
+        run: |
+          if [ -f package.json ]; then npm audit --audit-level=high; fi
+
+  sbom:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b $HOME/.local/bin
+          export PATH=$HOME/.local/bin:$PATH
+      - name: Generate SBOM
+        run: |
+          chmod +x scripts/security/generate-sbom.sh
+          ./scripts/security/generate-sbom.sh
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
