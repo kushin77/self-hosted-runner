@@ -22,14 +22,9 @@ terraform {
 
 provider "aws" {
   region = var.aws_region
-
-  # During one-time GCP import runs we may not have valid AWS credentials
-  # available to this control host. Set these skips to avoid provider
-  # credential validation (temporary, will be reverted after import).
-  skip_credentials_validation = true
-  skip_requesting_account_id  = true
-  skip_metadata_api_check     = true
-  skip_region_validation      = true
+  
+  # Normal credential validation is required for production runs.
+  # Removed temporary skip flags used during one-off GCP import.
 
   default_tags {
     tags = {
