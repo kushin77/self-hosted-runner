@@ -16,10 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run smoke-test script if present
+      - name: Debug: list scripts (diagnostic)
         run: |
-          set -euo pipefail
-          if [ -x ./scripts/keda-smoke.sh ]; then
-            ./scripts/keda-smoke.sh ${{ github.event.inputs.environment }}
-          else
-            echo "No scripts/keda-smoke.sh found; run smoke tests manually."
+          echo "PWD: $(pwd)"
+          ls -la scripts || true
+
+      - name: Run smoke-test script if present
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: bash -lc 'if [ -x ./scripts/keda-smoke.sh ]; then ./scripts/keda-smoke.sh "$ENVIRONMENT"; else echo "No scripts/keda-smoke.sh found; run smoke tests manually."; fi'
