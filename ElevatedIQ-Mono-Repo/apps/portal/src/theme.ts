@@ -59,3 +59,33 @@ export const modeColorMap = {
   byoc: COLORS.cyan,
   onprem: COLORS.purple,
 } as const;
+
+/* Additional design tokens for JS consumption */
+export const THEME = {
+  spacing: {
+    xs: 4,
+    sm: 8,
+    md: 16,
+    lg: 24,
+    xl: 32,
+  },
+  radii: {
+    sm: 6,
+    md: 8,
+    lg: 12,
+  },
+  typography: {
+    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
+    sizeBase: 13,
+    sizeLg: 16,
+    weight: {
+      regular: 400,
+      medium: 600,
+      bold: 800,
+    },
+  },
+  shadows: {
+    sm: '0 1px 3px rgba(16,24,40,0.06)',
+    md: '0 6px 18px rgba(11,95,255,0.06)'
+  }
+} as const;
