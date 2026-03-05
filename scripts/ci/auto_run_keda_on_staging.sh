@@ -3,7 +3,8 @@ set -euo pipefail
 
 HOST=192.168.168.42
 PORT=6443
-CHECK_INTERVAL=30
+# seconds between checks (can be overridden by env)
+CHECK_INTERVAL=${CHECK_INTERVAL:-30}
 LOG=/tmp/auto_keda_trigger.log
 REPO="kushin77/self-hosted-runner"
 WORKFLOW="keda-smoke-test.yml"
@@ -35,8 +36,8 @@ while true; do
     fi
     break
   else
-    echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] Staging API $HOST:$PORT not reachable; sleeping $CHECK_INTERVALs" | tee -a "$LOG"
-    sleep $CHECK_INTERVAL
+    echo "$(date -u +'%Y-%m-%dT%H:%M:%SZ') [INFO] Staging API $HOST:$PORT not reachable; sleeping ${CHECK_INTERVAL}s" | tee -a "$LOG"
+    sleep "$CHECK_INTERVAL"
   fi
 done
 
