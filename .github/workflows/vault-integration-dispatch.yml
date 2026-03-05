@@ -1,3 +1,4 @@
+---
 name: Vault Integration Tests (manual dispatch)
 permissions:
   contents: read

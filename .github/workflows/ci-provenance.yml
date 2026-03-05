@@ -1,3 +1,4 @@
+---
 name: CI - Generate Provenance & Optional Attestations
 permissions:
   contents: read

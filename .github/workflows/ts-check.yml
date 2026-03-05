@@ -1,3 +1,4 @@
+---
 name: "TypeScript Compliance"
 permissions:
   contents: read
