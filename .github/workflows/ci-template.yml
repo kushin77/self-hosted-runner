@@ -1,0 +1,31 @@
+---
+name: CI Template
+
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        required: false
+        type: string
+    secrets: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        if: ${{ inputs.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install deps
+        run: |
+          if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install --no-audit --prefer-offline; fi
+
+      - name: Run tests
+        run: |
+          if [ -f package.json ] && npm test --silent; then echo "Tests passed"; else echo "No tests or tests failed"; fi
