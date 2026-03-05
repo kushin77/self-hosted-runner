@@ -2,43 +2,44 @@
 set -euo pipefail
 
 # fetch-runner-binaries.sh
-# Minimal helper to download required runner binaries at CI/runtime instead of committing them.
-# Usage: RUNNER_VARIANT=node24 ./scripts/fetch-runner-binaries.sh /tmp/runners
+# Minimal fetcher for runner binaries referenced in this repo.
+# Usage: SCRIPTS should provide a URL list via RUNNER_ASSET_URLS (newline-separated)
+# Or provide RUNNER_RELEASE_OWNER, RUNNER_RELEASE_REPO and TAG to download assets from GitHub releases.
 
-OUT_DIR=${1:-.}
-RUNNER_VARIANT=${RUNNER_VARIANT:-node24}
-
-# Default mapping - update these URLs to your release storage (S3, GH Releases, internal mirror)
-declare -A URLS
-URLS[node20_alpine]="https://example.com/releases/actions-runner-node20-alpine.tar.gz"
-URLS[node20]="https://example.com/releases/actions-runner-node20.tar.gz"
-URLS[node24_alpine]="https://example.com/releases/actions-runner-node24-alpine.tar.gz"
-URLS[node24]="https://example.com/releases/actions-runner-node24.tar.gz"
-
-URL=${URLS[${RUNNER_VARIANT}]}
-if [ -z "$URL" ]; then
-  echo "Unknown RUNNER_VARIANT: $RUNNER_VARIANT"
-  exit 2
-fi
-
+OUT_DIR="artifacts/runners"
 mkdir -p "$OUT_DIR"
-cd "$OUT_DIR"
 
-echo "Downloading runner variant $RUNNER_VARIANT from $URL"
-if command -v curl >/dev/null 2>&1; then
-  curl -fsSL -o runner.tar.gz "$URL"
-elif command -v wget >/dev/null 2>&1; then
-  wget -q -O runner.tar.gz "$URL"
-else
-  echo "curl or wget required to fetch runner binaries"
-  exit 3
+if [ -n "${RUNNER_ASSET_URLS:-}" ]; then
+  echo "Fetching runner assets from RUNNER_ASSET_URLS"
+  echo "$RUNNER_ASSET_URLS" | while IFS= read -r url; do
+    [ -z "$url" ] && continue
+    file=$(basename "$url")
+    echo "Downloading $url -> $OUT_DIR/$file"
+    curl -fsSL "$url" -o "$OUT_DIR/$file"
+    chmod +x "$OUT_DIR/$file" || true
+  done
+  exit 0
 fi
 
-echo "Extracting..."
-mkdir -p runner
-tar -xzf runner.tar.gz -C runner --strip-components=0
-rm -f runner.tar.gz
+# If GitHub release info provided, download assets for the release tag
+if [ -n "${RUNNER_RELEASE_OWNER:-}" ] && [ -n "${RUNNER_RELEASE_REPO:-}" ] && [ -n "${RUNNER_RELEASE_TAG:-}" ]; then
+  echo "Fetching assets from GitHub release ${RUNNER_RELEASE_OWNER}/${RUNNER_RELEASE_REPO}@${RUNNER_RELEASE_TAG}"
+  api_url="https://api.github.com/repos/${RUNNER_RELEASE_OWNER}/${RUNNER_RELEASE_REPO}/releases/tags/${RUNNER_RELEASE_TAG}"
+  assets=$(curl -fsSL "$api_url" | jq -r '.assets[] | .browser_download_url')
+  for url in $assets; do
+    file=$(basename "$url")
+    echo "Downloading $url -> $OUT_DIR/$file"
+    curl -fsSL "$url" -o "$OUT_DIR/$file"
+    chmod +x "$OUT_DIR/$file" || true
+  done
+  exit 0
+fi
 
-echo "Runner binaries fetched to $OUT_DIR/runner"
-
-# Example: export RUNNER_DIR="$OUT_DIR/runner" for downstream scripts
+cat <<EOF
+No RUNNER_ASSET_URLS or release info provided.
+Provide either:
+- RUNNER_ASSET_URLS (newline-separated URLs)
+or
+- RUNNER_RELEASE_OWNER, RUNNER_RELEASE_REPO, RUNNER_RELEASE_TAG (will download all release assets)
+EOF
+exit 1
