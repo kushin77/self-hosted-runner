@@ -1,0 +1,30 @@
+name: Vault Integration Tests
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  vault-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: sudo apt-get update && sudo apt-get install -y jq python3 python3-venv python3-pip
+
+      - name: Run Vault integration tests
+        working-directory: scripts/automation/pmo/tests
+        run: |
+          bash ./test-vault-integration.sh | tee test-vault-integration.log
+
+      - name: Upload test logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-integration-logs
+          path: |
+            scripts/automation/pmo/tests/test-vault-integration.log
+            /tmp/vault-integration-tests/mock-vault.log
+            /tmp/vault-integration-tests/audit.log
