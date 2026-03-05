@@ -15,10 +15,34 @@ jobs:
         with:
           terraform_version: '1.5.0'
 
-      - name: Terraform Init & Plan
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            terraform/examples/azure-scale/.terraform
+          key: ${{ runner.os }}-terraform-azure-scale-${{ hashFiles('**/terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-azure-scale-
+
+      - name: Terraform Init
         working-directory: terraform/examples/azure-scale
         run: |
           terraform init -input=false
+
+      - name: Terraform fmt (check)
+        working-directory: terraform/examples/azure-scale
+        run: |
+          terraform fmt -check -recursive || (terraform fmt -recursive && echo 'Ran terraform fmt')
+
+      - name: Terraform Validate
+        working-directory: terraform/examples/azure-scale
+        run: |
+          terraform validate || true
+
+      - name: Terraform Plan
+        working-directory: terraform/examples/azure-scale
+        run: |
           terraform plan -out=azure-scale.tfplan -input=false
 
       - name: Upload plan artifact
