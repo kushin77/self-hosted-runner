@@ -84,7 +84,7 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
-    "selfsigned": "^1.10.14",
+    "selfsigned": "^5.5.0",
     "nock": "^13.3.2"
   },
   "optionalDependencies": {
