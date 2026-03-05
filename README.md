@@ -23,7 +23,7 @@ Complete, production-grade infrastructure and automation tooling for self-hosted
 | Automated Runner Cleanup | ✅ | 100% | Stale detection, workspace cleanup, permissions, dry-run mode with logging |
 | CI/CD Integration | ✅ | 100% | Deployment validation script, systemd timers, full automation pipeline |
 | Testing & Validation | ✅ | 100% | 15-point comprehensive test suite, deployment validation |
-| Documentation | ✅ | 100% | Complete README, 7+ management docs, runbooks, troubleshooting |
+| Documentation | ✅ | 100% | Complete README, 7+ management docs, runbooks, troubleshooting, provisioner-worker rollout guide (docs/PROVISIONER_WORKER_PROD_ROLLOUT.md) |
 | **Overall Project Completion** | ✅ | **100%** | **Production-ready with all features implemented and tested** |
 
 ---
