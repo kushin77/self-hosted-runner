@@ -2,6 +2,9 @@
 
 Complete, production-grade infrastructure and automation tooling for self-hosted GitHub Actions runners with advanced monitoring, health management, and security controls.
 
+> **WebSocket Security**: when running the provisioner metrics server with real-time updates, set `SOCKET_AUTH_TOKEN` in the environment. Clients must authenticate by supplying the same token in `socket.handshake.auth.token` or via an `Authorization: Bearer` header.
+
+
 **Status:** ✅ Production Ready — Awaiting Ops Secrets | **Last Updated:** 2026-03-05
 
 ---
