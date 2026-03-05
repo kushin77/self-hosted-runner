@@ -1,26 +1,8 @@
-# Git ignore for self-hosted-runner repo
-
-# Local terraform state and providers
-terraform/.terraform/
-*.tfstate
-*.tfstate.backup
-
-# Image tarballs used for air-gap deployments
-*.tar
-*.tar.gz
-images/*.tar
-
-# Worktrees and editor temp files
-.git-worktree
-
-# Node modules (when present in subprojects)
-**/node_modules/
-
-# Logs and temp
-*.log
-tmp/# Ignore common files
+.terraform/
+terraform.tfstate*
 node_modules/
-.env
+dist/
 *.log
-__pycache__/
-*.pyc
+*.zip
+*.bin
+*.exe
