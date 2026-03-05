@@ -1,8 +1,11 @@
 // TLS integration test: start metrics server with TLS and verify wss 'metrics:update'
+// allow self-signed certs during test
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const { startMetricsServer, stopMetricsServer } = require('../lib/metricsServer');
 const ioClient = require('socket.io-client');
 const selfsigned = require('selfsigned');
 const nock = require('nock');
+const fetch = require('node-fetch').default;
 
 (async () => {
   const port = 9443;
