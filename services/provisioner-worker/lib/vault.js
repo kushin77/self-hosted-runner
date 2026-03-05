@@ -8,7 +8,6 @@
  */
 // use node-fetch explicitly so that HTTP traffic can be intercepted in tests
 const fetch = require('node-fetch').default;
-
 async function getSecret(path) {
   if (!process.env.VAULT_ADDR) {
     return undefined;
