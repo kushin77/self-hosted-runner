@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { COLORS } from '../theme';
-import { Panel, Button, Pill } from '../components/UI';
+import { Panel, Button } from '../components/UI';
 
 /**
  * Deploy Mode Wizard Interface
