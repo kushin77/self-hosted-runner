@@ -62,3 +62,49 @@ resource "aws_autoscaling_group" "runner_asg" {
     propagate_at_launch = true
   }
 }
+
+# Lifecycle handling: notify via SNS on instance termination (spot interruptions)
+resource "aws_sns_topic" "lc_topic" {
+  name = "runner-asg-lifecycle-topic"
+}
+
+resource "aws_iam_role" "asg_notification_role" {
+  name = "asg-notification-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "autoscaling.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy" "asg_notification_policy" {
+  name = "asg-notify-publish"
+  role = aws_iam_role.asg_notification_role.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = ["sns:Publish"],
+        Resource = aws_sns_topic.lc_topic.arn
+      }
+    ]
+  })
+}
+
+resource "aws_autoscaling_lifecycle_hook" "spot_termination" {
+  name                   = "spot-termination-hook"
+  autoscaling_group_name = aws_autoscaling_group.runner_asg.name
+  lifecycle_transition   = "autoscaling:EC2_INSTANCE_TERMINATING"
+  notification_target_arn = aws_sns_topic.lc_topic.arn
+  role_arn               = aws_iam_role.asg_notification_role.arn
+  heartbeat_timeout      = 300
+  default_result         = "CONTINUE"
+}
