@@ -33,7 +33,8 @@ sudo systemctl status actions.runner.OWNER-REPO.my-runner.service
 ```
 
 Notes and security
-- Store registration tokens in a secure vault; tokens are short-lived and must be generated per-runner registration.
+- Store registration tokens in a secure vault; tokens are short-lived and must be generated per-runner registration. The installer script (`scripts/ci/setup-self-hosted-runner.sh`) already supports fetching the token from Vault when the special value `-` is passed as the token parameter. Provide the Vault path in the `VAULT_SECRET_PATH` environment variable or as the fifth argument. Tokens should be rotated regularly and revoked immediately if a runner host is compromised.
+- A CI check (`.github/workflows/governance-checks.yml`) now scans for accidental token commits and other secrets.
 - Use the `actions-runner-controller` if you prefer Kubernetes-managed runners with autoscaling via KEDA.
 - Tighten runner host security and restrict which repos/orgs are allowed to use the runner in GitHub repository settings.
 
