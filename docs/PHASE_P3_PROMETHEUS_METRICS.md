@@ -389,6 +389,13 @@ Exporter configuration is pluggable: the initialization helper chooses the corre
 headers based on `OTEL_EXPORTER` and environment variables.  Additional exporters
 (e.g. AWS, New Relic) may be added later by extending `lib/otel.cjs`.
 
+**Sending test telemetry**
+* `services/provisioner-worker/tests/send_otlp.sh` – generic OTLP POST
+* `send_datadog.sh` – POST to Datadog OTLP intake if `DATADOG_API_KEY` provided
+* `send_splunk.sh` – POST to Splunk HEC if `SPLUNK_HEC_TOKEN`/`SPLUNK_HEC_ENDPOINT` set
+
+These scripts are executed in CI and can be run locally to verify connectivity before enabling production export.
+
 If the OTEL packages are not installed the initialization code logs a warning and continues
 without telemetry (useful for development or CI runs).
 
