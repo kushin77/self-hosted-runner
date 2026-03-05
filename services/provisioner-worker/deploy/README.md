@@ -23,6 +23,14 @@ Prereqs on the staging host:
 
 - SSH access with key-based auth.
 - Either Docker + docker-compose OR systemd (most Linux distributions).
-- Sudo privileges to install the systemd unit (if using systemd).
+- **Passwordless sudo** privileges to install the systemd unit (if using
+  systemd). The helper script calls `sudo` without supplying a password; if
+  your environment prompts you for a password you can run the script as
+  root or manually copy/enable the service instead. See the manual example
+  below.
+
+Local test note: running the deploy script against `localhost` will also try
+  to use `sudo`, which may prompt for a password and therefore fail. In that
+  case run the script as root or perform the steps yourself.
 
 Security note: the script clones the public repository and starts the service; for production use, build hardened images and use secret management (Vault AppRole) instead of mounting repo sources directly.
