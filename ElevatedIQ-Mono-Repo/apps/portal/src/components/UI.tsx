@@ -12,7 +12,7 @@ interface PillProps {
   variant?: 'primary' | 'info' | 'warning' | 'success' | 'danger' | string;
 }
 
-export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
+export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse, variant }) => {
   const colorMap: Record<string, string> = {
     green: COLORS.green,
     yellow: COLORS.yellow,
@@ -35,11 +35,13 @@ export const Pill: React.FC<PillProps> = ({ color, children, sm, pulse }) => {
     primary: COLORS.accent,
   };
 
+  const finalColor = (variant && variantMap[String(variant)]) || c;
+
   return (
     <span
       style={{
         background: '#f3f6fb',
-        color: c,
+        color: finalColor,
         border: `1px solid ${COLORS.border}`,
         borderRadius: 6,
         padding: sm ? '2px 6px' : '4px 10px',
@@ -88,19 +90,22 @@ interface PanelProps {
   color?: string;
 }
 
-export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor, variant, color }) => (
-  <div
-    style={{
-      background: COLORS.surface,
-      border: `1px solid ${color || (glowColor ? COLORS.borderBright : COLORS.border)}`,
-      borderRadius: 8,
-      boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
-      ...style,
-    }}
-  >
-    {children}
-  </div>
-);
+export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor, variant, color }) => {
+  const bg = variant === 'dark' ? (COLORS.surfaceHigh || COLORS.surface) : COLORS.surface;
+  return (
+    <div
+      style={{
+        background: bg,
+        border: `1px solid ${color || (glowColor ? COLORS.borderBright : COLORS.border)}`,
+        borderRadius: 8,
+        boxShadow: '0 1px 3px rgba(16,24,40,0.06), 0 1px 2px rgba(16,24,40,0.04)',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
 
 /**
  * Button - Primary button component
