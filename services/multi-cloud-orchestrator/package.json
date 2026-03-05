@@ -1,0 +1,15 @@
+{
+  "name": "multi-cloud-orchestrator",
+  "version": "0.1.0",
+  "description": "Orchestrates self-hosted runners across AWS and GCP (MVP)",
+  "main": "lib/orchestrator.js",
+  "scripts": {
+    "start": "node lib/orchestrator.js",
+    "test": "node tests/orchestrator.test.js"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1500.0",
+    "express": "^4.18.2",
+    "winston": "^3.11.0"
+  }
+}
