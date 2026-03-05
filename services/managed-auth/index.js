@@ -11,14 +11,15 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { setToken, getToken } = require('./lib/secretStore.cjs');
 const logger = require('./lib/logger');
+
+const app = express();
+const port = process.env.PORT || 4000;
+
 // each request can have a correlation id header; fallback to generated
 app.use((req, res, next) => {
   req.correlation_id = req.headers['x-correlation-id'] || logger.genCorrelationId();
   next();
 });
-
-const app = express();
-const port = process.env.PORT || 4000;
 
 // simple in-memory stores for runners and usage
 const runners = [];
