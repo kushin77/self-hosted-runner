@@ -1,6 +1,6 @@
 import React from 'react';
-import { COLORS } from '../theme';
-import { Pill, GlowDot } from './UI';
+import { COLORS, COLORS_DARK, Theme } from '../theme';
+import { Pill, GlowDot, Button } from './UI';
 
 /**
  * Navigation items for sidebar
@@ -14,6 +14,7 @@ export const NAV_ITEMS = [
   { id: 'cache', icon: '💾', label: 'LiveMirror Cache' },
   { id: 'security', icon: '🛡', label: 'Security Layer' },
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
+  { id: 'showcase', icon: '🎨', label: 'Component Showcase', badge: 'NEW' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
 ] as const;
@@ -24,26 +25,29 @@ export const NAV_ITEMS = [
 interface SidebarProps {
   active: string;
   setActive: (id: string) => void;
+  theme?: Theme;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ active, setActive, theme = 'light' }) => {
+  const colors = theme === 'light' ? COLORS : COLORS_DARK;
   return (
     <div
       style={{
         width: 210,
-        background: COLORS.surface,
-        borderRight: `1px solid ${COLORS.border}`,
+        background: colors.surface,
+        borderRight: `1px solid ${colors.border}`,
         display: 'flex',
         flexDirection: 'column',
         flexShrink: 0,
         overflow: 'hidden',
+        transition: 'background 0.3s ease, border-color 0.3s ease',
       }}
     >
       {/* Header */}
       <div
         style={{
           padding: '16px 16px 10px',
-          borderBottom: `1px solid ${COLORS.border}`,
+          borderBottom: `1px solid ${colors.border}`,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -52,7 +56,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               width: 28,
               height: 28,
               borderRadius: 7,
-              background: COLORS.accent,
+              background: colors.accent,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -67,7 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               style={{
                 fontWeight: 800,
                 fontSize: 13,
-                color: COLORS.text,
+                color: colors.text,
                 letterSpacing: '-0.01em',
               }}
             >
@@ -76,7 +80,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             <div
               style={{
                 fontSize: 9,
-                color: COLORS.muted,
+                color: colors.muted,
                 marginTop: 1,
               }}
             >
@@ -104,13 +108,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             onClick={() => setActive(item.id)}
             style={{
               width: '100%',
-              background: active === item.id ? COLORS.surfaceHigh : 'transparent',
+              background: active === item.id ? colors.surfaceHigh : 'transparent',
               border: 'none',
               borderLeft:
                 active === item.id
-                  ? `2px solid ${COLORS.accent}`
+                  ? `2px solid ${colors.accent}`
                   : '2px solid transparent',
-              color: active === item.id ? COLORS.accent : COLORS.textDim,
+              color: active === item.id ? colors.accent : colors.textDim,
               padding: '9px 14px',
               textAlign: 'left',
               cursor: 'pointer',
@@ -128,9 +132,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
               <span
                 style={{
                   fontSize: 8,
-                  background: COLORS.surfaceHigh,
-                  color: COLORS.muted,
-                  border: `1px solid ${COLORS.border}`,
+                  background: colors.surfaceHigh,
+                  color: colors.muted,
+                  border: `1px solid ${colors.border}`,
                   borderRadius: 4,
                   padding: '2px 6px',
                   fontWeight: 700,
@@ -153,8 +157,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
       >
         <div
           style={{
-            background: COLORS.green + '11',
-            border: `1px solid ${COLORS.green}33`,
+            background: colors.green + '11',
+            border: `1px solid ${colors.green}33`,
             borderRadius: 6,
             padding: '8px 10px',
           }}
@@ -162,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
           <div
             style={{
               fontSize: 9,
-              color: COLORS.green,
+              color: colors.green,
               fontWeight: 700,
               letterSpacing: '0.07em',
             }}
@@ -173,7 +177,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
             style={{
               fontSize: 15,
               fontWeight: 800,
-              color: COLORS.text,
+              color: colors.text,
               marginTop: 2,
             }}
           >
@@ -182,7 +186,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
           <div
             style={{
               fontSize: 9,
-              color: COLORS.muted,
+              color: colors.muted,
               marginTop: 1,
             }}
           >
@@ -195,36 +199,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
 };
 
 /**
- * StatusBar - Top bar with live status
+ * StatusBar - Top bar with live status and theme toggle
  */
 interface StatusBarProps {
   agentsActive?: number;
   runners?: number;
   status?: 'nominal' | 'warning' | 'critical';
+  theme?: Theme;
+  setTheme?: (theme: Theme) => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
   agentsActive = 4,
   runners = 482,
   status = 'nominal',
+  theme = 'light',
+  setTheme,
 }) => {
+  const colors = theme === 'light' ? COLORS : COLORS_DARK;
   const statusColor = {
-    nominal: COLORS.green,
-    warning: COLORS.yellow,
-    critical: COLORS.red,
+    nominal: colors.green,
+    warning: colors.yellow,
+    critical: colors.red,
   }[status];
 
   return (
     <div
       style={{
         height: 40,
-        background: COLORS.surface,
-        borderBottom: `1px solid ${COLORS.border}`,
+        background: colors.surface,
+        borderBottom: `1px solid ${colors.border}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '0 20px',
         flexShrink: 0,
+        transition: 'background 0.3s ease, border-color 0.3s ease',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -232,7 +242,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         <span
           style={{
             fontSize: 11,
-            color: COLORS.muted,
+            color: colors.muted,
           }}
         >
           Live · 2.5s refresh
@@ -242,19 +252,37 @@ export const StatusBar: React.FC<StatusBarProps> = ({
         style={{
           display: 'flex',
           gap: 16,
-          fontSize: 11,
-          color: COLORS.muted,
+          alignItems: 'center',
         }}
       >
-        <span>{agentsActive} agents active</span>
-        <span>{runners} runners</span>
-        <span style={{ color: statusColor }}>
-          {status === 'nominal'
-            ? 'All systems nominal'
-            : status === 'warning'
-            ? 'Systems warming'
-            : 'Critical issues'}
-        </span>
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            fontSize: 11,
+            color: colors.muted,
+          }}
+        >
+          <span>{agentsActive} agents active</span>
+          <span>{runners} runners</span>
+          <span style={{ color: statusColor }}>
+            {status === 'nominal'
+              ? 'All systems nominal'
+              : status === 'warning'
+              ? 'Systems warming'
+              : 'Critical issues'}
+          </span>
+        </div>
+        {setTheme && (
+          <Button
+            sm
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            color={colors.accent}
+            style={{ marginLeft: 8 }}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </Button>
+        )}
       </div>
     </div>
   );

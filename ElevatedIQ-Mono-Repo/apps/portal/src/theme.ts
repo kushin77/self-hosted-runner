@@ -34,7 +34,39 @@ export const COLORS = {
   textDim: '#7b8794',
 } as const;
 
+export const COLORS_DARK = {
+  // Core backgrounds (dark, enterprise-friendly)
+  bg: '#0f1419',
+  surface: '#1a1f2e',
+  surfaceHigh: '#242d3d',
+
+  // Borders
+  border: '#3d4556',
+  borderBright: '#4a5568',
+
+  // Primary accent (brand blue, adjusted for dark)
+  accent: '#4a9eff',
+
+  // Status colors (adjusted for dark mode contrast)
+  green: '#26d46f',
+  yellow: '#fdc857',
+  red: '#ff6b57',
+  purple: '#a78bfa',
+  cyan: '#06d6d0',
+  orange: '#fb923c',
+
+  // Aliases
+  blue: '#4a9eff',
+  magenta: '#a78bfa',
+
+  // Text (inverted for dark mode)
+  muted: '#9ca3af',
+  text: '#e5e7eb',
+  textDim: '#9ca3af',
+} as const;
+
 export type ColorKey = keyof typeof COLORS;
+export type Theme = 'light' | 'dark';
 
 // Utility function for random numbers
 export const rand = (min: number, max: number): number =>
