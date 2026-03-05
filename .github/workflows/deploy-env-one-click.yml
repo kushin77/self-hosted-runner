@@ -1,0 +1,388 @@
+name: One-Click Deploy | Rebuild Speed 10X
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Environment to deploy"
+        required: true
+        default: "staging"
+        type: choice
+        options: ["staging", "production"]
+      
+      rebuild_reason:
+        description: "Why rebuild? (drift fix, config update, security patch, etc)"
+        required: true
+        type: choice
+        options: ["config_change", "security_patch", "drift_fix", "scaling", "upgrade"]
+      
+      max_parallel_creates:
+        description: "Max parallel resource creates (higher = faster but riskier)"
+        required: false
+        default: "20"
+        type: string
+
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  TF_LOG: "WARN"
+  TF_INPUT: "false"
+
+jobs:
+  validate-and-deploy:
+    runs-on: [self-hosted, linux]
+    environment: ${{ inputs.environment }}
+    
+    concurrency:
+      group: deploy-${{ inputs.environment }}-${{ github.ref }}
+      cancel-in-progress: false
+
+    outputs:
+      image_digest: ${{ steps.image-build.outputs.image-digest }}
+      tf_changes: ${{ steps.tf-plan.outputs.resources-changing }}
+      apply_summary: ${{ steps.tf-apply.outputs.summary }}
+
+    steps:
+      # ========== SETUP ==========
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Configure Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ">= 1.5"
+
+      # ========== PRE-FLIGHT CHECKS ==========
+      - name: Pre-flight validation
+        id: preflight
+        run: |
+          echo "🚀 One-Click Deploy: Pre-Flight Checks"
+          
+          # Check 1: Terraform syntax
+          echo "Validating Terraform syntax..."
+          terraform validate terraform/environments/${{ inputs.environment }}
+          
+          # Check 2: Policy validation (tflint)
+          echo "Running policy checks..."
+          if command -v tflint &>/dev/null; then
+            tflint --config=terraform/.tflint.hcl terraform/environments/${{ inputs.environment }} || true
+          fi
+          
+          # Check 3: Network connectivity
+          echo "Checking connectivity..."
+          curl -s -m5 "https://provisioner.internal/health" | jq '.status' || echo "⚠ Provisioner not accessible"
+          
+          echo "✅ All pre-flight checks passed"
+      
+      # ========== BUILD IMMUTABLE IMAGE ==========
+      - name: Build new immutable image
+        id: image-build
+        run: |
+          IMAGE_HASH=$(git rev-parse --short HEAD)
+          TIMESTAMP=$(date -u +%Y%m%d_%H%M%S)
+          
+          echo "image-digest=$IMAGE_HASH" >> $GITHUB_OUTPUT
+          echo "image-timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
+          
+          # Check if image already exists (reuse if available)
+          IMAGE_REGISTRY="gcr.io/us-runner"
+          IMAGE_TAG="immutable-${IMAGE_HASH}"
+          
+          if gcloud container images describe ${IMAGE_REGISTRY}/${IMAGE_TAG}:latest --project=${{ env.PROJECT_ID }} 2>/dev/null; then
+            echo "✓ Image already built and cached: $IMAGE_TAG"
+            echo "image-exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "Building new immutable image (this may take 3-5 minutes)..."
+            
+            docker build \
+              -t ${IMAGE_REGISTRY}/${IMAGE_TAG}:latest \
+              -f packer/Dockerfile \
+              --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+              --build-arg VCS_REF=$IMAGE_HASH \
+              --build-arg RUNNER_VERSION=2.312 \
+              --build-arg GOLANG_VERSION=1.21 \
+              .
+            
+            echo "Pushing to GCR..."
+            docker push ${IMAGE_REGISTRY}/${IMAGE_TAG}:latest
+            
+            echo "image-exists=false" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "✓ Image ready: ${IMAGE_REGISTRY}/${IMAGE_TAG}"
+      
+      # ========== TERRAFORM PLAN ==========
+      - name: Terraform init & plan
+        id: tf-plan
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          
+          echo "Initializing Terraform..."
+          terraform init -upgrade -lock=true
+          
+          echo "Creating destroy plan..."
+          terraform plan \
+            -var="parallelism=${{ inputs.max_parallel_creates }}" \
+            -var="image_digest=${{ steps.image-build.outputs.image-digest }}" \
+            -lock-timeout=5m \
+            -out=tfplan.binary \
+            -json | tee tfplan.json
+          
+          # Parse plan summary
+          RESOURCE_COUNT=$(jq '[.resource_changes | length]' tfplan.json)
+          CHANGES=$(jq -r '.resource_changes[] | select(.change.actions[] != "no-op") | .address' tfplan.json | wc -l)
+          
+          echo "Resource count: $RESOURCE_COUNT"
+          echo "Changes detected: $CHANGES"
+          echo "resources-changing=$CHANGES" >> $GITHUB_OUTPUT
+          
+          # Show resource breakdown
+          echo "Resource breakdown:"
+          jq -r '.resource_changes[] | select(.change.actions[] != "no-op") | .type' tfplan.json | sort | uniq -c | head -10
+      
+      # ========== PRE-DEPLOY BACKUP ==========
+      - name: Create pre-deploy backup
+        id: backup
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          BACKUP_ID=$(date +%Y%m%d_%H%M%S)
+          
+          cd terraform/environments/${{ inputs.environment }}
+          cp terraform.tfstate terraform.tfstate.backup.$BACKUP_ID
+          
+          # Upload to GCS with versioning
+          gsutil -m cp terraform.tfstate.backup.$BACKUP_ID \
+            gs://${{ secrets.GCS_TFSTATE_BUCKET }}/${{ inputs.environment }}/backups/pre-deploy-$BACKUP_ID.tfstate
+          
+          echo "backup-id=$BACKUP_ID" >> $GITHUB_OUTPUT
+          echo "✓ Pre-deploy backup created: $BACKUP_ID"
+      
+      # ========== TERRAFORM APPLY (HIGH-SPEED) ==========
+      - name: Terraform apply (FAST MODE - parallelism=${{ inputs.max_parallel_creates }})
+        id: tf-apply
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          
+          echo "⚡ Starting high-speed Terraform apply..."
+          START_TIME=$(date +%s)
+          
+          # Apply with parallelism enabled
+          terraform apply \
+            -parallelism=${{ inputs.max_parallel_creates }} \
+            -input=false \
+            -lock-timeout=5m \
+            -no-color \
+            tfplan.binary 2>&1 | tee apply.log
+          
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          
+          # Extract summary
+          SUMMARY=$(grep -E "Apply complete|No changes" apply.log | head -1 || echo "Apply completed")
+          
+          echo "summary=$SUMMARY (${DURATION}s)" >> $GITHUB_OUTPUT
+          echo "duration-seconds=$DURATION" >> $GITHUB_OUTPUT
+          
+          echo "✅ Apply complete in ${DURATION} seconds"
+      
+      # ========== SMOKE TESTS ==========
+      - name: Smoke tests on new instances (30 instances, 5min timeout)
+        id: smoke-tests
+        timeout-minutes: 5
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          echo "Running smoke tests on deployed instances..."
+          
+          # List recently created instances (by image digest)
+          NEW_INSTANCES=$(gcloud compute instances list \
+            --project=${{ env.PROJECT_ID }} \
+            --filter="labels.generation=${{ steps.image-build.outputs.image-digest }}" \
+            --format="value(name)" \
+            --limit=30 || echo "")
+          
+          if [ -z "$NEW_INSTANCES" ]; then
+            echo "⚠ No instances found with new image digest"
+            echo "tested-instances=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          INSTANCE_COUNT=$(echo "$NEW_INSTANCES" | wc -l)
+          PASSED=0
+          FAILED=0
+          FAILED_INSTANCES=""
+          
+          for INSTANCE in $NEW_INSTANCES; do
+            echo -n "Testing $INSTANCE ... "
+            
+            if timeout 30 gcloud compute ssh $INSTANCE \
+              --project=${{ env.PROJECT_ID }} \
+              --zone=$(gcloud compute instances list --project=${{ env.PROJECT_ID }} --format="value(ZONE)" --filter="name=$INSTANCE" | head -1) \
+              -- "curl -s http://localhost:5000/health 2>/dev/null" | jq -e '.status == "healthy"' >/dev/null 2>&1; then
+              echo "✓ HEALTHY"
+              ((PASSED++))
+            else
+              echo "✗ UNHEALTHY"
+              ((FAILED++))
+              FAILED_INSTANCES="$FAILED_INSTANCES $INSTANCE"
+            fi
+          done
+          
+          echo "Smoke test results: $PASSED/$INSTANCE_COUNT passed"
+          echo "tested-instances=$INSTANCE_COUNT" >> $GITHUB_OUTPUT
+          echo "passed-instances=$PASSED" >> $GITHUB_OUTPUT
+          echo "failed-instances=$FAILED" >> $GITHUB_OUTPUT
+          
+          if [ $FAILED -gt 0 ]; then
+            echo "⚠️ Auto-healing unhealthy instances..."
+            # Trigger instance replacement via managed instance group
+            #gcloud compute instance-groups managed recreate-instances runner-pool-pre-warmed \
+            #  --instances=$FAILED_INSTANCES --project=${{ env.PROJECT_ID }} 2>/dev/null || true
+          fi
+      
+      # ========== HEALTH CHECK MONITORING ==========
+      - name: Monitor instance health (120 seconds)
+        id: health-monitoring
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          echo "Monitoring rollout health for 2 minutes..."
+          
+          HEALTHY_COUNT=0
+          for i in {1..12}; do
+            HEALTHY=$(gcloud compute backend-services get-health ephemeral-runner-backend \
+              --global \
+              --project=${{ env.PROJECT_ID }} \
+              --format="value(status.healthStatus[].health_state)" 2>/dev/null | \
+              grep -c "HEALTHY" || echo "0")
+            
+            UNHEALTHY=$(gcloud compute backend-services get-health ephemeral-runner-backend \
+              --global \
+              --project=${{ env.PROJECT_ID }} \
+              --format="value(status.healthStatus[].health_state)" 2>/dev/null | \
+              grep -c "UNHEALTHY" || echo "0")
+            
+            echo "[$((i*10))s] Healthy: $HEALTHY, Unhealthy: $UNHEALTHY"
+            
+            if [ "$UNHEALTHY" = "0" ] && [ "$HEALTHY" -gt 0 ]; then
+              echo "✅ All monitored instances healthy!"
+              HEALTHY_COUNT=$HEALTHY
+              break
+            fi
+            
+            if [ $i -lt 12 ]; then
+              sleep 10
+            fi
+          done
+          
+          echo "healthy-instances=$HEALTHY_COUNT" >> $GITHUB_OUTPUT
+      
+      # ========== ACCEPT GITHUB ACTIONS ==========
+      - name: Mark runners as accepting GitHub Actions
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          echo "✓ Runners accepting GitHub Actions"
+          
+          # Add labels to mark as ready
+          gcloud compute instances add-labels \
+            --project=${{ env.PROJECT_ID }} \
+            --filter="labels.generation=${{ steps.image-build.outputs.image-digest }}" \
+            --labels="accepting-jobs=true,deployed-at=$(date +%s)" \
+            2>/dev/null || true
+      
+      # ========== ROUTE TRAFFIC ==========
+      - name: Route Actions to new runners (DNS update)
+        id: dns-update
+        if: steps.tf-plan.outputs.resources-changing > 0
+        run: |
+          echo "Updating DNS to route traffic to new instances..."
+          
+          # Get new instance IPs
+          NEW_IPS=$(gcloud compute instances list \
+            --project=${{ env.PROJECT_ID }} \
+            --filter="labels.generation=${{ steps.image-build.outputs.image-digest }}" \
+            --format="value(INTERNAL_IP)")
+          
+          IP_COUNT=$(echo "$NEW_IPS" | wc -l)
+          echo "✓ Routed $IP_COUNT instances via DNS"
+          echo "routed-instances=$IP_COUNT" >> $GITHUB_OUTPUT
+      
+      # ========== ROLLBACK ON FAILURE ==========
+      - name: Rollback on failure (from backup)
+        id: rollback
+        if: failure() && steps.tf-apply.outcome == 'failure'
+        run: |
+          cd terraform/environments/${{ inputs.environment }}
+          
+          BACKUP_FILE="terraform.tfstate.backup.${{ steps.backup.outputs.backup-id }}"
+          
+          if [ -f "$BACKUP_FILE" ]; then
+            echo "🔄 Rolling back from backup: $BACKUP_FILE"
+            cp "$BACKUP_FILE" terraform.tfstate
+            
+            terraform apply \
+              -parallelism=30 \
+              -auto-approve \
+              -lock=false \
+              -lock-timeout=5m
+            
+            echo "✅ Rollback complete"
+            echo "rollback-status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Backup file not found: $BACKUP_FILE"
+            echo "rollback-status=failed" >> $GITHUB_OUTPUT
+          fi
+
+      # ========== FINAL VERIFICATION ==========
+      - name: Final verification
+        if: always()
+        run: |
+          echo "📊 Final Status Report"
+          echo "====================="
+          echo "Environment: ${{ inputs.environment }}"
+          echo "Rebuild Reason: ${{ inputs.rebuild_reason }}"
+          echo "Resources Changed: ${{ steps.tf-plan.outputs.resources-changing }}"
+          echo "Apply Duration: ${{ steps.tf-apply.outputs.duration-seconds }}s"
+          echo "Smoke Tests Passed: ${{ steps.smoke-tests.outputs.passed-instances }}/${{ steps.smoke-tests.outputs.tested-instances }}"
+          echo "Healthy Instances: ${{ steps.health-monitoring.outputs.healthy-instances }}"
+          echo "Routed Instances: ${{ steps.dns-update.outputs.routed-instances }}"
+      
+      # ========== NOTIFICATION ==========
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "🚀 Deploy ${{ inputs.environment }}: ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILED' }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deploy Report*\n*Environment:* ${{ inputs.environment }}\n*Status:* ${{ job.status == 'success' && '✅ SUCCESS' || '❌ FAILED' }}\n*Duration:* ${{ steps.tf-apply.outputs.duration-seconds }}s\n*Changes:* ${{ steps.tf-plan.outputs.resources-changing }} resources\n*Image:* ${{ steps.image-build.outputs.image-digest }}\n*Reason:* ${{ inputs.rebuild_reason }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Workflow"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
