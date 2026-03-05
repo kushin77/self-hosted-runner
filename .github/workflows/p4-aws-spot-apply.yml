@@ -1,0 +1,48 @@
+name: "P4 — AWS Spot Runner Apply"
+
+on:
+  workflow_dispatch:
+    inputs:
+      webhook_secret_arn:
+        description: 'Optional Secrets Manager ARN containing the drain webhook URL'
+        required: false
+      confirm_apply:
+        description: 'Type "yes" to confirm you want to run terraform apply'
+        required: true
+        default: 'no'
+
+jobs:
+  terraform-apply:
+    name: Terraform Apply (aws-spot)
+    runs-on: ubuntu-latest
+    environment: prod-terraform-apply
+    steps:
+      - name: Validate manual confirmation
+        run: |
+          if [ "${{ github.event.inputs.confirm_apply }}" != "yes" ]; then
+            echo "To run apply, set 'confirm_apply' input to 'yes'. Aborting.";
+            exit 1;
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform/examples/aws-spot
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        working-directory: terraform/examples/aws-spot
+        run: |
+          terraform apply -input=false -auto-approve -var="webhook_secret_arn=${{ github.event.inputs.webhook_secret_arn }}"
