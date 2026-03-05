@@ -4,20 +4,20 @@ variable "namespace_name" {
 }
 
 variable "namespace_labels" {
-  type = map(string)
+  type    = map(string)
   default = {}
 }
 
 variable "allowed_registry_cidr" {
-  type    = string
+  type        = string
   description = "CIDR for allowed image registry egress (e.g., 10.0.0.0/24)"
-  default = "0.0.0.0/0"
+  default     = "0.0.0.0/0"
 }
 
 variable "allowed_collector_cidr" {
-  type    = string
+  type        = string
   description = "CIDR for allowed OTEL collector egress (e.g., 10.0.1.0/24)"
-  default = "0.0.0.0/0"
+  default     = "0.0.0.0/0"
 }
 variable "cluster_name" {
   type        = string

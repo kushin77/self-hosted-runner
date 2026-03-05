@@ -31,3 +31,58 @@ variable "key_name" {
   type        = string
   default     = ""
 }
+
+variable "enable_lifecycle_handler" {
+  description = "Whether to deploy a Lambda-based lifecycle handler that consumes the SQS lifecycle queue"
+  type        = bool
+  default     = true
+}
+
+variable "lambda_runtime" {
+  description = "Lambda runtime for the lifecycle handler"
+  type        = string
+  default     = "python3.11"
+}
+
+variable "lambda_memory_size" {
+  description = "Memory size (MB) for the lifecycle handler Lambda"
+  type        = number
+  default     = 128
+}
+
+variable "lambda_timeout" {
+  description = "Timeout (seconds) for the lifecycle handler Lambda"
+  type        = number
+  default     = 60
+}
+
+variable "lambda_env" {
+  description = "Map of environment variables to set on the Lambda function"
+  type        = map(string)
+  default     = {}
+}
+
+variable "webhook_secret_arn" {
+  description = "Optional Secrets Manager secret ARN that contains the runner drain webhook URL. If provided, the Lambda will be granted permission to read it and will fetch at runtime."
+  type        = string
+  default     = ""
+}
+
+variable "create_webhook_secret" {
+  description = "If true, Terraform will create a Secrets Manager secret using `webhook_secret_value`. Use with caution; secret will be stored in state."
+  type        = bool
+  default     = false
+}
+
+variable "webhook_secret_value" {
+  description = "(Optional) Secret string to populate when creating the webhook secret. Only used if `create_webhook_secret` is true."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "webhook_secret_name" {
+  description = "Name for the created Secrets Manager secret when `create_webhook_secret` is true"
+  type        = string
+  default     = "runner/drain-webhook"
+}

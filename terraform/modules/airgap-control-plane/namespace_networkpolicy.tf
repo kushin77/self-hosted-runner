@@ -1,7 +1,7 @@
 // Namespace and NetworkPolicy for air-gapped control plane
 resource "kubernetes_namespace" "airgap_control_plane" {
   metadata {
-    name = var.namespace_name
+    name   = var.namespace_name
     labels = var.namespace_labels
   }
 }
