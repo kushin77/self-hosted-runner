@@ -10,6 +10,12 @@ import crypto from 'crypto';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { setToken, getToken } = require('./lib/secretStore.cjs');
+const logger = require('./lib/logger');
+// each request can have a correlation id header; fallback to generated
+app.use((req, res, next) => {
+  req.correlation_id = req.headers['x-correlation-id'] || logger.genCorrelationId();
+  next();
+});
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -22,6 +28,8 @@ app.use(express.json());
 
 // redirect to GitHub OAuth endpoint (placeholder)
 app.get('/oauth/start', (req, res) => {
+  const log = logger.child({ correlation_id: req.correlation_id });
+  log.info('oauth/start invoked');
   // in real world we would redirect to GitHub App installation flow
   const state = crypto.randomBytes(8).toString('hex');
   res.redirect(`https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID || 'fake'}&state=${state}`);
@@ -99,5 +107,5 @@ app.post('/usage', (req, res) => {
 app.get('/health', (req, res) => res.send('ok'));
 
 app.listen(port, () => {
-  console.log(`managed-auth service listening on port ${port}`);
+  logger.info('managed-auth service listening', { port });
 });
