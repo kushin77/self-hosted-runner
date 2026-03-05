@@ -1,6 +1,15 @@
 name: P2 CI skeleton
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
+  workflow_dispatch: {}
+on:
+  workflow_dispatch: {}
   push:
     branches:
       - 'feature/p2-*'
@@ -10,7 +19,7 @@ on:
 jobs:
   p2-check:
     name: P2 CI check
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4

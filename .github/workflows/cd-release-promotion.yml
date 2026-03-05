@@ -1,6 +1,15 @@
 name: CD - Release Promotion (gated)
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 on:
+  workflow_dispatch: {}
+on:
+  workflow_dispatch: {}
   workflow_run:
     workflows: ["CI - Release Gate Verification"]
     types:
@@ -9,7 +18,7 @@ on:
 jobs:
   promote:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
