@@ -1,11 +1,10 @@
-import fs from 'fs';
-import path from 'path';
+const fs = require('fs');
+const path = require('path');
 
 const backend = process.env.SECRETS_BACKEND || 'memory';
 const filePath = process.env.SECRETS_FILE || path.join(__dirname, '..', '..', '.secrets', 'tokens.json');
 
 let memory = [];
-
 
 function ensureDir(p) {
   const dir = path.dirname(p);
@@ -46,4 +45,4 @@ async function getToken(token) {
   return memory.find(t => t.token === token);
 }
 
-export { setToken, getToken };
+module.exports = { setToken, getToken };
