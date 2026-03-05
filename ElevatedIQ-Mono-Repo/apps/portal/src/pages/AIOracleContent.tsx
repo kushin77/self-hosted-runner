@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../theme';
-import { Panel, PanelHeader, Pill } from '../components/UI';
+import { Panel, Pill } from '../components/UI';
 import { Sparkline } from '../components/Charts';
 import { api } from '../api';
 
@@ -30,11 +30,9 @@ export const AIOraclePageContent: React.FC = () => {
   const [filterSeverity, setFilterSeverity] = useState<'all' | 'info' | 'warn' | 'high' | 'critical'>('all');
 
   const [insights, setInsights] = useState<AIInsight[]>(emptyInsights);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
     api
       .getAIInsights()
       .then((d) => {
@@ -55,8 +53,7 @@ export const AIOraclePageContent: React.FC = () => {
       .catch(() => {
         if (!mounted) return;
         setInsights([]);
-      })
-      .finally(() => mounted && setLoading(false));
+      });
 
     return () => {
       mounted = false;
@@ -69,7 +66,7 @@ export const AIOraclePageContent: React.FC = () => {
     return matchCategory && matchSeverity;
   });
 
-  const severityColorMap = {
+  const severityColorMap: Record<string, string> = {
     info: COLORS.blue,
     warn: COLORS.yellow,
     high: COLORS.red,
@@ -250,7 +247,7 @@ export const AIOraclePageContent: React.FC = () => {
                   <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.text }}>
                     {insight.title}
                   </div>
-                  <Pill color={insight.severity} sm>
+                  <Pill color={severityColorMap[insight.severity] || COLORS.muted} sm>
                     {insight.severity}
                   </Pill>
                   {insight.implemented && (
