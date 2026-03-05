@@ -1,0 +1,29 @@
+name: Self-hosted Runner — Health Check
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnostics:
+    runs-on: [self-hosted, linux]
+    name: Runner diagnostics and artifact upload
+    steps:
+      - name: Gather basic diagnostics
+        run: |
+          mkdir -p runner-diagnostics
+          uptime > runner-diagnostics/uptime.txt || true
+          hostnamectl > runner-diagnostics/host.txt || true
+          df -h > runner-diagnostics/disk.txt || true
+          free -m > runner-diagnostics/mem.txt || true
+          ps aux --sort=-%mem | head -n 50 > runner-diagnostics/top-procs.txt || true
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: runner-diagnostics-${{ github.run_id }}
+          path: runner-diagnostics
