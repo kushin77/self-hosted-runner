@@ -108,6 +108,15 @@ async function startMetricsServer(port = 9090, app = null) {
       metricsServer = serverInstance;
       const log = require('./logger').child({component:'metricsServer'});
       const proto = useTls ? 'https' : 'http';
+
+      // instrument TLS client errors if we have a TLS server
+      if (useTls && metricsServer && metricsServer.on) {
+        const m = require('./metrics');
+        metricsServer.on('tlsClientError', (err, socket) => {
+          log.warn('tls client error', {error: err.message});
+          if (m && m.incSocketTlsError) m.incSocketTlsError();
+        });
+      }
       log.info('server listening', {url:`${proto}://0.0.0.0:${port}`});
       log.info('endpoint','/metrics Prometheus format');
       log.info('endpoint','/health health status');
@@ -144,11 +153,13 @@ async function startMetricsServer(port = 9090, app = null) {
       }
 
       io.use(async (socket, next) => {
+        const m = require('./metrics');
         const authToken = await resolveAuthToken();
         if (authToken) {
           const provided = socket.handshake.auth && socket.handshake.auth.token ? socket.handshake.auth.token :
             (socket.handshake.headers && socket.handshake.headers['authorization'] ? (socket.handshake.headers['authorization'] || '').split(' ')[1] : undefined);
           if (provided !== authToken) {
+            if (m && m.incSocketAuthFailure) m.incSocketAuthFailure();
             return next(new Error('unauthorized'));
           }
         }
@@ -161,6 +172,7 @@ async function startMetricsServer(port = 9090, app = null) {
         recent.push(now);
         connectionCounts.set(ip, recent);
         if (recent.length > 10) {
+          if (m && m.incSocketRateLimit) m.incSocketRateLimit();
           return next(new Error('rate limit exceeded'));
         }
 
@@ -170,12 +182,16 @@ async function startMetricsServer(port = 9090, app = null) {
       io.on('connection', (socket) => {
         const log = require('./logger').child({ component: 'socket.io' });
         log.info('client connected', { id: socket.id });
+        const m = require('./metrics');
+        if (m && m.incSocketConnected) m.incSocketConnected();
 
         // Phase 2: send initial state upon connection
         socket.emit('metrics:update', metrics.getSummaryStats());
 
         socket.on('disconnect', () => {
           log.info('client disconnected', { id: socket.id });
+          const m2 = require('./metrics');
+          if (m2 && m2.incSocketDisconnected) m2.incSocketDisconnected();
         });
       });
 

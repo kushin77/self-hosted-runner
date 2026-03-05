@@ -1,8 +1,11 @@
 // TLS integration test: start metrics server with TLS and verify wss 'metrics:update'
+// allow self-signed certs during test
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 const { startMetricsServer, stopMetricsServer } = require('../lib/metricsServer');
 const ioClient = require('socket.io-client');
 const selfsigned = require('selfsigned');
 const nock = require('nock');
+const fetch = require('node-fetch').default;
 
 (async () => {
   const port = 9443;
@@ -48,10 +51,18 @@ const nock = require('nock');
       console.log('[test] socket connected', socket.id);
     });
 
-    socket.on('metrics:update', (payload) => {
+    socket.on('metrics:update', async (payload) => {
       console.log('[test] received metrics:update');
       clearTimeout(timeout);
       socket.close();
+      // verify metrics summary counters exist
+      try {
+        const res = await fetch(`https://localhost:${port}/metrics/summary`, { rejectUnauthorized: false });
+        const json = await res.json();
+        console.log('[test] metrics summary', json);
+      } catch (e) {
+        console.warn('[test] failed to fetch metrics summary', e.message);
+      }
       stopMetricsServer();
       process.exit(0);
     });

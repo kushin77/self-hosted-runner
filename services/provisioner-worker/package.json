@@ -96,7 +96,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:integration": "node tests/socket_integration_test.js",
     "test:integration:tls": "node tests/tls_socket_integration_test.js",
-    "test:unit:vault": "node tests/vault_integration_test.js"
+    "test:unit:vault": "node tests/vault_integration_test.js",
+    "test:load": "node tests/socket_load_test.js"
   },
   "keywords": [],
   "author": "",
