@@ -6,7 +6,6 @@
  */
 
 import type { Express } from 'express';
-import type { Server as HttpServer } from 'http';
 
 import WebSocketAdapter from './websocket';
 import WebhookAdapter from './webhook';
