@@ -1,0 +1,18 @@
+{
+  "dashboard": {
+    "title": "RunnerCloud OTEL Overview (Splunk)",
+    "panels": [
+      {
+        "type": "stats",
+        "title": "Jobs Processed",
+        "search": "index=otel | stats sum(provisioner_jobs_processed_total) as total_jobs"
+      },
+      {
+        "type": "timechart",
+        "title": "Job Latency p95",
+        "search": "index=otel | timechart perc95(provisioner_job_processing_latency_ms)"
+      }
+    ],
+    "refresh": "5m"
+  }
+}
