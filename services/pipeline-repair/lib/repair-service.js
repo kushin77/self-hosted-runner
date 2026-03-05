@@ -15,10 +15,20 @@ const logger = winston.createLogger({
 
 const fs = require('fs');
 const path = require('path');
-<<<<<<< HEAD
-const db = require('./db');
-=======
->>>>>>> origin/main
+
+// DB adapters: sqlite (`./db`) and postgres (`./pg_db`).
+let db;
+try {
+  if (process.env.REPAIR_DB === 'postgres') {
+    db = require('./pg_db');
+  } else {
+    db = require('./db');
+  }
+} catch (e) {
+  // If adapter load fails, we'll fallback to NDJSON
+  logger.warn('[DB] failed to load DB adapter, falling back to NDJSON', { err: e.message });
+  db = null;
+}
 
 // Persistence for repair proposals (NDJSON)
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
@@ -33,9 +43,8 @@ async function ensureDataDir() {
 }
 
 async function persistProposal(obj) {
-<<<<<<< HEAD
   // If configured, persist to durable DB
-  if (process.env.REPAIR_USE_DB === 'true') {
+  if (db && process.env.REPAIR_USE_DB === 'true') {
     try {
       await db.saveProposal(obj);
       return;
@@ -43,25 +52,19 @@ async function persistProposal(obj) {
       logger.warn('[DB] failed to save proposal, falling back to NDJSON', { err: e.message });
     }
   }
-=======
->>>>>>> origin/main
   await ensureDataDir();
   const line = JSON.stringify(obj) + '\n';
   await fs.promises.appendFile(PROPOSALS_FILE, line, { encoding: 'utf8' });
 }
 
 async function readAllProposals() {
-<<<<<<< HEAD
-  if (process.env.REPAIR_USE_DB === 'true') {
+  if (db && process.env.REPAIR_USE_DB === 'true') {
     try {
       return await db.listProposals();
     } catch (e) {
       logger.warn('[DB] failed to read proposals, falling back to NDJSON', { err: e.message });
     }
   }
-
-=======
->>>>>>> origin/main
   try {
     const content = await fs.promises.readFile(PROPOSALS_FILE, 'utf8');
     return content
