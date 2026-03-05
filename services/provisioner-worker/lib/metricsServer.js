@@ -66,38 +66,95 @@ async function startMetricsServer(port = 9090, app = null) {
     
     // Only start server if not using existing Express app
     if (!useExisting) {
-      metricsServer = finalApp.listen(port, '0.0.0.0', () => {
-        const log = require('./logger').child({component:'metricsServer'});
-      log.info('server listening', {url:`http://0.0.0.0:${port}`});
+      // optional TLS support
+      const useTls = (process.env.SOCKET_TLS || '').toLowerCase() === 'true';
+      const fs = require('fs');
+      const https = require('https');
+      let serverInstance;
+
+      if (useTls) {
+        // determine cert/key from env or Vault
+        let certVal = process.env.SOCKET_CERT_PATH || process.env.SOCKET_CERT;
+        let keyVal = process.env.SOCKET_KEY_PATH || process.env.SOCKET_KEY;
+        if ((!certVal || !keyVal) && process.env.SOCKET_CERT_VAULT_PATH) {
+          try {
+            const vault = require('./vault');
+            const sec = await vault.getSecret(process.env.SOCKET_CERT_VAULT_PATH);
+            if (sec) {
+              if (!certVal && sec.cert) certVal = sec.cert;
+              if (!keyVal && sec.key) keyVal = sec.key;
+            }
+          } catch (e) {
+            console.warn('[metrics] failed to fetch cert/key from Vault', e.message);
+          }
+        }
+        if (!certVal || !keyVal) {
+          console.warn('[metrics] SOCKET_TLS=true but cert/key not configured; falling back to HTTP');
+          serverInstance = finalApp.listen(port, '0.0.0.0', () => {});
+        } else {
+          const readMaybe = (v) => {
+            const s = String(v || '');
+            if (s.includes('-----BEGIN')) return s;
+            return fs.readFileSync(v);
+          };
+          const cert = readMaybe(certVal);
+          const key = readMaybe(keyVal);
+          serverInstance = https.createServer({ cert, key }, finalApp).listen(port, '0.0.0.0', () => {});
+        }
+      } else {
+        serverInstance = finalApp.listen(port, '0.0.0.0', () => {});
+      }
+
+      metricsServer = serverInstance;
+      const log = require('./logger').child({component:'metricsServer'});
+      const proto = useTls ? 'https' : 'http';
+      log.info('server listening', {url:`${proto}://0.0.0.0:${port}`});
       log.info('endpoint','/metrics Prometheus format');
       log.info('endpoint','/health health status');
       log.info('endpoint','/metrics/summary JSON metrics');
       log.info('endpoint','/ready readiness check');
       log.info('endpoint','/alive liveness check');
-      });
 
       // Initialize Socket.IO for Phase 2 real-time migration
       const { Server } = require('socket.io');
       io = new Server(metricsServer, {
         cors: { origin: '*', methods: ['GET', 'POST'] },
         path: '/socket.io',
+        allowEIO3: true,
       });
 
       // middleware for authentication and rate limiting
       const connectionCounts = new Map(); // ip -> [timestamps]
 
-      io.use((socket, next) => {
-        const authToken = process.env.SOCKET_AUTH_TOKEN;
+      // optionally load token from Vault if configured
+      async function resolveAuthToken() {
+        let token = process.env.SOCKET_AUTH_TOKEN;
+        if (!token && process.env.SOCKET_TOKEN_VAULT_PATH) {
+          try {
+            const vault = require('./vault');
+            const secret = await vault.getSecret(process.env.SOCKET_TOKEN_VAULT_PATH);
+            if (secret && secret.token) {
+              token = secret.token;
+            }
+          } catch (e) {
+            console.warn('[metrics] failed to fetch token from Vault', e.message);
+          }
+        }
+        return token;
+      }
+
+      io.use(async (socket, next) => {
+        const authToken = await resolveAuthToken();
         if (authToken) {
-          const provided = socket.handshake.auth?.token ||
-            (socket.handshake.headers['authorization'] || '').split(' ')[1];
+          const provided = socket.handshake.auth && socket.handshake.auth.token ? socket.handshake.auth.token :
+            (socket.handshake.headers && socket.handshake.headers['authorization'] ? (socket.handshake.headers['authorization'] || '').split(' ')[1] : undefined);
           if (provided !== authToken) {
             return next(new Error('unauthorized'));
           }
         }
 
         // simple per-IP rate limiter (max 10 connections per minute)
-        const ip = socket.handshake.address || socket.request.socket.remoteAddress;
+        const ip = socket.handshake.address || (socket.request && socket.request.socket ? socket.request.socket.remoteAddress : 'unknown');
         const now = Date.now();
         const history = connectionCounts.get(ip) || [];
         const recent = history.filter((t) => now - t < 60000);
@@ -124,7 +181,7 @@ async function startMetricsServer(port = 9090, app = null) {
 
       // Periodic broadcast for connected clients (Phase 2)
       setInterval(() => {
-        if (io && io.engine.clientsCount > 0) {
+        if (io && io.engine && io.engine.clientsCount > 0) {
           io.emit('metrics:update', metrics.getSummaryStats());
         }
       }, 5000);
