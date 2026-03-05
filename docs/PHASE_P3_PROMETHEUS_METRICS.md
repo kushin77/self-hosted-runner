@@ -238,7 +238,16 @@ spec:
 ---
 
 ## Prometheus Scrape Configuration
+Dashboards:
 
+* Grafana JSON: `docs/GRAFANA_OTEL_DASHBOARD.json`
+* Datadog JSON: `docs/DATADOG_DASHBOARD.json`
+* Splunk JSON: `docs/SPLUNK_DASHBOARD.json`
+
+Load the Grafana dashboard via the UI or `grafana-cli`; import Datadog/Splunk
+via their respective APIs.
+
+### Prometheus Scrape Configuration
 **Add to `prometheus.yml`**:
 ```yaml
 scrape_configs:
@@ -372,6 +381,20 @@ Configuration is via standard OTEL environment variables:
 * `OTEL_EXPORTER_OTLP_ENDPOINT` – HTTP endpoint for the collector (`http://localhost:4318/v1/traces` by default)
 * `OTEL_SERVICE_NAME` – service name used in traces (defaults to `provisioner-worker`)
 * `OTEL_TRACES_SAMPLER` – sampling policy (`parentbased_traceidratio` with ratio 0.1 by default)
+* `OTEL_EXPORTER` – exporter type (`otlp` | `datadog` | `splunk`), defaults to `otlp`.
+* `OTEL_EXPORTER_OTLP_ENDPOINT` – URL of the OTLP collector or backend.
+* `DATADOG_API_KEY` / `SPLUNK_HEC_TOKEN` – credentials injected automatically when using the corresponding exporter.
+
+Exporter configuration is pluggable: the initialization helper chooses the correct
+headers based on `OTEL_EXPORTER` and environment variables.  Additional exporters
+(e.g. AWS, New Relic) may be added later by extending `lib/otel.cjs`.
+
+**Sending test telemetry**
+* `services/provisioner-worker/tests/send_otlp.sh` – generic OTLP POST
+* `send_datadog.sh` – POST to Datadog OTLP intake if `DATADOG_API_KEY` provided
+* `send_splunk.sh` – POST to Splunk HEC if `SPLUNK_HEC_TOKEN`/`SPLUNK_HEC_ENDPOINT` set
+
+These scripts are executed in CI and can be run locally to verify connectivity before enabling production export.
 
 If the OTEL packages are not installed the initialization code logs a warning and continues
 without telemetry (useful for development or CI runs).
