@@ -1,0 +1,29 @@
+groups:
+- name: eiq.rules
+  rules:
+  - alert: ServiceDown
+    expr: up{job=~"eiq-api|pipeline-repair|eiq-portal"} == 0
+    for: 2m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "The service {{ $labels.job }} has been reporting down for more than 2 minutes."
+
+  - alert: HighErrorRate
+    expr: increase(http_requests_total{job=~"eiq-api|pipeline-repair|eiq-portal"}[5m]) / increase(http_requests_total{job=~"eiq-api|pipeline-repair|eiq-portal"}[5m]) > 0.05
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High error rate on {{ $labels.job }}"
+      description: "More than 5% of requests are errors for job {{ $labels.job }} over the last 5 minutes."
+
+  - alert: HighLatency
+    expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job=~"eiq-api|pipeline-repair|eiq-portal"}[5m])) by (le)) > 1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High latency on {{ $labels.job }} (p95 > 1s)"
+      description: "95th percentile latency exceeds 1s for job {{ $labels.job }} over the last 5 minutes."

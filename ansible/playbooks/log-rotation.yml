@@ -1,0 +1,32 @@
+---
+- name: Install logrotate config for ElevatedIQ services
+  hosts: workers
+  become: yes
+  vars:
+    logrotate_dest: /etc/logrotate.d/eiq-services
+    logs_path: /home/akushnir/self-hosted-runner/services/*/logs/*.log
+
+  tasks:
+    - name: Create logrotate config
+      copy:
+        dest: "{{ logrotate_dest }}"
+        content: |
+          {{ logs_path }} {
+              daily
+              rotate 7
+              compress
+              missingok
+              notifempty
+              create 0640 akushnir adm
+              sharedscripts
+              postrotate
+                  /usr/bin/systemctl reload nginx >/dev/null 2>&1 || true
+              endscript
+          }
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Force logrotate run (test)
+      command: /usr/sbin/logrotate -f {{ logrotate_dest }}
+      ignore_errors: yes

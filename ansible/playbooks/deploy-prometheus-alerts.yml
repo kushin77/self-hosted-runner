@@ -1,0 +1,41 @@
+---
+- name: Deploy Prometheus alert rules for ElevatedIQ
+  hosts: monitoring
+  become: yes
+  vars:
+    alerts_src: monitoring/prometheus/eiq-alerts.yml
+    alerts_dest: /etc/prometheus/rules/eiq-alerts.yml
+
+  tasks:
+    - name: Ensure Prometheus rules dir exists
+      file:
+        path: /etc/prometheus/rules
+        state: directory
+        owner: prometheus
+        group: prometheus
+        mode: '0755'
+
+    - name: Copy alert rules
+      copy:
+        src: "{{ alerts_src }}"
+        dest: "{{ alerts_dest }}"
+        owner: prometheus
+        group: prometheus
+        mode: '0644'
+
+    - name: Reload Prometheus (systemd)
+      systemd:
+        name: prometheus
+        state: restarted
+        daemon_reload: yes
+
+    - name: Verify rules loaded
+      uri:
+        url: http://localhost:9090/api/v1/rules
+        return_content: yes
+      register: rules_resp
+
+    - name: Fail if rules not present
+      fail:
+        msg: "Prometheus did not report the expected rules."
+      when: "'eiq.rules' not in rules_resp.content"

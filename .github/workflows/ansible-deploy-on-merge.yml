@@ -1,0 +1,39 @@
+name: Ansible Deploy (gated)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Run Ansible Playbooks (production)
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Run Prometheus alerts deployment
+        run: |
+          ansible-playbook -i inventory/hosts ansible/playbooks/deploy-prometheus-alerts.yml
+
+      - name: Run log rotation deploy
+        run: |
+          ansible-playbook -i inventory/hosts ansible/playbooks/log-rotation.yml
+
+      - name: Run managed-auth deploy (optional)
+        run: |
+          ansible-playbook -i inventory/hosts ansible/playbooks/deploy-managed-auth-api.yml
+
+    # Note: using `environment: production` allows requiring manual approvals via GitHub Environments protections in repo settings.
