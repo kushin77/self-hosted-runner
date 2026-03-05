@@ -51,6 +51,28 @@ Set up Prometheus alert rules for:
 - latency > SLO
 - runner health check failures
 
+---
+
+## Security Hardening
+
+### Dependency Scanning
+The `security-scan.yml` workflow runs `npm audit` on each push/PR. Ensure vulnerabilities are triaged promptly.
+
+### SBOM Generation
+Use `./scripts/security/generate-sbom.sh` to produce an SBOM (`sbom.json`) for the repository. Store or publish it with your build artifacts.
+
+### Signed Artifacts
+When producing release artifacts (tarballs, binaries, container images), sign them using a GPG key or cosign. Example:
+
+```sh
+# sign a tarball
+gpg --armor --output release.tar.gz.sig --detach-sign release.tar.gz
+``` 
+
+Add verification instructions to `docs/` and include public keys in your repo or a keyserver.
+
+---
+
 ## Next Steps
 
 - Add a `prometheus` scrape config in your deployment.
