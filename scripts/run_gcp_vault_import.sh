@@ -58,6 +58,11 @@ terraform {
   }
 }
 
+variable "project_id" { type = string }
+variable "region" { type = string; default = "us-central1" }
+variable "bucket_prefix" { type = string; default = "vault-data" }
+variable "github_repo" { type = string; default = "elevatediq-ai/ElevatedIQ-Mono-Repo" }
+
 provider "google" {
   project = var.project_id
   region  = var.region
@@ -74,11 +79,47 @@ module "gcp_vault" {
 output "vault_sa_email" { value = module.gcp_vault.vault_service_account_email }
 EOF
 
-cat > "$TMPDIR/variables.tf" <<EOF
-variable "project_id" { type = string }
-variable "region" { type = string, default = "us-central1" }
-variable "bucket_prefix" { type = string, default = "vault-data" }
-variable "github_repo" { type = string, default = "elevatediq-ai/ElevatedIQ-Mono-Repo" }
+# Note: variables.tf removed to avoid single-line block syntax issues in temp workspace
+# Blocks are now in main.tf with semicolon delimited single-line (if using newer TF) 
+# or multiple lines. Let's use proper multi-line in main.tf.
+cat > "$TMPDIR/main.tf" <<EOF
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    google = { source = "hashicorp/google" }
+  }
+}
+
+variable "project_id" { 
+  type = string 
+}
+variable "region" { 
+  type = string
+  default = "us-central1" 
+}
+variable "bucket_prefix" { 
+  type = string
+  default = "vault-data" 
+}
+variable "github_repo" { 
+  type = string
+  default = "elevatediq-ai/ElevatedIQ-Mono-Repo" 
+}
+
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
+
+module "gcp_vault" {
+  source       = "$TFDIR/modules/gcp-vault"
+  project_id   = var.project_id
+  region       = var.region
+  bucket_prefix = var.bucket_prefix
+  github_repo  = var.github_repo
+}
+
+output "vault_sa_email" { value = module.gcp_vault.vault_service_account_email }
 EOF
 
 pushd "$TMPDIR" > /dev/null
