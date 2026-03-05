@@ -9,7 +9,7 @@ on:
 jobs:
   smoke:
     name: Smoke test on self-hosted runner
-    runs-on: [self-hosted, linux, x64]
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +31,12 @@ jobs:
           cat /etc/os-release || true
           echo "Checking disk usage:"
           df -h .
+      - name: Runner labels (debug)
+        run: |
+          echo "--- Runner labels ---"
+          if command -v jq >/dev/null 2>&1; then
+            echo "(gh runner labels not available inside job)"
+          fi
       - name: Agent timestamp
         run: |
           echo "AGENT-TRIGGER: 2026-03-05T00:00:00Z"
