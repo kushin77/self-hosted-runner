@@ -1,0 +1,7 @@
+- [ ] Define autoscaling policy and KEDA triggers
+- [ ] Implement Prometheus scrape configs and Alertmanager rules
+- [ ] Add Grafana dashboard skeleton for runner metrics
+- [ ] Implement AppRole credential rotation automation
+- [ ] Create Phase 3 CI acceptance test suite
+- [ ] Update runbooks and incident playbooks
+- [ ] Validate end-to-end in a staging environment
