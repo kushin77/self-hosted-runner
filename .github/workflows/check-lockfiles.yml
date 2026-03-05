@@ -9,7 +9,7 @@ on:
 
 jobs:
   check-lockfiles:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     name: Check for missing Node lockfiles
     steps:
       - name: Checkout
