@@ -1,0 +1,63 @@
+name: CI — Self-hosted
+
+on:
+  push:
+    branches-ignore: [ 'docs/**' ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: Build & Test
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js (optional)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+        continue-on-error: true
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Detect and run project tests
+        run: |
+          set -euo pipefail
+          if [ -f package.json ]; then
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install --no-audit --prefer-offline
+            fi
+            if npm test --silent; then
+              echo "Node tests passed"
+            else
+              echo "Node tests failed"; exit 1
+            fi
+          elif [ -f requirements.txt ]; then
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt
+            if command -v pytest >/dev/null 2>&1; then
+              pytest -q || (echo "Python tests failed"; exit 1)
+            else
+              echo "No test runner found; skipping tests"
+            fi
+          else
+            echo "No recognized project files (package.json, requirements.txt). Skipping tests."
