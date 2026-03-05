@@ -3,20 +3,34 @@ name: p2-managed-auth-vault-integration
 on:
   workflow_dispatch: {}
   push:
-    branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci ]
+    branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci, feature/p2-vault-hardening ]
 
 jobs:
   vault-integration:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start Vault dev server
+      # DEV MODE: Use local Docker Vault for pull requests or when secrets unavailable
+      - name: Determine Vault mode
+        id: vault-mode
+        run: |
+          if [[ -z "${{ secrets.VAULT_ADDR }}" ]]; then
+            echo "mode=dev" >> $GITHUB_OUTPUT
+          else
+            echo "mode=prod" >> $GITHUB_OUTPUT
+          fi
+
+      # ===== DEV MODE: Local Vault =====
+      - name: Start Vault dev server (DEV mode)
+        if: steps.vault-mode.outputs.mode == 'dev'
         run: |
           docker run --cap-add=IPC_LOCK -d --name vault -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root
 
-      - name: Wait for Vault
+      - name: Wait for Vault (DEV mode)
+        if: steps.vault-mode.outputs.mode == 'dev'
         run: |
           for i in $(seq 1 30); do
             if curl -sSf http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
@@ -25,12 +39,24 @@ jobs:
             sleep 1
           done
 
-      - name: Setup Vault env
+      - name: Setup Vault env (DEV mode)
+        if: steps.vault-mode.outputs.mode == 'dev'
         run: |
           echo "VAULT_ADDR=http://127.0.0.1:8200" >> $GITHUB_ENV
           echo "VAULT_TOKEN=root" >> $GITHUB_ENV
+          echo "SECRETS_BACKEND=memory" >> $GITHUB_ENV
+
+      # ===== PROD MODE: Real Vault with AppRole =====
+      - name: Setup Vault env (PROD mode)
+        if: steps.vault-mode.outputs.mode == 'prod'
+        run: |
+          echo "VAULT_ADDR=${{ secrets.VAULT_ADDR }}" >> $GITHUB_ENV
+          echo "VAULT_NAMESPACE=${{ secrets.VAULT_NAMESPACE }}" >> $GITHUB_ENV
+          echo "VAULT_ROLE_ID=${{ secrets.VAULT_ROLE_ID }}" >> $GITHUB_ENV
+          echo "VAULT_SECRET_ID=${{ secrets.VAULT_SECRET_ID }}" >> $GITHUB_ENV
           echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
 
+      # Common test setup
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -44,13 +70,15 @@ jobs:
       - name: Run provision_flow smoke test (Vault)
         env:
           VAULT_ADDR: ${{ env.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
+          VAULT_NAMESPACE: ${{ env.VAULT_NAMESPACE }}
+          VAULT_ROLE_ID: ${{ env.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ env.VAULT_SECRET_ID }}
           SECRETS_BACKEND: ${{ env.SECRETS_BACKEND }}
         run: |
           cd services/managed-auth/tests
           bash provision_flow.sh
 
-      - name: Tear down Vault
-        if: always()
+      - name: Tear down Vault (DEV mode)
+        if: always() && steps.vault-mode.outputs.mode == 'dev'
         run: |
           docker rm -f vault || true
