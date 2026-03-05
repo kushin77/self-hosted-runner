@@ -239,6 +239,52 @@ curl -s -X POST http://localhost:8081/execute \
   -d "{ \"eventId\": \"$EVENT_ID\" }" | jq .
 ```
 
+## Configuration
+
+### Persistence & Data Storage
+
+Approvals and repair proposals are persisted for audit trails and recovery.
+
+#### Approvals Storage (JSON or SQLite)
+- **Default**: JSON file-based approvals stored at `services/data/approvals.json` (or configured via `REPAIR_DATA_DIR`)
+- **Mode**: Read on startup; atomic writes with mode 0600 (owner read/write only)
+- **Location**: Configurable via env var `REPAIR_DATA_DIR` (defaults to `./data` relative to service)
+- **SQLite optional**: If `sqlite3` is installed, future versions may auto-migrate to SQLite backend
+
+#### Repair Proposals (NDJSON)
+- Repair proposals persisted to `services/pipeline-repair/data/repair-proposals.ndjson`
+- Each line is a JSON object (newline-delimited JSON format)
+- Useful for audit/telemetry and recovery after service restart
+
+### Environment Variables
+
+- `PORT`: HTTP API listen port (default: `8081`)
+- `REPAIR_APPROVAL_THRESHOLD`: Risk threshold for approval gating [0.0–1.0] (default: `0.7`)
+- `REPAIR_DATA_DIR`: Directory for JSON approvals storage (default: `./data` relative to service)
+- `APPROVAL_SLACK_WEBHOOK`: Slack incoming webhook URL for approval notifications (optional)
+- `REPAIR_DB`: Postgres adapter selection (set to `postgres` to use Postgres; defaults to NDJSON fallback)
+- `REPAIR_PG_CONN`: Postgres connection string (required if `REPAIR_DB=postgres`)
+- `REPAIR_USE_DB`: Set to `true` to prefer durable DB storage if available (default: `false`)
+- `ADMIN_API_KEY`: API key for `/approve` endpoint; if set, requests must include `X-API-Key` header
+
+### Examples
+
+**Start with Slack notifications:**
+```bash
+export APPROVAL_SLACK_WEBHOOK=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+export PORT=8082
+node lib/server.js
+```
+
+**Use Postgres for audit**:
+```bash
+export REPAIR_DB=postgres
+export REPAIR_PG_CONN=postgresql://user:pass@localhost:5432/repair_db
+export REPAIR_USE_DB=true
+npx node-pg-migrate up
+node lib/server.js
+```
+
 ## MVP Acceptance Criteria
 
 - ✅ Detect and classify transient failures
@@ -247,6 +293,7 @@ curl -s -X POST http://localhost:8081/execute \
 - ✅ Audit trail for all repair decisions and approvals
 - ✅ HTTP API for failure reporting and repair execution
 - ✅ Unit and integration test coverage
+- ✅ Approvals persistence (JSON-backed with optional Slack notifications)
 
 ## Future Enhancements
 

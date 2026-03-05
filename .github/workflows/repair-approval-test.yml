@@ -1,0 +1,83 @@
+name: repair-approval-test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/pipeline-repair/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'services/pipeline-repair/**'
+
+jobs:
+  test-approval-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: |
+          cd services/pipeline-repair
+          npm install --no-audit --no-fund
+      - name: Start repair service
+        run: |
+          cd services/pipeline-repair
+          rm -f data/approvals.json
+          timeout 30s env PORT=8083 node lib/server.js &> /tmp/repair.log &
+          sleep 2
+          if ! curl -s http://localhost:8083/health; then
+            echo "Server failed to start"
+            cat /tmp/repair.log
+            exit 1
+          fi
+      - name: Test approval flow
+        run: |
+          set -e
+          EVT_ID="ci-evt-$(date +%s)"
+          
+          # Analyze -> expect PENDING_APPROVAL
+          RESP=$(curl -s -w '\n%{http_code}' -X POST http://localhost:8083/analyze \
+            -H 'Content-Type: application/json' \
+            -d "{\"id\":\"$EVT_ID\",\"errorMessage\":\"Error: Connection timeout\",\"forceApproval\":true}")
+          HTTP_CODE=$(echo "$RESP" | tail -1)
+          BODY=$(echo "$RESP" | head -1)
+          echo "Analyze response ($HTTP_CODE): $BODY"
+          if [ "$HTTP_CODE" != "202" ]; then
+            echo "Expected HTTP 202 for PENDING_APPROVAL"
+            exit 1
+          fi
+          if ! echo "$BODY" | grep -q "PENDING_APPROVAL"; then
+            echo "Expected PENDING_APPROVAL status"
+            exit 1
+          fi
+          
+          # Approve
+          APPROVE=$(curl -s -X POST http://localhost:8083/approve \
+            -H 'Content-Type: application/json' \
+            -d "{\"eventId\":\"$EVT_ID\",\"approver\":\"ci-test\",\"reason\":\"smoke test\"}")
+          echo "Approve response: $APPROVE"
+          if ! echo "$APPROVE" | grep -q "approved"; then
+            echo "Expected approval response"
+            exit 1
+          fi
+          
+          # Analyze again -> expect full recommendation
+          RESP2=$(curl -s -w '\n%{http_code}' -X POST http://localhost:8083/analyze \
+            -H 'Content-Type: application/json' \
+            -d "{\"id\":\"$EVT_ID\",\"errorMessage\":\"Error: Connection timeout\",\"forceApproval\":true}")
+          HTTP_CODE2=$(echo "$RESP2" | tail -1)
+          BODY2=$(echo "$RESP2" | head -1)
+          echo "Analyze after approve ($HTTP_CODE2): $BODY2"
+          if [ "$HTTP_CODE2" != "200" ]; then
+            echo "Expected HTTP 200 after approval"
+            exit 1
+          fi
+          if ! echo "$BODY2" | grep -q "REPAIR_IDENTIFIED"; then
+            echo "Expected REPAIR_IDENTIFIED status"
+            exit 1
+          fi
+          
+          echo "✓ Approval flow test PASSED"
