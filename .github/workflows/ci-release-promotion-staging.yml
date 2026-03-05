@@ -1,0 +1,49 @@
+name: CI - Release Promotion (Staging Test)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  staging-promotion-test:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_REGISTRY: ${{ secrets.TARGET_REGISTRY_STAGING || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to staging registry
+        if: ${{ secrets.TARGET_REGISTRY_STAGING && secrets.TARGET_REGISTRY_STAGING_USERNAME && secrets.TARGET_REGISTRY_STAGING_PASSWORD }}
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ secrets.TARGET_REGISTRY_STAGING }}
+          username: ${{ secrets.TARGET_REGISTRY_STAGING_USERNAME }}
+          password: ${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD }}
+
+      - name: Generate manifest
+        run: |
+          ./scripts/airgap/generate_image_manifest.sh > /tmp/airgap-manifest.yml
+          cat /tmp/airgap-manifest.yml
+
+      - name: Dry-run promote to staging
+        run: |
+          echo "This job will tag/push images to staging registry: $TARGET_REGISTRY"
+          ./scripts/airgap/generate_image_manifest.sh > /tmp/airgap-manifest.yml
+          # Use promote script but only push first image as a safe smoke test
+          first=$(grep -E "^\s*image:\s*" -h /tmp/airgap-manifest.yml | sed -E 's/^[[:space:]]*image:[[:space:]]*//' | head -n1)
+          if [ -n "$first" ]; then
+            echo "Testing push for $first -> $TARGET_REGISTRY/$first"
+            docker pull "$first"
+            docker tag "$first" "$TARGET_REGISTRY/$first"
+            docker push "$TARGET_REGISTRY/$first"
+          else
+            echo "No images found in manifest" && exit 1
+          fi
+
+      - name: Cleanup test image from staging
+        if: success()
+        run: |
+          echo "Cleanup left to manual ops (depends on registry API); consider removing test image if needed"
