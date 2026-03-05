@@ -111,7 +111,7 @@ fetch_secret() {
   "data": $secret_data,
   "fetched_at": "$(date -Iseconds)",
   "ttl": $CREDENTIAL_TTL,
-  "expires_at": $(($(date +%s) + CREDENTIAL_TTL))
+  "expires_at": $(($(date +%s) + $CREDENTIAL_TTL))
 }
 EOF
   
@@ -332,7 +332,8 @@ HELP
   esac
 }
 
-# Register cleanup on exit
-trap cleanup EXIT
-
-main "$@"
+# Register cleanup and invoke main only when executed directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  trap cleanup EXIT
+  main "$@"
+fi
