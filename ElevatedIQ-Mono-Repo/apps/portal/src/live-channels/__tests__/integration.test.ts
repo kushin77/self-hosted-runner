@@ -4,7 +4,7 @@
  * Complete fixture examples and test patterns for each channel adapter.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { loadChannels, shutdownChannels } from '../loader';
 import type { ChannelConfig } from '../loader';
 
@@ -14,7 +14,7 @@ const mockApp = {
   ws: vi.fn(),
 } as any;
 
-const mockHttpServer = {
+const _mockHttpServer = {
   on: vi.fn(),
 } as any;
 
@@ -171,13 +171,13 @@ describe('Live Channel Adapters', () => {
 describe('Message Handlers', () => {
   it('should handle WebSocket message', async () => {
     // Mock WebSocket client
-    const mockClient = {
+    const _mockClient = {
       send: vi.fn(),
       close: vi.fn(),
     };
 
     // Simulate incoming message
-    const incomingMessage = {
+    const _incomingMessage = {
       type: 'ping',
       payload: { test: true },
     };
@@ -188,7 +188,7 @@ describe('Message Handlers', () => {
   });
 
   it('should handle Slack command', async () => {
-    const mockSlackCommand = {
+    const _mockSlackCommand = {
       token: 'test-token',
       team_id: 'T12345',
       channel_id: 'C12345',
