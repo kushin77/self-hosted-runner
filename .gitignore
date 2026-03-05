@@ -6,3 +6,6 @@ dist/
 *.zip
 *.bin
 *.exe
+# Ignore bundled node binaries for actions-runner distributions (they are large)
+actions-runner-*/externals/**/bin/node
+actions-runner-*/externals/**/bin/node*
