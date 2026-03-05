@@ -3,9 +3,13 @@
 Production-grade infrastructure and automation for self-hosted GitHub Actions runners, including provisioning, observability, security, and lifecycle tooling.
 
 > **WebSocket Security**: when running the provisioner metrics server with real-time updates, set `SOCKET_AUTH_TOKEN` in the environment. Clients must authenticate by supplying the same token in `socket.handshake.auth.token` or via an `Authorization: Bearer` header.
-
-
-> **WebSocket Security**: when running the provisioner metrics server with real-time updates, set `SOCKET_AUTH_TOKEN` in the environment. Clients must authenticate by supplying the same token in `socket.handshake.auth.token` or via an `Authorization: Bearer` header.
+>
+> For extra protection, run the socket service over TLS/WSS by setting `SOCKET_TLS=true` and providing certs via `SOCKET_CERT_PATH`/`SOCKET_KEY_PATH` or inline `SOCKET_CERT`/`SOCKET_KEY`. Secrets can also be stored in Vault and fetched at startup with `VAULT_ADDR`, `VAULT_TOKEN`, and paths `SOCKET_TOKEN_VAULT_PATH` and `SOCKET_CERT_VAULT_PATH`.
+>
+> **Monitoring**: the server now exports socket metrics at `/metrics` and `/metrics/summary`:
+> `provisioner_socket_connections_total`, `provisioner_socket_disconnections_total`, `provisioner_socket_auth_failures_total`, `provisioner_socket_rate_limit_total`, and `provisioner_socket_tls_errors_total`. These counters are also included in the JSON summary under `socket`.
+>
+> **Load testing**: a simple load test script is available at `services/provisioner-worker/tests/socket_load_test.js` and can be run with `npm --prefix services/provisioner-worker run test:load -- <port> <clients>`.
 
 
 **Status:** ✅ Production Ready — Awaiting Ops Secrets | **Last Updated:** 2026-03-05

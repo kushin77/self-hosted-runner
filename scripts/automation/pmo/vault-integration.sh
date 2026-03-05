@@ -19,7 +19,7 @@ ROTATION_INTERVAL="${ROTATION_INTERVAL:-3600}"  # 1 hour checks
 CREDENTIAL_CACHE_DIR="${CREDENTIAL_CACHE_DIR:-/tmp/vault-credentials}"
 AUDIT_LOG="${AUDIT_LOG:-/var/log/vault-operations.log}"
 
-mkdir -p "$CREDENTIAL_CACHE_DIR"
+mkdir -p "$CREDENTIAL_CACHE_DIR" && chmod 700 "$CREDENTIAL_CACHE_DIR"
 mkdir -p "$(dirname "$AUDIT_LOG")"
 
 log() {
@@ -43,8 +43,8 @@ authenticate() {
   
   local secret_id=$(cat "$VAULT_SECRET_ID_PATH")
   
-  # AppRole authentication request
-  local auth_response=$(curl -s \
+  # AppRole authentication request (with timeouts)
+  local auth_response=$(curl -sS --connect-timeout 5 --max-time 10 \
     -X POST \
     -H "Content-Type: application/json" \
     -d "{\"role_id\": \"$VAULT_ROLE_ID\", \"secret_id\": \"$secret_id\"}" \
@@ -86,7 +86,7 @@ fetch_secret() {
   log "INFO" "Fetching secret: $secret_path"
   
   # Fetch secret
-  local secret_response=$(curl -s \
+  local secret_response=$(curl -sS --connect-timeout 5 --max-time 10 \
     -H "X-Vault-Token: $token" \
     "$VAULT_ADDR/v1/$secret_path" 2>/dev/null || echo "{}")
   
@@ -111,7 +111,7 @@ fetch_secret() {
   "data": $secret_data,
   "fetched_at": "$(date -Iseconds)",
   "ttl": $CREDENTIAL_TTL,
-  "expires_at": $(($(date +%s) + CREDENTIAL_TTL))
+  "expires_at": $(($(date +%s) + $CREDENTIAL_TTL))
 }
 EOF
   
@@ -332,7 +332,8 @@ HELP
   esac
 }
 
-# Register cleanup on exit
-trap cleanup EXIT
-
-main "$@"
+# Register cleanup and invoke main only when executed directly.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  trap cleanup EXIT
+  main "$@"
+fi
