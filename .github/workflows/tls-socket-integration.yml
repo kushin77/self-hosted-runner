@@ -21,6 +21,10 @@ jobs:
           cd services/provisioner-worker
           npm ci --no-audit --no-fund
 
+      - name: Run vault helper unit test
+        run: |
+          npm --prefix services/provisioner-worker run test:unit:vault
+
       - name: Run TLS socket integration test
         run: |
           npm --prefix services/provisioner-worker run test:integration:tls
