@@ -1,3 +1,4 @@
+---
 name: Terraform Plan & Apply
 permissions:
   contents: read

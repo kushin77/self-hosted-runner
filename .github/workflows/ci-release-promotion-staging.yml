@@ -1,3 +1,4 @@
+---
 name: CI - Release Promotion (Staging Test)
 permissions:
   contents: read

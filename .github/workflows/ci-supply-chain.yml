@@ -1,3 +1,4 @@
+---
 name: CI - Supply Chain SBOM & Signature Verification
 permissions:
   contents: read

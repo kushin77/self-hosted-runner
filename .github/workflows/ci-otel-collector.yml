@@ -1,3 +1,4 @@
+---
 name: CI - OTEL Collector Integration
 permissions:
   contents: read

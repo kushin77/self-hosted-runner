@@ -1,3 +1,4 @@
+---
 name: Socket Integration Tests
 permissions:
   contents: read
