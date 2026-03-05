@@ -12,22 +12,46 @@ locals {
     #!/bin/bash
     set -euo pipefail
 
-    # Fetch the repository-provided startup wrapper which handles OIDC/Vault bootstrap,
-    # registry login, token renewal helper, and eventual runner registration.
-    BOOTSTRAP_URL="https://raw.githubusercontent.com/kushin77/self-hosted-runner/main/scripts/identity/runner-startup.sh"
-    BOOTSTRAP_PATH="/tmp/runner-startup.sh"
+    # Bootstrap sequence (default):
+    # 1) Install minimal packages (curl, jq) if missing
+    # 2) Deploy Vault Agent config + template + systemd unit from repo
+    # 3) Start/enable vault-agent.service
+    # 4) Fetch and exec the runner-startup wrapper which performs OIDC->Vault login and registers the runner
 
+    BOOTSTRAP_BASE="https://raw.githubusercontent.com/kushin77/self-hosted-runner/main"
+    VAULT_AGENT_DIR="/etc/vault-agent"
+    BOOTSTRAP_DIR="/tmp"
+
+    # Ensure basic tooling
     if ! command -v curl >/dev/null 2>&1; then
-      echo "curl required to fetch bootstrapper; please install curl or provide a custom_startup_script"
-      exit 1
+      if command -v apt-get >/dev/null 2>&1; then
+        apt-get update -y && apt-get install -y curl jq || true
+      fi
     fi
 
-    echo "Fetching runner startup wrapper from ${BOOTSTRAP_URL}"
-    curl -fsSL "${BOOTSTRAP_URL}" -o "${BOOTSTRAP_PATH}"
-    chmod +x "${BOOTSTRAP_PATH}"
+    mkdir -p ${VAULT_AGENT_DIR}/templates
 
-    # Execute the startup wrapper; it will attempt OIDC->Vault login and then register the runner
-    exec "${BOOTSTRAP_PATH}"
+    echo "Fetching Vault Agent configuration and template"
+    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.hcl" -o "${VAULT_AGENT_DIR}/vault-agent.hcl" || true
+    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/registry-creds.tpl" -o "${VAULT_AGENT_DIR}/templates/registry-creds.tpl" || true
+    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.service" -o "/etc/systemd/system/vault-agent.service" || true
+
+    # Ensure vault binary exists (best-effort; recommend baking into image for production)
+    if ! command -v vault >/dev/null 2>&1; then
+      echo "Vault binary not found; please bake Vault into the image for production. Skipping vault-agent auto-start."
+    else
+      systemctl daemon-reload || true
+      systemctl enable --now vault-agent.service || true
+    fi
+
+    # Fetch and run the runner startup wrapper (handles OIDC->Vault bootstrap and runner registration)
+    RUNNER_STARTUP_URL="${BOOTSTRAP_BASE}/scripts/identity/runner-startup.sh"
+    RUNNER_STARTUP_PATH="${BOOTSTRAP_DIR}/runner-startup.sh"
+    echo "Fetching runner startup wrapper from ${RUNNER_STARTUP_URL}"
+    curl -fsSL "${RUNNER_STARTUP_URL}" -o "${RUNNER_STARTUP_PATH}" || true
+    chmod +x "${RUNNER_STARTUP_PATH}"
+
+    exec "${RUNNER_STARTUP_PATH}"
   EOT
 
   metadata_base = {
