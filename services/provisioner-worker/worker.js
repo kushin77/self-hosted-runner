@@ -6,6 +6,10 @@ const crypto = require('crypto');
 const metricsServer = require('./lib/metricsServer');
 const metrics = require('./lib/metrics');
 const logger = require('./lib/logger');
+const otel = require('./lib/otel.cjs');
+
+// initialize telemetry (no-op if packages missing or ENABLE_OTEL!=true)
+otel.init();
 
 const POLL_MS = Number(process.env.WORKER_POLL_MS || '5000');
 const METRICS_PORT = Number(process.env.METRICS_PORT || '9090');
@@ -28,7 +32,13 @@ async function processJob(job) {
   const startTime = Date.now();
   let jobLog = logger.child({correlation_id: job.request_id || logger.genCorrelationId()});
   jobLog.info('processing job', {status: job.status});
+
+  // start a tracing span if tracer is available
+  const tracer = otel.getTracer();
+  const span = tracer ? tracer.startSpan('processJob', { attributes: { request_id: job.request_id } }) : null;
+  if (span) span.setAttribute('job.status', job.status);
   if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs + 1);
+  if (span) span.addEvent('metrics.increment_active');
   const tfFiles = job.payload && job.payload.tfFiles ? job.payload.tfFiles : null;
   const planHash = shaForTfFiles(tfFiles);
   if (planHash) {
@@ -41,6 +51,7 @@ async function processJob(job) {
       if (ENABLE_METRICS) metrics.recordJobStoreWrite(Date.now() - storeStart);
       if (ENABLE_METRICS) metrics.recordJobCompletion('duplicated', Date.now() - startTime);
       if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs - 1);
+      if (span) span.addEvent('metrics.decrement_active');
       jobLog.warn('job duplicate detected');
       return;
     }
@@ -77,6 +88,8 @@ async function processJob(job) {
   if (ENABLE_METRICS) metrics.recordJobStoreWrite(Date.now() - storeStart2);
 
   if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs - 1);
+  if (span) span.addEvent('metrics.decrement_active');
+  if (span) span.end();
 }
 
 async function loop() {
