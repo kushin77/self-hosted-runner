@@ -43,11 +43,6 @@ resource "aws_autoscaling_group" "runner_asg" {
   min_size            = 0
   desired_capacity    = var.desired_capacity
   vpc_zone_identifier = var.subnet_ids
-  launch_template {
-    id      = aws_launch_template.runner_lt.id
-    version = "$Latest"
-  }
-
   mixed_instances_policy {
     launch_template {
       launch_template_specification {
