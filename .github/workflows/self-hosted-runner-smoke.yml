@@ -31,6 +31,9 @@ jobs:
           cat /etc/os-release || true
           echo "Checking disk usage:"
           df -h .
+      - name: Agent timestamp
+        run: |
+          echo "AGENT-TRIGGER: 2026-03-05T00:00:00Z"
 
       - name: Echo success
         run: echo "SELF-HOSTED RUNNER SMOKE: OK"
