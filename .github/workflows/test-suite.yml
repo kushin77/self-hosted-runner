@@ -79,6 +79,7 @@ jobs:
           bash services/provisioner-worker/tests/send_otlp.sh || true
           bash services/provisioner-worker/tests/send_datadog.sh || true
           bash services/provisioner-worker/tests/send_splunk.sh || true
+          bash services/provisioner-worker/tests/audit_test.sh || true
         env:
           OTEL_EXPORTER_OTLP_ENDPOINT: "${{ env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces' }}"
           DATADOG_API_KEY: "${{ secrets.DATADOG_API_KEY || '' }}"
