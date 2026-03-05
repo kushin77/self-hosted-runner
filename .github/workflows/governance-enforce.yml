@@ -9,8 +9,6 @@ concurrency:
   group: "governance-${{ github.event.pull_request.number }}"
   cancel-in-progress: true
 
-on:
-  workflow_dispatch: {}
 jobs:
   check-workflows:
     runs-on: [self-hosted, linux]

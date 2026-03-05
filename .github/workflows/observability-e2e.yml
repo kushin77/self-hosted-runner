@@ -52,5 +52,3 @@ jobs:
           name: observability-e2e-logs
           path: |
             /tmp/observability-e2e.*/**
-on:
-  workflow_dispatch: {}
