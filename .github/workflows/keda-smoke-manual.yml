@@ -1,0 +1,25 @@
+name: KEDA Smoke Test — Manual Dispatch
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment (staging/prod)'
+        required: true
+        default: staging
+
+jobs:
+  keda-smoke:
+    name: Run KEDA smoke-tests (manual)
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run smoke-test script if present
+        run: |
+          set -euo pipefail
+          if [ -x ./scripts/keda-smoke.sh ]; then
+            ./scripts/keda-smoke.sh ${{ github.event.inputs.environment }}
+          else
+            echo "No scripts/keda-smoke.sh found; run smoke tests manually."
