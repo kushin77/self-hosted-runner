@@ -20,11 +20,7 @@ on:
 jobs:
   terraform-apply:
     name: Terraform Apply (aws-spot)
-<<<<<<< HEAD
-    runs-on: self-hosted
-=======
     runs-on: [self-hosted, linux]
->>>>>>> 9a7a398 (chore(workflows): enforce permissions/concurrency; add governance workflow; update docs and contributing)
     environment: prod-terraform-apply
     permissions:
       contents: read
