@@ -50,6 +50,13 @@ const metrics = {
   terraform_applies_total: 0,
   terraform_errors_total: 0,
   
+  // Socket counters
+  socket_connections_total: 0,
+  socket_disconnections_total: 0,
+  socket_auth_failures_total: 0,
+  socket_rate_limit_total: 0,
+  socket_tls_errors_total: 0,
+  
   // Gauges
   queue_depth: 0,
   active_jobs: 0,
@@ -159,6 +166,42 @@ function setVaultConnected(connected) {
 }
 
 /**
+ * Increment socket connection counter
+ */
+function incSocketConnected() {
+  metrics.socket_connections_total += 1;
+}
+
+/**
+ * Increment socket disconnection counter
+ */
+function incSocketDisconnected() {
+  metrics.socket_disconnections_total += 1;
+}
+
+/**
+ * Increment socket authentication failure counter
+ */
+function incSocketAuthFailure() {
+  metrics.socket_auth_failures_total += 1;
+}
+
+/**
+ * Increment rate limit rejection counter
+ */
+function incSocketRateLimit() {
+  metrics.socket_rate_limit_total += 1;
+}
+
+/**
+ * Increment TLS error counter
+ */
+function incSocketTlsError() {
+  metrics.socket_tls_errors_total += 1;
+}
+
+
+/**
  * Update jobStore operational status
  * @param {boolean} operational - Whether jobStore is functioning
  */
@@ -228,6 +271,26 @@ function getPrometheusMetrics() {
   lines.push(`provisioner_vault_connected ${metrics.vault_connected ? 1 : 0}`);
   
   lines.push('# HELP provisioner_jobstore_operational JobStore operational status (1=operational, 0=error)');
+  lines.push('# TYPE provisioner_jobstore_operational gauge');
+  lines.push(`provisioner_jobstore_operational ${metrics.jobstore_operational ? 1 : 0}`);
+
+  // socket metrics
+  lines.push('# HELP provisioner_socket_connections_total Total socket connections established');
+  lines.push('# TYPE provisioner_socket_connections_total counter');
+  lines.push(`provisioner_socket_connections_total ${metrics.socket_connections_total}`);
+  lines.push('# HELP provisioner_socket_disconnections_total Total socket disconnections');
+  lines.push('# TYPE provisioner_socket_disconnections_total counter');
+  lines.push(`provisioner_socket_disconnections_total ${metrics.socket_disconnections_total}`);
+  lines.push('# HELP provisioner_socket_auth_failures_total Total socket auth failures');
+  lines.push('# TYPE provisioner_socket_auth_failures_total counter');
+  lines.push(`provisioner_socket_auth_failures_total ${metrics.socket_auth_failures_total}`);
+  lines.push('# HELP provisioner_socket_rate_limit_total Total socket rate-limit rejections');
+  lines.push('# TYPE provisioner_socket_rate_limit_total counter');
+  lines.push(`provisioner_socket_rate_limit_total ${metrics.socket_rate_limit_total}`);
+  lines.push('# HELP provisioner_socket_tls_errors_total Total TLS handshake errors');
+  lines.push('# TYPE provisioner_socket_tls_errors_total counter');
+  lines.push(`provisioner_socket_tls_errors_total ${metrics.socket_tls_errors_total}`);
+
   lines.push('# TYPE provisioner_jobstore_operational gauge');
   lines.push(`provisioner_jobstore_operational ${metrics.jobstore_operational ? 1 : 0}`);
   
@@ -315,6 +378,13 @@ function getSummaryStats() {
       vaultConnected: metrics.vault_connected,
       jobstoreOperational: metrics.jobstore_operational,
     },
+    socket: {
+      connections: metrics.socket_connections_total,
+      disconnections: metrics.socket_disconnections_total,
+      authFailures: metrics.socket_auth_failures_total,
+      rateLimit: metrics.socket_rate_limit_total,
+      tlsErrors: metrics.socket_tls_errors_total,
+    },
     lastJobCompleted: metrics.last_job_completed_at,
   };
 }
@@ -327,6 +397,11 @@ module.exports = {
   updateActiveJobs,
   setVaultConnected,
   setJobStoreOperational,
+  incSocketConnected,
+  incSocketDisconnected,
+  incSocketAuthFailure,
+  incSocketRateLimit,
+  incSocketTlsError,
   getPrometheusMetrics,
   getSummaryStats,
   metrics,
