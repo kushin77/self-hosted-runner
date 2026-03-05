@@ -3,7 +3,7 @@ import { RunnerDTO, EventDTO, BillingDTO, CacheLayerDTO, AIInsightDTO } from './
 // Minimal API client abstraction with mock responses for local dev.
 // When a real backend URL is provided via VITE_API_BASE, forward calls there.
 
-const base = (import.meta as any).env.VITE_API_BASE || '';
+const base = ((import.meta as unknown) as { env?: { VITE_API_BASE?: string } }).env?.VITE_API_BASE || '';
 const useMock = !base; // mock when no backend base URL
 
 
@@ -31,7 +31,7 @@ const mockAI: AIInsightDTO[] = [
 async function fetchJson<T>(path: string): Promise<T> {
   if (useMock) {
     // small deterministic delay
-    await new Promise((r) => setTimeout(r, 120));
+    await new Promise<void>((resolve) => setTimeout(resolve, 120));
     switch (path) {
       case '/api/runners':
         return (mockRunners as unknown) as T;
@@ -59,5 +59,23 @@ export const api = {
   getEvents: async (): Promise<EventDTO[]> => fetchJson<EventDTO[]>('/api/events'),
   getBilling: async (): Promise<BillingDTO> => fetchJson<BillingDTO>('/api/billing'),
   getCacheLayers: async (): Promise<CacheLayerDTO[]> => fetchJson<CacheLayerDTO[]>('/api/cache'),
+  warmupCache: async (strategy: string): Promise<Record<string, unknown>> => {
+    const res = await fetch(base + '/api/cache/warmup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ strategy }),
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return (await res.json()) as Record<string, unknown>;
+  },
   getAIInsights: async (): Promise<AIInsightDTO[]> => fetchJson<AIInsightDTO[]>('/api/ai'),
+  analyzeJob: async (jobId: string, logs: string): Promise<Record<string, unknown>> => {
+    const res = await fetch(base + '/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jobId, logs }),
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return (await res.json()) as Record<string, unknown>;
+  },
 };
