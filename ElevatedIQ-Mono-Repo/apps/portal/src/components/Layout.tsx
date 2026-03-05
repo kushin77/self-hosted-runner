@@ -6,6 +6,7 @@ import { Pill, GlowDot, Button } from './UI';
  * Navigation items for sidebar
  */
 export const NAV_ITEMS = [
+  { id: 'landing', icon: '🏠', label: 'Welcome' },
   { id: 'home', icon: '⚡', label: 'Dashboard' },
   { id: 'observability', icon: '📊', label: 'Observability', badge: 'ENHANCED' },
   { id: 'agents', icon: '🧠', label: 'Agent Studio', badge: 'NEW' },
