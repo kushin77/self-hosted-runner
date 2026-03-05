@@ -3,7 +3,15 @@
 All notable changes to this repository will be documented in this file.
 
 ## [Unreleased]
-- EIQ Nexus governance framework, ADRs, and initial API/repair/runner scaffolding (PR #336)
+- Minor follow-ups and backlog items
+
+## [0.1.1-eiq-nexus] - 2026-03-05
+### Added
+- Postgres-backed persistence for the Pipeline Repair Engine with migrations
+- NDJSON file-based telemetry fallback for air-gapped or ephemeral runs
+- CI workflow to run Postgres migrations and integration tests (.github/workflows/pipeline-repair-postgres-ci.yml)
+- API and service consolidation: merged repair persistence, migrations, and orchestrator scaffolds
+
 
 ## [0.1.0-eiq-nexus] - 2026-03-05
 ### Added
