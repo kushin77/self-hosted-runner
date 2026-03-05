@@ -4,7 +4,7 @@ set -euo pipefail
 
 ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://localhost:4318/v1/traces}
 
-cat <<'EOF' | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
+cat <<EOF | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
   -H "Content-Type: application/json" \
   --data-binary @-
 {
@@ -20,8 +20,8 @@ cat <<'EOF' | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
               "spanId": "0000000000000002",
               "name": "test-span",
               "kind": 1,
-              "startTimeUnixNano": "$(date +%s%N)",
-              "endTimeUnixNano": "$(($(date +%s%N) + 1000000))",
+              "startTimeUnixNano": $(date +%s%N),
+              "endTimeUnixNano": $(($(date +%s%N) + 1000000)),
               "attributes": []
             }
           ]
