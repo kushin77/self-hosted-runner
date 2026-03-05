@@ -3,7 +3,8 @@
 Production-grade infrastructure and automation for self-hosted GitHub Actions runners, including provisioning, observability, security, and lifecycle tooling.
 
 > **WebSocket Security**: when running the provisioner metrics server with real-time updates, set `SOCKET_AUTH_TOKEN` in the environment. Clients must authenticate by supplying the same token in `socket.handshake.auth.token` or via an `Authorization: Bearer` header.
-
+>
+> For extra protection, run the socket service over TLS/WSS by setting `SOCKET_TLS=true` and providing certs via `SOCKET_CERT_PATH`/`SOCKET_KEY_PATH` or inline `SOCKET_CERT`/`SOCKET_KEY`. Secrets can also be stored in Vault and fetched at startup with `VAULT_ADDR`, `VAULT_TOKEN`, and paths `SOCKET_TOKEN_VAULT_PATH` and `SOCKET_CERT_VAULT_PATH`.
 
 > **WebSocket Security**: when running the provisioner metrics server with real-time updates, set `SOCKET_AUTH_TOKEN` in the environment. Clients must authenticate by supplying the same token in `socket.handshake.auth.token` or via an `Authorization: Bearer` header.
 

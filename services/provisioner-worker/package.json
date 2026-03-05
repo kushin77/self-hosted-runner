@@ -80,7 +80,12 @@
     "unpipe": "^1.0.0",
     "vary": "^1.1.2",
     "wrappy": "^1.0.2",
-    "yallist": "^4.0.0"
+    "yallist": "^4.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "selfsigned": "^1.10.14",
+    "nock": "^13.3.2"
   },
   "optionalDependencies": {
     "@opentelemetry/exporter-trace-otlp-http": "^1.0.0",
@@ -89,7 +94,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "test:integration": "node tests/socket_integration_test.js"
+    "test:integration": "node tests/socket_integration_test.js",
+    "test:integration:tls": "node tests/tls_socket_integration_test.js",
+    "test:unit:vault": "node tests/vault_integration_test.js"
   },
   "keywords": [],
   "author": "",
