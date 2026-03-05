@@ -118,7 +118,7 @@ start_portal() {
       npm install -g http-server > /dev/null 2>&1
     fi
 
-    http-server -p 3919 -c-1 dist > "$REPO_ROOT/logs/portal-prod.log" 2>&1 &
+    http-server -a 0.0.0.0 -p 3919 -c-1 dist > "$REPO_ROOT/logs/portal-prod.log" 2>&1 &
     local portal_pid=$!
   fi
 
