@@ -15,13 +15,13 @@ jobs:
       - name: Setup Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: Login to staging registry
-        if: ${{ secrets.TARGET_REGISTRY_STAGING && secrets.TARGET_REGISTRY_STAGING_USERNAME && secrets.TARGET_REGISTRY_STAGING_PASSWORD }}
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ secrets.TARGET_REGISTRY_STAGING }}
-          username: ${{ secrets.TARGET_REGISTRY_STAGING_USERNAME }}
-          password: ${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD }}
+      - name: Login to staging registry (safe)
+        run: |
+          if [ -z "${{ secrets.TARGET_REGISTRY_STAGING || '' }}" ] || [ -z "${{ secrets.TARGET_REGISTRY_STAGING_USERNAME || '' }}" ] || [ -z "${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD || '' }}" ]; then
+            echo "Skipping registry login: required secrets missing (TARGET_REGISTRY_STAGING/TARGET_REGISTRY_STAGING_USERNAME/TARGET_REGISTRY_STAGING_PASSWORD)"
+            exit 0
+          fi
+          echo "${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD }}" | docker login "${{ secrets.TARGET_REGISTRY_STAGING }}" -u "${{ secrets.TARGET_REGISTRY_STAGING_USERNAME }}" --password-stdin
 
       - name: Generate manifest
         run: |
