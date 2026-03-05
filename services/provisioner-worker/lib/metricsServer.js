@@ -66,21 +66,42 @@ async function startMetricsServer(port = 9090, app = null) {
     
     // Only start server if not using existing Express app
     if (!useExisting) {
-      metricsServer = finalApp.listen(port, '0.0.0.0', () => {
-        const log = require('./logger').child({component:'metricsServer'});
-      log.info('server listening', {url:`http://0.0.0.0:${port}`});
+      // Optional TLS support for sockets and endpoints
+      const useTls = (process.env.SOCKET_TLS || '').toLowerCase() === 'true';
+      let serverInstance = null;
+      if (useTls) {
+        const fs = require('fs');
+        const https = require('https');
+        const certPath = process.env.SOCKET_CERT_PATH || process.env.SOCKET_CERT; // fallback
+        const keyPath = process.env.SOCKET_KEY_PATH || process.env.SOCKET_KEY;
+        if (!certPath || !keyPath) {
+          console.warn('[metrics] SOCKET_TLS=true but SOCKET_CERT_PATH or SOCKET_KEY_PATH not provided; falling back to HTTP');
+          serverInstance = finalApp.listen(port, '0.0.0.0', () => {});
+        } else {
+          const cert = fs.readFileSync(certPath);
+          const key = fs.readFileSync(keyPath);
+          serverInstance = https.createServer({ cert, key }, finalApp).listen(port, '0.0.0.0', () => {});
+        }
+      } else {
+        serverInstance = finalApp.listen(port, '0.0.0.0', () => {});
+      }
+
+      metricsServer = serverInstance;
+      const log = require('./logger').child({component:'metricsServer'});
+      const proto = useTls ? 'https' : 'http';
+      log.info('server listening', {url:`${proto}://0.0.0.0:${port}`});
       log.info('endpoint','/metrics Prometheus format');
       log.info('endpoint','/health health status');
       log.info('endpoint','/metrics/summary JSON metrics');
       log.info('endpoint','/ready readiness check');
       log.info('endpoint','/alive liveness check');
-      });
 
       // Initialize Socket.IO for Phase 2 real-time migration
       const { Server } = require('socket.io');
       io = new Server(metricsServer, {
         cors: { origin: '*', methods: ['GET', 'POST'] },
         path: '/socket.io',
+        allowEIO3: true,
       });
 
       // middleware for authentication and rate limiting
