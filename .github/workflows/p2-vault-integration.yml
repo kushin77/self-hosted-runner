@@ -1,0 +1,16 @@
+name: P2 Vault Integration
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  vault-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+      - name: Run smoke tests (staging)
+        run: |
+          bash tests/smoke/run-smoke-tests.sh staging
