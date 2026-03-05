@@ -6,23 +6,22 @@
  */
 
 import type { Express } from 'express';
-import type { Server as HttpServer } from 'http';
 
 import WebSocketAdapter from './websocket';
 import WebhookAdapter from './webhook';
 import SlackAdapter from './slack';
 import TeamsAdapter from './teams';
 
-interface ChannelConfig {
+export interface ChannelConfig {
   name: string;
   enabled: boolean;
   options?: Record<string, any>;
 }
 
-interface AdapterInstance {
+export interface AdapterInstance {
   name: string;
   mountPath: string;
-  init: (server: Express | HttpServer) => Promise<void>;
+  init: (server: any) => Promise<void>;
   shutdown: () => Promise<void>;
 }
 

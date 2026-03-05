@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  AreaChart, Area, LineChart, Line, BarChart, Bar,
+  AreaChart, Area, LineChart, Line,
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
@@ -60,7 +60,7 @@ export const AdvancedAnalytics: React.FC = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, value }) => `${name}: ${value.toFixed(1)}%`}
+                  label={({ name, value }) => `${name}: ${Number(value).toFixed(1)}%`}
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
@@ -68,7 +68,7 @@ export const AdvancedAnalytics: React.FC = () => {
                   <Cell fill="#10b981" />
                   <Cell fill="#ef4444" />
                 </Pie>
-                <Tooltip formatter={(value) => `${value.toFixed(1)}%`} />
+                <Tooltip formatter={(value) => `${Number(value).toFixed(1)}%`} />
               </PieChart>
             </ResponsiveContainer>
           </div>
