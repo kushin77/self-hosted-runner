@@ -1,3 +1,4 @@
+---
 name: CI - Airgap Full Integration Test
 permissions:
   contents: read

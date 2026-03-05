@@ -1,3 +1,4 @@
+---
 name: Governance Checks
 permissions:
   contents: read
@@ -28,32 +29,32 @@ jobs:
           PR_BODY='${{ github.event.pull_request.body }}'
           # Write PR body to file for parsing
           echo "$PR_BODY" > /tmp/pr_body.txt
-          
+
       - name: Check PR template compliance
         run: |
           PR_BODY=$(cat /tmp/pr_body.txt)
           REQUIRED_SECTIONS=("Summary" "Changes" "Type of Change" "Checklist" "Related Issues")
           VIOLATIONS=0
-          
+
           for section in "${REQUIRED_SECTIONS[@]}"; do
             if ! echo "$PR_BODY" | grep -q "^## $section"; then
               echo "❌ Missing required section: $section"
               ((VIOLATIONS++))
             fi
           done
-          
+
           # Check governance checklist items are present
           if ! echo "$PR_BODY" | grep -q "Governance Checklist"; then
             echo "❌ Missing Governance Checklist section"
             ((VIOLATIONS++))
           fi
-          
+
           # Check for issue link
           if ! echo "$PR_BODY" | grep -q "Closes #\|Relates to #\|Related: #"; then
             echo "⚠️  Warning: No issue linked. Please link this PR to related issues."
             ((VIOLATIONS++))
           fi
-          
+
           if [ $VIOLATIONS -gt 0 ]; then
             echo "❌ PR template validation FAILED with $VIOLATIONS violation(s)"
             echo "Please update your PR description to follow the template at .github/PULL_REQUEST_TEMPLATE.md"
@@ -69,7 +70,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Check for architecture label
         id: has-arch-label
         run: |
@@ -79,12 +80,12 @@ jobs:
           else
             echo "has_arch_label=false" >> $GITHUB_OUTPUT
           fi
-          
+
       - name: Validate ADR reference (if architecture change)
         if: steps.has-arch-label.outputs.has_arch_label == 'true'
         run: |
           PR_BODY='${{ github.event.pull_request.body }}'
-          
+
           # Check if ADR is referenced or architecture decision is documented
           if ! echo "$PR_BODY" | grep -qiE "ADR|Architecture Decision|Rationale:|Design"; then
             echo "❌ Architecture-labeled PR should reference an ADR or include design rationale"
@@ -103,35 +104,35 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          
+
       - name: Check for hardcoded secrets
         run: |
           # Check for common secret patterns
           FOUND_SECRETS=0
-          
+
           # AWS keys
           if git diff origin/main..HEAD | grep -E 'AKIA[0-9A-Z]{16}|aws_secret_access_key\s*=|AWS_SECRET'; then
             echo "❌ Found potential AWS credentials"
             ((FOUND_SECRETS++))
           fi
-          
+
           # Generic secrets
           if git diff origin/main..HEAD | grep -E 'password\s*[=:]\s*["\x27]|api[_-]?key\s*[=:]\s*["\x27]|secret\s*[=:]\s*["\x27]'; then
             echo "⚠️  Check for hardcoded credentials"
           fi
-          
+
           if [ $FOUND_SECRETS -gt 0 ]; then
             echo "❌ Security check FAILED: Potential secrets found"
             exit 1
           else
             echo "✅ No obvious hardcoded secrets detected"
           fi
-          
+
       - name: Check GitHub Secrets usage (for sensitive data)
         run: |
           PR_BODY='${{ github.event.pull_request.body }}'
           CHANGED_FILES=$(git diff origin/main..HEAD --name-only)
-          
+
           # If CI/deployment workflow changed, check for secrets usage
           if echo "$CHANGED_FILES" | grep -q "\.github/workflows"; then
             echo "ℹ️  Workflow file changed. Reviewer: verify secrets are referenced, not hardcoded"
@@ -142,7 +143,7 @@ jobs:
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-        
+
       - name: Validate CODEOWNERS exists
         run: |
           if [ ! -f .github/CODEOWNERS ]; then
@@ -150,7 +151,7 @@ jobs:
             exit 1
           fi
           echo "✅ CODEOWNERS file validated"
-          
+
       - name: Check if reviewers match CODEOWNERS
         run: |
           echo "ℹ️  CODEOWNERS-based reviewers:"
@@ -189,16 +190,16 @@ summary:
         echo "- CODEOWNERS: ${{ needs.enforce-codeowners.result }}"
         echo "- Labels: ${{ needs.validate-labels.result }}"
         echo ""
-        
+
         # Exit with failure if any required check failed
         if [[ "${{ needs.pr-template-validation.result }}" == "failure" ]]; then
           echo "❌ Governance checks FAILED (PR template issues)"
           exit 1
         fi
-        
+
         if [[ "${{ needs.check-security.result }}" == "failure" ]]; then
           echo "❌ Governance checks FAILED (security issues)"
           exit 1
         fi
-        
+
         echo "✅ Governance checks completed"

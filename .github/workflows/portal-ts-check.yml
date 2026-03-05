@@ -1,3 +1,4 @@
+---
 name: Portal TypeScript/Lint Check
 permissions:
   contents: read

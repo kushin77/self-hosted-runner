@@ -1,3 +1,4 @@
+---
 name: P4 - Azure Scale Set Plan (dry-run)
 permissions:
   contents: read

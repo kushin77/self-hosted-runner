@@ -1,3 +1,4 @@
+---
 name: Test Suite
 
 on:
@@ -14,7 +15,7 @@ jobs:
     name: Smoke Tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -146,7 +147,7 @@ jobs:
   lint-and-format:
     name: Code Quality
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -196,7 +197,7 @@ jobs:
           echo "✓ Vault Security Tests: ${{ needs.vault-security-tests.result }}"
           echo "✓ Code Quality: ${{ needs.lint-and-format.result }}"
           echo ""
-          
+
           # Check overall status
           if [[ "${{ needs.smoke-tests.result }}" == "success" ]] && \
              [[ "${{ needs.integration-tests.result }}" == "success" ]] && \
@@ -218,9 +219,9 @@ jobs:
             const integrationTests = '${{ needs.integration-tests.result }}';
             const vaultTests = '${{ needs.vault-security-tests.result }}';
             const codeQuality = '${{ needs.lint-and-format.result }}';
-            
+
             const allPassed = [smokeTests, integrationTests, vaultTests, codeQuality].every(r => r === 'success');
-            
+
             const comment = `
             ## Test Results
 
@@ -233,7 +234,7 @@ jobs:
 
             ${allPassed ? '✅ All production tests passed! Ready for merge.' : '❌ Some tests failed. Please review and fix.'}
             `;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,

@@ -1,3 +1,4 @@
+---
 name: Governance — Enforce Runner Labels
 on:
   pull_request:

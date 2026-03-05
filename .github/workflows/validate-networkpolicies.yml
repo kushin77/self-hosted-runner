@@ -1,3 +1,4 @@
+---
 name: Validate NetworkPolicy Manifests
 permissions:
   contents: read
