@@ -1,5 +1,8 @@
 const RetryStrategy = require('../strategies/retry');
 const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
+const ApprovalEngine = require('./approval-engine');
+const SafetyChecker = require('./safety-checker');
+const approvalsStore = require('./approvals');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -23,6 +26,8 @@ class RepairService {
       new TimeoutIncreaseStrategy()
     ];
     this.approvalThreshold = config.threshold || 0.7; // Confidence score to auto-repair
+    this.safety = new SafetyChecker(config.safety || {});
+    this.approvalEngine = new ApprovalEngine({ threshold: config.approvalThreshold || 0.7 });
   }
 
   /**
@@ -59,16 +64,63 @@ class RepairService {
     
     logger.info(`[REPAIR] Top strategy identified: ${topStrategy.strategy} (score: ${topStrategy.score})`);
     
-    // Execute repair logic (in MVP, just return recommendation)
+    // Prepare action object for safety checks
     const strategy = this.strategies.find(s => s.name === topStrategy.strategy);
+    // Map strategy to an action type expected by SafetyChecker
+    let actionType = 'repair_action';
+    if ((strategy.name || '').toLowerCase().includes('timeout')) actionType = 'increase_timeout';
+    else if ((strategy.name || '').toLowerCase().includes('retry')) actionType = 'status_check';
+
+    const action = {
+      id: `act-${event.id}-${Date.now()}`,
+      type: actionType,
+      scope: event.scope || 'pipeline-repair-service',
+      description: `Execute strategy ${strategy.name} for event ${event.id}`,
+      currentCount: event.currentCount,
+      targetCount: event.targetCount,
+      estimatedCostDelta: strategy.estimatedCostDelta || 0
+    };
+
+    // Run safety checks before executing any repair
+    const safetyResult = await this.safety.checkSafety(action, { baseline: event.baseline || {} });
+
+    if (!safetyResult.safe) {
+      // If RED or violations exist, do not proceed; request approval if YELLOW
+      logger.warn('[REPAIR] Safety check blocked execution', { eventId: event.id, safety: safetyResult });
+      if (safetyResult.category === 'YELLOW') {
+        // create approval request and persist
+        const req = await this.approvalEngine.requestApproval(event.id, event, action, safetyResult.recommendation);
+        approvalsStore.requestApproval(event.id, req).catch(err => logger.error('approval persist failed', err.message));
+        return {
+          status: 'PENDING_APPROVAL',
+          confidence: topStrategy.score,
+          safety: safetyResult,
+          approvalRequest: req
+        };
+      }
+
+      return {
+        status: 'BLOCKED_BY_SAFETY',
+        confidence: topStrategy.score,
+        safety: safetyResult
+      };
+    }
+
+    // If safe and GREEN or approved, execute the recommendation
     const recommendation = await strategy.execute(event);
-    
+
+    // If approved, persist approval record
+    if (approvalsStore.hasApproval(event.id)) {
+      approvalsStore.addApproval(event.id, { request: { eventId: event.id, approvedAt: new Date().toISOString() }, status: 'APPROVED' });
+    }
+
     return {
       status: 'REPAIR_IDENTIFIED',
       confidence: topStrategy.score,
       requiresApproval: topStrategy.score < this.approvalThreshold,
       risk: topStrategy.score > 0.8 ? 'LOW' : 'MEDIUM',
-      recommendation
+      recommendation,
+      safety: safetyResult
     };
   }
 }
