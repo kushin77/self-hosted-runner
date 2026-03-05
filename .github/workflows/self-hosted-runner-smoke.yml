@@ -2,6 +2,9 @@ name: Self-hosted Runner Smoke Test
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: [.github/workflows/self-hosted-runner-smoke.yml]
 
 jobs:
   smoke:
