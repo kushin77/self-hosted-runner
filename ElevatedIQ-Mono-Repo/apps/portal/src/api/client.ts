@@ -10,7 +10,7 @@ export interface FetchOptions {
 
 export const useMetrics = (options: FetchOptions = {}) => {
   const { interval = 5000 } = options;
-  const { setMetrics, setLoading, setError, addAlert } = useStore();
+  const { setMetrics, setLoading, setError, addAlert, isSocketConnected } = useStore();
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -67,14 +67,20 @@ export const useMetrics = (options: FetchOptions = {}) => {
       }
     };
 
-    fetchMetrics();
-    intervalId = setInterval(fetchMetrics, interval);
+    // If a socket connection is active we rely on real-time updates
+    if (!isSocketConnected) {
+      fetchMetrics();
+      intervalId = setInterval(fetchMetrics, interval);
+    } else {
+      // mark connected when socket is active and we already have data
+      setIsConnected(true);
+    }
 
     return () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [interval, setMetrics, setLoading, setError, addAlert, options]);
+  }, [interval, setMetrics, setLoading, setError, addAlert, options, isSocketConnected]);
 
   return { isConnected };
 };

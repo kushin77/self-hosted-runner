@@ -83,6 +83,33 @@ async function startMetricsServer(port = 9090, app = null) {
         path: '/socket.io',
       });
 
+      // middleware for authentication and rate limiting
+      const connectionCounts = new Map(); // ip -> [timestamps]
+
+      io.use((socket, next) => {
+        const authToken = process.env.SOCKET_AUTH_TOKEN;
+        if (authToken) {
+          const provided = socket.handshake.auth?.token ||
+            (socket.handshake.headers['authorization'] || '').split(' ')[1];
+          if (provided !== authToken) {
+            return next(new Error('unauthorized'));
+          }
+        }
+
+        // simple per-IP rate limiter (max 10 connections per minute)
+        const ip = socket.handshake.address || socket.request.socket.remoteAddress;
+        const now = Date.now();
+        const history = connectionCounts.get(ip) || [];
+        const recent = history.filter((t) => now - t < 60000);
+        recent.push(now);
+        connectionCounts.set(ip, recent);
+        if (recent.length > 10) {
+          return next(new Error('rate limit exceeded'));
+        }
+
+        next();
+      });
+
       io.on('connection', (socket) => {
         const log = require('./logger').child({ component: 'socket.io' });
         log.info('client connected', { id: socket.id });
