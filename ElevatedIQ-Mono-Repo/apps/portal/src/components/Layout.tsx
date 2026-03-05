@@ -125,15 +125,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
           >
             <span style={{ fontSize: 13 }}>{item.icon}</span>
             <span style={{ flex: 1 }}>{item.label}</span>
-            {item.badge && (
+            {((item as any).badge) && (
               <span
                 style={{
                   fontSize: 8,
                   background:
-                    item.badge === 'BETA' ? COLORS.yellow + '33' : COLORS.green + '33',
-                  color: item.badge === 'BETA' ? COLORS.yellow : COLORS.green,
+                    (item as any).badge === 'BETA' ? COLORS.yellow + '33' : COLORS.green + '33',
+                  color: (item as any).badge === 'BETA' ? COLORS.yellow : COLORS.green,
                   border: `1px solid ${
-                    item.badge === 'BETA' ? COLORS.yellow : COLORS.green
+                    (item as any).badge === 'BETA' ? COLORS.yellow : COLORS.green
                   }44`,
                   borderRadius: 3,
                   padding: '1px 4px',
@@ -141,7 +141,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ active, setActive }) => {
                   letterSpacing: '0.05em',
                 }}
               >
-                {item.badge}
+                {(item as any).badge}
               </span>
             )}
           </button>

@@ -25,6 +25,9 @@ export const COLORS = {
   purple: "#a855f7",
   cyan: "#06b6d4",
   orange: "#f97316",
+  // Aliases for legacy keys used across components
+  blue: "#3b82f6",
+  magenta: "#a855f7",
 
   // Text
   muted: "#4b5563",
