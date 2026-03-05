@@ -36,3 +36,27 @@ jobs:
             docker save -o build/first_image.tar "$first"
             ls -lh build/first_image.tar
           fi
+
+      - name: Generate checksummed manifest
+        run: |
+          ./scripts/airgap/generate_manifest_checksums.sh /tmp/airgap-manifest.yml /tmp/airgap-manifest-checked.yml
+          echo "Manifest with checksums:" && cat /tmp/airgap-manifest-checked.yml
+
+      - name: Sign images with cosign (optional)
+        if: ${{ secrets.COSIGN_KEY != '' }}
+        env:
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+        run: |
+          # Write key to file and sign images (COSIGN_KEY expected base64 encoded private key)
+          echo "$COSIGN_KEY" | base64 -d > /tmp/cosign.key
+          chmod 600 /tmp/cosign.key
+          ./scripts/airgap/sign_images_cosign.sh /tmp/airgap-manifest-checked.yml /tmp/cosign.key
+
+      - name: Verify image signatures with cosign (optional)
+        if: ${{ secrets.COSIGN_PUB_KEY != '' }}
+        env:
+          COSIGN_PUB_KEY: ${{ secrets.COSIGN_PUB_KEY }}
+        run: |
+          echo "$COSIGN_PUB_KEY" | base64 -d > /tmp/cosign.pub
+          chmod 644 /tmp/cosign.pub
+          ./scripts/airgap/verify_signatures_cosign.sh /tmp/airgap-manifest-checked.yml /tmp/cosign.pub
