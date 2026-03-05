@@ -14,5 +14,13 @@
   },
   "engines": {
     "node": ">=18"
-  }
+  },
+  "directories": {
+    "lib": "lib",
+    "test": "tests"
+  },
+  "devDependencies": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

@@ -48,3 +48,49 @@ groups:
         annotations:
           summary: "Provisioner p95 latency above 3000ms"
           description: "p95 latency: {{ $value }}ms"
+
+  - name: managed-auth
+    interval: 30s
+    rules:
+      - alert: ManagedAuthHighErrorRate
+        expr: |
+          (managed_auth_requests_failure_total / managed_auth_requests_total) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Managed-auth error rate above 5%"
+          description: "API failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: ManagedAuthLatencySLO
+        expr: |
+          histogram_quantile(0.95, managed_auth_request_latency_ms) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Managed-auth p95 latency above 1000ms"
+          description: "p95 latency: {{ $value }}ms"
+
+  - name: vault-shim
+    interval: 30s
+    rules:
+      - alert: VaultShimHighErrorRate
+        expr: |
+          (vault_shim_requests_failure_total / vault_shim_requests_total) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Vault-shim error rate above 1%"
+          description: "Secrets API failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: VaultShimLatencySLO
+        expr: |
+          histogram_quantile(0.95, vault_shim_request_latency_ms) > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vault-shim p95 latency above 500ms"
+          description: "p95 latency: {{ $value }}ms"

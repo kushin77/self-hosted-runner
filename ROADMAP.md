@@ -62,10 +62,12 @@ Single systemd binary (Go), GitHub Scale Set SDK integration, snapshot-based aut
 
 ---
 
-### Week 12+: P3.5 – Native Observability (OTEL Exporters)
+### Week 12+: P3.5 – Native Observability (OTEL Exporters) ✅
 **GitHub Issue**: #15 | **Team**: Platform + Observability (2 FTE)
 
-Native exporters for Datadog, Splunk, Prometheus, pre-built dashboards.
+Native exporters for Datadog, Splunk, Prometheus, pre-built dashboards.  (baseline
+Prometheus metrics for managed-auth and vault-shim now merged; next steps extend
+OTEL and dashboards).
 
 **Success Criteria**: < 2s dashboard load, < 60s data freshness, < 5% export cost overhead.
 

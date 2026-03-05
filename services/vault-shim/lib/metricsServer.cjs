@@ -1,8 +1,8 @@
 "use strict";
 
 const express = require('express');
-const logger = require('./logger');
-const metrics = require('./metrics');
+const logger = require('./logger.cjs');
+const metrics = require('./metrics.cjs');
 
 const app = express();
 const port = process.env.METRICS_PORT || 9092;

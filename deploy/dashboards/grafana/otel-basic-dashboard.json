@@ -1,0 +1,105 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "gnetId": null,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": "${DS_PROMETHEUS:Prometheus}",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "id": 1,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum(rate(provisioner_jobs_processed_total[1m])) or sum(rate(otelcol_exporter_sent_spans_total[1m]))",
+          "format": "time_series",
+          "interval": "",
+          "legendFormat": "jobs/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Traces per Second",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS:Prometheus}",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "id": 2,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum(rate(provisioner_jobs_succeeded_total[5m]))",
+          "format": "time_series",
+          "legendFormat": "succeeded/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Spans by Service (5m)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS:Prometheus}",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "id": 3,
+      "options": {},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(provisioner_job_processing_latency_ms_bucket[5m])) by (le))",
+          "format": "time_series",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.5, sum(rate(provisioner_job_processing_latency_ms_bucket[5m])) by (le))",
+          "format": "time_series",
+          "legendFormat": "p50",
+          "refId": "B"
+        }
+      ],
+      "title": "Span Processing Latency",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS:Prometheus}",
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "id": 4,
+      "options": {},
+      "targets": [
+        {
+          "expr": "sum(rate(provisioner_jobs_failed_total[5m])) or sum(rate(provisioner_terraform_errors_total[5m]))",
+          "format": "time_series",
+          "legendFormat": "failed/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Exporter Errors",
+      "type": "timeseries"
+    }
+  ],
+  "schemaVersion": 27,
+  "style": "dark",
+  "tags": ["otel","observability"],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "label": "Prometheus Datasource",
+        "pluginId": "prometheus",
+        "query": "Prometheus",
+        "current": {"text": "Prometheus", "value": "Prometheus"}
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "OTEL Basic Overview",
+  "version": 1
+}

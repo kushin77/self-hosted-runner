@@ -1,16 +1,16 @@
 "use strict";
 
+// NOTE: this file is now CommonJS (named logger.cjs on disk)
 /**
  * Shared structured JSON logger for services.
  * Duplicate of provisioner-worker logger to keep services isolated.
  *
- * Usage: const logger = require('./logger');
+ * Usage: const logger = require('./logger.cjs');
  *       const log = logger.child({ correlation_id: 'xyz' });
  *
  * Environment Variables:
  *   LOG_LEVEL (info|debug|warn|error) default info
  */
-
 const util = require('util');
 const { randomUUID } = require('crypto');
 

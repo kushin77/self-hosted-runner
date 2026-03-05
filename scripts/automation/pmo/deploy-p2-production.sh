@@ -30,7 +30,7 @@ NC='\033[0m' # No Color
 
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../../" && pwd)"
 DEPLOYMENT_LOG="${DEPLOYMENT_LOG:-/tmp/p2-deployment.log}"
 STAGE="${1:-all}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -122,6 +122,18 @@ stage1_build_image() {
         "$PROJECT_ROOT"
 
     log_success "Image built: $IMAGE_NAME"
+
+    # Security Scan (Stage 1.5)
+    if command_exists trivy; then
+        log_info "Running Trivy image scan (Stage 1.5)..."
+        trivy image --severity HIGH,CRITICAL --exit-code 1 "$IMAGE_NAME" || {
+            log_error "Vulnerabilities found in $IMAGE_NAME. Review with security-master."
+            return 1
+        }
+        log_success "Trivy scan passed for $IMAGE_NAME"
+    else
+        log_warn "Trivy not found. Skipping image scan. Install with 'apt install trivy'."
+    fi
     
     # Optionally push image
     if [[ "$IMAGE_REGISTRY" != "docker.io" ]] || [[ "${PUSH_IMAGE:-0}" == "1" ]]; then
@@ -175,10 +187,20 @@ stage2_vault_setup() {
 
     # Validate AppRole authentication
     log_info "Validating AppRole authentication..."
-    if run_cmd vault write -field=client_token auth/approle/login \
+
+    # Use JSON output and extract auth.client_token (compatible with Vault >=1.0)
+    if ! command_exists jq; then
+        log_warn "jq not found; installing is recommended for parsing Vault output"
+    fi
+
+    local _token
+    _token=$(vault write -format=json auth/approle/login \
         role_id="$VAULT_ROLE_ID" \
-        secret_id="$VAULT_SECRET_ID" > /dev/null 2>&1; then
-        log_success "AppRole authentication successful"
+        secret_id="$VAULT_SECRET_ID" 2>/dev/null | jq -r '.auth.client_token // empty') || true
+
+    if [[ -n "$_token" ]]; then
+        export VAULT_TOKEN="$_token"
+        log_success "AppRole authentication successful (token exported to VAULT_TOKEN)"
     else
         log_error "AppRole authentication failed. Check credentials."
         return 1
