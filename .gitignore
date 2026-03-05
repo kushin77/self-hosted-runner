@@ -7,3 +7,9 @@ dist/
 *.bin
 *.exe
 actions-runner-1772733156/
+
+# Ignore example local terraform provider caches
+terraform/examples/**/.terraform/
+
+# Ignore runner externals (local copies)
+actions-runner-*/externals/
