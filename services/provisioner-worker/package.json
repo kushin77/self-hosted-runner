@@ -71,6 +71,7 @@
     "side-channel-list": "^1.0.0",
     "side-channel-map": "^1.0.1",
     "side-channel-weakmap": "^1.0.2",
+    "socket.io": "^4.8.3",
     "statuses": "^2.0.2",
     "tdigest": "^0.1.2",
     "toidentifier": "^1.0.1",
@@ -81,11 +82,10 @@
     "yallist": "^4.0.0"
   },
   "optionalDependencies": {
-    "@opentelemetry/sdk-trace-node": "^1.0.0",
     "@opentelemetry/exporter-trace-otlp-http": "^1.0.0",
-    "@opentelemetry/sdk-metrics": "^1.0.0"
+    "@opentelemetry/sdk-metrics": "^1.0.0",
+    "@opentelemetry/sdk-trace-node": "^1.0.0"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
