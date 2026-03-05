@@ -1,3 +1,4 @@
+---
 name: CI - Dashboard Import Validation
 permissions:
   contents: read

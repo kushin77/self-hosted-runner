@@ -1,3 +1,4 @@
+---
 name: repair-approval-test
 permissions:
   contents: read
@@ -46,7 +47,7 @@ jobs:
         run: |
           set -e
           EVT_ID="ci-evt-$(date +%s)"
-          
+
           # Analyze -> expect PENDING_APPROVAL
           RESP=$(curl -s -w '\n%{http_code}' -X POST http://localhost:8083/analyze \
             -H 'Content-Type: application/json' \
@@ -62,7 +63,7 @@ jobs:
             echo "Expected PENDING_APPROVAL status"
             exit 1
           fi
-          
+
           # Approve
           APPROVE=$(curl -s -X POST http://localhost:8083/approve \
             -H 'Content-Type: application/json' \
@@ -72,7 +73,7 @@ jobs:
             echo "Expected approval response"
             exit 1
           fi
-          
+
           # Analyze again -> expect full recommendation
           RESP2=$(curl -s -w '\n%{http_code}' -X POST http://localhost:8083/analyze \
             -H 'Content-Type: application/json' \
@@ -88,5 +89,5 @@ jobs:
             echo "Expected REPAIR_IDENTIFIED status"
             exit 1
           fi
-          
+
           echo "✓ Approval flow test PASSED"

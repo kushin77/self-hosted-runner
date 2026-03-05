@@ -1,3 +1,4 @@
+---
 name: "P4 — AWS Spot Runner Plan"
 permissions:
   contents: read

@@ -1,3 +1,4 @@
+---
 name: EIQ Nexus CI
 permissions:
   contents: read
@@ -26,11 +27,32 @@ jobs:
     runs-on: [self-hosted, linux]
     permissions:
       contents: read
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Verify Node lockfiles and Git LFS pointers
+        run: |
+          missing_lockfiles=()
+          while IFS= read -r -d '' pkg; do
+            dir=$(dirname "$pkg")
+            if [ ! -f "$dir/package-lock.json" ] && [ ! -f "$dir/yarn.lock" ] && [ ! -f "$dir/pnpm-lock.yaml" ]; then
+              missing_lockfiles+=("$dir")
+            fi
+          done < <(find . -name package.json -print0)
+          if [ ${#missing_lockfiles[@]} -ne 0 ]; then
+            echo "Missing lockfiles for the following package.json locations:" >&2
+            for d in "${missing_lockfiles[@]}"; do echo " - $d" >&2; done
+            echo "Please add appropriate lockfiles (package-lock.json / yarn.lock / pnpm-lock.yaml)." >&2
+            exit 1
+          fi
+          if command -v git-lfs >/dev/null; then
+            git lfs status || true
+          else
+            echo "git-lfs not installed on runner; skipping LFS pointer check" >&2
+          fi
 
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -76,7 +98,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -112,7 +134,7 @@ jobs:
     permissions:
       contents: read
       security-events: write
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -155,12 +177,19 @@ jobs:
       packages: write
     needs: [validate, test, security]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
+
+      - name: Install docker-compose
+        run: |
+          if ! command -v docker-compose >/dev/null; then
+            python3 -m pip install --upgrade pip setuptools wheel
+            python3 -m pip install 'docker-compose==1.29.2'
+          fi
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -196,7 +225,7 @@ jobs:
       contents: read
     needs: [validate, test]
     if: github.event_name == 'pull_request'
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -221,7 +250,7 @@ jobs:
     permissions:
       contents: read
     needs: [validate, test]
-    
+
     steps:
       - uses: actions/checkout@v4
 
@@ -260,7 +289,7 @@ jobs:
     runs-on: [self-hosted, linux]
     needs: [validate, test, security, build, performance, integration]
     if: always()
-    
+
     steps:
       - name: Check Status
         run: |

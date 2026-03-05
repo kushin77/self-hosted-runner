@@ -1,3 +1,4 @@
+---
 name: Self-hosted Runner Smoke Test
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
       - name: Quick environment check
         run: |
           echo "CI_RUNNER=$(hostname)"
-          echo "Listing /etc/os-release:" 
+          echo "Listing /etc/os-release:"
           cat /etc/os-release || true
           echo "Checking disk usage:"
           df -h .

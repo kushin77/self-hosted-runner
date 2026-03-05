@@ -1,3 +1,4 @@
+---
 name: Terraform Binary Guard
 permissions:
   contents: read
@@ -29,7 +30,7 @@ jobs:
             git ls-files | grep -E "\.terraform/";
             ERROR_FOUND=1
           fi
-          
+
           # Check for artifacts or large binaries that shouldn't be in git
           # Find files larger than 50MB that aren't in git lfs
           LARGE_FILES=$(find . -type f -not -path '*/.*' -size +50M)

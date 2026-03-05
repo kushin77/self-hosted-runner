@@ -1,3 +1,4 @@
+---
 name: "P4 — AWS Spot Runner Apply"
 permissions:
   contents: read
