@@ -13,9 +13,24 @@ Required Terraform inputs (either provide via `terraform.tfvars` or set as varia
 Optional but recommended:
 - Create an AWS Secrets Manager secret for the runner drain webhook and provide its ARN as `webhook_secret_arn` to the module so the Lambda reads the webhook URL from Secrets Manager.
 
-Local test / run steps (Ops can run these locally or via GitHub Actions):
+## Quick Start: Automated Setup (Recommended)
+
+Run the Ops setup script which handles init, validation, and planning:
+```bash
+./scripts/ops/p4-aws-spot-setup.sh
+```
+
+The script will:
+- Verify AWS credentials
+- Prompt for terraform.tfvars configuration if needed
+- Initialize and validate Terraform
+- Run terraform plan and create artifacts
+- Display a summary and next steps
+
+## Manual Setup Steps
+
 1. Checkout `main` with the merged PR (#276).
-2. Create a `terraform.tfvars` in `terraform/examples/aws-spot/` with the values for `vpc_id`, `subnet_ids`, and other variables (example below).
+2. Create a `terraform.tfvars` in `terraform/examples/aws-spot/` with the values for `vpc_id`, `subnet_ids`, and other variables:
 
 Example `terraform/examples/aws-spot/terraform.tfvars`:
 ```
@@ -27,18 +42,21 @@ max_capacity = 2
 key_name = "ssh-key"
 ```
 
-3. From the repo root run (if Terraform is installed):
-```
+3. From the repo root run:
+```bash
 cd terraform/examples/aws-spot
 terraform init
 terraform validate
 terraform plan -out=aws-spot.plan
-terraform show -json aws-spot.plan > aws-spot.plan.json
+terraform show -no-color aws-spot.plan > aws-spot.plan.txt
 ```
 
-4. Upload `aws-spot.plan` as an artifact for review, or let the GitHub Actions `p4-aws-spot-deploy-plan.yml` run once the repo secrets and tfvars are in place.
+4. Review the plan artifact (`aws-spot.plan.txt`).
 
-5. After plan review, use the guarded apply workflow `p4-aws-spot-apply.yml` (requires `prod-terraform-apply` environment protection and manual confirmation).
+5. After plan review, use the guarded apply workflow `p4-aws-spot-apply.yml` (requires `prod-terraform-apply` environment protection and manual confirmation) or run locally:
+```bash
+terraform apply aws-spot.plan
+```
 
 Contact/links:
 - PR with changes: #276
