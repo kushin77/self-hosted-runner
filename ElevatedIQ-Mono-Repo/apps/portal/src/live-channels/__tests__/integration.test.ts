@@ -17,6 +17,7 @@ const mockApp = {
 const _mockHttpServer = {
   on: vi.fn(),
 } as any;
+void _mockHttpServer;
 
 describe('Live Channel Adapters', () => {
   let activeChannels: any[] = [];
@@ -175,12 +176,14 @@ describe('Message Handlers', () => {
       send: vi.fn(),
       close: vi.fn(),
     };
+    void _mockClient;
 
     // Simulate incoming message
     const _incomingMessage = {
       type: 'ping',
       payload: { test: true },
     };
+    void _incomingMessage;
 
     // Your adapter should process this:
     // const result = await adapter.handleMessage(mockClient, incomingMessage);
@@ -197,6 +200,7 @@ describe('Message Handlers', () => {
       text: 'staging',
       response_url: 'https://hooks.slack.com/commands/...',
     };
+    void _mockSlackCommand;
 
     // Your adapter should handle this and respond
     // const result = await adapter.handleCommand(mockSlackCommand);
