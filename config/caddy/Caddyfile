@@ -1,0 +1,141 @@
+# Caddyfile — ElevatedIQ reverse proxy (HTTP + HTTPS — Cloudflare Origin Cert)
+# (derived from ElevatedIQ-Mono-Repo/config/caddy/Caddyfile)
+# Added: /sc path under portal.elevatediq.ai to reverse-proxy to GitLab on 192.168.168.42:8929
+
+{
+    admin localhost:2019
+    auto_https off
+    servers {
+        protocols h1 h2
+    }
+    log {
+        level INFO
+    }
+}
+
+# Marketing (same as upstream)
+http://elevatediq.ai, http://www.elevatediq.ai, http://d8r978f08m4.d.firewalla.org, http://192.168.168.42 {
+    reverse_proxy localhost:4001
+    log {
+        output file /var/log/caddy/marketing.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    encode gzip
+}
+
+https://elevatediq.ai, https://www.elevatediq.ai, https://d8r978f08m4.d.firewalla.org {
+    tls /etc/caddy/ssl/cf_origin.crt /etc/caddy/ssl/cf_origin.key
+    reverse_proxy localhost:4001
+    log {
+        output file /var/log/caddy/marketing.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    header {
+        X-Frame-Options DENY
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        -Server
+    }
+    encode gzip
+}
+
+# Portal — HTTP
+http://portal.elevatediq.ai {
+    handle /api/ai/* {
+        uri replace /api /v1
+        reverse_proxy localhost:8091
+    }
+    handle /api/* {
+        reverse_proxy localhost:8090
+    }
+    handle {
+        reverse_proxy localhost:4000
+    }
+    log {
+        output file /var/log/caddy/portal.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        -Server
+    }
+    encode gzip
+}
+
+# Portal — HTTPS
+https://portal.elevatediq.ai {
+    tls /etc/caddy/ssl/cf_origin.crt /etc/caddy/ssl/cf_origin.key
+
+    handle /mycloud* {
+        forward_auth localhost:8090 {
+            uri /api/v1/auth/verify
+            copy_headers Authorization X-User-ID X-Org-ID X-User-Roles
+            header_down Set-Cookie
+            header_down X-Remote-User
+            header_down X-Remote-Email
+            header_down X-Remote-Groups
+            header_down Remote-User
+        }
+        uri strip_prefix /mycloud
+        reverse_proxy localhost:5000 {
+            header_up Host localhost
+            header_up X-Remote-User {http.request.header.Remote-User}
+            header_up X-Remote-Email {http.request.header.Remote-Email}
+            header_down Set-Cookie
+        }
+    }
+
+    handle /api/ai/* {
+        uri replace /api /v1
+        reverse_proxy localhost:8091
+    }
+    handle /api/* {
+        reverse_proxy localhost:8090
+    }
+
+    # Added: GitLab web UI reverse-proxy at /sc
+    handle_path /sc/* {
+        uri strip_prefix /sc
+        reverse_proxy 192.168.168.42:8929 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote}
+            header_up X-Forwarded-For {http.request.remote}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
+
+    # SPA fallback -> portal app
+    handle {
+        reverse_proxy localhost:4000
+    }
+
+    log {
+        output file /var/log/caddy/portal.log {
+            roll_size 10mb
+            roll_keep 5
+        }
+    }
+    header {
+        X-Frame-Options SAMEORIGIN
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        -Server
+    }
+    encode gzip
+}
