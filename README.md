@@ -263,6 +263,22 @@ ssh runner-host "systemctl status 'actions.runner.*'"
 curl http://192.168.168.42:8081/metrics | grep runner_
 ```
 
+### Access Portal UI
+The runner‑cloud portal can be started locally and will bind to port **3919**
+on all network interfaces by default. From another host on the LAN you can
+browse to `http://192.168.168.42:3919` once the dev server is running.
+
+```bash
+cd ElevatedIQ-Mono-Repo/apps/portal
+# PORT=3919 npm run dev        # override port if needed
+# or if building for production:
+# npm run build && npm run preview
+```
+
+> Ensure `PORT` is set or leave blank to use the default 3919.  Adjust the
+> host/port in `vite.config.ts` if you need to change this behavior.
+
+
 ### Run Cleanup (Dry-Run First)
 ```bash
 sudo ./scripts/automation/pmo/runner_cleanup.sh --dry-run
