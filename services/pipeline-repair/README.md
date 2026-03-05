@@ -173,6 +173,26 @@ npm install
 node lib/server.js
 ```
 
+### Database migrations (Postgres)
+
+The service supports Postgres migrations via `node-pg-migrate`.
+
+Set `REPAIR_DB=postgres` and `REPAIR_PG_CONN` to your Postgres connection string.
+
+Run migrations from the repository root:
+
+```bash
+cd services/pipeline-repair
+npx node-pg-migrate up --migrations-dir ./migrations
+```
+
+To rollback:
+
+```bash
+npx node-pg-migrate down --migrations-dir ./migrations
+```
+
+
 ### Run tests
 
 ```bash
