@@ -10,9 +10,14 @@ import crypto from 'crypto';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { setToken, getToken } = require('./lib/secretStore.cjs');
-const logger = require('./lib/logger');
-const metrics = require('./lib/metrics');
-const metricsServer = require('./lib/metricsServer');
+// logger is implemented in CommonJS (renamed to logger.cjs)
+const logger = require('./lib/logger.cjs');
+const metrics = require('./lib/metrics.cjs');
+const metricsServer = require('./lib/metricsServer.cjs');
+const otel = require('./lib/otel.cjs');
+
+// optional OpenTelemetry
+otel.init();
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -27,6 +32,10 @@ app.use((req, res, next) => {
   req.correlation_id = req.headers['x-correlation-id'] || logger.genCorrelationId();
   req.log = logger.child({ correlation_id: req.correlation_id });
 
+  // OTEL tracing
+  const tracer = otel.getTracer();
+  const span = tracer ? tracer.startSpan('http_request', { attributes: { path: req.path, method: req.method } }) : null;
+  if (span) req.span = span;
   // metrics instrumentation: track active requests and latency
   const start = Date.now();
   metrics.incActive();
@@ -35,6 +44,11 @@ app.use((req, res, next) => {
     const ms = Date.now() - start;
     const status = res.statusCode < 400 ? 'success' : 'failure';
     metrics.recordRequest(status, ms);
+    if (span) {
+      span.setAttribute('http.status_code', res.statusCode);
+      span.addEvent('response_sent', { duration_ms: ms });
+      span.end();
+    }
   });
 
   next();
