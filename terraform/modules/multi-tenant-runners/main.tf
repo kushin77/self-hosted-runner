@@ -10,7 +10,24 @@ locals {
 
   metadata_script = var.custom_startup_script != "" ? var.custom_startup_script : <<-EOT
     #!/bin/bash
-    RUNNER_ALLOW_RUNASROOT=1 ./config.sh --url https://github.com/kushin77/self-hosted-runner --token $REG_TOKEN --runnergroup ${var.runner_group_name} --labels ${local.runner_label_string}
+    set -euo pipefail
+
+    # Fetch the repository-provided startup wrapper which handles OIDC/Vault bootstrap,
+    # registry login, token renewal helper, and eventual runner registration.
+    BOOTSTRAP_URL="https://raw.githubusercontent.com/kushin77/self-hosted-runner/main/scripts/identity/runner-startup.sh"
+    BOOTSTRAP_PATH="/tmp/runner-startup.sh"
+
+    if ! command -v curl >/dev/null 2>&1; then
+      echo "curl required to fetch bootstrapper; please install curl or provide a custom_startup_script"
+      exit 1
+    fi
+
+    echo "Fetching runner startup wrapper from ${BOOTSTRAP_URL}"
+    curl -fsSL "${BOOTSTRAP_URL}" -o "${BOOTSTRAP_PATH}"
+    chmod +x "${BOOTSTRAP_PATH}"
+
+    # Execute the startup wrapper; it will attempt OIDC->Vault login and then register the runner
+    exec "${BOOTSTRAP_PATH}"
   EOT
 
   metadata_base = {
