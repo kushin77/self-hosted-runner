@@ -31,9 +31,9 @@ jobs:
       - name: Configure Google credentials
         if: ${{ secrets.GOOGLE_CREDENTIALS != '' }}
         run: |
-          mkdir -p ~/.config/gcloud
+          # Use GH output to export path for subsequent steps
           echo "${{ secrets.GOOGLE_CREDENTIALS }}" > /tmp/gcloud-creds.json
-          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-creds.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud-creds.json" >> $GITHUB_ENV
           # mask file contents
           echo '*** GOOGLE_CREDENTIALS written and masked ***'
 
@@ -62,7 +62,5 @@ jobs:
       - name: Apply plan (manual opt-in)
         if: ${{ github.event.inputs.apply == 'true' }}
         working-directory: terraform
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcloud-creds.json
         run: |
           terraform apply -input=false prod.tfplan
