@@ -5,10 +5,15 @@ const tr = require('./terraform_runner');
 const crypto = require('crypto');
 const metricsServer = require('./lib/metricsServer');
 const metrics = require('./lib/metrics');
+const logger = require('./lib/logger');
 
 const POLL_MS = Number(process.env.WORKER_POLL_MS || '5000');
 const METRICS_PORT = Number(process.env.METRICS_PORT || '9090');
 const ENABLE_METRICS = process.env.ENABLE_METRICS !== 'false';
+
+// correlation id for this instance (could be overridden per-job)
+const INSTANCE_ID = process.env.INSTANCE_ID || logger.genCorrelationId();
+logger.info('provisioner-worker initializing',{instance_id:INSTANCE_ID});
 
 function shaForTfFiles(tfFiles) {
   try {
@@ -21,8 +26,9 @@ function shaForTfFiles(tfFiles) {
 
 async function processJob(job) {
   const startTime = Date.now();
-  metrics.updateActiveJobs(1);
-  
+  let jobLog = logger.child({correlation_id: job.request_id || logger.genCorrelationId()});
+  jobLog.info('processing job', {status: job.status});
+  if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs + 1);
   const tfFiles = job.payload && job.payload.tfFiles ? job.payload.tfFiles : null;
   const planHash = shaForTfFiles(tfFiles);
   if (planHash) {
@@ -30,49 +36,56 @@ async function processJob(job) {
     if (existing && existing.request_id !== job.request_id) {
       job.status = 'duplicate';
       job.note = `duplicate_of:${existing.request_id}`;
-      const storeStartTime = Date.now();
+      const storeStart = Date.now();
       jobStore.set(job);
-      metrics.recordJobStoreWrite(Date.now() - storeStartTime);
-      metrics.recordJobCompletion('duplicated', Date.now() - startTime);
-      metrics.updateActiveJobs(0);
+      if (ENABLE_METRICS) metrics.recordJobStoreWrite(Date.now() - storeStart);
+      if (ENABLE_METRICS) metrics.recordJobCompletion('duplicated', Date.now() - startTime);
+      if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs - 1);
+      jobLog.warn('job duplicate detected');
       return;
     }
   }
 
   job.status = 'running';
   job.started_at = new Date().toISOString();
-  const storeStartTime = Date.now();
+  const storeStart = Date.now();
   jobStore.set(job);
-  metrics.recordJobStoreWrite(Date.now() - storeStartTime);
+  if (ENABLE_METRICS) metrics.recordJobStoreWrite(Date.now() - storeStart);
 
-  const tfStartTime = Date.now();
-  const res = await tr.applyPlan(job).catch((e) => ({ status: 'error', reason: 'exception', error: String(e) }));
-  metrics.recordTerraformApply(Date.now() - tfStartTime, res && res.status === 'applied');
+  const tfStart = Date.now();
+  const res = await tr.applyPlan(job).catch((e) => {
+    jobLog.error('terraform apply exception', {error: String(e)});
+    return { status: 'error', reason: 'exception', error: String(e) };
+  });
+  if (ENABLE_METRICS) metrics.recordTerraformApply(Date.now() - tfStart, res && res.status === 'applied');
 
   if (res && res.status === 'applied') {
     job.status = 'provisioned';
     job.result = res;
     if (planHash) jobStore.setPlanHash(planHash, job.request_id);
-    metrics.recordJobCompletion('succeeded', Date.now() - startTime);
+    if (ENABLE_METRICS) metrics.recordJobCompletion('succeeded', Date.now() - startTime);
+    jobLog.info('job provisioned');
   } else {
     job.status = 'failed';
     job.result = res;
-    metrics.recordJobCompletion('failed', Date.now() - startTime);
+    if (ENABLE_METRICS) metrics.recordJobCompletion('failed', Date.now() - startTime);
+    jobLog.error('job failed', {result: res});
   }
   job.completed_at = new Date().toISOString();
-  const storeStartTime2 = Date.now();
+  const storeStart2 = Date.now();
   jobStore.set(job);
-  metrics.recordJobStoreWrite(Date.now() - storeStartTime2);
-  
-  metrics.updateActiveJobs(0);
+  if (ENABLE_METRICS) metrics.recordJobStoreWrite(Date.now() - storeStart2);
+
+  if (ENABLE_METRICS) metrics.updateActiveJobs(metrics.metrics.active_jobs - 1);
 }
 
 async function loop() {
   try {
     const jobs = jobStore.list();
-    metrics.updateQueueDepth(jobs.filter(j => j && (j.status === 'queued' || j.status === 'retry')).length);
-    metrics.setJobStoreOperational(true);
-    
+    if (ENABLE_METRICS) {
+      metrics.updateQueueDepth(jobs.filter(j => j && (j.status === 'queued' || j.status === 'retry')).length);
+      metrics.setJobStoreOperational(true);
+    }
     for (const j of jobs) {
       if (!j || !j.request_id) continue;
       if (j.status === 'queued' || j.status === 'retry') {
@@ -82,8 +95,8 @@ async function loop() {
       }
     }
   } catch (e) {
-    console.error('[worker] Loop error:', e);
-    metrics.setJobStoreOperational(false);
+    logger.error('worker loop error', {error: String(e)});
+    if (ENABLE_METRICS) metrics.setJobStoreOperational(false);
     // swallow and continue
   } finally {
     setTimeout(loop, POLL_MS);
@@ -93,14 +106,15 @@ async function loop() {
 // Start metrics server if enabled
 if (ENABLE_METRICS) {
   metricsServer.startMetricsServer(METRICS_PORT).catch(err => {
-    console.error('[worker] Failed to start metrics server:', err);
+    logger.error('Failed to start metrics server', {error: String(err)});
   });
 }
 
-console.log('provisioner-worker: starting worker loop', { 
+logger.info('provisioner-worker: starting worker loop', { 
   poll_ms: POLL_MS, 
   use_cli: process.env.USE_TERRAFORM_CLI,
   metrics_enabled: ENABLE_METRICS,
   metrics_port: METRICS_PORT,
+  instance_id: INSTANCE_ID,
 });
 loop();
