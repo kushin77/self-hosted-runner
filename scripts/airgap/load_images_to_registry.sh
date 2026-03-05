@@ -1,6 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Load tarballs produced by preload_images.sh and push them to a target registry.
+# Usage: ./load_images_to_registry.sh <registry> <images-dir>
+
+REGISTRY=${1:?Please provide target registry (e.g. my-registry.local:5000)}
+IMAGEDIR=${2:-build/airgap-images}
+
+if [ ! -d "$IMAGEDIR" ]; then
+  echo "Images directory not found: $IMAGEDIR"
+  exit 1
+fi
+
+for tar in "$IMAGEDIR"/*.tar; do
+  [ -e "$tar" ] || continue
+  echo "Loading $tar"
+  img=$(docker load -i "$tar" | sed -n 's/Loaded image: //p')
+  if [ -z "$img" ]; then
+    # Fallback to parsing repo:tag from docker load output
+    img=$(docker load -i "$tar" | tail -n1 | awk '{print $3}')
+  fi
+  echo "Tagging $img -> $REGISTRY/$img"
+  docker tag "$img" "$REGISTRY/$img"
+  echo "Pushing $REGISTRY/$img"
+  docker push "$REGISTRY/$img"
+done
+
+echo "Done pushing images to $REGISTRY"
+#!/usr/bin/env bash
+set -euo pipefail
+
 # load_images_to_registry.sh
 # Loads image tarballs into a container runtime and pushes them to a target registry.
 # Usage: load_images_to_registry.sh /path/to/tarballs target-registry[:port]
