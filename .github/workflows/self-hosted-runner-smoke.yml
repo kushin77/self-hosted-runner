@@ -15,7 +15,7 @@ on:
 jobs:
   smoke:
     name: Smoke test on self-hosted runner
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: [self-hosted, linux, x64]
     steps:
       - uses: actions/checkout@v4
 
