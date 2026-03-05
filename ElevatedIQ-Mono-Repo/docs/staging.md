@@ -1,5 +1,10 @@
 # Staging Setup and API Base Configuration
 
+> **Note:** the portal dev server binds to `0.0.0.0` and defaults to port
+> **3919**, making it accessible from other hosts on the LAN (e.g.
+> `http://192.168.168.42:3919`). You may override the port via `PORT`.
+
+
 This document explains how to run the Portal against a staging backend and how to configure the runtime API base and mock toggle.
 
 Environment variables
