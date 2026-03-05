@@ -1,6 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Pull images listed in a manifest and save them as tarballs for air-gapped import.
+# Usage: ./preload_images.sh [manifest.yml] [output-dir]
+
+MANIFEST=${1:-deploy/airgap/manifest.yml}
+OUTDIR=${2:-build/airgap-images}
+mkdir -p "$OUTDIR"
+
+if [ ! -f "$MANIFEST" ]; then
+  echo "Manifest not found: $MANIFEST"
+  echo "Generate one with scripts/airgap/generate_image_manifest.sh > $MANIFEST"
+  exit 1
+fi
+
+images=$(grep -E "^\s*image:\s*" -h "$MANIFEST" | sed -E 's/^[[:space:]]*image:[[:space:]]*//')
+
+for img in $images; do
+  echo "Pulling $img"
+  docker pull "$img"
+  name=$(echo "$img" | sed -E 's/[:\/]/_/g')
+  tarfile="$OUTDIR/${name}.tar"
+  echo "Saving $img -> $tarfile"
+  docker save -o "$tarfile" "$img"
+done
+
+echo "Saved $(ls -1 "$OUTDIR"/*.tar 2>/dev/null | wc -l) images to $OUTDIR"
+#!/usr/bin/env bash
+set -euo pipefail
+
 # preload_images.sh
 # Pulls container images and saves them as tarballs for air-gapped transport.
 # Usage: preload_images.sh images.txt output_dir
