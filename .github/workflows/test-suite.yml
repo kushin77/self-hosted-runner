@@ -74,6 +74,12 @@ jobs:
           bash services/vault-shim/tests/otel_init.sh || true
         # scripts log warnings if OTEL packages are absent; don't fail pipeline
 
+      - name: Send sample OTLP span (no-op if no collector)
+        run: |
+          bash services/provisioner-worker/tests/send_otlp.sh || true
+        env:
+          OTEL_EXPORTER_OTLP_ENDPOINT: "${{ env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces' }}"
+
       - name: Archive test artifacts
         if: always()
         uses: actions/upload-artifact@v4
