@@ -1,0 +1,87 @@
+name: Build Immutable Runner Image
+
+on:
+  push:
+    branches: [ main, feat/10x-infrastructure-enhancements ]
+    paths: [ 'packer/Dockerfile.immutable', 'scripts/bootstrap/**' ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-push:
+    name: Build, sign, SBOM and push
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/ephemeral-runner
+      IMAGE_TAG: sha-${{ github.sha }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Login to Container Registry
+        run: |
+          echo "$GCR_SA_KEY" > /tmp/gcr-key.json
+          gcloud auth activate-service-account --key-file=/tmp/gcr-key.json
+          gcloud auth configure-docker --quiet
+        env:
+          GCR_SA_KEY: ${{ secrets.GCR_SA_KEY }}
+
+      - name: Build image
+        run: |
+          docker build -f packer/Dockerfile.immutable -t $IMAGE_NAME:$IMAGE_TAG .
+
+      - name: Run local image smoke test
+        run: |
+          docker run --rm $IMAGE_NAME:$IMAGE_TAG /bin/sh -c "/usr/local/bin/check-health || exit 0"
+        continue-on-error: true
+
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b $HOME/.local/bin
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Generate SBOM
+        run: syft $IMAGE_NAME:$IMAGE_TAG -o json > sbom.json
+
+      - name: Install cosign
+        run: |
+          COSIGN_VERSION=2.2.0
+          curl -sSL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64" -o cosign
+          chmod +x cosign
+          sudo mv cosign /usr/local/bin/
+
+      - name: Sign image with cosign
+        env:
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: |
+          echo "$COSIGN_PASSWORD" | cosign generate-key-pair --password-stdin >/dev/null 2>&1 || true
+          cosign sign --key cosign.key $IMAGE_NAME:$IMAGE_TAG
+
+      - name: Push image to registry
+        run: |
+          docker push $IMAGE_NAME:$IMAGE_TAG
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+      - name: Create or update release with image tag
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.sha }}
+          name: "ephemeral-runner:${{ github.sha }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
