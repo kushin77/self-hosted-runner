@@ -1,5 +1,5 @@
 import React from 'react';
-import { COLORS, ColorKey } from '../theme';
+import { COLORS, COLORS_DARK, ColorKey, Theme } from '../theme';
 
 /**
  * Pill - Status/label badge component
@@ -90,43 +90,80 @@ export const Panel: React.FC<PanelProps> = ({ children, style = {}, glowColor })
 );
 
 /**
+ * Button - Primary button component
+ */
+interface ButtonProps {
+  children: React.ReactNode;
+  onClick?: () => void;
+  color?: string;
+  sm?: boolean;
+  style?: React.CSSProperties;
+}
+
+/**
+ * Global CSS animations and styles
+ */
+export const GlobalStyles = ({ theme = 'light' }: { theme?: Theme } = {}) => {
+  const colors = theme === 'light' ? COLORS : COLORS_DARK;
+  
+  return (
+    <style>{`
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+      @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+      
+      :root {
+        --color-bg: ${colors.bg};
+        --color-surface: ${colors.surface};
+        --color-surface-high: ${colors.surfaceHigh};
+        --color-border: ${colors.border};
+        --color-border-bright: ${colors.borderBright};
+        --color-accent: ${colors.accent};
+        --color-text: ${colors.text};
+        --color-text-dim: ${colors.textDim};
+        --color-muted: ${colors.muted};
+      }
+      
+      html, body, #root { height: 100%; }
+      body {
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+        background: ${colors.bg};
+        color: ${colors.text};
+        -webkit-font-smoothing: antialiased;
+        transition: background 0.3s ease, color 0.3s ease;
+      }
+      button { font-family: inherit; }
+      a { color: ${colors.accent}; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      :focus { outline: 2px solid ${colors.accent}; outline-offset: 2px; }
+    `}</style>
+  );
+};
+
+/**
  * PanelHeader - Standard header for panels
  */
 interface PanelHeaderProps {
   icon: string;
   title: string;
-  color?: string;
   right?: React.ReactNode;
 }
 
-export const PanelHeader: React.FC<PanelHeaderProps> = ({
-  icon,
-  title,
-  color = COLORS.accent,
-  right,
-}) => (
+export const PanelHeader: React.FC<PanelHeaderProps> = ({ icon, title, right }) => (
   <div
     style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '11px 16px',
+      padding: '12px 16px',
       borderBottom: `1px solid ${COLORS.border}`,
+      background: `linear-gradient(90deg, ${COLORS.accent}08, transparent)`,
     }}
   >
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-      <span style={{ fontSize: 14, color: COLORS.text, fontWeight: 700 }}>{icon}</span>
-      <span
-        style={{
-          fontSize: 13,
-          fontWeight: 700,
-          color: COLORS.text,
-          textTransform: 'none',
-          letterSpacing: '0.01em',
-        }}
-      >
-        {title}
-      </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ fontSize: 15, fontWeight: 700 }}>{icon}</span>
+      <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: COLORS.text }}>{title}</h3>
     </div>
     {right && <div>{right}</div>}
   </div>
@@ -143,42 +180,143 @@ interface ButtonProps {
   style?: React.CSSProperties;
 }
 
-export const Button: React.FC<ButtonProps> = ({
-  children,
-  onClick,
-  color = COLORS.accent,
-  sm = false,
-  style = {},
-}) => {
-  const baseStyle: React.CSSProperties = {
-    background: color,
-    border: `1px solid ${color}`,
-    color: '#ffffff',
-    borderRadius: 6,
-    padding: sm ? '6px 10px' : '8px 16px',
-    fontSize: sm ? 12 : 13,
-    fontWeight: 600,
-    cursor: 'pointer',
-    letterSpacing: '0.02em',
-    boxShadow: '0 1px 2px rgba(16,24,40,0.06)',
-    transition: 'transform 120ms ease, box-shadow 120ms ease',
-    ...style,
+export const Button: React.FC<ButtonProps> = ({ children, onClick, color = COLORS.accent, sm = false, style = {} }) => (
+  <button
+    onClick={onClick}
+    style={{
+      background: color,
+      border: `1px solid ${color}`,
+      color: '#ffffff',
+      borderRadius: 6,
+      padding: sm ? '6px 12px' : '8px 16px',
+      fontSize: sm ? 12 : 13,
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 150ms ease',
+      ...style,
+    }}
+    onMouseDown={(e) => {
+      (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(1px) scale(0.97)';
+    }}
+    onMouseUp={(e) => {
+      (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0) scale(1)';
+    }}
+  >
+    {children}
+  </button>
+);
+
+/**
+ * Card - Flexible container for data
+ */
+interface CardProps {
+  children: React.ReactNode;
+  padding?: number;
+  hoverEffect?: boolean;
+}
+
+export const Card: React.FC<CardProps> = ({ children, padding = 16, hoverEffect }) => (
+  <div
+    style={{
+      background: COLORS.surface,
+      border: `1px solid ${COLORS.border}`,
+      borderRadius: 8,
+      padding,
+      boxShadow: '0 1px 3px rgba(16,24,40,0.06)',
+      transition: hoverEffect ? 'all 150ms ease' : 'none',
+      cursor: hoverEffect ? 'pointer' : 'default',
+    }}
+    onMouseEnter={(e) => {
+      if (hoverEffect) {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(11,95,255,0.06)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
+      }
+    }}
+    onMouseLeave={(e) => {
+      if (hoverEffect) {
+        (e.currentTarget as HTMLElement).style.boxShadow = '0 1px 3px rgba(16,24,40,0.06)';
+        (e.currentTarget as HTMLElement).style.transform = 'translateY(0)';
+      }
+    }}
+  >
+    {children}
+  </div>
+);
+
+/**
+ * Badge - Semantic status badge
+ */
+interface BadgeProps {
+  children: React.ReactNode;
+  variant?: 'primary' | 'success' | 'warning' | 'danger';
+}
+
+export const Badge: React.FC<BadgeProps> = ({ children, variant = 'primary' }) => {
+  const variantMap = {
+    primary: { bg: COLORS.accent + '12', color: COLORS.accent },
+    success: { bg: COLORS.green + '12', color: COLORS.green },
+    warning: { bg: COLORS.yellow + '12', color: COLORS.yellow },
+    danger: { bg: COLORS.red + '12', color: COLORS.red },
   };
 
+  const v = variantMap[variant];
+
   return (
-    <button
-      style={baseStyle}
-      onClick={onClick}
-      onMouseDown={(e) => (e.currentTarget.style.transform = 'translateY(1px)')}
-      onMouseUp={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+    <span
+      style={{
+        display: 'inline-block',
+        background: v.bg,
+        color: v.color,
+        padding: '4px 10px',
+        borderRadius: 6,
+        fontSize: 11,
+        fontWeight: 700,
+      }}
     >
       {children}
-    </button>
+    </span>
   );
 };
 
 /**
- * Loading spinner
+ * FormControl - Form field wrapper with label and error
+ */
+interface FormControlProps {
+  label?: string;
+  error?: string;
+  children: React.ReactNode;
+  required?: boolean;
+  id?: string;
+}
+
+export const FormControl: React.FC<FormControlProps> = ({ label, error, children, required, id }) => (
+  <div style={{ marginBottom: 16 }}>
+    {label && (
+      <label
+        htmlFor={id}
+        style={{
+          display: 'block',
+          fontSize: 12,
+          fontWeight: 600,
+          color: COLORS.text,
+          marginBottom: 6,
+        }}
+      >
+        {label}
+        {required && <span style={{ color: COLORS.red }}>*</span>}
+      </label>
+    )}
+    {children}
+    {error && (
+      <div style={{ marginTop: 4, fontSize: 11, color: COLORS.red, fontWeight: 500 }} role="alert">
+        {error}
+      </div>
+    )}
+  </div>
+);
+
+/**
+ * Spinner - Loading indicator
  */
 export const Spinner: React.FC = () => (
   <div
@@ -186,36 +324,57 @@ export const Spinner: React.FC = () => (
       display: 'inline-block',
       width: 16,
       height: 16,
-      border: `2px solid ${COLORS.borderBright}`,
+      border: `2px solid ${COLORS.border}`,
       borderTop: `2px solid ${COLORS.accent}`,
       borderRadius: '50%',
       animation: 'spin 0.8s linear infinite',
     }}
+    role="status"
+    aria-label="Loading"
   />
 );
 
 /**
- * Global CSS animations
+ * ProgressBar - Horizontal progress bar
  */
-export const GlobalStyles = () => (
-  <style>{`
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.6; }
-    }
-    
-    /* Global typographic and element resets for enterprise look */
-    html, body, #root { height: 100%; }
-    body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background: ${COLORS.bg}; color: ${COLORS.text}; -webkit-font-smoothing:antialiased; }
-    button { font-family: inherit; }
-    a { color: ${COLORS.accent}; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    :focus { outline: 2px solid ${COLORS.accent}; outline-offset: 2px; }
-  `}</style>
-);
+interface ProgressBarProps {
+  value: number;
+  max?: number;
+  color?: string;
+  showLabel?: boolean;
+}
 
-// Re-export ProgressBar for convenience (many pages import from UI)
-export { ProgressBar } from './Charts';
+export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 100, color = COLORS.accent, showLabel }) => {
+  const percent = Math.min(100, (value / max) * 100);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div
+        style={{
+          flex: 1,
+          height: 6,
+          background: COLORS.border,
+          borderRadius: 6,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            background: color,
+            width: `${percent}%`,
+            transition: 'width 200ms ease',
+            borderRadius: 6,
+          }}
+        />
+      </div>
+      {showLabel && (
+        <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.text, minWidth: 30 }}>
+          {percent.toFixed(0)}%
+        </span>
+      )}
+    </div>
+  );
+};
+
+// Re-export chart components
+export { AreaChart, BarChart, Gauge, Donut, Sparkline } from './Charts';
