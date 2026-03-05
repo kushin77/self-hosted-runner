@@ -1,0 +1,28 @@
+---
+name: Branch & PR Cleanup
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # weekly
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Close stale PRs
+        run: |
+          chmod +x scripts/cleanup/close-stale-prs.sh
+          ./scripts/cleanup/close-stale-prs.sh 30
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete merged branches
+        run: |
+          chmod +x scripts/cleanup/delete-merged-branches.sh
+          ./scripts/cleanup/delete-merged-branches.sh main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
