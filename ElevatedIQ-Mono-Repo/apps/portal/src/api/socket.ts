@@ -1,6 +1,5 @@
 import { io, Socket } from 'socket.io-client';
 import { useEffect, useRef } from 'react';
-import type { ServerToClientEvents, ClientToServerEvents } from './socket.types';
 import { useStore } from './store';
 
 export function createSocket(url = 'http://localhost:9090') {
