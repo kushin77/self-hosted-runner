@@ -1,15 +1,8 @@
-# Mark large runner binaries and terraform provider artifacts for Git LFS
-# This prevents them from accidentally being stored in normal history and helps
-# pre-receive hooks reject early.
+# Track runner externals and Node binaries with Git LFS
+actions-runner-*/externals/**/bin/* filter=lfs diff=lfs merge=lfs -text
 
-# Actions runner externals (node binaries, etc.)
-actions-runner-*/externals/*/bin/* filter=lfs diff=lfs merge=lfs -text
+# Track any provider binaries accidentally committed
+terraform/**/.terraform/** filter=lfs diff=lfs merge=lfs -text
 
-# Terraform provider binaries under examples (if they ever appear in repo)
-terraform/examples/aws-spot/.terraform/** filter=lfs diff=lfs merge=lfs -text
-
-# Generic archives that are often large
-*.zip filter=lfs diff=lfs merge=lfs -text
-*.tar.gz filter=lfs diff=lfs merge=lfs -text
-
-# Use LFS for other large binaries by pattern as needed
+# Empirical patterns
+**/externals/**/* bin filter=lfs diff=lfs merge=lfs -text
