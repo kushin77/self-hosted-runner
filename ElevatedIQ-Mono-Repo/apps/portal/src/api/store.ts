@@ -69,6 +69,7 @@ interface Store {
   selectedJob: Job | null;
   isLoading: boolean;
   error: string | null;
+  isSocketConnected: boolean;
   
   setMetrics: (metrics: MetricsSummary) => void;
   setRunners: (runners: Runner[]) => void;
@@ -79,6 +80,7 @@ interface Store {
   setSelectedJob: (job: Job | null) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  setSocketConnected: (connected: boolean) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -90,6 +92,7 @@ export const useStore = create<Store>((set) => ({
   selectedJob: null,
   isLoading: false,
   error: null,
+  isSocketConnected: false,
   
   setMetrics: (metrics) => set({ metrics }),
   setRunners: (runners) => set({ runners }),
@@ -100,4 +103,5 @@ export const useStore = create<Store>((set) => ({
   setSelectedJob: (job) => set({ selectedJob: job }),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
+  setSocketConnected: (connected) => set({ isSocketConnected: connected }),
 }));
