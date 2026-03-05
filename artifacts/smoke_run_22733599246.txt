@@ -1,0 +1,10 @@
+Smoke run logs (truncated) for run 22733599246
+
+See /tmp/smoke_run_combined.txt on the operator host for full logs.
+
+First 200 lines:
+
+2026-03-05T19:47:37.2522110Z Post job cleanup.
+2026-03-05T19:47:37.4288320Z [command]/usr/bin/git version
+2026-03-05T19:47:37.4333476Z git version 2.43.0
+...
