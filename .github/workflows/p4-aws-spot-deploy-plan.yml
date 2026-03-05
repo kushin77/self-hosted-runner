@@ -2,6 +2,9 @@ name: "P4 — AWS Spot Runner Plan"
 
 on:
   workflow_dispatch: {}
+  push:
+    paths:
+      - 'terraform/examples/aws-spot/**'
 
 jobs:
   terraform-plan:
