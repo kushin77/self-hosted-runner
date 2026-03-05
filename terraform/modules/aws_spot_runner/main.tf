@@ -201,6 +201,28 @@ resource "aws_iam_role_policy" "lambda_logs_policy" {
   })
 }
 
+# Grant the Lambda permission to read from SQS
+resource "aws_iam_role_policy" "lambda_sqs_policy" {
+  count = var.enable_lifecycle_handler ? 1 : 0
+  name  = "lambda-sqs-policy"
+  role  = aws_iam_role.lambda_role[0].id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "sqs:GetQueueAttributes",
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:ChangeMessageVisibility"
+        ],
+        Resource = aws_sqs_queue.lifecycle_queue.arn
+      }
+    ]
+  })
+}
+
 # If provided, grant the Lambda permission to read the Secrets Manager secret
 resource "aws_iam_role_policy" "lambda_secrets_policy" {
   count = var.enable_lifecycle_handler && (length(var.webhook_secret_arn) > 0 || var.create_webhook_secret) ? 1 : 0
