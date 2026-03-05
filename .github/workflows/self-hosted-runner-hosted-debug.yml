@@ -1,0 +1,34 @@
+name: Hosted Runner Debug
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+
+jobs:
+  hosted-debug:
+    name: Hosted runner diagnostic
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print environment
+        run: |
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "RUNNER_TEMP=$RUNNER_TEMP"
+          echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER=$GITHUB_RUN_NUMBER"
+          echo "GITHUB_ACTION=$GITHUB_ACTION"
+          echo "Listing current dir:"
+          ls -la
+
+      - name: Upload small artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hosted-debug-listing
+          path: |
+            .
+
+      - name: Echo success
+        run: echo "HOSTED RUNNER DEBUG: OK"
