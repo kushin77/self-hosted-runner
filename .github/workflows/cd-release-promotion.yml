@@ -8,9 +8,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
-on:
-  workflow_dispatch: {}
   workflow_run:
     workflows: ["CI - Release Gate Verification"]
     types:

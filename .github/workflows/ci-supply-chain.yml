@@ -8,13 +8,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
-on:
   push:
     branches: [ main ]
   release:
     types: [created]
-  workflow_dispatch: {}
 
 jobs:
   sbom-and-verify:
