@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { COLORS, rand } from '../theme';
-import { useTick } from '../hooks';
 import { Panel, PanelHeader, Pill, GlowDot } from '../components/UI';
 import { AreaChart, Gauge } from '../components/Charts';
 
@@ -32,7 +31,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ tick }) => {
     setGpuUsage((v) => Math.max(8, Math.min(30, v + rand(-2, 3))));
   }, [tick]);
 
-  const latestJPM = spark.current[spark.current.length - 1];
+  
 
   return (
     <div

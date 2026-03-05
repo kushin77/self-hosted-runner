@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { COLORS, rand } from '../theme';
 import { useTick } from '../hooks';
 import { api } from '../api';
-import { Panel, PanelHeader, Pill, ProgressBar } from '../components/UI';
+import { Panel, Pill, ProgressBar } from '../components/UI';
 
 /**
  * Runner Interface
@@ -32,11 +32,7 @@ interface RunnerRowProps {
 }
 
 const RunnerRow: React.FC<RunnerRowProps> = ({ runner }) => {
-  const modeColorMap = {
-    managed: COLORS.accent,
-    byoc: COLORS.cyan,
-    onprem: COLORS.purple,
-  };
+  
 
   const statusColorMap = {
     running: 'green',
@@ -264,7 +260,7 @@ export const Runners: React.FC = () => {
                 ...(runners.some((r) => r.gpu !== undefined) ? ['GPU'] : []),
                 'Current Job',
                 'Age',
-              ].map((h, i) => (
+              ].map((h) => (
                 <th
                   key={h}
                   style={{

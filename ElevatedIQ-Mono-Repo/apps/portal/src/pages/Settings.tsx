@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { COLORS } from '../theme';
-import { Panel, PanelHeader, Pill, Button } from '../components/UI';
+import { Panel, PanelHeader, Pill } from '../components/UI';
 
 /**
  * Settings Page
