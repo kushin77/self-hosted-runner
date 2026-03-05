@@ -32,13 +32,13 @@ variable "runner_count" {
 variable "instance_type_standard" {
   type        = string
   description = "Instance type for standard runners"
-  default     = "t3.medium"  # 2 vCPU, 4GB RAM
+  default     = "t3.medium" # 2 vCPU, 4GB RAM
 }
 
 variable "instance_type_highmem" {
   type        = string
   description = "Instance type for high-memory runners"
-  default     = "r5.xlarge"  # 4 vCPU, 32GB RAM
+  default     = "r5.xlarge" # 4 vCPU, 32GB RAM
 }
 
 variable "vpc_id" {
@@ -178,33 +178,33 @@ resource "aws_iam_instance_profile" "runner" {
 # User data for runner setup
 locals {
   runner_setup_script = base64encode(templatefile("${path.module}/runner_setup.sh", {
-    runner_token         = var.runner_token
-    github_owner         = var.github_owner
-    github_repo          = var.github_repo
-    runner_dir           = "/home/ubuntu/actions-runner"
-    RUNNER_VERSION       = ""  # Fetched dynamically
-    RUNNER_ARCH          = ""  # Fetched dynamically
-    RUNNER_USER          = "ubuntu"
+    runner_token   = var.runner_token
+    github_owner   = var.github_owner
+    github_repo    = var.github_repo
+    runner_dir     = "/home/ubuntu/actions-runner"
+    RUNNER_VERSION = "" # Fetched dynamically
+    RUNNER_ARCH    = "" # Fetched dynamically
+    RUNNER_USER    = "ubuntu"
   }))
 }
 
 # Standard runner instances
 resource "aws_instance" "runners_standard" {
-  count                    = ceil(var.runner_count / 2)
-  ami                      = data.aws_ami.ubuntu.id
-  instance_type            = var.instance_type_standard
-  vpc_security_group_ids   = [aws_security_group.runners.id]
-  subnet_id                = var.subnet_ids[count.index % length(var.subnet_ids)]
-  iam_instance_profile     = aws_iam_instance_profile.runner.name
-  user_data                = local.runner_setup_script
+  count                       = ceil(var.runner_count / 2)
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type_standard
+  vpc_security_group_ids      = [aws_security_group.runners.id]
+  subnet_id                   = var.subnet_ids[count.index % length(var.subnet_ids)]
+  iam_instance_profile        = aws_iam_instance_profile.runner.name
+  user_data                   = local.runner_setup_script
   associate_public_ip_address = false
-  monitoring               = true
+  monitoring                  = true
 
   root_block_device {
-    volume_size = 100
-    volume_type = "gp3"
+    volume_size           = 100
+    volume_type           = "gp3"
     delete_on_termination = true
-    encrypted   = true
+    encrypted             = true
   }
 
   tags = {
@@ -220,21 +220,21 @@ resource "aws_instance" "runners_standard" {
 
 # High-memory runner instances
 resource "aws_instance" "runners_highmem" {
-  count                    = var.runner_count - ceil(var.runner_count / 2)
-  ami                      = data.aws_ami.ubuntu.id
-  instance_type            = var.instance_type_highmem
-  vpc_security_group_ids   = [aws_security_group.runners.id]
-  subnet_id                = var.subnet_ids[count.index % length(var.subnet_ids)]
-  iam_instance_profile     = aws_iam_instance_profile.runner.name
-  user_data                = local.runner_setup_script
+  count                       = var.runner_count - ceil(var.runner_count / 2)
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = var.instance_type_highmem
+  vpc_security_group_ids      = [aws_security_group.runners.id]
+  subnet_id                   = var.subnet_ids[count.index % length(var.subnet_ids)]
+  iam_instance_profile        = aws_iam_instance_profile.runner.name
+  user_data                   = local.runner_setup_script
   associate_public_ip_address = false
-  monitoring               = true
+  monitoring                  = true
 
   root_block_device {
-    volume_size = 200
-    volume_type = "gp3"
+    volume_size           = 200
+    volume_type           = "gp3"
     delete_on_termination = true
-    encrypted   = true
+    encrypted             = true
   }
 
   tags = {
