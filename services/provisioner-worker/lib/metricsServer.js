@@ -5,6 +5,7 @@
  * Provides HTTP endpoints for Prometheus metrics and health checks
  */
 
+const logger = require('./logger');
 const metrics = require('./metrics');
 
 let metricsServer = null;
@@ -65,12 +66,13 @@ async function startMetricsServer(port = 9090, app = null) {
     // Only start server if not using existing Express app
     if (!useExisting) {
       metricsServer = finalApp.listen(port, '0.0.0.0', () => {
-        console.log(`[metrics] Server listening on http://0.0.0.0:${port}`);
-        console.log(`[metrics] - /metrics (Prometheus format)`);
-        console.log(`[metrics] - /health (health status)`);
-        console.log(`[metrics] - /metrics/summary (JSON metrics)`);
-        console.log(`[metrics] - /ready (readiness check)`);
-        console.log(`[metrics] - /alive (liveness check)`);
+        const log = require('./logger').child({component:'metricsServer'});
+      log.info('server listening', {url:`http://0.0.0.0:${port}`});
+      log.info('endpoint','/metrics Prometheus format');
+      log.info('endpoint','/health health status');
+      log.info('endpoint','/metrics/summary JSON metrics');
+      log.info('endpoint','/ready readiness check');
+      log.info('endpoint','/alive liveness check');
       });
     }
     
@@ -87,7 +89,7 @@ async function startMetricsServer(port = 9090, app = null) {
 function stopMetricsServer() {
   if (metricsServer) {
     metricsServer.close(() => {
-      console.log('[metrics] Server stopped');
+      require('./logger').info('metrics server stopped');
     });
     metricsServer = null;
   }
