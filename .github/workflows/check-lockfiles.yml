@@ -1,0 +1,36 @@
+---
+name: Validate Lockfiles
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check-lockfiles:
+    runs-on: ubuntu-latest
+    name: Check for missing Node lockfiles
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find package.json files without lockfile
+        run: |
+          set -euo pipefail
+          missing=0
+          while IFS= read -r pkg; do
+            dir=$(dirname "$pkg")
+            if [[ ! -f "$dir/package-lock.json" && ! -f "$dir/yarn.lock" ]]; then
+              echo "MISSING LOCKFILE: $dir"
+              missing=1
+            fi
+          done < <(find . -type f -name package.json -not -path "./node_modules/*")
+          if [[ $missing -eq 1 ]]; then
+            echo "One or more Node projects are missing lockfiles."
+            exit 1
+          fi
+
+      - name: Success
+        if: success()
+        run: echo "All Node projects have lockfiles."
