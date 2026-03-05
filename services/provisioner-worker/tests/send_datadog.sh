@@ -10,10 +10,16 @@ fi
 
 ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-"https://otlp.datadoghq.com/v1/traces"}
 
-cat <<'EOF' | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
-  -H "Content-Type: application/json" \
-  -H "DD-API-KEY: $DATADOG_API_KEY" \
-  --data-binary @-
+attempt=0
+max_attempts=3
+backoff=1
+while true; do
+  attempt=$((attempt+1))
+  echo "Datadog send attempt $attempt/$max_attempts -> $ENDPOINT"
+  HTTP_CODE=$(cat <<EOF | curl -s -o /dev/null -w "%{http_code}" -X POST "$ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "DD-API-KEY: $DATADOG_API_KEY" \
+    --data-binary @-
 {
   "resourceSpans": [
     {
@@ -27,8 +33,8 @@ cat <<'EOF' | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
               "spanId": "0000000000000003",
               "name": "dd-test-span",
               "kind": 1,
-              "startTimeUnixNano": "$(date +%s%N)",
-              "endTimeUnixNano": "$(($(date +%s%N) + 1000000))",
+              "startTimeUnixNano": $(date +%s%N),
+              "endTimeUnixNano": $(($(date +%s%N) + 1000000)),
               "attributes": []
             }
           ]
@@ -38,3 +44,19 @@ cat <<'EOF' | curl -s -o /dev/null -w "%{http_code}\n" -X POST "$ENDPOINT" \
   ]
 }
 EOF
+  ) || HTTP_CODE=000
+
+  if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
+    echo "Datadog send successful (HTTP $HTTP_CODE)"
+    exit 0
+  fi
+
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "Datadog send failed after $attempt attempts (HTTP $HTTP_CODE)"
+    exit 2
+  fi
+
+  echo "Datadog send returned $HTTP_CODE; retrying in $backoff seconds..."
+  sleep "$backoff"
+  backoff=$((backoff * 2))
+done
