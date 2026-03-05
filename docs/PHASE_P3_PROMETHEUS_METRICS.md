@@ -362,7 +362,10 @@ groups:
 The control plane now includes an optional OpenTelemetry SDK which can be enabled with
 `ENABLE_OTEL=true`. When enabled the service will attempt to load the OTEL packages and
 initialize a tracer and meter.  Spans are created around each job execution and basic
-metrics are also exported via the OTEL meter.
+metrics are also exported via the OTEL meter.  This dual-export ensures that both
+Prometheus scrapes and OTEL collectors receive the same data; the metrics library
+automatically increments counters and updates observable gauges when the meter is
+available.
 
 Configuration is via standard OTEL environment variables:
 
