@@ -15,6 +15,7 @@ export const NAV_ITEMS = [
   { id: 'security', icon: '🛡', label: 'Security Layer' },
   { id: 'windows', icon: '🪟', label: 'Windows Runners', badge: 'BETA' },
   { id: 'showcase', icon: '🎨', label: 'Component Showcase', badge: 'NEW' },
+  { id: 'functions', icon: '📄', label: 'Repo Functions' },
   { id: 'billing', icon: '💳', label: 'Billing & TCO' },
   { id: 'settings', icon: '⚙', label: 'Settings' },
 ] as const;
