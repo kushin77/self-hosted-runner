@@ -22,7 +22,7 @@ export interface ChannelConfig {
 export interface AdapterInstance {
   name: string;
   mountPath: string;
-  init: (server: Express | HttpServer) => Promise<void>;
+  init: (server: any) => Promise<void>;
   shutdown: () => Promise<void>;
 }
 
