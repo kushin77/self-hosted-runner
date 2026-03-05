@@ -77,8 +77,13 @@ jobs:
       - name: Send sample OTLP span (no-op if no collector)
         run: |
           bash services/provisioner-worker/tests/send_otlp.sh || true
+          bash services/provisioner-worker/tests/send_datadog.sh || true
+          bash services/provisioner-worker/tests/send_splunk.sh || true
         env:
           OTEL_EXPORTER_OTLP_ENDPOINT: "${{ env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces' }}"
+          DATADOG_API_KEY: "${{ secrets.DATADOG_API_KEY || '' }}"
+          SPLUNK_HEC_TOKEN: "${{ secrets.SPLUNK_HEC_TOKEN || '' }}"
+          SPLUNK_HEC_ENDPOINT: "${{ secrets.SPLUNK_HEC_ENDPOINT || '' }}"
 
       - name: Archive test artifacts
         if: always()
