@@ -167,7 +167,7 @@ All components tested and running locally:
 npm run build --prefix ElevatedIQ-Mono-Repo/apps/portal
 
 # Re-push to remote
-ssh cloud@192.168.168.42 rm -rf /opt/portal/dist
+ssh cloud@192.168.168.42 rm -rf /home/akushnir/runnercloud/portal/dist
 ./scripts/automation/pmo/deploy-full-stack.sh --stage stage2
 ```
 

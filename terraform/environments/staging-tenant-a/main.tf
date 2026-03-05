@@ -32,6 +32,8 @@ module "staging_tenant_a" {
   service_account_email  = "runner-staging-a@p4-platform.iam.gserviceaccount.com"
   service_account_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
 
+  inject_vault_agent_metadata = true
+
   custom_startup_script = <<-EOT
     #!/bin/bash
     REG_TOKEN="$${REG_TOKEN:-<replace-me>}"

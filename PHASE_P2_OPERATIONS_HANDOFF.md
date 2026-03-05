@@ -90,7 +90,7 @@ redis-server --daemonize yes --dir /var/lib/redis
 
 ### Step 2: Execute Deployment (Issue #147)
 ```bash
-cd /opt/self-hosted-runner
+cd /home/akushnir/runnercloud
 
 # Export environment
 export VAULT_ADDR="https://vault.example.com"
