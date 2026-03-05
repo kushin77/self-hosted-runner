@@ -12,11 +12,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Start Vault dev server
+      - name: Use AppRole credentials (if present)
+        if: ${{ secrets.VAULT_ADDR != '' && secrets.VAULT_ROLE_ID != '' && secrets.VAULT_SECRET_ID != '' }}
+        run: |
+          echo "Using AppRole credentials from GitHub Secrets"
+          echo "VAULT_ADDR=${{ secrets.VAULT_ADDR }}" >> $GITHUB_ENV
+          ROLE_ID="${{ secrets.VAULT_ROLE_ID }}"
+          SECRET_ID="${{ secrets.VAULT_SECRET_ID }}"
+          RESP=$(curl -s -X POST "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" -d "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}")
+          TOKEN=$(echo "$RESP" | python -c 'import sys, json; print(json.load(sys.stdin)["auth"]["client_token"])')
+          echo "VAULT_TOKEN=$TOKEN" >> $GITHUB_ENV
+          echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
+
+      - name: Use CI-provided Vault token (if present and AppRole absent)
+        if: ${{ secrets.VAULT_ADDR != '' && secrets.VAULT_TOKEN != '' && (secrets.VAULT_ROLE_ID == '' || secrets.VAULT_SECRET_ID == '') }}
+        run: |
+          echo "Using provided Vault token from GitHub Secrets"
+          echo "VAULT_ADDR=${{ secrets.VAULT_ADDR }}" >> $GITHUB_ENV
+          echo "VAULT_TOKEN=${{ secrets.VAULT_TOKEN }}" >> $GITHUB_ENV
+          echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
+
+      - name: Start Vault dev server (fallback)
+        if: ${{ env.VAULT_ADDR == '' && env.VAULT_TOKEN == '' && (secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '') }}
         run: |
           docker run --cap-add=IPC_LOCK -d --name vault -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root
 
-      - name: Wait for Vault
+      - name: Wait for Vault (when started locally)
+        if: ${{ env.VAULT_ADDR == '' && env.VAULT_TOKEN == '' && (secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '') }}
         run: |
           for i in $(seq 1 30); do
             if curl -sSf http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
@@ -25,7 +47,8 @@ jobs:
             sleep 1
           done
 
-      - name: Setup Vault env
+      - name: Setup Vault env (local fallback)
+        if: ${{ env.VAULT_ADDR == '' && env.VAULT_TOKEN == '' && (secrets.VAULT_ADDR == '' || secrets.VAULT_TOKEN == '') }}
         run: |
           echo "VAULT_ADDR=http://127.0.0.1:8200" >> $GITHUB_ENV
           echo "VAULT_TOKEN=root" >> $GITHUB_ENV
