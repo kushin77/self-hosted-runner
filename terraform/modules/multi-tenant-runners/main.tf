@@ -64,6 +64,16 @@ locals {
     var.extra_metadata
   )
 
+  # Optionally inject Vault Agent artifacts into instance metadata so images
+  # need not bundle them. This allows the startup script to write files from
+  # metadata on first boot and enable Vault Agent.
+  metadata = var.inject_vault_agent_metadata ? merge(local.metadata, {
+    "vault-agent.hcl"        = file("${path.root}/scripts/identity/vault-agent/vault-agent.hcl")
+    "vault-agent.service"    = file("${path.root}/scripts/identity/vault-agent/vault-agent.service")
+    "registry-creds.tpl"     = file("${path.root}/scripts/identity/vault-agent/registry-creds.tpl")
+  }) : local.metadata
+  )
+
   effective_allowed_egress_cidrs = distinct(compact(concat(var.required_egress_cidrs, var.allowed_egress_cidrs)))
 
   ingress_ports = length(var.allowed_ingress_ports) > 0 ? [for port in var.allowed_ingress_ports : tostring(port)] : ["443"]
