@@ -28,9 +28,9 @@ resource "vault_approle_auth_backend_role_id" "role_id" {
 }
 
 resource "vault_approle_auth_backend_role_secret_id" "secret_id" {
-  backend        = vault_approle_auth_backend.provisioner.path
-  role_name      = vault_approle_auth_backend_role.provisioner_role.role_name
-  secret_id_ttl  = "24h"
+  backend       = vault_approle_auth_backend.provisioner.path
+  role_name     = vault_approle_auth_backend_role.provisioner_role.role_name
+  secret_id_ttl = "24h"
 }
 
 output "vault_app_role_id" {

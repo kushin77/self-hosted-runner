@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { COLORS } from './theme';
+import React, { useState, createContext, useContext } from 'react';
+import { COLORS, COLORS_DARK, Theme } from './theme';
 import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
@@ -13,13 +13,36 @@ import { AIOracleContent } from './pages/AIOracleContent';
 import { LiveMirrorCache } from './pages/LiveMirrorCache';
 import { WindowsRunners } from './pages/WindowsRunners';
 import { Settings } from './pages/Settings';
+import { ComponentShowcase } from './pages/ComponentShowcase';
+import { RepoFunctions } from './pages/RepoFunctions';
+import { Observability } from './pages/Observability';
+import { useMetrics } from './api/client';
+import { useSocket } from './api/socket';
+
+/**
+ * Theme Context for global theme management
+ */
+const ThemeContext = createContext<{ theme: Theme; setTheme: (t: Theme) => void }>({
+  theme: 'light',
+  setTheme: () => {},
+});
+
+export const useTheme = () => useContext(ThemeContext);
 
 /**
  * Main App Component
  */
 function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [theme, setTheme] = useState<Theme>('light');
   const tick = useTick(2500);
+  const colors = theme === 'light' ? COLORS : COLORS_DARK;
+
+  // Initialize real-time metrics
+  useMetrics({ interval: 5000 });
+  
+  // Initialize Phase 2 WebSocket listener
+  useSocket({ url: 'http://localhost:9090' });
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (
@@ -43,6 +66,7 @@ function App() {
 
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
+    observability: <Observability />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
     runners: <Runners />,
@@ -51,42 +75,47 @@ function App() {
     security: <Security />,
     windows: <WindowsRunners />,
     billing: <Billing />,
+    showcase: <ComponentShowcase />,
+    functions: <RepoFunctions />,
     settings: <Settings />,
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        height: '100vh',
-        background: COLORS.bg,
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: COLORS.text,
-        overflow: 'hidden',
-      }}
-    >
-      <GlobalStyles />
-      <Sidebar active={activeTab} setActive={setActiveTab} />
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       <div
         style={{
-          flex: 1,
           display: 'flex',
-          flexDirection: 'column',
+          height: '100vh',
+          background: colors.bg,
+          fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+          color: colors.text,
           overflow: 'hidden',
+          transition: 'background 0.3s ease, color 0.3s ease',
         }}
       >
-        <StatusBar />
+        <GlobalStyles theme={theme} />
+        <Sidebar active={activeTab} setActive={setActiveTab} theme={theme} />
         <div
           style={{
             flex: 1,
-            overflow: 'hidden',
             display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
         >
-          {pages[activeTab] || <PlaceholderPage title="Unknown Page" />}
+          <StatusBar theme={theme} setTheme={setTheme} />
+          <div
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              display: 'flex',
+            }}
+          >
+            {pages[activeTab] || <PlaceholderPage title="Unknown Page" />}
+          </div>
         </div>
       </div>
-    </div>
+    </ThemeContext.Provider>
   );
 }
 
