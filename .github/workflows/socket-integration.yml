@@ -1,0 +1,30 @@
+name: Socket Integration Tests
+
+on:
+  push:
+    branches: [ main, 'feature/**' ]
+  pull_request:
+    branches: [ main, 'feature/**' ]
+
+jobs:
+  integration:
+    name: Run socket integration test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies (provisioner-worker)
+        working-directory: services/provisioner-worker
+        run: npm ci
+
+      - name: Run socket integration test
+        working-directory: services/provisioner-worker
+        run: npm run test:integration
+        timeout-minutes: 5

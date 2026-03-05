@@ -72,6 +72,7 @@
     "side-channel-map": "^1.0.1",
     "side-channel-weakmap": "^1.0.2",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "statuses": "^2.0.2",
     "tdigest": "^0.1.2",
     "toidentifier": "^1.0.1",
@@ -87,7 +88,8 @@
     "@opentelemetry/sdk-trace-node": "^1.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "test:integration": "node test/socket_integration_test.js"
   },
   "keywords": [],
   "author": "",
