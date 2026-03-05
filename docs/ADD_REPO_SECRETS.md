@@ -11,6 +11,10 @@ Required secrets (P4 — AWS Spot Runner):
   operations (e.g. `arn:aws:iam::123456789012:role/ci-terraform-plan-role`).
 - `AWS_REGION` — AWS region the deployment targets (e.g. `us-east-1`).
 
+Optional notification secret:
+
+- `SLACK_WEBHOOK` — (optional) Incoming Slack webhook URL for alert notifications. Do NOT commit this value into the repository. Store it as a repository or organization secret (Settings → Secrets and variables → Actions) and inject at runtime. Example usage in shell scripts (runner env): `SLACK_WEBHOOK="$SLACK_WEBHOOK"` (the script will read from the environment).
+
 Recommended steps to add secrets via the GitHub web UI:
 
 1. Go to the repository Settings -> Secrets and variables -> Actions -> New repository secret.
