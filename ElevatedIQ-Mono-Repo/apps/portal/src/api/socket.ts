@@ -4,7 +4,7 @@ import type { ServerToClientEvents, ClientToServerEvents } from './socket.types'
 import { useStore } from './store';
 
 export function createSocket(url = 'http://localhost:9090') {
-  return io<ClientToServerEvents, ServerToClientEvents>(url, {
+  return io(url, {
     path: '/socket.io',
     autoConnect: false,
     transports: ['websocket', 'polling'],
@@ -17,7 +17,7 @@ export function createSocket(url = 'http://localhost:9090') {
 }
 
 export function useSocket(opts?: { url?: string; autoConnect?: boolean }) {
-  const ref = useRef<Socket<ClientToServerEvents, ServerToClientEvents> | null>(null);
+  const ref = useRef<Socket | null>(null);
 
   useEffect(() => {
     const url = opts?.url ?? 'http://localhost:9090';
