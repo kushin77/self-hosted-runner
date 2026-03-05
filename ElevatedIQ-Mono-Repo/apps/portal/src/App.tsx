@@ -14,6 +14,7 @@ import { LiveMirrorCache } from './pages/LiveMirrorCache';
 import { WindowsRunners } from './pages/WindowsRunners';
 import { Settings } from './pages/Settings';
 import { ComponentShowcase } from './pages/ComponentShowcase';
+import { RepoFunctions } from './pages/RepoFunctions';
 
 /**
  * Theme Context for global theme management
@@ -65,6 +66,7 @@ function App() {
     windows: <WindowsRunners />,
     billing: <Billing />,
     showcase: <ComponentShowcase />,
+    functions: <RepoFunctions />,
     settings: <Settings />,
   };
 
