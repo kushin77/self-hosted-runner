@@ -7,7 +7,6 @@ jobs:
   staging-promotion-test:
     runs-on: ubuntu-latest
     env:
-      # Default will be replaced at runtime by the prepare step below.
       TARGET_REGISTRY: ${{ secrets.TARGET_REGISTRY_STAGING || '' }}
     steps:
       - name: Checkout
@@ -16,24 +15,12 @@ jobs:
       - name: Setup Docker
         uses: docker/setup-buildx-action@v2
 
-      - name: Prepare staging registry (start local fallback if secrets missing)
-        id: prepare_registry
+      - name: Login to staging registry (safe)
         run: |
-          set -euo pipefail
-          if [ -n "${{ secrets.TARGET_REGISTRY_STAGING || '' }}" ] && [ -n "${{ secrets.TARGET_REGISTRY_STAGING_USERNAME || '' }}" ] && [ -n "${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD || '' }}" ]; then
-            echo "Using configured staging registry: ${{ secrets.TARGET_REGISTRY_STAGING }}"
-            echo "TARGET_REGISTRY=${{ secrets.TARGET_REGISTRY_STAGING }}" >> "$GITHUB_ENV"
-            echo "REGISTRY_LOGIN=true" >> "$GITHUB_ENV"
-          else
-            echo "Secrets missing; starting local registry fallback on localhost:5000"
-            docker run -d -p 5000:5000 --name local-registry registry:2 || true
-            echo "TARGET_REGISTRY=localhost:5000" >> "$GITHUB_ENV"
-            echo "REGISTRY_LOGIN=false" >> "$GITHUB_ENV"
+          if [ -z "${{ secrets.TARGET_REGISTRY_STAGING || '' }}" ] || [ -z "${{ secrets.TARGET_REGISTRY_STAGING_USERNAME || '' }}" ] || [ -z "${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD || '' }}" ]; then
+            echo "Skipping registry login: required secrets missing (TARGET_REGISTRY_STAGING/TARGET_REGISTRY_STAGING_USERNAME/TARGET_REGISTRY_STAGING_PASSWORD)"
+            exit 0
           fi
-
-      - name: Login to staging registry (when configured)
-        if: env.REGISTRY_LOGIN == 'true'
-        run: |
           echo "${{ secrets.TARGET_REGISTRY_STAGING_PASSWORD }}" | docker login "${{ secrets.TARGET_REGISTRY_STAGING }}" -u "${{ secrets.TARGET_REGISTRY_STAGING_USERNAME }}" --password-stdin
 
       - name: Generate manifest
@@ -43,17 +30,15 @@ jobs:
 
       - name: Dry-run promote to staging
         run: |
-          echo "This job will tag/push images to staging registry: ${{ env.TARGET_REGISTRY }}"
+          echo "This job will tag/push images to staging registry: $TARGET_REGISTRY"
           ./scripts/airgap/generate_image_manifest.sh > /tmp/airgap-manifest.yml
           # Use promote script but only push first image as a safe smoke test
           first=$(grep -E "^\s*image:\s*" -h /tmp/airgap-manifest.yml | sed -E 's/^[[:space:]]*image:[[:space:]]*//' | head -n1)
           if [ -n "$first" ]; then
-            echo "Testing push for $first -> ${TARGET_REGISTRY}/$first"
-            # If local fallback registry, re-tag to shorter name for localhost registry compatibility
-            docker pull "$first" || true
-            TARGET_REG="${TARGET_REGISTRY}"
-            docker tag "$first" "$TARGET_REG/$first"
-            docker push "$TARGET_REG/$first" || true
+            echo "Testing push for $first -> $TARGET_REGISTRY/$first"
+            docker pull "$first"
+            docker tag "$first" "$TARGET_REGISTRY/$first"
+            docker push "$TARGET_REGISTRY/$first"
           else
             echo "No images found in manifest" && exit 1
           fi
