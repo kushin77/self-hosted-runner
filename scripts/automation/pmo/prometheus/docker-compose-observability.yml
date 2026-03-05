@@ -29,6 +29,8 @@ services:
   alertmanager:
     image: prom/alertmanager:v0.26.0
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - '9096:9093'
     volumes:
@@ -52,6 +54,8 @@ services:
   grafana:
     image: grafana/grafana:10.0.3
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - '3000:3000'
     volumes:
