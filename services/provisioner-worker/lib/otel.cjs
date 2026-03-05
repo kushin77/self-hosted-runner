@@ -17,10 +17,18 @@ function init() {
     const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
     const { MeterProvider } = require('@opentelemetry/sdk-metrics');
 
+    const exporterType = (process.env.OTEL_EXPORTER || 'otlp').toLowerCase();
+    let exporterUrl = process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces';
+    let exporterOptions = { url: exporterUrl };
+
+    if (exporterType === 'datadog') {
+      exporterOptions.headers = { 'DD-API-KEY': process.env.DATADOG_API_KEY || '' };
+    } else if (exporterType === 'splunk') {
+      exporterOptions.headers = { 'Splunk': process.env.SPLUNK_HEC_TOKEN || '' };
+    }
+
     const tracerProvider = new NodeTracerProvider();
-    const traceExporter = new OTLPTraceExporter({
-      url: process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces'
-    });
+    const traceExporter = new OTLPTraceExporter(exporterOptions);
     tracerProvider.addSpanProcessor(new SimpleSpanProcessor(traceExporter));
     tracerProvider.register();
     tracer = tracerProvider.getTracer('provisioner-worker');
@@ -28,7 +36,7 @@ function init() {
     const meterProvider = new MeterProvider();
     meter = meterProvider.getMeter('provisioner-worker');
 
-    console.info('OpenTelemetry initialized');
+    console.info('OpenTelemetry initialized (exporter=' + exporterType + ')');
   } catch (e) {
     console.warn('OpenTelemetry initialization failed (continuing without OTEL):', e.message);
   }

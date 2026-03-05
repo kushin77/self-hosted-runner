@@ -23,6 +23,12 @@ terraform {
 provider "aws" {
   region = var.aws_region
 
+  # During one-time GCP import runs we may not have valid AWS credentials
+  # available to this control host. Set these skips to avoid provider
+  # credential validation (temporary, will be reverted after import).
+  skip_credentials_validation = true
+  skip_requesting_account_id  = true
+
   default_tags {
     tags = {
       Project     = var.project_name
@@ -88,16 +94,16 @@ variable "github_repo" {
 module "runners" {
   source = "./modules/ci-runners"
 
-  project_name            = var.project_name
-  environment             = var.environment
-  runner_count            = var.runner_count
-  instance_type_standard  = "t3.medium"   # 2 vCPU, 4GB RAM
-  instance_type_highmem   = "r5.xlarge"   # 4 vCPU, 32GB RAM
-  vpc_id                  = var.vpc_id
-  subnet_ids              = var.subnet_ids
-  runner_token            = var.runner_token
-  github_owner            = var.github_owner
-  github_repo             = var.github_repo
+  project_name           = var.project_name
+  environment            = var.environment
+  runner_count           = var.runner_count
+  instance_type_standard = "t3.medium" # 2 vCPU, 4GB RAM
+  instance_type_highmem  = "r5.xlarge" # 4 vCPU, 32GB RAM
+  vpc_id                 = var.vpc_id
+  subnet_ids             = var.subnet_ids
+  runner_token           = var.runner_token
+  github_owner           = var.github_owner
+  github_repo            = var.github_repo
 }
 
 # Outputs

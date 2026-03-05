@@ -14,10 +14,10 @@
       "options": {},
       "targets": [
         {
-          "expr": "sum(rate(otelcol_exporter_sent_spans_total[1m])) or sum(rate(otel_exporter_sent_spans_total[1m]))",
+          "expr": "sum(rate(provisioner_jobs_processed_total[1m])) or sum(rate(otelcol_exporter_sent_spans_total[1m]))",
           "format": "time_series",
           "interval": "",
-          "legendFormat": "traces/s",
+          "legendFormat": "jobs/s",
           "refId": "A"
         }
       ],
@@ -32,9 +32,9 @@
       "options": {},
       "targets": [
         {
-          "expr": "sum by (service) (rate(otelcol_exporter_sent_spans_total[5m]))",
+          "expr": "sum(rate(provisioner_jobs_succeeded_total[5m]))",
           "format": "time_series",
-          "legendFormat": "{{service}}",
+          "legendFormat": "succeeded/s",
           "refId": "A"
         }
       ],
@@ -49,13 +49,13 @@
       "options": {},
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(otelcol_span_processing_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.95, sum(rate(provisioner_job_processing_latency_ms_bucket[5m])) by (le))",
           "format": "time_series",
           "legendFormat": "p95",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.5, sum(rate(otelcol_span_processing_seconds_bucket[5m])) by (le))",
+          "expr": "histogram_quantile(0.5, sum(rate(provisioner_job_processing_latency_ms_bucket[5m])) by (le))",
           "format": "time_series",
           "legendFormat": "p50",
           "refId": "B"
@@ -72,7 +72,7 @@
       "options": {},
       "targets": [
         {
-          "expr": "sum(rate(otelcol_exporter_failed_spans_total[5m])) or sum(rate(otel_exporter_failed_spans_total[5m]))",
+          "expr": "sum(rate(provisioner_jobs_failed_total[5m])) or sum(rate(provisioner_terraform_errors_total[5m]))",
           "format": "time_series",
           "legendFormat": "failed/s",
           "refId": "A"
