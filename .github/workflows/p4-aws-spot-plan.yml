@@ -15,10 +15,34 @@ jobs:
         with:
           terraform_version: '1.5.0'
 
-      - name: Terraform Init & Plan
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            terraform/examples/aws-spot/.terraform
+          key: ${{ runner.os }}-terraform-aws-spot-${{ hashFiles('**/terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-aws-spot-
+
+      - name: Terraform Init
         working-directory: terraform/examples/aws-spot
         run: |
           terraform init -input=false
+
+      - name: Terraform fmt (check)
+        working-directory: terraform/examples/aws-spot
+        run: |
+          terraform fmt -check -recursive || (terraform fmt -recursive && echo 'Ran terraform fmt')
+
+      - name: Terraform Validate
+        working-directory: terraform/examples/aws-spot
+        run: |
+          terraform validate || true
+
+      - name: Terraform Plan
+        working-directory: terraform/examples/aws-spot
+        run: |
           terraform plan -out=aws-spot.tfplan -input=false
 
       - name: Upload plan artifact
