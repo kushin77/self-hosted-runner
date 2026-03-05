@@ -15,6 +15,8 @@ import { WindowsRunners } from './pages/WindowsRunners';
 import { Settings } from './pages/Settings';
 import { ComponentShowcase } from './pages/ComponentShowcase';
 import { RepoFunctions } from './pages/RepoFunctions';
+import { Observability } from './pages/Observability';
+import { useMetrics } from './api/client';
 
 /**
  * Theme Context for global theme management
@@ -34,6 +36,9 @@ function App() {
   const [theme, setTheme] = useState<Theme>('light');
   const tick = useTick(2500);
   const colors = theme === 'light' ? COLORS : COLORS_DARK;
+
+  // Initialize real-time metrics
+  useMetrics({ interval: 5000 });
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (
@@ -57,6 +62,7 @@ function App() {
 
   const pages: Record<string, React.ReactNode> = {
     home: <Dashboard tick={tick} />,
+    observability: <Observability />,
     agents: <AgentStudio />,
     deploy: <DeployMode />,
     runners: <Runners />,
