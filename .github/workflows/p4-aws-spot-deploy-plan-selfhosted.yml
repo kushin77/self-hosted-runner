@@ -8,7 +8,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
   push:
     paths:
       - 'terraform/examples/aws-spot/**'
@@ -69,5 +68,3 @@ jobs:
         with:
           name: aws-spot-plan-txt
           path: terraform/examples/aws-spot/plan.txt
-on:
-  workflow_dispatch: {}

@@ -8,9 +8,6 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch: {}
-on:
-  workflow_dispatch: {}
   push:
     branches: [ feature/p2-managed-mode, main, feature/p2-vault-ci, feature/p2-vault-hardening ]
 
