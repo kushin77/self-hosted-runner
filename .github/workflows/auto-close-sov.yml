@@ -1,0 +1,34 @@
+name: Auto-close SOV tracking issues
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  close-sov-issues:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close SOV issues referencing merged PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "Searching for issues referencing $PR_URL"
+          # Search issues in repo body referencing the PR URL
+          SEARCH_URL="https://api.github.com/search/issues?q=repo:${REPO}+in:body+\"${PR_URL}\""
+          RESULTS=$(curl -s -H "Authorization: token ${GITHUB_TOKEN}" "$SEARCH_URL")
+          ISSUES=$(echo "$RESULTS" | jq -r '.items[]?.number') || true
+          if [[ -z "$ISSUES" ]]; then
+            echo "No tracking issues found referencing this PR."
+            exit 0
+          fi
+          for issue in $ISSUES; do
+            echo "Closing issue #$issue"
+            PATCH_URL="https://api.github.com/repos/${REPO}/issues/$issue"
+            curl -s -X PATCH -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "$PATCH_URL" -d '{"state":"closed","labels":["completed"]}' >/dev/null
+            COMMENT_URL="https://api.github.com/repos/${REPO}/issues/$issue/comments"
+            curl -s -X POST -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "$COMMENT_URL" -d "{\"body\":\"PR ${PR_URL} was merged — closing this tracking issue. If this is incorrect, please reopen and comment.\"}" >/dev/null
+          done
