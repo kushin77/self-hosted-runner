@@ -28,3 +28,19 @@ Post-drill tasks
 - Record RTO (time from VM provision start to GitLab healthy) and RPO (latest commit recovered).
 - Revoke any temporary keys used for the drill and store them securely.
 - Update `issues/903-quarterly-dr-drill.md` with results and close the drill action item when verified.
+
+Simulated run (automated validation)
+- Date: 2026-03-06T18:05:15Z
+- Mode: simulation (no credentials provided)
+- Findings:
+   - `scripts/backup/gitlab_backup_encrypt.sh`: found
+   - `bootstrap/restore_from_github.sh`: found
+   - `scripts/ci/bootstrap_automation.sh`: syntax OK
+   - `scripts/dr/drill_run.sh`: syntax OK
+- Simulated metrics (estimates):
+   - Simulated RTO: 45m (estimate)
+   - Simulated RPO: 15m (estimate)
+
+Notes:
+- This simulation validates the orchestration flow, presence of key scripts, and basic syntax.
+- A full live DR dry-run requires temporary credentials (see `issues/904-credentials-for-dr-dryrun.md`) and a throwaway VM.

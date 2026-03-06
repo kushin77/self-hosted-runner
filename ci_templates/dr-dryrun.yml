@@ -1,0 +1,35 @@
+# DR dry-run pipeline template
+# Runs the DR dry-run using GSM secrets fetched on the runner.
+# Requires protected CI variables set in GitLab project/group:
+# - SECRET_PROJECT: GCP project containing secrets
+# - GH_TOKEN_SECRET: secret name for GitHub PAT in GSM
+# - GCP_SA_SECRET: (optional) secret name for GCP service account JSON in GSM
+# - AGE_KEY_SECRET: (optional) secret name for age private key in GSM
+# - GITLAB_API_URL, GITLAB_GROUP_ID, RESTORE_S3_BUCKET, GITHUB_REPO: as needed
+
+stages:
+  - maintenance
+
+maintenance:dr_dryrun:
+  stage: maintenance
+  image: google/cloud-sdk:slim
+  variables:
+    # prevent accidental runs on forks
+    GIT_STRATEGY: none
+  script:
+    - echo "Fetching GSM secrets and running DR dry-run"
+    - chmod +x scripts/load_gsm_secrets.sh scripts/ci/run_dr_dryrun.sh scripts/ci/ingest_dr_log_and_close_issues.sh
+    - ./scripts/load_gsm_secrets.sh
+    - if [ -n "${AGE_KEY_SECRET:-}" ]; then gcloud secrets versions access latest --secret="${AGE_KEY_SECRET}" --project="${SECRET_PROJECT}" > /tmp/age_key.txt && export AGE_KEY_FILE_PATH=/tmp/age_key.txt; fi
+    - ./scripts/ci/run_dr_dryrun.sh
+    - LOGFILE="$(ls -1t /tmp/dr_dryrun_*.log | head -n1)" || true
+    - if [ -n "$LOGFILE" ]; then ./scripts/ci/ingest_dr_log_and_close_issues.sh "$LOGFILE" || true; fi
+  only:
+    - schedules
+    - manual
+  when: manual
+  tags:
+    - keda
+  retry: 1
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web"'

@@ -1,0 +1,28 @@
+---
+- name: Ensure Caddy gitlab site block is present
+  become: yes
+  blockinfile:
+    path: /etc/caddy/Caddyfile.portal.elevatediq
+    marker: "# {mark} ANSIBLE GITLAB BLOCK"
+    block: |
+      gitlab.internal.elevatediq.com {
+        tls {{ tls_cert }} {{ tls_key }}
+        reverse_proxy {{ gitlab_upstream }} {
+          header_up Host {{ gitlab_host }}
+          header_up X-Real-IP {http.request.remote}
+          header_up X-Forwarded-For {http.request.remote}
+          header_up X-Forwarded-Proto {http.request.scheme}
+        }
+        log {
+          output file /var/log/caddy/gitlab.log {
+            roll_size 5mb
+            roll_keep 3
+          }
+        }
+        encode gzip
+      }
+
+- name: Restart eiq-caddy container
+  become: yes
+  command: docker restart eiq-caddy
+  changed_when: false
