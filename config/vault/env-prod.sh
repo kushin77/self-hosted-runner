@@ -2,11 +2,12 @@
 # Production Vault Configuration
 # Generated: 2026-03-05
 
-export VAULT_ADDR="http://127.0.0.1:8200"
+export VAULT_ADDR="<VAULT_ADDR>" # set via deployment environment or GitHub Secrets
 export VAULT_SKIP_VERIFY="true"
 
 # AppRole authentication credentials (provisioner-worker)
-export VAULT_ROLE_ID="3df2e4bdb7d5ee2005ea65ccbc5d32f3"
+# Use placeholder values here; real role/secret IDs must come from secure storage (Vault/secret mount/GitHub Secrets)
+export VAULT_ROLE_ID="<VAULT_ROLE_ID>"
 # Secret ID is written to /run/vault/.secret via secure volume mount
 export VAULT_SECRET_ID_PATH="/run/vault/.secret"
 
@@ -21,4 +22,4 @@ export MANAGED_AUTH_PORT=4000
 export VAULT_SHIM_PORT=4200
 export PROVISIONER_METRICS_PORT=9090
 
-echo "✓ Production environment loaded (test credentials)"
+echo "✓ Production environment loaded (placeholders configured)"
