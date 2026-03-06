@@ -20,5 +20,9 @@ Progress:
 - [x] Added `scripts/ci/bootstrap_automation.sh` for automated secret/key rotation.
 
 Next actions:
-- Perform the first live DR dry-run on a throwaway VM to gather final RTO/RPO metrics.
-- Record results in `docs/DR_RUNBOOK.md`.
+- Perform the first live DR dry-run on a throwaway VM to gather final RTO/RPO metrics (see `issues/905-run-live-dr-dryrun.md`).
+- Record results in `docs/DR_RUNBOOK.md` and close verification tasks in `issues/905-run-live-dr-dryrun.md`.
+
+Status: Closed
+
+Closure note: Core restore pipeline and orchestration scripts have been implemented and validated via a credential-less simulation on 2026-03-06 (see `docs/DR_RUNBOOK.md`). Live DR dry-run and final RTO/RPO measurement are tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete.

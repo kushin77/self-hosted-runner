@@ -1,0 +1,5 @@
+- hosts: runners
+  gather_facts: no
+  become: yes
+  roles:
+    - role: caddy_gitlab
