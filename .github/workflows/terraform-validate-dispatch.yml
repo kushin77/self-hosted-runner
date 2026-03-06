@@ -1,0 +1,34 @@
+name: Terraform Validate - Manual Dispatch
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Terraform Validate All
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.5.0"
+
+      - name: Make script executable
+        run: |
+          chmod +x scripts/automation/terraform/validate_all.sh
+
+      - name: Run terraform validations
+        run: |
+          bash scripts/automation/terraform/validate_all.sh
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-validate-reports
+          path: terraform-validate-reports
