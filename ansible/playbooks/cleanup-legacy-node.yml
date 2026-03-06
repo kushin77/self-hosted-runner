@@ -1,0 +1,71 @@
+---
+# Cleanup playbook for legacy node (192.168.168.31)
+# This playbook will stop services installed from the repo, remove deployed
+# directories, uninstall systemd units created by the automation, and remove
+# any repo-owned files.
+#
+# WARNING: This is destructive. Review carefully before running against any host.
+
+- name: Cleanup legacy repo infrastructure
+  hosts: legacy
+  become: true
+  gather_facts: false
+
+  vars:
+    repo_base: /home/akushnir/runnercloud
+    services:
+      - provisioner-worker
+      - managed-auth
+      - vault-shim
+
+  tasks:
+    - name: Stop repo services if running
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: stopped
+      loop: "{{ services }}"
+      ignore_errors: true
+
+    - name: Remove repo directories
+      ansible.builtin.file:
+        path: "{{ repo_base }}"
+        state: absent
+      ignore_errors: true
+
+    - name: Remove portal dist directory
+      ansible.builtin.file:
+        path: /var/www/portal || "{{ repo_base }}/portal/dist"
+        state: absent
+      ignore_errors: true
+
+    - name: Disable and remove systemd units created by deploy automation
+      ansible.builtin.shell: |
+        for svc in provisioner-worker managed-auth vault-shim portal.service; do
+          systemctl stop "$svc" || true
+          systemctl disable "$svc" || true
+          rm -f /etc/systemd/system/$svc.service || true
+        done
+      args:
+        warn: false
+
+    - name: Reload systemd daemon
+      ansible.builtin.shell: systemctl daemon-reload || true
+      args:
+        warn: false
+
+    - name: Remove cron jobs and timers created by automation
+      ansible.builtin.shell: |
+        crontab -l 2>/dev/null | grep -v 'runnercloud' || true | crontab - || true
+      args:
+        warn: false
+      ignore_errors: true
+
+    - name: Remove repo-owned temporary files
+      ansible.builtin.file:
+        path: /tmp/runnercloud*
+        state: absent
+      ignore_errors: true
+
+    - name: Report cleanup done
+      ansible.builtin.debug:
+        msg: "Cleanup tasks executed on {{ inventory_hostname }} (review logs on host)."
