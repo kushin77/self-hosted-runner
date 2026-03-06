@@ -36,6 +36,18 @@ Notes:
 - Registration scope is determined at `config.sh` time (repository vs organization).
 - This portal is a minimal mimic to manage runner metadata; it does NOT perform the actual GitHub runner registration — that must run on the host where the runner process runs.
 
+Publishing the portal image
+-------------------------
+
+We provide a CI workflow to build and publish the portal Docker image to GitHub Container Registry on pushes to `main`.
+The workflow file is `.github/workflows/publish-portal-image.yml` and uses `GITHUB_TOKEN` with `packages: write` permission.
+
+Monitoring / Alerts
+-------------------
+
+A lightweight notification helper is available at `scripts/notify_health.sh` which posts messages to a Slack webhook defined in `SLACK_WEBHOOK`.
+The systemd healthcheck may call this script when reprovisioning occurs; configure a secure webhook in your environment before enabling alerts.
+
 Healthchecks & Automated Reprovisioning
 --------------------------------------
 
