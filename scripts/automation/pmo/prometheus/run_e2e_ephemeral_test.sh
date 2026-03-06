@@ -13,7 +13,14 @@ cleanup() {
   docker rm -f observability-e2e-alertmanager >/dev/null 2>&1 || true
   docker rm -f observability-e2e-mock-webhook >/dev/null 2>&1 || true
   [ -n "${NETWORK:-}" ] && docker network rm "$NETWORK" >/dev/null 2>&1 || true
-  rm -rf "$TMPDIR"
+  # Use safe_delete wrapper for temp dir cleanup
+  SAFE_DELETE="$(pwd)/scripts/safe_delete.sh"
+  if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../../scripts/safe_delete.sh"; fi
+  if [ -x "$SAFE_DELETE" ]; then
+    "$SAFE_DELETE" --path "$TMPDIR" --dry-run || true
+  else
+    rm -rf "$TMPDIR"
+  fi
 }
 trap cleanup EXIT
 
