@@ -1,0 +1,30 @@
+replicaCount: 1
+
+image:
+  repository: registry.internal/minio/minio
+  tag: RELEASE.2026-01-01
+  pullPolicy: IfNotPresent
+
+persistence:
+  enabled: true
+  size: 50Gi
+  storageClass: "default"
+
+service:
+  type: ClusterIP
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "512Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+accessKeySecretName: minio-credentials
+tls:
+  enabled: false
+
+env:
+  # Recommend using a Vault injector or Kubernetes secret; values here are placeholders
+  MINIO_PROMETHEUS_AUTH_TYPE: "public"

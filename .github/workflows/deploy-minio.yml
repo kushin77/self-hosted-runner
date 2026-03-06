@@ -1,0 +1,53 @@
+name: Deploy MinIO (staging)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  deploy-minio:
+    name: Deploy MinIO to staging
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install kubectl & helm
+        run: |
+          set -euo pipefail
+          curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+          chmod +x kubectl
+          mv kubectl /usr/local/bin/
+          curl -fsSL https://get.helm.sh/helm-v3.12.0-linux-amd64.tar.gz -o /tmp/helm.tgz
+          tar -xzf /tmp/helm.tgz -C /tmp
+          mv /tmp/linux-amd64/helm /usr/local/bin/helm
+
+      - name: Configure kubeconfig
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG_BASE64 }}
+        run: |
+          set -euo pipefail
+          if [ -z "${KUBECONFIG_DATA:-}" ]; then
+            echo "KUBECONFIG_BASE64 secret not set" >&2
+            exit 2
+          fi
+          echo "${KUBECONFIG_DATA}" | base64 -d > /tmp/kubeconfig
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl config view --raw
+
+      - name: Ensure namespace
+        run: |
+          export KUBECONFIG=/tmp/kubeconfig
+          kubectl create namespace minio --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy MinIO via Helm
+        env:
+          KUBECONFIG: /tmp/kubeconfig
+        run: |
+          set -euo pipefail
+          helm upgrade --install minio deploy/minio -n minio -f deploy/minio/values.sov-staging.yaml --wait --timeout 10m
+
+      - name: Post-deploy check
+        env:
+          KUBECONFIG: /tmp/kubeconfig
+        run: |
+          kubectl -n minio get statefulset,minio -o wide || true
