@@ -4,8 +4,8 @@ Manage GitHub issues for infra tasks via REST API using GITHUB_TOKEN.
 You can obtain `GITHUB_TOKEN` from GSM using `scripts/load_gsm_secrets.sh`.
 
 Usage:
-  GITHUB_TOKEN=ghp_xxx REPO=owner/repo python3 scripts/manage_github_issues.py create
-  GITHUB_TOKEN=ghp_xxx REPO=owner/repo python3 scripts/manage_github_issues.py close --title "Issue Title"
+    GITHUB_TOKEN=REDACTED REPO=owner/repo python3 scripts/manage_github_issues.py create
+    GITHUB_TOKEN=REDACTED REPO=owner/repo python3 scripts/manage_github_issues.py close --title "Issue Title"
 
 Commands:
   create  Create the standard infra issues (idempotent by title).
