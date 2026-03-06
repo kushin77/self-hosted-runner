@@ -1,0 +1,46 @@
+name: Terraform DNS Auto-Apply
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: terraform-dns-auto
+  cancel-in-progress: true
+
+jobs:
+  check-and-apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if AWS secrets are configured
+        id: secrets_check
+        env:
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          ROUTE53_ZONE: ${{ secrets.ROUTE53_ZONE_ID }}
+        run: |
+          if [ -z "$AWS_KEY" ] || [ -z "$AWS_SECRET" ] || [ -z "$ROUTE53_ZONE" ]; then
+            echo "secrets_ready=false" >> $GITHUB_OUTPUT
+            echo "AWS secrets not yet configured. Waiting for configuration..."
+            exit 0
+          else
+            echo "secrets_ready=true" >> $GITHUB_OUTPUT
+            echo "AWS secrets detected. Ready to apply."
+          fi
+
+      - name: Dispatch Terraform DNS Apply (apply action)
+        if: steps.secrets_check.outputs.secrets_ready == 'true'
+        run: |
+          # GitHub Actions automatically injects secrets.GITHUB_TOKEN - never hardcoded in workflows
+          curl -s -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/kushin77/self-hosted-runner/actions/workflows/terraform-dns-apply.yml/dispatches \
+            -d '{"ref":"main","inputs":{"action":"apply"}}'
+          echo "Terraform DNS Apply workflow dispatched."
+
+      - name: Wait for Terraform run to complete
+        if: steps.secrets_check.outputs.secrets_ready == 'true'
+        run: |
+          echo "Terraform apply dispatched. Monitor at: https://github.com/kushin77/self-hosted-runner/actions/workflows/terraform-dns-apply.yml"

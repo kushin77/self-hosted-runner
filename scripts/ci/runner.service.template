@@ -6,8 +6,18 @@ After=network.target
 WorkingDirectory=%h/actions-runner
 ExecStart=%h/actions-runner/svc.sh run
 User=%u
-Restart=always
-RestartSec=3
+# Keep the service resilient and rate-limited
+Type=simple
+Restart=on-failure
+RestartSec=10
+StartLimitBurst=5
+StartLimitIntervalSec=60
+TimeoutStartSec=120
+PermissionsStartOnly=true
+KillMode=process
+LimitNOFILE=65536
+EnvironmentFile=-/etc/default/actions-runner-%i
+PrivateTmp=true
 
 [Install]
 WantedBy=multi-user.target

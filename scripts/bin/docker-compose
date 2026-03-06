@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# Lightweight wrapper to prefer the `docker compose` plugin, falling back to `docker-compose`.
+# Usage: scripts/bin/docker-compose <args...>
+
+if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+  exec docker compose "$@"
+elif command -v docker-compose >/dev/null 2>&1; then
+  exec docker-compose "$@"
+else
+  echo "Neither 'docker compose' plugin nor 'docker-compose' found."
+  echo "On many systems you can install the plugin (Docker CLI) or install docker-compose via pip:"
+  echo "  sudo pip3 install docker-compose" 
+  exit 127
+fi
