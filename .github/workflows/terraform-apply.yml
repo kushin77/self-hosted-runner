@@ -6,7 +6,7 @@ on:
 jobs:
   apply-ci-runners:
     name: Apply ci-runners (requires environment approval)
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, self-hosted-heavy]
     environment: production
     steps:
       - name: Download terraform plan artifact
