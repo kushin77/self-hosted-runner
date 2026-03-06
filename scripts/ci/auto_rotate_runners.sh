@@ -8,6 +8,29 @@ CONFIG=${1:-/etc/actions-runner/rotation.conf}
 DRY=${DRY:-}
 VAULT_ADDR=${VAULT_ADDR:-}
 
+# Prometheus node_textfile collector path (adjust as needed)
+TEXTFILE_DIR=${TEXTFILE_DIR:-/var/lib/node_exporter/textfile_collector}
+METRIC_FILE="$TEXTFILE_DIR/runner_rotation.prom"
+
+mkdir -p "$TEXTFILE_DIR" 2>/dev/null || true
+
+increment_metric() {
+  local name="$1"
+  local delta=${2:-1}
+  local cur=0
+  if [ -f "$METRIC_FILE" ]; then
+    cur=$(grep -E "^${name} " "$METRIC_FILE" 2>/dev/null | awk '{print $2}' || true)
+    cur=${cur:-0}
+  fi
+  new=$((cur + delta))
+  # write atomically
+  tmp=$(mktemp)
+  # preserve other metrics
+  grep -v -E "^${name} " "$METRIC_FILE" 2>/dev/null || true > "$tmp"
+  echo "${name} ${new}" >> "$tmp"
+  mv "$tmp" "$METRIC_FILE"
+}
+
 if [ ! -f "$CONFIG" ]; then
   echo "Config file $CONFIG not found" >&2
   exit 2
@@ -27,9 +50,19 @@ while IFS= read -r line; do
 
   echo "Rotating runner $runner_name at $runner_dir (secret: $secret_path)"
   if [ -n "${DRY}" ]; then
-    DRY=1 VAULT_ADDR="$VAULT_ADDR" ./scripts/ci/rotate-runner.sh "$runner_dir" "$repo_url" "$runner_name" "$secret_path" || true
+    DRY=1 VAULT_ADDR="$VAULT_ADDR" ./scripts/ci/rotate-runner.sh "$runner_dir" "$repo_url" "$runner_name" "$secret_path" || {
+      echo "Rotation failed for $runner_name (dry)" >&2
+      increment_metric runner_rotation_failures_total 1
+    }
   else
-    VAULT_ADDR="$VAULT_ADDR" ./scripts/ci/rotate-runner.sh "$runner_dir" "$repo_url" "$runner_name" "$secret_path" || echo "Rotation failed for $runner_name" >&2
+    if VAULT_ADDR="$VAULT_ADDR" ./scripts/ci/rotate-runner.sh "$runner_dir" "$repo_url" "$runner_name" "$secret_path"; then
+      increment_metric runner_rotation_success_total 1
+    else
+      echo "Rotation failed for $runner_name" >&2
+      increment_metric runner_rotation_failures_total 1
+    fi
   fi
 
 done < "$CONFIG"
+
+echo "Rotation run complete"
