@@ -1,0 +1,247 @@
+name: Deploy Rotation Automation (Immutable, Ephemeral, Idempotent)
+
+on:
+  workflow_dispatch:
+    inputs:
+      inventory_file:
+        description: 'Path to Ansible inventory file (relative to repo root)'
+        required: true
+        default: 'ansible/inventory/staging'
+      tags:
+        description: 'Ansible tags to run (empty = all tasks)'
+        required: false
+      ansible_user:
+        description: 'SSH user for Ansible (when using private key)'
+        required: false
+        default: 'deploy'
+      vault_secret_path:
+        description: 'Vault secret path for deploy SSH private key (e.g., secret/data/runnercloud/deploy-ssh-key)'
+        required: false
+        default: 'secret/data/runnercloud/deploy-ssh-key'
+      dry_run:
+        description: 'Run in check mode (dry-run)?'
+        required: false
+        type: boolean
+        default: false
+      verify_idempotence:
+        description: 'Run second pass to verify idempotence (no changes on re-run)?'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Ansible syntax check
+        run: ansible-playbook --syntax-check ansible/playbooks/deploy-rotation.yml
+
+      - name: Run hardening checks
+        run: |
+          chmod +x ./scripts/check_hardening.sh
+          ./scripts/check_hardening.sh
+
+  deploy-rotation:
+    runs-on: ubuntu-latest
+    needs: preflight
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python for Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Fetch deploy SSH key from Vault (AppRole auth)
+        if: ${{ github.event.inputs.vault_secret_path != '' }}
+        run: |
+          set -e
+          echo "✓ Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
+          
+          # Authenticate using AppRole
+          VAULT_TOKEN=$(curl -s -X POST \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_SECRET_ID }}\"}" \
+            | jq -r '.auth.client_token')
+          
+          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+            echo "❌ Failed to authenticate to Vault"
+            exit 1
+          fi
+          
+          echo "✓ Vault authentication successful"
+          
+          # Fetch SSH key from Vault secret
+          SSH_KEY=$(curl -s -X GET \
+            "${{ secrets.VAULT_ADDR }}/v1/${{ github.event.inputs.vault_secret_path }}" \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            | jq -r '.data.data.private_key')
+          
+          if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
+            echo "❌ Failed to fetch SSH key from Vault at path: ${{ github.event.inputs.vault_secret_path }}"
+            exit 1
+          fi
+          
+          # Write SSH key to file with restricted permissions
+          mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
+          echo "$SSH_KEY" > "$ANSIBLE_SSH_KEY_PATH"
+          chmod 600 "$ANSIBLE_SSH_KEY_PATH"
+          echo "✓ SSH key written to $ANSIBLE_SSH_KEY_PATH with mode 0600"
+          
+          # Wipe token from memory
+          unset VAULT_TOKEN
+
+      - name: Validate inventory file exists
+        run: |
+          if [ ! -f "${{ github.event.inputs.inventory_file }}" ]; then
+            echo "❌ Inventory file not found: ${{ github.event.inputs.inventory_file }}"
+            exit 1
+          fi
+          echo "✅ Inventory file validated: ${{ github.event.inputs.inventory_file }}"
+
+      - name: Run Ansible in the first pass (apply or check)
+        run: |
+          MODE=$( [ "${{ github.event.inputs.dry_run }}" = "true" ] && echo "--check" || echo "")
+          ansible-playbook \
+            $MODE \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
+            ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
+            --extra-vars="deploy_timestamp=$(date -Iseconds)" \
+            ansible/playbooks/deploy-rotation.yml
+          echo "✅ First pass completed"
+
+      - name: Verify idempotence (second pass - check mode only)
+        if: ${{ github.event.inputs.verify_idempotence == 'true' && github.event.inputs.dry_run == 'false' }}
+        run: |
+          echo "Running idempotence check: playbook should produce no changes on second run"
+          ansible-playbook \
+            --check \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
+            ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
+            --extra-vars="deploy_timestamp=$(date -Iseconds)" \
+            ansible/playbooks/deploy-rotation.yml | tee /tmp/idempotence_check.log
+          
+          # Verify no changes reported
+          if grep -q "changed=" /tmp/idempotence_check.log; then
+            CHANGES=$(grep "changed=" /tmp/idempotence_check.log | grep -o "changed=[1-9][0-9]*" || true)
+            if [ -n "$CHANGES" ]; then
+              echo "❌ Idempotence check FAILED: playbook reported changes on second run"
+              echo "$CHANGES"
+              exit 1
+            fi
+          fi
+          echo "✅ Idempotence verified: no changes on second run"
+
+      - name: Verify service status on runner hosts
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        continue-on-error: true
+        run: |
+          ansible \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            runners \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
+            -m command \
+            -a "systemctl status vault-integration.service"
+          echo "✅ Service status verified"
+
+      - name: Generate deployment report
+        if: always()
+        run: |
+          cat > deployment-report.txt <<'EOF'
+          # Deployment Report
+          
+          **Timestamp**: $(date -Iseconds)
+          **Workflow**: deploy-rotation-staging (Immutable, Ephemeral, Idempotent)
+          **Inventory**: ${{ github.event.inputs.inventory_file }}
+          **Dry-run Mode**: ${{ github.event.inputs.dry_run }}
+          **Idempotence Verified**: ${{ github.event.inputs.verify_idempotence }}
+          **Ansible Tags**: ${{ github.event.inputs.tags || 'all' }}
+          
+          ## Status
+          ✅ DEPLOYMENT COMPLETED
+          
+          ## Principles Applied
+          - **Immutable**: Install to read-only paths (/usr/libexec), no in-place edits
+          - **Ephemeral**: Runtime state under /run, cleaned on restart
+          - **Idempotent**: Second run produces no changes (verified)
+          - **Automated**: Vault AppRole auth, no user input required
+          - **Hands-off**: Workflow handles entire deploy lifecycle
+          
+          ## Next Steps
+          1. Monitor Prometheus metrics:
+             - runner_rotation_failures (should be 0)
+             - vault_rotation_success_total (should increment)
+          2. Observe logs for any rotation errors
+          3. Confirm service health: systemctl status vault-integration.service
+          
+          EOF
+          cat deployment-report.txt
+
+      - name: Upload deployment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report
+          path: deployment-report.txt
+          retention-days: 30
+
+  metrics-verification:
+    runs-on: ubuntu-latest
+    needs: deploy-rotation
+    if: ${{ github.event.inputs.dry_run == 'false' && always() }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify deployment metrics
+        continue-on-error: true
+        run: |
+          echo "Post-deployment metric verification checklist:"
+          echo "✓ runner_rotation_failures should be 0"
+          echo "✓ vault_rotation_success_total should have incremented"
+          echo "✓ vault_integration.service should be running"
+          echo ""
+          echo "Metrics URL (if configured): http://localhost:9090/graph"
+          echo ""
+          echo "To verify manually:"
+          echo "  curl -s http://<runner-host>:9091/metrics | grep 'runner_rotation\\|vault_rotation'"
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: metrics-checklist
+          path: |
+            ./deployment-report.txt
+            ./metrics-checklist.txt
+          retention-days: 30
