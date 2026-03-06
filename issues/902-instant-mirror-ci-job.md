@@ -14,5 +14,9 @@ Status: Closed
 
 Closure note: CI mirror job template and key rotation automation implemented; credential-less simulation validated orchestration on 2026-03-06 (see `docs/DR_RUNBOOK.md`). Final live safety test (push-to-GitHub verification) remains in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete.
 
+Post-validation update:
+- Identity-validated dry-run executed on 2026-03-06T18:32:07Z. Log: `/tmp/dr_dryrun_20260306T183202Z.log`.
+- After deploy-key rotation (follow-up), run a live small-scale push-to-GitHub test to verify mirror push behavior and branch protections.
+
 Security tradeoffs:
 - Runner will hold an SSH key capable of writing to GitHub — protect and rotate frequently. This bypasses GitLab-side mirror rate/queue.
