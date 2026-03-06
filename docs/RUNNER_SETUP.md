@@ -48,6 +48,16 @@ Monitoring / Alerts
 A lightweight notification helper is available at `scripts/notify_health.sh` which posts messages to a Slack webhook defined in `SLACK_WEBHOOK`.
 The systemd healthcheck may call this script when reprovisioning occurs; configure a secure webhook in your environment before enabling alerts.
 
+Vault helper and Pushgateway
+----------------------------
+
+A helper to fetch secrets from Vault is available at `scripts/fetch_vault_secrets.sh` — it exports `GHCR_PAT`, `SLACK_WEBHOOK`, and `PUSHGATEWAY_URL` when authenticated to Vault. A small Pushgateway helper is provided at `scripts/push_metric.sh` and is invoked by the healthcheck when reprovisioning occurs (if `PUSHGATEWAY_URL` is set).
+
+GitLab primary (group-level runner)
+----------------------------------
+
+If your primary platform is GitLab, register a group-level runner instead of a GitHub org runner. The provisioning script needs the GitLab registration token and uses `gitlab-runner` or the GitLab registration API. The current healthcheck supports GitHub via `gh` but is designed to be extended for GitLab; see issue tracking below to migrate provisioning to GitLab group runner registration.
+
 Rotation and secrets
 --------------------
 
