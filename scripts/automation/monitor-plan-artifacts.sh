@@ -70,7 +70,14 @@ while true; do
         echo "No plan JSON artifacts found in run $run_id" >> "$LOG"
       fi
 
-      rm -rf "$TMPDIR"
+      # Use safe_delete wrapper to remove temp download dir
+      SAFE_DELETE="$(pwd)/scripts/safe_delete.sh"
+      if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../../scripts/safe_delete.sh"; fi
+      if [ -x "$SAFE_DELETE" ]; then
+        "$SAFE_DELETE" --path "$TMPDIR" --dry-run || true
+      else
+        rm -rf "$TMPDIR"
+      fi
       echo "$run_id" > "$LAST_FILE"
       last_seen=$run_id
     fi

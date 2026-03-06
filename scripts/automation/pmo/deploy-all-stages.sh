@@ -19,7 +19,14 @@ cleanup() {
   # Stop and remove any existing vault-dev container if this is a fresh run
   docker rm -f "$CONTAINER_NAME" 2>/dev/null || true
   docker rm -f vault-dev 2>/dev/null || true
-  rm -rf "$CREDS_DIR" 2>/dev/null || true
+  # Use safe_delete wrapper for credential dir cleanup
+  SAFE_DELETE="$(pwd)/scripts/safe_delete.sh"
+  if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../../scripts/safe_delete.sh"; fi
+  if [ -x "$SAFE_DELETE" ]; then
+    "$SAFE_DELETE" --path "$CREDS_DIR" --dry-run || true
+  else
+    rm -rf "$CREDS_DIR" 2>/dev/null || true
+  fi
 }
 trap cleanup EXIT
 
