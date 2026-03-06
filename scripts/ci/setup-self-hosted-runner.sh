@@ -23,6 +23,10 @@ WORKDIR=${4:-/opt/actions-runner}
 # Optional: VAULT_SECRET_PATH can be provided via env or as the 5th argument
 VAULT_SECRET_PATH=${VAULT_SECRET_PATH:-${5:-}}
 
+# Optional: pin runner version (e.g. 2.307.0). If set, the archive URL will use
+# that explicit version. Use the env var `RUNNER_VERSION` to pin.
+RUNNER_VERSION=${RUNNER_VERSION:-}
+
 # If token param is '-', retrieve from Vault
 if [ "$TOKEN_PARAM" = "-" ]; then
 	if [ -z "$VAULT_SECRET_PATH" ]; then
@@ -30,9 +34,9 @@ if [ "$TOKEN_PARAM" = "-" ]; then
 		exit 1
 	fi
 
+	# Prefer Vault CLI when available; otherwise use HTTP API with retries and robust parsing
 	if command -v vault >/dev/null 2>&1; then
 		echo "Retrieving registration token from Vault (cli) at path: $VAULT_SECRET_PATH"
-		# Try to read KV v2 field `token`
 		TOKEN=$(vault kv get -field=token "$VAULT_SECRET_PATH" 2>/dev/null || true)
 	else
 		echo "Vault CLI not found; trying HTTP API using VAULT_ADDR and VAULT_TOKEN"
@@ -40,17 +44,44 @@ if [ "$TOKEN_PARAM" = "-" ]; then
 			echo "VAULT_ADDR and VAULT_TOKEN must be set for HTTP retrieval" >&2
 			exit 1
 		fi
-		# Use curl to fetch and extract the token. Handle KV v2 JSON structure.
-		JSON=$(curl -sSf --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$VAULT_SECRET_PATH")
+
+		JSON=""
+		for i in 1 2 3; do
+			JSON=$(curl -sSf --header "X-Vault-Token: $VAULT_TOKEN" --max-time 10 "$VAULT_ADDR/v1/$VAULT_SECRET_PATH" 2>/dev/null || true)
+			if [ -n "$JSON" ]; then break; fi
+			sleep $((i * 2))
+		done
+
 		if [ -z "$JSON" ]; then
-			echo "Empty response from Vault" >&2
+			echo "Empty response from Vault after retries" >&2
 			exit 1
 		fi
-		# Try jq, fallback to python
+
 		if command -v jq >/dev/null 2>&1; then
-			TOKEN=$(echo "$JSON" | jq -r '.data.data.token // .data.token // empty')
+			TOKEN=$(echo "$JSON" | jq -r '.data.data.token // .data.token // .token // empty')
 		else
-			TOKEN=$(echo "$JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(d.get("data",{}).get("data",{}).get("token") or d.get("data",{}).get("token") or "")')
+			TOKEN=$(echo "$JSON" | python3 - <<'PY'
+import sys,json
+try:
+	d=json.load(sys.stdin)
+except Exception:
+	print("")
+	sys.exit(0)
+for key in (('data', 'data', 'token'), ('data','token'), ('token',)):
+	cur=d
+	ok=True
+	for k in key:
+		if isinstance(cur,dict) and k in cur:
+			cur=cur[k]
+		else:
+			ok=False
+			break
+	if ok and cur:
+		print(cur)
+		sys.exit(0)
+print("")
+PY
+)
 		fi
 	fi
 
@@ -62,13 +93,31 @@ else
 	TOKEN=$TOKEN_PARAM
 fi
 
-ARCHIVE_URL="https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64.tar.gz"
+if [ -n "$RUNNER_VERSION" ]; then
+	ARCHIVE_URL="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64.tar.gz"
+else
+	ARCHIVE_URL="https://github.com/actions/runner/releases/latest/download/actions-runner-linux-x64.tar.gz"
+fi
 
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
+download_with_retries() {
+	local url="$1" dest="$2" i
+	for i in 1 2 3; do
+		if curl -sSL --retry 3 --retry-delay 2 "$url" -o "$dest"; then
+			return 0
+		fi
+		sleep $((i * 2))
+	done
+	return 1
+}
+
 echo "Downloading runner to $WORKDIR"
-curl -sSL "$ARCHIVE_URL" -o actions-runner.tar.gz
+if ! download_with_retries "$ARCHIVE_URL" actions-runner.tar.gz; then
+	echo "Failed to download runner archive from $ARCHIVE_URL" >&2
+	exit 1
+fi
 
 echo "Extracting..."
 tar xzf actions-runner.tar.gz
