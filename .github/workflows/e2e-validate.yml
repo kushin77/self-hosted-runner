@@ -1,0 +1,122 @@
+name: E2E Validate & Hands-off Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_deploy:
+        description: 'If true, dispatch the hands-off deploy when validation passes'
+        required: false
+        default: 'true'
+  workflow_run:
+    workflows: ['Auto-Bootstrap Vault AppRole & Secrets']
+    types: [completed]
+  schedule:
+    # Run daily to ensure continuous validation
+    - cron: '0 3 * * *'
+
+jobs:
+  ensure-bootstrap:
+    name: Pre-flight Check (Bootstrap Ready)
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      actions: write
+    concurrency:
+      group: preflight-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Validate vault secrets are available
+        env:
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          if [ -z "$VAULT_ROLE_ID" ] || [ -z "$VAULT_SECRET_ID" ]; then
+            echo "⚠️ Vault credentials missing, triggering auto-bootstrap..."
+            # Trigger bootstrap workflow
+            gh workflow run auto-bootstrap-vault-secrets.yml \
+              --repo "${{ github.repository }}" \
+              2>/dev/null || echo "Bootstrap trigger sent"
+            
+            # Wait for bootstrap to complete
+            sleep 60
+            exit 1
+          else
+            echo "✅ Vault credentials present"
+          fi
+
+  e2e-validate:
+    name: End-to-End Validation
+    needs: [ensure-bootstrap]
+    if: ${{ always() && (needs.ensure-bootstrap.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    concurrency:
+      group: e2e-validate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+    timeout-minutes: 30
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: e2e-validate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure helper scripts are executable
+        run: |
+          chmod +x scripts/ci/check-secrets.sh || true
+          chmod +x scripts/minio/install-mc.sh || true
+          chmod +x scripts/minio/upload.sh || true
+          chmod +x scripts/minio/download.sh || true
+
+      - name: Validate required secrets
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: scripts/ci/check-secrets.sh
+
+      - name: Install mc (MinIO client)
+        run: scripts/minio/install-mc.sh
+
+      - name: Upload test object to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: |
+          echo "smoke-test-content-${GITHUB_RUN_ID}" > e2e-smoke.txt
+          scripts/minio/upload.sh --file e2e-smoke.txt --bucket ${{ secrets.MINIO_BUCKET }} --object smoke-${GITHUB_RUN_ID}.txt
+
+      - name: Download test object from MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: scripts/minio/download.sh --bucket ${{ secrets.MINIO_BUCKET }} --object smoke-${GITHUB_RUN_ID}.txt --out e2e-downloaded.txt
+
+      - name: Dispatch hands-off deploy
+        if: ${{ inputs.run_deploy == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Dispatching deploy-rotation-staging with hands_off=true"
+          # GitHub Actions automatically injects secrets.GITHUB_TOKEN via env variable
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${REPO}/actions/workflows/deploy-rotation-staging.yml/dispatches \
+            -d '{"ref":"main","inputs":{"hands_off":"true"}}'

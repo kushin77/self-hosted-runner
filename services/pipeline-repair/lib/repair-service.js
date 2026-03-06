@@ -1,5 +1,6 @@
 const RetryStrategy = require('../strategies/retry');
 const TimeoutIncreaseStrategy = require('../strategies/timeout-increase');
+const ResilientHttpClient = require('./http-client');
 const winston = require('winston');
 
 const logger = winston.createLogger({
@@ -12,8 +13,8 @@ const logger = winston.createLogger({
 });
 
 /**
- * Autonomous Pipeline Repair Engine (MVP)
- * Detects failures and recommends repair actions
+ * Autonomous Pipeline Repair Engine with Resilience
+ * Detects failures, recommends repair actions, and executes with retry/timeout/circuit-breaker logic
  */
 class RepairService {
   constructor(config = {}) {
@@ -22,7 +23,117 @@ class RepairService {
       new RetryStrategy(),
       new TimeoutIncreaseStrategy()
     ];
-    this.approvalThreshold = config.threshold || 0.7; // Confidence score to auto-repair
+    this.approvalThreshold = typeof config.threshold === 'number' ? config.threshold : 0.7; // Confidence score to auto-repair
+    
+    // Initialize resilient HTTP client for downstream service calls
+    this.httpClient = new ResilientHttpClient({
+      maxAttempts: config.httpClient?.maxAttempts || 5,
+      baseDelayMs: config.httpClient?.baseDelayMs || 2000,
+      maxDelayMs: config.httpClient?.maxDelayMs || 30000,
+      basicTimeoutMs: config.httpClient?.basicTimeoutMs || 10000,
+      complexTimeoutMs: config.httpClient?.complexTimeoutMs || 30000,
+      jitter: config.httpClient?.jitter !== false,
+      circuitBreaker: config.circuitBreaker || {}
+    });
+    
+    logger.info('[REPAIR_SERVICE] Initialized with resilient HTTP client', {
+      approvalThreshold: this.approvalThreshold,
+      strategies: this.strategies.map(s => s.name),
+      httpClient: 'enabled'
+    });
+  }
+
+  /**
+   * Get all registered strategies
+   * @returns {Array} Registered strategies
+   */
+  getStrategies() {
+    return this.strategies;
+  }
+
+  /**
+   * Execute repair action via HTTP call with resilience (retry, timeout, circuit breaker)
+   * @param {Object} action - Repair action recommendation
+   * @param {string} targetUrl - URL endpoint for repair execution
+   * @param {Object} options - Execution options {operationType, correlationId}
+   * @returns {Promise<Object>} Execution result
+   */
+  async executeRepairAction(action, targetUrl, options = {}) {
+    const correlationId = options.correlationId || `repair-${Date.now()}`;
+    
+    try {
+      logger.info('[REPAIR_SERVICE] Executing repair action', {
+        correlationId,
+        action: action.action,
+        targetUrl,
+        operationType: options.operationType || 'default'
+      });
+
+      const response = await this.httpClient.request('POST', targetUrl, {
+        operationType: options.operationType || 'complex',
+        correlationId,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': correlationId,
+          'X-Repair-Action': action.action
+        },
+        body: JSON.stringify({
+          action: action.action,
+          parameters: action.parameters,
+          strategy: action.strategy,
+          correlationId
+        })
+      });
+
+      logger.info('[REPAIR_SERVICE] Repair action executed successfully', {
+        correlationId,
+        status: response.status,
+        action: action.action
+      });
+
+      return {
+        status: 'SUCCESS',
+        correlationId,
+        httpStatus: response.status,
+        response: response.body
+      };
+    } catch (error) {
+      logger.error('[REPAIR_SERVICE] Repair action failed', {
+        correlationId,
+        action: action.action,
+        error: error.message
+      });
+
+      return {
+        status: 'FAILED',
+        correlationId,
+        error: error.message,
+        actionTaken: action.action
+      };
+    }
+  }
+
+  /**
+   * Get HTTP client health/circuit breaker status
+   * @returns {Object} Circuit breaker state and statistics
+   */
+  getHealthStatus() {
+    return {
+      service: 'pipeline-repair',
+      httpClient: {
+        circuitBreaker: this.httpClient.getCircuitBreakerState(),
+        configured: {
+          maxAttempts: this.httpClient.maxAttempts,
+          baseDelayMs: this.httpClient.baseDelayMs,
+          timeouts: {
+            basic: this.httpClient.basicTimeoutMs,
+            complex: this.httpClient.complexTimeoutMs,
+            default: this.httpClient.defaultTimeoutMs
+          }
+        }
+      },
+      strategies: this.strategies.map(s => ({ name: s.name, enabled: true }))
+    };
   }
 
   /**
