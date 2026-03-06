@@ -15,6 +15,7 @@
           - tar
           - libicu66
           - libssl1.1
+          - libssl3
         state: present
         update_cache: yes
 
