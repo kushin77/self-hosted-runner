@@ -1,0 +1,23 @@
+name: PR Checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - fix/runner-install-harden
+
+jobs:
+  shell-sanity:
+    name: Shell syntax & quick checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/tests/run-shellcheck-like.sh || true
+
+      - name: Run quick shell syntax checks
+        run: |
+          ./scripts/tests/run-shellcheck-like.sh
