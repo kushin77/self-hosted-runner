@@ -1,47 +1,31 @@
-# Phase P4: OIDC → Vault Prototype (Dynamic Registry Credentials)
+# OIDC -> Vault Prototype (Runner registration & rotation)
 
-This document describes a minimal prototype for using OIDC to authenticate to HashiCorp Vault and obtain short-lived registry credentials for runner pools.
+This document describes the prototype scripts to authenticate to Vault using OIDC, retrieve short-lived GitHub runner registration tokens, and rotate self-hosted runners.
 
-Goals
-- Replace long-lived static repository secrets with short-lived credentials obtained at runtime.
-- Demonstrate the flow to integrate a runner bootstrapper with Vault using OIDC login.
+Files added:
+- `scripts/ci/vault_oidc_auth.sh` — Prototype to exchange an OIDC JWT for a Vault client token via the `auth/oidc/login` endpoint.
+- `scripts/ci/get-runner-token.sh` — Reads a KV v2 secret containing the runner registration token and prints it to stdout.
+- `scripts/ci/rotate-runner.sh` — Best-effort rotation script that removes and re-registers a runner using a fresh token from Vault.
 
-Files
-- `scripts/identity/vault-oidc-bootstrap.sh` — prototype bootstrap script (uses `curl` + `jq`).
+Usage notes
+- These scripts are prototypes and expect environment-specific configuration (Vault mount path, role names, how to obtain the JWT).
+- Recommended flow:
+  1. Provision an OIDC-capable identity (GitHub Actions OIDC, cloud instance OIDC, or workload identity).
+  2. Obtain a JWT and set `VAULT_OIDC_JWT` or adapt `vault_oidc_auth.sh` to fetch it from metadata.
+  3. Call `get-runner-token.sh secret/data/ci/self-hosted/my-runner --vault-addr https://vault.example.com` to print the registration token.
+  4. Run `rotate-runner.sh /opt/actions-runner https://github.com/owner/repo my-runner secret/data/ci/self-hosted/my-runner` to rotate.
 
-Quickstart (prototype)
+Vault policy example
+- See `docs/vault/runner_policy.hcl` for a minimal Vault policy granting read access to runner tokens under `secret/data/ci/self-hosted/*`.
 
-1. Ensure Vault is configured with an OIDC or JWT auth method and a role (`VAULT_ROLE`) that maps to allowed policies.
-2. Acquire an ID token from your IdP and export it as `ID_TOKEN` in the runner environment (this step depends on your IdP/OIDC provider).
-3. Set `VAULT_ADDR` and `VAULT_ROLE` as environment variables.
-4. Run the bootstrap script to log into Vault and retrieve registry credentials:
+Terraform/user-data integration
+- See `terraform/examples/oidc_user_data.tpl` for a simple cloud-init/user-data template demonstrating how the prototype scripts can be used in instance bootstrap to obtain a token and register a runner.
 
-```bash
-export VAULT_ADDR=https://vault.example.com
-export VAULT_ROLE=runner-role
-export ID_TOKEN="$(fetch_id_token_somehow)"
-export TARGET_REGISTRY=registry-staging.example.com
-scripts/identity/vault-oidc-bootstrap.sh
-```
+Security
+- Do NOT commit tokens to logs or VCS. The scripts attempt to avoid printing tokens; use environment-scoped retrieval and OS-level secret stores in production.
+- Vault must be configured with a proper role and policy that allows reading the KV secret. Provide example Vault policy in a follow-up.
 
-Integration with runner startup
-
-- The repository includes `scripts/identity/runner-startup.sh` which wraps the
-	Vault bootstrapper and then runs the GitHub runner `config.sh`.
-- To integrate the prototype into the Terraform module, set the module's
-	`custom_startup_script` to fetch and invoke the startup wrapper (example
-	shown in `terraform/environments/staging-tenant-a/main.tf`).
-
-Token renewal
-
-- A simple renewal loop `scripts/identity/vault-renewal.sh` is included for
-	prototypes to keep Vault tokens/registry logins fresh. In production, use
-	the Vault Agent, a process manager, or a robust controller that handles
-	retries, backoff, and lease lifecycle to avoid credential gaps.
-Notes & Next steps
-- This prototype reads secrets from `secret/data/registries/staging`. Replace with your KV paths or a dedicated secrets engine.
-- For production use, do not store `ID_TOKEN` in plaintext; use the cloud provider's workload identity features (e.g., GCP Workload Identity Federation) to mint tokens.
-- Implement token renewal (token TTL/renew) and Vault lease lifecycle handling in the bootstrapper.
-- Integrate this prototype into the runner `startup-script` in the `terraform/modules/multi-tenant-runners` module to perform credential retrieval before `config.sh` registers the runner.
-
-Security reminder: Treat this as a prototype. Review Vault policies, audit logs, and the IdP trust model before rolling into production.
+Next steps
+- Add Vault policy & role sample for common cloud providers (AWS/GCP/Azure) and example Terraform to create them.
+- Write integration tests to exercise the OIDC login path and secret retrieval against a staging Vault instance.
+- Hardening: add retries, backoff, and more robust error handling for production use.
