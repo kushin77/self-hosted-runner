@@ -43,17 +43,18 @@ To keep the org-level runner sovereign, ephemeral, and self-healing we provide a
 
 Files added:
 - `scripts/check_and_reprovision_runner.sh` — checks runner status and reprovisions when needed.
-- `scripts/systemd/actions-runner-healthcheck.service` — systemd unit (oneshot) that runs the check script.
-- `scripts/systemd/actions-runner-healthcheck.timer` — systemd timer that triggers the unit every 5 minutes.
+- `systemd/actions-runner-health.service` — systemd unit (oneshot) that runs the check script.
+- `systemd/actions-runner-health.timer` — systemd timer that triggers the unit every 5 minutes.
 
 To install and enable the timer on the host (one-time; requires sudo):
 
 ```bash
-sudo cp scripts/systemd/actions-runner-healthcheck.service /etc/systemd/system/
-sudo cp scripts/systemd/actions-runner-healthcheck.timer /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now actions-runner-healthcheck.timer
-sudo systemctl status actions-runner-healthcheck.timer --no-pager
+# from repo root
+chmod +x scripts/install_systemd_timer.sh
+sudo scripts/install_systemd_timer.sh
+
+# verify
+sudo systemctl status actions-runner-health.timer --no-pager
 ```
 
 Security notes
