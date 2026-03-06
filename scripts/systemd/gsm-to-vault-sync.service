@@ -1,0 +1,15 @@
+[Unit]
+Description=GSM to Vault sync service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/gsm_to_vault_sync.sh
+User=root
+EnvironmentFile=-/etc/default/gsm_to_vault_sync
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
