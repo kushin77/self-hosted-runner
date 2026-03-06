@@ -143,8 +143,8 @@ vault write -f auth/approle/role/provisioner-worker/secret-id
 
 **Step 3: Deploy to provisioner-worker host**
 ```bash
-export VAULT_ROLE_ID="<role-id>"
-export VAULT_SECRET_ID="<secret-id>"
+export VAULT_ROLE_ID="<VAULT_ROLE_ID_PLACEHOLDER>"
+export VAULT_SECRET_ID="<VAULT_SECRET_ID_PLACEHOLDER>"
 # Store in /etc/provisioner-worker/vault-creds or systemd env file
 ```
 
