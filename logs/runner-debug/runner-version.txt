@@ -1,0 +1,1 @@
+bash: line 6: gitlab-runner: command not found
