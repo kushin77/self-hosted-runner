@@ -13,6 +13,7 @@ include:
   - local: '.gitlab/ci-includes/security-scan.gitlab-ci.yml'   # trivy/gitleaks/snyk
 
 stages:
+  - .pre
   - initialize
   - validate
   - security
@@ -50,6 +51,17 @@ default:
     - if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
     - chmod +x ./scripts/pmo/*.sh
     - chmod +x ./scripts/ci/*.sh
+
+# --- .pre Stage ---
+YAMLtest-sovereign-runner:
+  stage: .pre
+  image: alpine:latest
+  script:
+    - echo "Runner isolation test - sovereign, ephemeral, immutable"
+    - echo "Pipeline ID: $CI_PIPELINE_ID"
+    - echo "Runner: $CI_RUNNER_DESCRIPTION"
+  tags:
+    - "k8s-runner"
 
 # --- Initialize Stage ---
 prepare:env:
