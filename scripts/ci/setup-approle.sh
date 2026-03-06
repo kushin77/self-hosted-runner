@@ -1,0 +1,152 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Auto-provision a Vault AppRole and policy if missing.
+# Usage: setup-approle.sh --role-name NAME --policy-name POLICY --policy-file policy.hcl [--secret-path secret/data/runnercloud/deploy-ssh-key] [--output-file out.json]
+# Requires either VAULT_ADDR+VAULT_TOKEN (admin) in env or a logged-in `vault` CLI session.
+
+ROLE_NAME="${ROLE_NAME:-deploy-runner}"
+POLICY_NAME="${POLICY_NAME:-deploy-runner-policy}"
+POLICY_FILE="${POLICY_FILE:-}"
+SECRET_PATH="${SECRET_PATH:-secret/data/runnercloud/deploy-ssh-key}"
+OUTPUT_FILE="${OUTPUT_FILE:-}" # optional JSON output path
+DRY_RUN="false"
+
+usage(){
+  cat <<EOF
+Usage: $0 --policy-file ./policy.hcl [--role-name NAME] [--policy-name NAME] [--secret-path PATH] [--output-file file.json] [--dry-run]
+Creates or reuses an AppRole and returns role_id + secret_id.
+Requires Vault admin privileges (VAULT_TOKEN) available in env or the Vault CLI.
+EOF
+  exit 1
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --role-name) ROLE_NAME="$2"; shift 2;;
+    --policy-name) POLICY_NAME="$2"; shift 2;;
+    --policy-file) POLICY_FILE="$2"; shift 2;;
+    --secret-path) SECRET_PATH="$2"; shift 2;;
+    --output-file) OUTPUT_FILE="$2"; shift 2;;
+    --dry-run) DRY_RUN="true"; shift 1;;
+    -h|--help) usage;;
+    *) echo "Unknown arg: $1"; usage;;
+  esac
+done
+
+if [ -z "$POLICY_FILE" ] || [ ! -f "$POLICY_FILE" ]; then
+  echo "policy file required and must exist (--policy-file)" >&2
+  usage
+fi
+
+echo "[setup-approle] role=$ROLE_NAME policy=$POLICY_NAME secret_path=$SECRET_PATH"
+
+run_vault_cli() {
+  if command -v vault >/dev/null 2>&1; then
+    vault "$@"
+    return $?
+  fi
+  return 127
+}
+
+http_req() {
+  local method="$1" url="$2" data="$3"
+  if [ -z "${VAULT_ADDR:-}" ] || [ -z "${VAULT_TOKEN:-}" ]; then
+    echo "VAULT_ADDR and VAULT_TOKEN required for HTTP mode" >&2
+    return 1
+  fi
+  if [ -n "$data" ]; then
+    curl -sS --max-time 10 -X "$method" -H "X-Vault-Token: $VAULT_TOKEN" -H 'Content-Type: application/json' -d "$data" "$VAULT_ADDR$url"
+  else
+    curl -sS --max-time 10 -X "$method" -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR$url"
+  fi
+}
+
+create_policy() {
+  echo "[setup-approle] creating/updating policy $POLICY_NAME"
+  if run_vault_cli policy write "$POLICY_NAME" "$POLICY_FILE" 2>/dev/null; then
+    return 0
+  fi
+  # fallback to HTTP
+  local policy_hcl
+  policy_hcl=$(sed 's/"/\\"/g' "$POLICY_FILE" | awk '{printf "%s\\n", $0}' )
+  local payload
+  payload=$(jq -n --arg p "$policy_hcl" '{policy: $p}')
+  http_req PUT "/v1/sys/policy/$POLICY_NAME" "$payload" || return 1
+}
+
+ensure_auth_approle() {
+  # enable approle if not enabled
+  if run_vault_cli auth list -format=json 2>/dev/null | jq -e 'has("approle/")' >/dev/null 2>&1; then
+    return 0
+  fi
+  echo "[setup-approle] enabling approle auth method"
+  if run_vault_cli auth enable approle 2>/dev/null; then
+    return 0
+  fi
+  # HTTP: enable
+  http_req POST /v1/sys/auth/approle -n '{"type":"approle"}' >/dev/null || true
+}
+
+create_role() {
+  echo "[setup-approle] creating role $ROLE_NAME"
+  if run_vault_cli write -format=json auth/approle/role/$ROLE_NAME token_policies="$POLICY_NAME" bind_secret_id=true token_ttl=3600 >/dev/null 2>&1; then
+    return 0
+  fi
+  local payload
+  payload=$(jq -n --arg p "$POLICY_NAME" '{token_policies: $p, bind_secret_id: true, token_ttl: "1h"}')
+  http_req POST "/v1/auth/approle/role/$ROLE_NAME" "$payload" >/dev/null || return 1
+}
+
+get_role_id() {
+  if run_vault_cli read -format=json auth/approle/role/$ROLE_NAME/role-id 2>/dev/null >/tmp/roleid.json; then
+    jq -r '.data.role_id' /tmp/roleid.json
+    return 0
+  fi
+  http_req GET "/v1/auth/approle/role/$ROLE_NAME/role-id" '' | jq -r '.data.role_id'
+}
+
+create_secret_id() {
+  if run_vault_cli write -format=json -f auth/approle/role/$ROLE_NAME/secret-id 2>/dev/null >/tmp/secretid.json; then
+    jq -r '.data.secret_id' /tmp/secretid.json
+    return 0
+  fi
+  http_req POST "/v1/auth/approle/role/$ROLE_NAME/secret-id" '{}' | jq -r '.data.secret_id'
+}
+
+if [ "$DRY_RUN" = "true" ]; then
+  echo "DRY RUN: would create policy $POLICY_NAME and role $ROLE_NAME" && exit 0
+fi
+
+# ensure pre-reqs
+ensure_auth_approle || true
+create_policy || { echo "failed creating policy" >&2; exit 1; }
+
+# Create role if not exists (idempotent)
+if run_vault_cli read -format=json auth/approle/role/$ROLE_NAME 2>/dev/null >/dev/null; then
+  echo "[setup-approle] role $ROLE_NAME already exists"
+else
+  create_role || { echo "failed creating role" >&2; exit 1; }
+fi
+
+ROLE_ID=$(get_role_id)
+if [ -z "$ROLE_ID" ] || [ "$ROLE_ID" = "null" ]; then
+  echo "Failed to obtain role_id" >&2
+  exit 1
+fi
+
+SECRET_ID=$(create_secret_id)
+if [ -z "$SECRET_ID" ] || [ "$SECRET_ID" = "null" ]; then
+  echo "Failed to create secret_id" >&2
+  exit 1
+fi
+
+echo "{\"role_id\": \"$ROLE_ID\", \"secret_id\": \"$SECRET_ID\", \"policy\": \"$POLICY_NAME\", \"role\": \"$ROLE_NAME\" }" | tee /dev/stderr
+
+if [ -n "$OUTPUT_FILE" ]; then
+  printf '%s' "{\"role_id\": \"$ROLE_ID\", \"secret_id\": \"$SECRET_ID\"}\n" > "$OUTPUT_FILE"
+  chmod 600 "$OUTPUT_FILE" || true
+  echo "[setup-approle] wrote credentials to $OUTPUT_FILE (secure file)"
+fi
+
+exit 0

@@ -20,3 +20,4 @@ actions-runner/
 .venv-ansible/
 .venv*/
 .venv/
+services/*/.venv*
