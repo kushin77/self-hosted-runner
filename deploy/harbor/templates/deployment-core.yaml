@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "harbor.fullname" . | default (printf "%s-harbor-core" .Release.Name) }}
+  labels:
+    app: harbor-core
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: harbor-core
+  template:
+    metadata:
+      labels:
+        app: harbor-core
+    spec:
+      containers:
+        - name: harbor-core
+          image: "{{ .Values.image.core.repository }}:{{ .Values.image.core.tag }}"
+          ports:
+            - containerPort: 8080
+          resources: {{ toYaml .Values.resources | nindent 12 }}
