@@ -1,7 +1,3 @@
-# ==============================================================================
-# TEMPLATE: dr-alert.yml
-# PURPOSE: Enterprise-grade Slack notifications for DR health
-# ==============================================================================
 .dr-notify-slack:
   script:
     - |

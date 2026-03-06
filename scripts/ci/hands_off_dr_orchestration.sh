@@ -1,16 +1,9 @@
 #!/bin/bash
-# ==============================================================================
-# SCRIPT: hands_off_dr_orchestration.sh
-# MODE: SOVEREIGN | HANDS-OFF | IDEMPOTENT
-# ==============================================================================
 set -euo pipefail
-
 MODE="${1:-status}"
 LOG_FILE="logs/dr_orchestration_$(date +%F).log"
 mkdir -p logs
-
 echo "==== 24/7 AUTONOMOUS DR ORCHESTRATOR LIVE ====" | tee -a "$LOG_FILE"
-
 case $MODE in
     sovereign)
         echo "INFO: Initializing Sovereign Recovery Session via Hardware Root-of-Trust." | tee -a "$LOG_FILE"
@@ -29,5 +22,4 @@ case $MODE in
         exit 1
         ;;
 esac
-
 echo "✅ CYCLE COMPLETE: $(date)" | tee -a "$LOG_FILE"
