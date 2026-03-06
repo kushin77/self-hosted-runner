@@ -46,9 +46,9 @@ if [[ -n "$GH_REPO" ]]; then
     echo "gh CLI not found. Install gh and authenticate to continue."; exit 2
   fi
   missing=()
-  present=$(gh secret list -R "$GH_REPO" --limit 1000 --json name -q '.[].name' 2>/dev/null || true)
+  present=$(gh secret list -R "$GH_REPO" --json name -q '.[].name' 2>/dev/null || true)
   for k in "${required[@]}"; do
-    if ! echo "$present" | grep -q "\b$k\b"; then
+    if ! echo "$present" | grep -q "^${k}$"; then
       missing+=("$k")
     fi
   done
