@@ -63,6 +63,18 @@ GHCR_PAT="ghp_xxx..." ./scripts/rotate_ghcr_pat.sh --repo kushin77/self-hosted-r
 
 - When promoting to prod, move the persistent credential into Vault or a secure secrets store and give the CI an ephemeral access path.
 
+Vault integration example
+-------------------------
+
+We provide an example GitHub Actions workflow that demonstrates fetching `GHCR_PAT` from HashiCorp Vault using OIDC and the `hashicorp/vault-action`. See `.github/workflows/vault-secrets-example.yml` for a sample.
+
+Required pieces:
+- A Vault server reachable from GitHub Actions (`VAULT_ADDR` secret).
+- A Vault role configured to accept GitHub OIDC tokens and allow reading `secret/data/ci/ghcr#GHCR_PAT`.
+- The workflow demonstrates exporting the secret into `env.GHCR_PAT` which is then used to login to GHCR during the build.
+
+This pattern avoids storing long-lived PATs in repo secrets and enables rotation and audit in Vault. Full production integration requires configuring Vault policies and the OIDC role — track that work in issue #794.
+
 Healthchecks & Automated Reprovisioning
 --------------------------------------
 
