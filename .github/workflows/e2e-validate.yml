@@ -96,7 +96,7 @@ jobs:
         run: scripts/minio/download.sh --bucket ${{ secrets.MINIO_BUCKET }} --object smoke-${GITHUB_RUN_ID}.txt --out e2e-downloaded.txt || echo "MinIO download optional; continuing"
 
       - name: Dispatch hands-off deploy (if secrets configured)
-        if: ${{ inputs.run_deploy == 'true' && secrets.MINIO_ENDPOINT != '' }}
+        if: ${{ inputs.run_deploy == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
