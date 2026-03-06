@@ -1,17 +1,31 @@
 #000 — Runner debug & migration plan
 
-Status: Open
+Status: In Progress
 Owner: @kushin77 (adjust as needed)
 
 Summary
 -------
 Self-hosted group runner pipelines are blocked by failing jobs in earlier stages. This issue tracks the immediate isolation test, diagnostics collection, and recommended migration to ephemeral, immutable Kubernetes-based runners.
 
-Actions taken
+Actions taken / Done
 -------------
 - Added a pre-flight isolation job `YAMLtest-sovereign-runner` to `.gitlab-ci.yml` to validate runner pickup.
 - Added `scripts/ci/collect_runner_info.sh` to gather runner version, `/etc/gitlab-runner/config.toml`, journal logs, and Docker info.
 - Added Helm values template and helper scripts for Kubernetes executor under `infra/gitlab-runner/` and `scripts/ci/`.
+
+- Created local-only branch and committed migration artifacts (local, not pushed).
+- Added `infra/gitlab-runner/values.yaml.template`, `scripts/ci/generate_values_for_runner.sh`, and `scripts/ci/install_runner_k8s.sh`.
+
+Checklist
+---------
+- [x] Add pre-stage `YAMLtest-sovereign-runner` job to `.gitlab-ci.yml` (local)
+- [x] Add diagnostics helper `scripts/ci/collect_runner_info.sh`
+- [x] Add Helm values template and install helpers (local)
+- [ ] Run diagnostics on runner host and attach redacted archive
+- [ ] Render `values.generated.yaml` and install to test k3s/K8s cluster
+- [ ] Validate `YAMLtest-sovereign-runner` passes on new runner
+- [ ] Migrate group runner registration to k8s-backed runner
+- [ ] Decommission legacy VM-based runners (after rollback window)
 
 Next steps (short-term)
 ----------------------
