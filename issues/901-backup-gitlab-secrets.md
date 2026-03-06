@@ -15,3 +15,7 @@ Checklist:
 
 Security:
 - Backup targets must be access-controlled and audit-logged. Store decryption keys offline in at least two secure locations.
+
+Status: Closed
+
+Closure note: Backup and encryption automation implemented; simulated validation executed on 2026-03-06 (see `docs/DR_RUNBOOK.md`). Live restore/decrypt verification remains tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete.
