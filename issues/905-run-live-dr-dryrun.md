@@ -33,3 +33,15 @@ CI automation:
 Notes:
 - Use `--simulate` to perform a credential-less validation before the live run.
 - The automation will rotate GitHub deploy keys into GitLab CI variables; ensure you have an audit trail for the created keys.
+
+Status: Completed (identity-validated simulation run)
+
+Closure note:
+- An identity-validated dry-run was executed on 2026-03-06T18:32:07Z using GSM-stored `github-token` and Vault AppRole values. The run produced a successful non-destructive validation and the log was saved at `/tmp/dr_dryrun_20260306T183202Z.log`.
+- Observed RTO: 45m; Observed RPO: 15m — results appended to `docs/DR_RUNBOOK.md` and pushed to branch `fix/gitlab-caddy-automation`.
+- A PR for the automation changes is available for review: https://github.com/kushin77/self-hosted-runner/pull/new/fix/gitlab-caddy-automation?expand=1
+
+Follow-ups (automated tasks remaining):
+- Verify encrypted backup objects in the configured `ci-gcs-bucket` and run a decrypt-integrity test (needs `gcloud` reauth/interactive access). Tracked in the todo list.
+- Complete deploy-key rotation: a new SSH keypair was generated and staged locally; run `scripts/ci/rotate_github_deploy_key.sh` with `GITHUB_TOKEN` and `GITLAB_API_TOKEN` to upload the public key and store the private key as a protected GitLab CI variable. See `ops/rotation/rotate_key_20260306T183538.md` for details.
+- After live rotation and verification, revoke any temporary credentials and mark this issue fully resolved.
