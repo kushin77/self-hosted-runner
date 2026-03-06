@@ -29,3 +29,21 @@ gen-lockfiles:
 format:
 	@echo "Format staged files (pre-commit runs formatting)"
 	pre-commit run --all-files || true
+
+.PHONY: deploy-rotation-check deploy-rotation-dry-run deploy-rotation
+
+deploy-rotation-check:
+	@echo "Deployment Check: validate staging playbook without applying changes"
+	./scripts/deploy-rotation-staging.sh --check
+
+deploy-rotation-dry-run:
+	@echo "Deployment Dry-Run: syntax-check and check mode (no apply)"
+	./scripts/deploy-rotation-staging.sh --dry-run
+
+deploy-rotation:
+	@echo "Deploy Rotation Automation: full deployment to staging"
+	./scripts/deploy-rotation-staging.sh
+
+deploy-rotation-verbose:
+	@echo "Deploy Rotation Automation: with verbose logging"
+	./scripts/deploy-rotation-staging.sh --verbose
