@@ -1,0 +1,20 @@
+groups:
+  - name: runner.rules
+    rules:
+      - alert: RunnerReprovisioned
+        expr: increase(runner_reprovision_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Runner reprovisioned on {{ $labels.instance }}"
+          description: "The runner reprovision counter increased within 5 minutes."
+
+      - alert: RunnerReprovisionHighRate
+        expr: increase(runner_reprovision_total[1h]) > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High reprovision rate on {{ $labels.instance }}"
+          description: "More than 5 reprovisions in the last hour — investigate stability."
