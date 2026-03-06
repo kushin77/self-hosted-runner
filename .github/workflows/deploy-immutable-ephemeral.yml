@@ -68,18 +68,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  deploy-rotation:
-    runs-on: ubuntu-latest
-    needs: preflight
-    permissions:
-      contents: read
-      id-token: write
-    env:
-      ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Set up Python for Ansible
         uses: actions/setup-python@v4
         with:
