@@ -1,0 +1,12 @@
+---
+# Add or update an /etc/hosts entry for the GitLab hostname when `gitlab_host_ip` is set.
+- name: Ensure gitlab host entry present
+  become: true
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    regexp: "^\s*.*\s+{{ gitlab_host_name }}$"
+    line: "{{ gitlab_host_ip }} {{ gitlab_host_name }}"
+    create: yes
+    state: present
+    backup: yes
+  when: gitlab_host_ip is defined and gitlab_host_ip | length > 0
