@@ -9,7 +9,7 @@ jobs:
   terraform-plan:
     name: Terraform plan using Packer AMI
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, self-hosted-heavy]
     steps:
       - name: Download AMI tfvars artifact
         uses: actions/download-artifact@v4
