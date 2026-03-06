@@ -33,7 +33,7 @@ mkdir -p "$RUNNER_DIR"
 cd "$RUNNER_DIR"
 
 # Determine runner version; allow override for reproducibility
-RUNNER_VERSION=${RUNNER_VERSION:-}
+RUNNER_VERSION=$${RUNNER_VERSION:-}
 if [ -z "$RUNNER_VERSION" ]; then
     RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/v//')
 fi
