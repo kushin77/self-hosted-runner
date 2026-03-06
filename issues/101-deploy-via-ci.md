@@ -50,3 +50,20 @@ Notes
 -----
 - Do not paste tokens in issue comments; use GitLab protected variables only.
 - If CI job fails due to cluster reachability, follow `issues/999-cluster-outage.md`.
+
+GSM (GCP Secret Manager) Alternative
+------------------------------------
+If you prefer not to store `KUBECONFIG_BASE64` or `REG_TOKEN` directly as GitLab variables, you can store them in Google Cloud Secret Manager and configure the CI job `deploy:sovereign-runner-gsm` to fetch them at runtime.
+
+CI variables to set (protected, masked):
+- `GCP_PROJECT` — GCP project id
+- `GCP_SA_KEY` — base64-encoded service account JSON (grant Secret Manager access)
+- `KUBECONFIG_SECRET_NAME` — secret name holding base64 kubeconfig
+- `REGTOKEN_SECRET_NAME` — secret name holding registration token
+
+Flow:
+1. Set the above variables in GitLab CI (masked + protected).
+2. Run pipeline on `main` and trigger the manual job `deploy:sovereign-runner-gsm`.
+3. Monitor logs: the job will fetch secrets from GSM, apply SealedSecret/Secret, then run the Helm-based hands-off installer.
+
+This alternative keeps sensitive data in GSM and minimizes secrets exposure in GitLab.

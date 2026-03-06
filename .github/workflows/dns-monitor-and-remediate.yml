@@ -1,0 +1,41 @@
+name: DNS Monitor and Remediate
+
+permissions:
+  contents: read
+  workflows: write
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: dns-monitor
+  cancel-in-progress: true
+
+jobs:
+  check-and-dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check DNS for gitlab.internal.elevatediq.com
+        id: checkdns
+        run: |
+          set -euo pipefail
+          ip=$(dig +short gitlab.internal.elevatediq.com | head -n1 || true)
+          echo "DNS_IP=$ip" >> $GITHUB_ENV
+          echo "Found DNS_IP=$ip"
+
+      - name: Dispatch remediation if DNS matches
+        run: |
+          set -euo pipefail
+          desired="192.168.168.42"
+          if [ "${DNS_IP:-}" = "$desired" ]; then
+            echo "DNS matches desired IP ($desired) — dispatching Ansible runbooks workflow"
+            curl -s -X POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              https://api.github.com/repos/kushin77/self-hosted-runner/actions/workflows/ansible-runbooks.yml/dispatches \
+              -d '{"ref":"main","inputs":{"dns_provider":"manual"}}'
+          else
+            echo "DNS does not match (found: ${DNS_IP:-}<none>) — no action taken"
+          fi

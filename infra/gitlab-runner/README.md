@@ -52,6 +52,20 @@ Notes
 - Do NOT commit real tokens into Git. Use SealedSecrets or ExternalSecrets.
 - If cluster is unreachable, consider provisioning a local Kind/k3d cluster for testing.
 
+GCP Secret Manager (GSM) CI flow
+--------------------------------
+For fully hands-off deployments that avoid storing kubeconfigs or tokens in GitLab UI directly, you can store the required secrets in Google Cloud Secret Manager and let a protected CI job fetch them at runtime.
+
+Recommended CI variables (protected, masked) in GitLab when using GSM:
+- `GCP_PROJECT` — GCP project id
+- `GCP_SA_KEY` — base64-encoded service account JSON key (least privilege; only Secret Manager access)
+- `KUBECONFIG_SECRET_NAME` — secret resource name in GSM that contains the base64-encoded kubeconfig
+- `REGTOKEN_SECRET_NAME` — secret resource name in GSM that contains the runner registration token
+
+The repository includes a helper `scripts/ci/gcp_fetch_secrets.sh` used by a dedicated CI job `deploy:sovereign-runner-gsm`. The job authenticates to GCP using the provided service account key, retrieves the secrets from GSM, and then triggers the normal SealedSecret + Helm install workflow without exposing secrets in logs or Git.
+
+If your environment supports Workload Identity or a CI-integrated GCP authentication mechanism, prefer that over storing long-lived keys in CI variables.
+
 Local test cluster (KinD)
 -------------------------
 If you cannot reach the production cluster from this host, you can provision a local KinD cluster for smoke-testing. The repository contains a helper script:
