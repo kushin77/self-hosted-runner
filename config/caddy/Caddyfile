@@ -59,6 +59,16 @@ http://portal.elevatediq.ai {
     handle /api/* {
         reverse_proxy localhost:8090
     }
+    # Added: GitLab web UI reverse-proxy at /sc (HTTP mirror of HTTPS rule)
+    handle_path /sc/* {
+        uri strip_prefix /sc
+        reverse_proxy 192.168.168.42:8929 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {http.request.remote}
+            header_up X-Forwarded-For {http.request.remote}
+            header_up X-Forwarded-Proto {http.request.scheme}
+        }
+    }
     handle {
         reverse_proxy localhost:4000
     }
