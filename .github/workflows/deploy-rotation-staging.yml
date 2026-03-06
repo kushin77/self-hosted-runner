@@ -88,15 +88,18 @@ jobs:
 
       - name: Fetch deploy SSH key from Vault (AppRole auth)
         if: ${{ github.event.inputs.vault_secret_path != '' }}
+        env:
+          VAULT_ROLE_ID: ${{ env.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ env.VAULT_SECRET_ID }}
         run: |
           set -e
           echo "Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
 
-          ROLE_ID="${VAULT_ROLE_ID:-${{ secrets.VAULT_ROLE_ID }}}"
-          SECRET_ID="${VAULT_SECRET_ID:-${{ secrets.VAULT_SECRET_ID }}}"
+          ROLE_ID="${VAULT_ROLE_ID:-${{ secrets.VAULT_ROLE_ID || '' }}}"
+          SECRET_ID="${VAULT_SECRET_ID:-${{ secrets.VAULT_SECRET_ID || '' }}}"
 
           if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
-            echo "❌ AppRole credentials not available. Ensure repository secrets VAULT_ROLE_ID/VAULT_SECRET_ID are set or enable auto-provisioning via VAULT_ADMIN_TOKEN." 
+            echo "❌ AppRole credentials not available." 
             exit 1
           fi
 
