@@ -1,0 +1,38 @@
+name: Self-hosted Heavy Runner Verification
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  verify:
+    name: Verify self-hosted-heavy runner tooling
+    runs-on: [self-hosted, linux, self-hosted-heavy]
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print runner labels
+        run: |
+          echo "Runner labels:"
+          jq -r '. | to_entries[] | "\(.key)=\(.value)"' <<< "${{ toJson(runner) }}" || true
+
+      - name: Docker version
+        run: |
+          echo "Docker:" && docker --version || echo "docker not available"
+
+      - name: Kind version
+        run: |
+          kind --version || echo "kind not installed"
+
+      - name: Terraform version
+        run: |
+          terraform version || echo "terraform not available"
+
+      - name: Helm version
+        run: |
+          helm version --short || echo "helm not available"
+
+      - name: kubectl version
+        run: |
+          kubectl version --client --short || echo "kubectl not available"
