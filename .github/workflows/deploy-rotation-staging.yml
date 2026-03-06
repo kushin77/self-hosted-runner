@@ -90,12 +90,15 @@ jobs:
         env:
           VAULT_ROLE_ID: ${{ steps.approle_setup.outputs.role_id }}
           VAULT_SECRET_ID: ${{ steps.approle_setup.outputs.secret_id }}
+          # Also allow falling back to repo secrets if steps.approle_setup didn't run
+          ROLE_ID_SECRET: ${{ secrets.VAULT_ROLE_ID }}
+          SECRET_ID_SECRET: ${{ secrets.VAULT_SECRET_ID }}
         run: |
           set -e
           echo "Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
 
-          ROLE_ID="${VAULT_ROLE_ID}"
-          SECRET_ID="${VAULT_SECRET_ID}"
+          ROLE_ID="${VAULT_ROLE_ID:-$ROLE_ID_SECRET}"
+          SECRET_ID="${VAULT_SECRET_ID:-$SECRET_ID_SECRET}"
 
           if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
             echo "❌ AppRole credentials not available." 
