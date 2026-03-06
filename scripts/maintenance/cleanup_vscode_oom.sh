@@ -5,7 +5,7 @@ set -euo pipefail
 # Idempotent and safe: it only removes caches, temporary data, and moves large
 # extensions to an "extensions-disabled" folder for later review.
 
-LOG="/var/log/vscode_oom_maintenance.log"
+LOG="$HOME/.local/share/vscode_oom_maintenance.log"
 mkdir -p "$(dirname "$LOG")" || true
 
 timestamp(){ date -Iseconds; }
