@@ -45,8 +45,15 @@ The workflow file is `.github/workflows/publish-portal-image.yml` and is configu
 Monitoring / Alerts
 -------------------
 
+**Note: Docker workloads (Prometheus, etc.) must be deployed on `192.168.168.42`.**
+
 A lightweight notification helper is available at `scripts/notify_health.sh` which posts messages to a Slack webhook defined in `SLACK_WEBHOOK`.
 The systemd healthcheck may call this script when reprovisioning occurs; configure a secure webhook in your environment before enabling alerts.
+
+To deploy the monitoring stack:
+```bash
+ssh akushnir@192.168.168.42 'cd ~/self-hosted-runner/deploy/monitoring && docker compose up -d'
+```
 
 Vault helper and Pushgateway
 ----------------------------
