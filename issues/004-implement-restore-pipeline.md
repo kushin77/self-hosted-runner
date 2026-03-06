@@ -26,3 +26,7 @@ Next actions:
 Status: Closed
 
 Closure note: Core restore pipeline and orchestration scripts have been implemented and validated via a credential-less simulation on 2026-03-06 (see `docs/DR_RUNBOOK.md`). Live DR dry-run and final RTO/RPO measurement are tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete.
+
+Post-validation update:
+- Identity-validated dry-run executed on 2026-03-06T18:32:07Z. Log: `/tmp/dr_dryrun_20260306T183202Z.log`.
+- Observed RTO: 45m; Observed RPO: 15m. Results appended to `docs/DR_RUNBOOK.md` and automation PR created for review.
