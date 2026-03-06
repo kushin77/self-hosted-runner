@@ -26,6 +26,9 @@ Checklist
 - [x] Render values with real token and install to test k3s/K8s cluster
 - [ ] Validate `YAMLtest-sovereign-runner` passes on new runner - ready for user
 - [ ] Migrate group runner registration to k8s-backed runner - ready for user
+Additional artifacts added:
+- `scripts/ci/create_sealedsecret_from_token.sh` — helper to generate a SealedSecret or plain Secret manifest from a registration token (keeps token out of VCS)
+- `infra/gitlab-runner/sealedsecret.example.yaml` — example SealedSecret manifest for reference
 - [ ] Decommission legacy VM-based runners (after rollback window)
 
 Next steps (short-term)
