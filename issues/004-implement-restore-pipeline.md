@@ -16,7 +16,9 @@ Progress:
 - [x] Added `bootstrap/restore_from_github.sh` — idempotent restore/bootstrap helper to import from GitHub backup and restore encrypted secrets (see `bootstrap/restore_from_github.sh`).
 - [x] Added `scripts/backup/gitlab_backup_encrypt.sh` to create and encrypt GitLab backups for upload to object store.
 - [x] Added `scripts/dr/drill_run.sh` — lightweight DR drill harness to run the bootstrap on a throwaway instance and verify basic health checks.
+- [x] Integrated `maintenance:gitlab_backup` and GitHub mirroring into `config/cicd/.gitlab-ci.yml`.
+- [x] Added `scripts/ci/bootstrap_automation.sh` for automated secret/key rotation.
 
 Next actions:
-- Wire the restore into a protected CI pipeline and schedule a quarterly automated drill (issues/903-quarterly-dr-drill.md).
-- Add automated verification tests and gather RTO/RPO metrics during a dry-run.
+- Perform the first live DR dry-run on a throwaway VM to gather final RTO/RPO metrics.
+- Record results in `docs/DR_RUNBOOK.md`.
