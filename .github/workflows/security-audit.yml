@@ -1,0 +1,156 @@
+name: Security Audit - Detect Token-Like Patterns
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main, master ]
+
+jobs:
+  security-scan:
+    name: Scan for token-like patterns
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run security audit
+        id: audit
+        run: |
+          cat > /tmp/security_audit.py << 'PYEOF'
+          import re
+          import os
+          import json
+          from pathlib import Path
+          
+          # Patterns that indicate potential secrets
+          DANGEROUS_PATTERNS = {
+              'vault_token': r's\.[a-zA-Z0-9]{20,}',
+              'github_token': r'ghp_[a-zA-Z0-9]{36,}',
+              'aws_key': r'AKIA[0-9A-Z]{16}',
+              'jwt_token': r'eyJhbGc[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*',
+              'generic_password': r'password\s*[:=]\s*["\']?[a-zA-Z0-9!@#$%^&*()_+-=]{8,}["\']?',
+          }
+          
+          # Safe patterns to exclude (examples, placeholders)
+          SAFE_KEYWORDS = [
+              'example',
+              'placeholder',
+              'YOUR_',
+              'your_',
+              '<token>',
+              '<secret>',
+              '<admin_token>',
+              '<secret_id>',
+              'REDACTED',
+              'REMOVED',
+              '****',
+              'SANITIZED',
+          ]
+          
+          UNSAFE_FILES = []
+          TOTAL_FILES = 0
+          
+          for root, dirs, files in os.walk('.'):
+              # Skip git/build directories
+              dirs[:] = [d for d in dirs if d not in ['.git', '.github', 'node_modules', '__pycache__', '.terraform']]
+              
+              for file in files:
+                  filepath = os.path.join(root, file)
+                  TOTAL_FILES += 1
+                  
+                  # Skip binary files
+                  if file.endswith(('.png', '.jpg', '.gif', '.zip', '.tar', '.gz', '.bin')):
+                      continue
+                  
+                  try:
+                      with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
+                          content = f.read()
+                          
+                          for pattern_name, pattern in DANGEROUS_PATTERNS.items():
+                              matches = re.finditer(pattern, content)
+                              for match in matches:
+                                  match_str = match.group()
+                                  
+                                  # Check if it's a safe example
+                                  is_safe = any(keyword.lower() in content[max(0, match.start()-100):match.end()+100].lower() 
+                                               for keyword in SAFE_KEYWORDS)
+                                  
+                                  if not is_safe:
+                                      line_num = content[:match.start()].count('\n') + 1
+                                      UNSAFE_FILES.append({
+                                          'file': filepath,
+                                          'line': line_num,
+                                          'pattern': pattern_name,
+                                          'match': match_str[:20] + '...' if len(match_str) > 20 else match_str
+                                      })
+                  except (IsADirectoryError, PermissionError):
+                      continue
+          
+          # Write report
+          report = {
+              'total_files_scanned': TOTAL_FILES,
+              'unsafe_findings': len(UNSAFE_FILES),
+              'findings': UNSAFE_FILES,
+              'status': 'PASS' if not UNSAFE_FILES else 'FAIL'
+          }
+          
+          with open('/tmp/security_report.json', 'w') as f:
+              json.dump(report, f, indent=2)
+          
+          print(json.dumps(report, indent=2))
+          exit(0 if not UNSAFE_FILES else 1)
+          PYEOF
+          python3 /tmp/security_audit.py
+        continue-on-error: true
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            let report = { total_files_scanned: 0, unsafe_findings: 0, findings: [] };
+            
+            try {
+              report = JSON.parse(fs.readFileSync('/tmp/security_report.json', 'utf8'));
+            } catch (e) {
+              console.log('Could not read report');
+            }
+            
+            let comment = '## 🔒 Security Audit Report\n\n';
+            comment += `- Files scanned: ${report.total_files_scanned}\n`;
+            comment += `- Unsafe findings: ${report.unsafe_findings}\n`;
+            comment += `- Status: ${report.unsafe_findings === 0 ? '✅ PASS' : '⚠️ REVIEW'}\n\n`;
+            
+            if (report.unsafe_findings > 0) {
+              comment += '### Findings that need review:\n';
+              report.findings.slice(0, 5).forEach(f => {
+                comment += `- **${f.file}:${f.line}** (${f.pattern})\n`;
+              });
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Upload security report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: /tmp/security_report.json
