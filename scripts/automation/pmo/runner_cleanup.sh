@@ -18,6 +18,11 @@ FORCE=${FORCE:-false}
 LOG_DIR="/var/log/runner-cleanup"
 TIMESTAMP=$(date +%s)
 
+# Resolve safe_delete helper
+SAFE_DELETE="$(pwd)/scripts/safe_delete.sh"
+if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../../scripts/safe_delete.sh"; fi
+if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../scripts/safe_delete.sh"; fi
+
 mkdir -p "$LOG_DIR"
 LOG_FILE="$LOG_DIR/cleanup-$TIMESTAMP.log"
 
@@ -60,7 +65,11 @@ cleanup_workspaces() {
   find "$REPO_DIR/_work" -maxdepth 1 -type d -mtime +7 2>/dev/null | while read -r workspace; do
     log "Removing abandoned workspace: $workspace"
     if [[ "$DRY_RUN" == "false" ]]; then
-      rm -rf "$workspace" 2>/dev/null || true  
+      if [ -x "$SAFE_DELETE" ]; then
+        "$SAFE_DELETE" --path "$workspace" --confirm --no-dry-run || true
+      else
+        rm -rf "$workspace" 2>/dev/null || true
+      fi
       ((cleaned++)) || true
     fi
   done

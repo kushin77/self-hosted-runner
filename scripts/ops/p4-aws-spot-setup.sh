@@ -8,6 +8,8 @@ set -eu
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TERRAFORM_DIR="${REPO_ROOT}/terraform/examples/aws-spot"
+SAFE_DELETE="${REPO_ROOT}/scripts/safe_delete.sh"
+
 
 # Color output helper
 RED='\033[0;31m'
@@ -89,8 +91,13 @@ init_and_validate() {
   
   cd "${TERRAFORM_DIR}"
   
-  # Clean prior state to avoid version conflicts
-  rm -rf .terraform .terraform.lock.hcl
+  # Clean prior state to avoid version conflicts (guarded)
+  if [ -x "$SAFE_DELETE" ]; then
+    "$SAFE_DELETE" --path "$TERRAFORM_DIR/.terraform" --dry-run || true
+    "$SAFE_DELETE" --path "$TERRAFORM_DIR/.terraform.lock.hcl" --dry-run || true
+  else
+    rm -rf .terraform .terraform.lock.hcl
+  fi
   
   terraform init
   
