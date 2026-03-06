@@ -1,0 +1,53 @@
+---
+name: Deploy Vault rotation daemon and integration
+hosts: runners
+become: true
+vars:
+  install_dir: /opt/runner/integrations
+  config_dir: /etc/runner
+  service_name: vault-integration
+tasks:
+  - name: Ensure installation directories exist
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+    loop:
+      - "{{ install_dir }}"
+      - "{{ config_dir }}"
+
+  - name: Copy vault-integration script
+    copy:
+      src: ../../../scripts/automation/pmo/vault-integration.sh
+      dest: "{{ install_dir }}/vault-integration.sh"
+      owner: root
+      group: root
+      mode: '0755'
+
+  - name: Copy example rotation config if present
+    copy:
+      src: ../../../scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml
+      dest: "{{ install_dir }}/vault-rotation.yaml"
+      owner: root
+      group: root
+      mode: '0640'
+    ignore_errors: true
+
+  - name: Deploy systemd service unit
+    template:
+      src: ../templates/vault-integration.service.j2
+      dest: /etc/systemd/system/{{ service_name }}.service
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Reload systemd manager configuration
+    command: systemctl daemon-reload
+
+  - name: Enable and start vault integration service
+    systemd:
+      name: "{{ service_name }}.service"
+      enabled: yes
+      state: started
