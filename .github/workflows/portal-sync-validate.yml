@@ -21,6 +21,11 @@ jobs:
       group: portal-sync-validate-${{ github.ref || github.run_id }}
       cancel-in-progress: false
     runs-on: [self-hosted, linux]
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+      MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
     steps:
       - uses: actions/checkout@v4
       - name: Install Python (self-hosted)
@@ -38,8 +43,14 @@ jobs:
       - name: Run metadata validator
         run: |
           python3 scripts/generate_function_metadata.py --validate --output portal-artifact.json
-      - name: Upload portal artifact to MinIO
+      - name: Upload portal artifact to MinIO (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
         run: |
-          set -euo pipefail
-          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
+          chmod +x ci/scripts/upload_to_minio.sh
+          ci/scripts/upload_to_minio.sh portal-artifact.json "portal-artifact-${{ github.run_id }}.json"
+      - name: Upload portal artifact (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-artifact-${{ github.run_id }}
+          path: portal-artifact.json
