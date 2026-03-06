@@ -28,6 +28,14 @@ jobs:
           kubeconform -schema-location default -summary deploy/ || true
 
       - name: Upload report
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/upload_to_minio.sh
+          # Upload entire workspace as a single tarball
+          tar -czf kubeconform-report.tar.gz .
+          URL=$(./ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz)
+          echo "Kubeconform report uploaded to: $URL"
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/upload-artifact@v4
         with:
           name: kubeconform-report
