@@ -6,57 +6,13 @@ on:
     types: [completed]
 
 jobs:
-  terraform-plan:
-    name: Terraform plan using Packer AMI
+  call-plan:
+    name: Call reusable Terraform plan (AMI)
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: [self-hosted, linux, self-hosted-heavy]
-    steps:
-      - name: Download AMI tfvars artifact from MinIO
-        run: |
-          set -euo pipefail
-          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
-          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "ami-tfvars" --out terraform/packer-ami/ami.tfvars
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        run: |
-          set -euo pipefail
-          TF_VER=1.5.7
-          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
-          unzip -o /tmp/terraform.zip -d /usr/local/bin
-          terraform version
-
-      - name: Terraform init
-        working-directory: terraform
-        run: |
-          terraform init -backend=false
-
-      - name: Terraform plan (ci-runners)
-        working-directory: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          set -euo pipefail
-          # copy the ami.tfvars produced by packer-build artifact into place
-          cp ../terraform/packer-ami/ami.tfvars . || true
-          terraform plan -var-file=ami.tfvars -out=ci-runners-plan.out ./modules/ci-runners
-
-      - name: Upload terraform plan to MinIO
-        run: |
-          set -euo pipefail
-          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan"
-
-      - name: Prepare and upload plan checksum
-        run: |
-          set -euo pipefail
-          # Copy plan to workspace root so checksum references the target filename used during apply
-          mkdir -p /tmp
-          cp terraform/ci-runners-plan.out ./ci-runners-plan.out || true
-          sha256sum ci-runners-plan.out > ci-runners-plan.out.sha
-          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file ci-runners-plan.out.sha --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan.sha"
+    uses: ./.github/workflows/reusable/terraform-plan-callable.yml
+    secrets:
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+    with:
+      ami-tfvars-object: ami-tfvars
+      plan-object: terraform-plan
