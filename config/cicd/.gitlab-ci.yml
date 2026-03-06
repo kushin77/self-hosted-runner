@@ -11,6 +11,9 @@ include:
   - local: '.gitlab/ci-includes/terraform.gitlab-ci.yml'       # TF plan/apply/validate
   - local: '.gitlab/ci-includes/python-test.gitlab-ci.yml'     # pytest/ruff/mypy
   - local: '.gitlab/ci-includes/security-scan.gitlab-ci.yml'   # trivy/gitleaks/snyk
+  - local: 'ci_templates/dr-dryrun.yml'                        # DR: Quarterly dryrun
+  - local: 'ci_templates/dr-monitor.yml'                       # DR: Monitor & report
+  - local: 'ci_templates/dr-alert.yml'                         # DR: Alerts & monitoring
 
 stages:
   - initialize

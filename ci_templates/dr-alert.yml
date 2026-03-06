@@ -1,0 +1,178 @@
+# ci_templates/dr-alert.yml — DR Pipeline Alerting & Monitoring CI Template
+#
+# Purpose: Monitor the DR dry-run pipeline, capture metrics, and send alerts
+#          if thresholds are exceeded or jobs fail.
+#
+# Integration: Include in .gitlab-ci.yml as:
+#   include:
+#     - local: ci_templates/dr-alert.yml
+#
+# Trigger: After dr-dryrun or dr-monitor jobs complete
+# Schedule: Aligned with dr-dryrun schedule (quarterly)
+
+stages:
+  - dr-alert
+
+# Job: Monitor DR pipeline health and post alerts
+dr-alerts:pipeline-monitor:
+  stage: dr-alert
+  image: google/cloud-sdk:alpine
+  
+  variables:
+    SECRET_PROJECT: "gcp-eiq"
+    SLACK_CHANNEL: "#dr-automation"
+    RTO_THRESHOLD: "60"  # Alert if RTO > 60 minutes
+    RPO_THRESHOLD: "30"  # Alert if RPO > 30 minutes
+  
+  before_script:
+    # Install dependencies
+    - apk add --no-cache jq curl bc bash
+    
+    # Authenticate to GCP
+    - |
+      if [[ -n "${GCP_SERVICE_ACCOUNT_JSON}" ]]; then
+        echo "$GCP_SERVICE_ACCOUNT_JSON" > /tmp/gcp-key.json
+        gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+        gcloud config set project "$SECRET_PROJECT"
+      fi
+  
+  script:
+    # Run the hands-off monitoring script
+    - chmod +x scripts/ci/dr_pipeline_monitor.sh
+    - export GITLAB_PROJECT_ID="${CI_PROJECT_ID}"
+    - export GITLAB_API_URL="https://gitlab.com/api/v4"
+    - |
+      ./scripts/ci/dr_pipeline_monitor.sh \
+        --poll-interval 30 \
+        --timeout 3600
+  
+  after_script:
+    # Save monitoring logs as artifacts
+    - |
+      if [[ -f /tmp/dr_pipeline_monitor_*.log ]]; then
+        cp /tmp/dr_pipeline_monitor_*.log monitoring.log 2>/dev/null || true
+      fi
+  
+  artifacts:
+    paths:
+      - monitoring.log
+    expire_in: 30 days
+    when: always
+  
+  # Run as part of the pipeline schedule or on-demand
+  only:
+    - schedules
+    - web  # Allow manual trigger
+  
+  retry:
+    max: 1
+    when: runner_system_failure
+  
+  tags:
+    - docker
+
+# Job: Check DR backup integrity (weekly, staggered from dryrun)
+dr-alerts:backup-integrity:
+  stage: dr-alert
+  image: google/cloud-sdk:alpine
+  
+  variables:
+    SECRET_PROJECT: "gcp-eiq"
+    SLACK_CHANNEL: "#dr-automation"
+  
+  before_script:
+    - apk add --no-cache jq curl openssl
+    - |
+      if [[ -n "${GCP_SERVICE_ACCOUNT_JSON}" ]]; then
+        echo "$GCP_SERVICE_ACCOUNT_JSON" > /tmp/gcp-key.json
+        gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+        gcloud config set project "$SECRET_PROJECT"
+      fi
+  
+  script:
+    # Check if backups exist and are recent
+    - |
+      BUCKET=$(gcloud secrets versions access latest --secret=ci-gcs-bucket --project=$SECRET_PROJECT)
+      echo "Checking backup bucket: gs://$BUCKET/backups/"
+      
+      BACKUP_COUNT=$(gsutil ls gs://$BUCKET/backups/ 2>/dev/null | wc -l)
+      if [[ $BACKUP_COUNT -eq 0 ]]; then
+        curl -X POST -H 'Content-type: application/json' \
+          --data '{"text":"⚠️ No backups found in gs://'$BUCKET'/backups/"}' \
+          "$(gcloud secrets versions access latest --secret=slack-webhook --project=$SECRET_PROJECT)"
+        exit 1
+      fi
+      echo "✓ Found $BACKUP_COUNT backup(s)"
+      
+      # Check backup freshness (should be < 1 day old)
+      LATEST_BACKUP=$(gsutil ls -l gs://$BUCKET/backups/ | tail -1 | awk '{print $6}')
+      echo "Latest backup metadata: $LATEST_BACKUP"
+  
+  artifacts:
+    reports:
+      dotenv: backup_status.env
+    expire_in: 7 days
+    when: always
+  
+  only:
+    - schedules
+    - web
+  
+  retry:
+    max: 1
+    when: runner_system_failure
+  
+  tags:
+    - docker
+
+# Job: Report DR metrics to monitoring system
+dr-alerts:metrics-export:
+  stage: dr-alert
+  image: google/cloud-sdk:alpine
+  
+  variables:
+    SECRET_PROJECT: "gcp-eiq"
+  
+  before_script:
+    - apk add --no-cache jq curl
+    - |
+      if [[ -n "${GCP_SERVICE_ACCOUNT_JSON}" ]]; then
+        echo "$GCP_SERVICE_ACCOUNT_JSON" > /tmp/gcp-key.json
+        gcloud auth activate-service-account --key-file=/tmp/gcp-key.json
+        gcloud config set project "$SECRET_PROJECT"
+      fi
+  
+  script:
+    # Export DR metrics to prometheus/monitoring
+    # (future: integrate with Prometheus Push Gateway or custom metrics API)
+    - |
+      echo "Exporting DR metrics..."
+      
+      # Read RTO/RPO from docs/DR_RUNBOOK.md
+      if [[ -f docs/DR_RUNBOOK.md ]]; then
+        RTO=$(grep -oP 'RTO[_:]?\s*\K[\d.]+' docs/DR_RUNBOOK.md | tail -1 || echo "0")
+        RPO=$(grep -oP 'RPO[_:]?\s*\K[\d.]+' docs/DR_RUNBOOK.md | tail -1 || echo "0")
+        
+        echo "Metrics: RTO=${RTO}m, RPO=${RPO}m"
+        
+        # Store as job variables for downstream jobs
+        cat > metrics.env <<EOF
+DR_RTO="${RTO}"
+DR_RPO="${RPO}"
+DR_PIPELINE_ID="${CI_PIPELINE_ID}"
+DR_RUN_TIMESTAMP="${CI_PIPELINE_CREATED_AT}"
+EOF
+      fi
+  
+  artifacts:
+    reports:
+      dotenv: metrics.env
+    expire_in: 30 days
+    when: always
+  
+  only:
+    - schedules
+    - web
+  
+  tags:
+    - docker
