@@ -65,6 +65,22 @@ If you are contributing updates or fixes:
 - Run linters and tests under `tests/`
 - Create a PR and link relevant issues; include terraform plan output for infra changes.
 
+## Feature Completion Dashboard
+
+This repository tracks feature completion and readiness status in a concise dashboard for maintainers. The dashboard includes columns for design, implementation, tests, security review, and production readiness. See the project board or open issues for current status.
+
+## Environment Variables
+
+The following environment variables are commonly referenced by scripts and docs in this repo. They should be defined in CI or retrieved from Vault in production deployments:
+
+- `GITHUB_OWNER` — GitHub organization or user owning the repo
+- `GITHUB_TOKEN` — Token for automation (use GitHub Actions secrets; never commit tokens)
+- `VAULT_ADDR` — HashiCorp Vault address (e.g., https://vault.example)
+- `VAULT_ROLE_ID` / `VAULT_SECRET_ID` — AppRole credentials used by workflows
+- `SOCKET_AUTH_TOKEN` — Auth token for provisioner socket (dev only)
+
+References to secret names and vault paths are documented in `docs/` (see `docs/PHASE_P2_OPS_QUICK_START.md` and `docs/IMMUTABLE_EPHEMERAL_IDEMPOTENT.md`).
+
 ---
 
 ## License & Contact
