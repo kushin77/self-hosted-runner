@@ -1,0 +1,85 @@
+name: Stale Branch Cleanup
+
+on:
+  schedule:
+    # Run weekly on Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
+  issue_comment:
+    types: [created]
+
+jobs:
+  cleanup:
+    name: Remove merged feature branches
+    runs-on: ubuntu-latest
+    concurrency:
+      group: stale-branch-cleanup
+      cancel-in-progress: false
+    if: |
+      (github.event_name == 'schedule') ||
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'issue_comment' && 
+       github.issue.number == 755 && 
+       contains(github.event.comment.body, 'cleanup:execute') &&
+       github.event.comment.author_association == 'OWNER')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for branch detection
+
+      - name: Run stale branch cleanup
+        run: |
+          bash scripts/automation/cleanup-stale-branches.sh
+
+      - name: Upload cleanup report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stale-branch-cleanup-report
+          path: |
+            stale-branch-cleanup-report-*.json
+            stale-branch-cleanup-*.log
+          retention-days: 90
+
+      - name: Comment on issue with results
+        if: github.event_name == 'issue_comment' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reports = fs.readdirSync('.').filter(f => f.startsWith('stale-branch-cleanup-report'));
+            let reportContent = '❌ No report found';
+            
+            if (reports.length > 0) {
+              const report = JSON.parse(fs.readFileSync(reports[0], 'utf8'));
+              reportContent = `
+✅ Stale Branch Cleanup Complete
+
+**Summary:**
+- Deleted: ${report.deleted_count} branches
+- Skipped: ${report.skipped_count} branches
+- Remaining: ${report.remaining_feature_branches} feature branches
+
+**Timestamp:** ${report.timestamp}
+              `;
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: reportContent
+            });
+
+      - name: Post workflow summary
+        if: always()
+        run: |
+          REPORTS=$(find . -name 'stale-branch-cleanup-report*.json' -type f | head -1)
+          if [ ! -z "$REPORTS" ]; then
+            echo "### 🧹 Branch Cleanup Report" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`json" >> $GITHUB_STEP_SUMMARY
+            cat "$REPORTS" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
