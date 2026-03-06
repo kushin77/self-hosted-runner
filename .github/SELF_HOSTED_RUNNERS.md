@@ -1,3 +1,33 @@
+Self-hosted runners: labels and guidance
+=====================================
+
+This repository uses self-hosted GitHub Actions runners for CI workloads.
+
+Recommended runner labels to use in workflows:
+- `self-hosted` (required label)
+- `linux` (OS tag)
+- `x86_64` or `arm64` (optional architecture tag)
+- `ci` or `runner` (optional logical grouping)
+
+Examples
+--------
+
+Use in workflows:
+
+```yaml
+runs-on: [self-hosted, linux]
+```
+
+Notes
+-----
+- Make sure your self-hosted runners are online and healthy before enabling frequent CI runs.
+- For heavyweight jobs (docker/kind/terraform) ensure runners have Docker and required tools installed, or use a dedicated runner label such as `self-hosted-heavy` and reference it in workflows:
+
+```yaml
+runs-on: [self-hosted, linux, self-hosted-heavy]
+```
+
+- The repository currently expects `linux` runners; if you use other OSes update relevant workflows.
 # Self-hosted Runners — Setup & Requirements
 
 This document describes the minimal configuration and labels expected by repository workflows.

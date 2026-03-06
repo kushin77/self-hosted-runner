@@ -1,0 +1,31 @@
+name: Portal Sync Reconcile (nightly)
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily at 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  reconcile:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: python -m pip install --upgrade pip && pip install pyyaml requests
+      - name: Generate metadata artifact
+        run: python3 scripts/generate_function_metadata.py --output portal-artifact.json
+      - name: Reconcile and create issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/reconcile_and_create_issues.py --create-issues --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name || github.repository }}
+      - name: Upload portal artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-artifact
+          path: portal-artifact.json
