@@ -70,9 +70,10 @@ jobs:
           echo "No VAULT_ROLE_ID/VAULT_SECRET_ID and no VAULT_ADMIN_TOKEN available; proceeding but Vault steps will fail if required"
 
       - name: Persist AppRole to repo secrets (hands-off)
-        if: ${{ github.event.inputs.hands_off == 'true' && secrets.GITHUB_ADMIN_TOKEN }}
+        if: ${{ github.event_inputs.hands_off == 'true' }}
         env:
-          GITHUB_ADMIN_TOKEN: ${{ secrets.GITHUB_ADMIN_TOKEN }}
+          # Use GITHUB_ADMIN_TOKEN from secrets directly in the run context
+          GITHUB_TOKEN: ${{ secrets.GITHUB_ADMIN_TOKEN }}
         run: |
           set -euo pipefail
           if [ -f /tmp/approle.json ]; then
