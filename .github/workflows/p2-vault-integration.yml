@@ -6,10 +6,16 @@ on:
 
 jobs:
   vault-integration:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Docker
+      - name: Set up Docker Buildx (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-buildx.sh
+          ci/scripts/setup-buildx.sh
+      - name: Set up Docker Buildx (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: docker/setup-buildx-action@v2
       - name: Run smoke tests (staging)
         run: |

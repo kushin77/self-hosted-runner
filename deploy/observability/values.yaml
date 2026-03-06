@@ -1,0 +1,17 @@
+prometheus:
+  enabled: true
+  retention: 7d
+  resources: {}
+
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: "changeme"
+  resources: {}
+
+loki:
+  enabled: true
+  retention: 7d
+  resources: {}
+
+# Note: This chart is a scaffold. For production use, prefer the upstream operator charts (kube-prometheus-stack, grafana, loki) and configure TLS, persistence, and RBAC.

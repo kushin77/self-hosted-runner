@@ -1,0 +1,55 @@
+name: Harbor Integration Smoke (kind)
+
+on:
+  workflow_dispatch:
+  # manual trigger; heavy CI - not run on every PR by default
+
+jobs:
+  smoke-test:
+    runs-on: [self-hosted, linux, self-hosted-heavy]
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install kind
+        uses: engineerd/setup-kind@v0.5.0
+
+      - name: Create kind cluster
+        run: |
+          kind create cluster --name harbor-smoke --wait 120s
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Run Terraform wrapper (provision Postgres+Redis and create Harbor secrets)
+        working-directory: terraform/provision/harbor-integration
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false -var "kubeconfig_path=$HOME/.kube/config" -var "harbor_namespace=harbor"
+
+      - name: Install Harbor chart
+        run: |
+          helm install harbor ./deploy/harbor -n harbor --create-namespace --wait --timeout 600s --values deploy/harbor/values.yaml
+
+      - name: Wait for harbor-core rollout
+        run: |
+          kubectl rollout status deployment/harbor-core -n harbor --timeout=6m
+
+      - name: Smoke check - list pods
+        run: |
+          kubectl get pods -n harbor -o wide
+
+      - name: Cleanup kind cluster
+        if: always()
+        run: |
+          kind delete cluster --name harbor-smoke || true
