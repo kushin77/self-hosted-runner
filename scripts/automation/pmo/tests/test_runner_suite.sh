@@ -122,7 +122,8 @@ test_no_credentials() {
     return 1
   fi
   
-  if git -C "${GIT_ROOT}" grep -n "aws_secret" >/dev/null 2>&1; then
+  # Only flag likely hardcoded AWS secret variables, not resource names like aws_secretsmanager_secret
+  if git -C "${GIT_ROOT}" grep -n "aws_secret_access_key\|AWS_SECRET_ACCESS_KEY" >/dev/null 2>&1; then
     return 1
   fi
   
