@@ -16,6 +16,11 @@ INVENTORY_FILE=""
 CHECK_MODE=false
 VERBOSE=false
 DRY_RUN=false
+ANSIBLE_USER="${ANSIBLE_USER:-root}"
+# Optional: path to a private key file to use for SSH; can be provided via
+# --ssh-key-file or the ANSIBLE_SSH_KEY environment variable (contents).
+SSH_KEY_FILE=""
+TMP_SSH_KEY=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -59,6 +64,15 @@ parse_args() {
         ;;
       --verbose)
         VERBOSE=true
+        shift
+        ;;
+      --ssh-key-file)
+        SSH_KEY_FILE="$2"
+        shift 2
+        ;;
+      --ssh-key)
+        # Accept raw private key content on the CLI (be careful)
+        TMP_SSH_KEY="$(cat -)"
         shift
         ;;
       -h|--help)
@@ -181,10 +195,31 @@ run_playbook() {
     extra_args+=(-vv)
   fi
 
+  # Prepare SSH key if provided via env or option
+  local private_key_arg=( )
+  if [ -n "$SSH_KEY_FILE" ] && [ -f "$SSH_KEY_FILE" ]; then
+    private_key_arg=( --private-key "$SSH_KEY_FILE" )
+  elif [ -n "${ANSIBLE_SSH_KEY:-}" ]; then
+    # Write key contents to temp file
+    TMP_SSH_KEY="$(mktemp -p "$SCRIPT_DIR" ansible_ssh_key_XXXX)"
+    echo "$ANSIBLE_SSH_KEY" > "$TMP_SSH_KEY"
+    chmod 600 "$TMP_SSH_KEY"
+    private_key_arg=( --private-key "$TMP_SSH_KEY" )
+  elif [ -n "$TMP_SSH_KEY" ]; then
+    # If user piped key via --ssh-key, TMP_SSH_KEY already set from stdin
+    local keyfile="$(mktemp -p "$SCRIPT_DIR" ansible_ssh_key_XXXX)"
+    echo "$TMP_SSH_KEY" > "$keyfile"
+    chmod 600 "$keyfile"
+    TMP_SSH_KEY="$keyfile"
+    private_key_arg=( --private-key "$TMP_SSH_KEY" )
+  fi
+
   cd "$SCRIPT_DIR"
   ansible-playbook \
     "${extra_args[@]}" \
     --inventory="$INVENTORY_FILE" \
+    -u "$ANSIBLE_USER" \
+    ${private_key_arg[@]} \
     --extra-vars="deploy_timestamp=$(date -Iseconds)" \
     ansible/playbooks/deploy-rotation.yml
 
@@ -203,6 +238,8 @@ verify_deployment() {
   cd "$SCRIPT_DIR"
   if ansible \
     --inventory="$INVENTORY_FILE" \
+    -u "$ANSIBLE_USER" \
+    ${private_key_arg[@]} \
     runners \
     -m command \
     -a "systemctl is-active vault-integration.service" \
