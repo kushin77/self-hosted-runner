@@ -6,6 +6,10 @@ on:
 jobs:
   verify:
     name: Verify self-hosted-heavy runner tooling
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: self-hosted-heavy-verify-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: [self-hosted, linux, self-hosted-heavy]
     timeout-minutes: 15
     steps:

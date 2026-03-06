@@ -57,6 +57,10 @@ jobs:
               ./scripts/check_hardening.sh
 
   deploy-rotation:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: deploy-immutable-ephemeral-deploy-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     needs: preflight
     permissions:
@@ -119,6 +123,7 @@ jobs:
           else
             echo "No /tmp/approle.json present; nothing to persist"
           fi
+
 
 
 
@@ -279,7 +284,7 @@ jobs:
           echo "Metrics URL (if configured): http://localhost:9090/graph"
           echo ""
           echo "To verify manually:"
-          echo "  curl -s http://<runner-host>:9091/metrics | grep 'runner_rotation\\|vault_rotation'"
+          echo "  curl -s http://<runner-host>:9091/metrics | grep 'runner_rotation\|vault_rotation'"
 
       - name: Upload summary to MinIO
         if: always()
@@ -289,4 +294,3 @@ jobs:
           scripts/minio/upload.sh --file ./deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
           if [ -f ./metrics-checklist.txt ]; then
             scripts/minio/upload.sh --file ./metrics-checklist.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "metrics-checklist-${{ github.run_id }}.txt"
-          fi
