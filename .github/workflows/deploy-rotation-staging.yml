@@ -218,10 +218,9 @@ jobs:
           EOF
           cat deployment-report.txt
 
-      - name: Upload deployment report
+      - name: Upload deployment report to MinIO
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-report
-          path: deployment-report.txt
-          retention-days: 30
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
