@@ -1,24 +1,26 @@
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, Suspense } from 'react';
 import { COLORS, COLORS_DARK, Theme } from './theme';
 import { useTick } from './hooks';
 import { GlobalStyles } from './components/UI';
 import { Sidebar, StatusBar } from './components/Layout';
-import { Dashboard } from './pages/Dashboard';
-import { AgentStudio } from './pages/AgentStudio';
-import { Runners } from './pages/Runners';
-import { Security } from './pages/Security';
-import { Billing } from './pages/Billing';
-import { DeployMode } from './pages/DeployMode';
-import { AIOracleContent } from './pages/AIOracleContent';
-import { LiveMirrorCache } from './pages/LiveMirrorCache';
-import { WindowsRunners } from './pages/WindowsRunners';
-import { Settings } from './pages/Settings';
-import { ComponentShowcase } from './pages/ComponentShowcase';
-import { RepoFunctions } from './pages/RepoFunctions';
-import { Observability } from './pages/Observability';
-import { LandingPage } from './pages/LandingPage';
 import { useMetrics } from './api/client';
 import { useSocket } from './api/socket';
+
+// Lazy-load page components for code splitting
+const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
+const AgentStudio = React.lazy(() => import('./pages/AgentStudio').then(m => ({ default: m.AgentStudio })));
+const Runners = React.lazy(() => import('./pages/Runners').then(m => ({ default: m.Runners })));
+const Security = React.lazy(() => import('./pages/Security').then(m => ({ default: m.Security })));
+const Billing = React.lazy(() => import('./pages/Billing').then(m => ({ default: m.Billing })));
+const DeployMode = React.lazy(() => import('./pages/DeployMode').then(m => ({ default: m.DeployMode })));
+const AIOracleContent = React.lazy(() => import('./pages/AIOracleContent').then(m => ({ default: m.AIOracleContent })));
+const LiveMirrorCache = React.lazy(() => import('./pages/LiveMirrorCache').then(m => ({ default: m.LiveMirrorCache })));
+const WindowsRunners = React.lazy(() => import('./pages/WindowsRunners').then(m => ({ default: m.WindowsRunners })));
+const Settings = React.lazy(() => import('./pages/Settings').then(m => ({ default: m.Settings })));
+const ComponentShowcase = React.lazy(() => import('./pages/ComponentShowcase').then(m => ({ default: m.ComponentShowcase })));
+const RepoFunctions = React.lazy(() => import('./pages/RepoFunctions').then(m => ({ default: m.RepoFunctions })));
+const Observability = React.lazy(() => import('./pages/Observability').then(m => ({ default: m.Observability })));
+const LandingPage = React.lazy(() => import('./pages/LandingPage').then(m => ({ default: m.LandingPage })));
 
 /**
  * Theme Context for global theme management
@@ -44,6 +46,25 @@ function App() {
   
   // Initialize Phase 2 WebSocket listener
   useSocket({ url: 'http://localhost:9090' });
+
+  // Loading fallback component
+  const LoadingPage = () => (
+    <div
+      style={{
+        flex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: 12,
+      }}
+    >
+      <div style={{ fontSize: 28, animation: 'spin 1s linear infinite' }}>⚡</div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.text }}>
+        Loading page...
+      </div>
+    </div>
+  );
 
   // Placeholder for other pages
   const PlaceholderPage = ({ title }: { title: string }) => (
@@ -113,7 +134,9 @@ function App() {
               display: 'flex',
             }}
           >
-            {pages[activeTab] || <PlaceholderPage title="Unknown Page" />}
+            <Suspense fallback={<LoadingPage />}>
+              {pages[activeTab] || <PlaceholderPage title="Unknown Page" />}
+            </Suspense>
           </div>
         </div>
       </div>
