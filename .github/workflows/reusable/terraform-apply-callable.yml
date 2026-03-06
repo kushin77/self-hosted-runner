@@ -9,6 +9,12 @@ on:
     secrets:
       MINIO_BUCKET:
         required: true
+      MINIO_ENDPOINT:
+        required: false
+      MINIO_ACCESS_KEY:
+        required: false
+      MINIO_SECRET_KEY:
+        required: false
       AWS_ACCESS_KEY_ID:
         required: true
       AWS_SECRET_ACCESS_KEY:
@@ -19,6 +25,10 @@ on:
 jobs:
   apply:
     runs-on: [self-hosted, linux, self-hosted-heavy]
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+      MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
     steps:
       - name: Download terraform plan artifact from MinIO
         run: |
