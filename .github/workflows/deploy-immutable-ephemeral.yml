@@ -103,11 +103,13 @@ jobs:
           echo "No VAULT_ROLE_ID/VAULT_SECRET_ID and no VAULT_ADMIN_TOKEN available; proceeding but Vault steps will fail if required"
 
       - name: Persist AppRole to repo secrets (hands-off)
-        if: ${{ github.event.inputs.hands_off == 'true' && secrets.GITHUB_ADMIN_TOKEN }}
-        env:
-          GITHUB_ADMIN_TOKEN: ${{ secrets.GITHUB_ADMIN_TOKEN }}
+        if: ${{ github.event.inputs.hands_off == 'true' }}
         run: |
           set -euo pipefail
+          if [ -z "${{ secrets.GITHUB_ADMIN_TOKEN }}" ]; then
+            echo "GITHUB_ADMIN_TOKEN not available; skipping persist step"
+            exit 0
+          fi
           if [ -f /tmp/approle.json ]; then
             chmod +x scripts/ci/persist-secret.sh
             ROLE_ID=$(jq -r .role_id /tmp/approle.json)
