@@ -27,14 +27,16 @@ jobs:
           set -euo pipefail
           kubeconform -schema-location default -summary deploy/ || true
 
-      - name: Upload report
+      - name: Upload report (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |
+          set -euo pipefail
           chmod +x ci/scripts/upload_to_minio.sh
-          # Upload entire workspace as a single tarball
           tar -czf kubeconform-report.tar.gz .
           URL=$(./ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz)
           echo "Kubeconform report uploaded to: $URL"
+
+      - name: Upload report (hosted fallback)
         if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/upload-artifact@v4
         with:
