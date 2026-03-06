@@ -51,39 +51,39 @@ jobs:
 
       - name: Run hardening checks
         run: |
-          chmod +x ./scripts/check_hardening.sh
-          ./scripts/check_hardening.sh
+              chmod +x ./scripts/check_hardening.sh
+              ./scripts/check_hardening.sh
 
-    provision-approle:
-      name: Provision AppRole (requires approval)
-      runs-on: ubuntu-latest
-      needs: preflight
-      if: ${{ github.event.inputs.dry_run != true }}
-      environment: deploy-approle
-      outputs:
-        role_id: ${{ steps.set.outputs.role_id }}
-        secret_id: ${{ steps.set.outputs.secret_id }}
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4
+      provision-approle:
+        name: Provision AppRole (requires approval)
+        runs-on: ubuntu-latest
+        needs: preflight
+        if: ${{ github.event.inputs.dry_run != true }}
+        environment: deploy-approle
+        outputs:
+          role_id: ${{ steps.set.outputs.role_id }}
+          secret_id: ${{ steps.set.outputs.secret_id }}
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v4
 
-        - name: Provision AppRole
-          env:
-            VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-            VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
-          run: |
-            set -euo pipefail
-            chmod +x scripts/ci/setup-approle.sh
-            scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
-            cat /tmp/approle.json
+          - name: Provision AppRole
+            env:
+              VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+              VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+            run: |
+              set -euo pipefail
+              chmod +x scripts/ci/setup-approle.sh
+              scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
+              cat /tmp/approle.json
 
-        - name: Set outputs
-          id: set
-          run: |
-            ROLE_ID=$(jq -r .role_id /tmp/approle.json)
-            SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
-            echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
-            echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
+          - name: Set outputs
+            id: set
+            run: |
+              ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+              SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+              echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
+              echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
 
   deploy-rotation:
     runs-on: ubuntu-latest
