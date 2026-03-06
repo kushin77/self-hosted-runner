@@ -116,16 +116,16 @@ Add the following secrets:
 | Secret Name | Value |
 |-------------|-------|
 | `VAULT_ADDR` | `<VAULT_ADDR>` |
-| `VAULT_ROLE_ID` | `<VAULT_ROLE_ID>` |
-| `VAULT_SECRET_ID` | `<VAULT_SECRET_ID>` |
+| `VAULT_ROLE_ID` | `<VAULT_ROLE_ID_PLACEHOLDER>` |
+| `VAULT_SECRET_ID` | `<VAULT_SECRET_ID_PLACEHOLDER>` |
 
 **Example using GitHub CLI:**
 
 ```bash
 # Use the GitHub CLI to set repository secrets with placeholder values shown below.
 gh secret set VAULT_ADDR --body "<VAULT_ADDR>"
-gh secret set VAULT_ROLE_ID --body "<VAULT_ROLE_ID>"
-gh secret set VAULT_SECRET_ID --body "<VAULT_SECRET_ID>"
+gh secret set VAULT_ROLE_ID --body "<VAULT_ROLE_ID_PLACEHOLDER>"
+gh secret set VAULT_SECRET_ID --body "<VAULT_SECRET_ID_PLACEHOLDER>"
 
 # Verify
 gh secret list
