@@ -33,13 +33,58 @@ const ThemeContext = createContext<{ theme: Theme; setTheme: (t: Theme) => void 
 export const useTheme = () => useContext(ThemeContext);
 
 /**
+ * Loading fallback component
+ */
+const LoadingPage = () => (
+  <div
+    style={{
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: 12,
+    }}
+  >
+    <div style={{ fontSize: 28, animation: 'spin 1s linear infinite' }}>⚡</div>
+    <div style={{ fontSize: 14, fontWeight: 500 }}>
+      Loading page...
+    </div>
+  </div>
+);
+
+/**
+ * Placeholder for other pages
+ */
+const PlaceholderPage = ({ title }: { title: string }) => (
+  <div
+    style={{
+      flex: 1,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: 8,
+    }}
+  >
+    <div style={{ fontSize: 36 }}>🔧</div>
+    <div style={{ fontSize: 16, fontWeight: 700 }}>
+      {title}
+    </div>
+    <div style={{ fontSize: 12 }}>Coming soon...</div>
+  </div>
+);
+
+/**
  * Main App Component
  */
 function App() {
   const [activeTab, setActiveTab] = useState('landing');
   const [theme, setTheme] = useState<Theme>('light');
-  const tick = useTick(2500);
   const colors = theme === 'light' ? COLORS : COLORS_DARK;
+  
+  // Dashboard-specific tick — only Dashboard uses this
+  const tick = useTick(2500);
 
   // Initialize real-time metrics
   useMetrics({ interval: 5000 });
@@ -47,61 +92,44 @@ function App() {
   // Initialize Phase 2 WebSocket listener
   useSocket({ url: 'http://localhost:9090' });
 
-  // Loading fallback component
-  const LoadingPage = () => (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: 12,
-      }}
-    >
-      <div style={{ fontSize: 28, animation: 'spin 1s linear infinite' }}>⚡</div>
-      <div style={{ fontSize: 14, fontWeight: 500, color: COLORS.text }}>
-        Loading page...
-      </div>
-    </div>
-  );
-
-  // Placeholder for other pages
-  const PlaceholderPage = ({ title }: { title: string }) => (
-    <div
-      style={{
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexDirection: 'column',
-        gap: 8,
-      }}
-    >
-      <div style={{ fontSize: 36 }}>🔧</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: COLORS.text }}>
-        {title}
-      </div>
-      <div style={{ fontSize: 12, color: COLORS.muted }}>Coming soon...</div>
-    </div>
-  );
-
-  const pages: Record<string, React.ReactNode> = {
-    landing: <LandingPage />,
-    home: <Dashboard tick={tick} />,
-    observability: <Observability />,
-    agents: <AgentStudio />,
-    deploy: <DeployMode />,
-    runners: <Runners />,
-    oracle: <AIOracleContent />,
-    cache: <LiveMirrorCache />,
-    security: <Security />,
-    windows: <WindowsRunners />,
-    billing: <Billing />,
-    showcase: <ComponentShowcase />,
-    functions: <RepoFunctions />,
-    settings: <Settings />,
-  };
+  /**
+   * Render active page only to prevent memory leaks from unused components.
+   * Only the active tab component is instantiated, not all pages at once.
+   */
+  const renderActivePage = () => {
+    switch (activeTab) {
+      case 'landing':
+        return <LandingPage />
+      case 'home':
+        return <Dashboard tick={tick} />
+      case 'observability':
+        return <Observability />
+      case 'agents':
+        return <AgentStudio />
+      case 'deploy':
+        return <DeployMode />
+      case 'runners':
+        return <Runners />
+      case 'oracle':
+        return <AIOracleContent />
+      case 'cache':
+        return <LiveMirrorCache />
+      case 'security':
+        return <Security />
+      case 'windows':
+        return <WindowsRunners />
+      case 'billing':
+        return <Billing />
+      case 'showcase':
+        return <ComponentShowcase />
+      case 'functions':
+        return <RepoFunctions />
+      case 'settings':
+        return <Settings />
+      default:
+        return <PlaceholderPage title="Unknown Page" />
+    }
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
@@ -135,7 +163,7 @@ function App() {
             }}
           >
             <Suspense fallback={<LoadingPage />}>
-              {pages[activeTab] || <PlaceholderPage title="Unknown Page" />}
+              {renderActivePage()}
             </Suspense>
           </div>
         </div>
