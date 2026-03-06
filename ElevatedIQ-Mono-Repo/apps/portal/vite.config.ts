@@ -2,48 +2,49 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
+/**
+ * Plugin to remove modulepreload hints for lazy-loaded page chunks.
+ * This prevents the browser from eagerly downloading all pages at startup.
+ */
+function filterPagePreloads() {
+  return {
+    name: 'filter-page-preloads',
+    transformIndexHtml(html) {
+      // Remove modulepreload links for page-* chunks (they are lazy-loaded)
+      return html.replace(
+        /<link rel="modulepreload"[^>]*href="\/assets\/page-[^"]*"[^>]*>/g,
+        ''
+      )
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), filterPagePreloads()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
-    // Aggressive code splitting to prevent single-bundle renderer hangs
+    // Force Vite to generate separate chunks for dynamic imports
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunks
-          'vendor-react': ['react', 'react-dom'],
-          'vendor-charts': ['recharts'],
-          'vendor-socket': ['socket.io-client'],
-          'vendor-ui': ['lucide-react'],
-          'vendor-state': ['zustand'],
-          
-          // Page chunks - each page lazy-loaded separately
-          'page-dashboard': ['./src/pages/Dashboard.tsx'],
-          'page-agents': ['./src/pages/AgentStudio.tsx'],
-          'page-deploy': ['./src/pages/DeployMode.tsx'],
-          'page-runners': ['./src/pages/Runners.tsx'],
-          'page-oracle': ['./src/pages/AIOracleContent.tsx'],
-          'page-cache': ['./src/pages/LiveMirrorCache.tsx'],
-          'page-security': ['./src/pages/Security.tsx'],
-          'page-windows': ['./src/pages/WindowsRunners.tsx'],
-          'page-billing': ['./src/pages/Billing.tsx'],
-          'page-settings': ['./src/pages/Settings.tsx'],
-          'page-observability': ['./src/pages/Observability.tsx'],
-          'page-showcase': ['./src/pages/ComponentShowcase.tsx'],
-          'page-functions': ['./src/pages/RepoFunctions.tsx'],
-          'page-landing': ['./src/pages/LandingPage.tsx'],
-          
-          // Common components
-          'common': ['./src/components/Layout.tsx', './src/components/UI.tsx'],
+        // Just split vendor libs, let dynamic imports create per-page chunks
+        manualChunks: (id) => {
+          // Avoid circular dependencies by being very specific with paths
+          if (id.includes('node_modules/recharts')) return 'vendor-charts'
+          if (id.includes('node_modules/socket.io')) return 'vendor-socket'
+          if (id.includes('node_modules/lucide-react')) return 'vendor-ui'
+          if (id.includes('node_modules/zustand')) return 'vendor-state'
+          if (id.includes('node_modules/react')) return 'vendor-react'
+          // Let other dependencies split naturally
+          return undefined
         },
       },
     },
-    // Chunk size warning thresholds
-    chunkSizeWarningLimit: 300,
+    // High threshold to avoid warnings with many chunks
+    chunkSizeWarningLimit: 2000,
   },
   server: {
     // expose on all interfaces so remote hosts can connect (required for
