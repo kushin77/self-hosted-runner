@@ -18,11 +18,12 @@ const logger = winston.createLogger({
 class RepairService {
   constructor(config = {}) {
     this.config = config;
+    // Pass service-level config into strategies so they can be tuned centrally
     this.strategies = [
-      new RetryStrategy(),
-      new TimeoutIncreaseStrategy()
+      new RetryStrategy(config.retry || {}),
+      new TimeoutIncreaseStrategy(config.timeoutIncrease || {})
     ];
-    this.approvalThreshold = config.threshold || 0.7; // Confidence score to auto-repair
+    this.approvalThreshold = typeof config.threshold === 'number' ? config.threshold : 0.7; // Confidence score to auto-repair
   }
 
   /**

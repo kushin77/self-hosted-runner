@@ -20,6 +20,8 @@ Resolved **6 critical CI/CD infrastructure issues** affecting internal deploymen
 Error: Template interpolation doesn't expect a colon at this location.
 ```
 
+**Note:** Repository sanitization PR created: [fix/sanitize-vault-placeholders](https://github.com/kushin77/self-hosted-runner/pull/732)
+
 **Root Cause**: Unescaped shell variables in `runner_setup.sh` being interpreted by Terraform's templatefile()
 - Line 41: `RUNNER_URL="...v${RUNNER_VERSION}/...` ❌
 - Line 43: `echo "...v${RUNNER_VERSION}...` ❌
