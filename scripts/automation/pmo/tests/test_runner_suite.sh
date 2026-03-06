@@ -21,6 +21,9 @@ test_result() {
   if [ "$exit_code" -eq 0 ]; then
     echo "✓ PASS: $test_name" | tee -a "$TEST_RESULTS_FILE"
     PASSED=$((PASSED + 1))
+  elif [ "$exit_code" -eq 2 ]; then
+    echo "- SKIP: $test_name" | tee -a "$TEST_RESULTS_FILE"
+    SKIPPED=$((SKIPPED + 1))
   else
     echo "✗ FAIL: $test_name" | tee -a "$TEST_RESULTS_FILE"
     FAILED=$((FAILED + 1))
@@ -81,8 +84,15 @@ test_terraform_module() {
 
 # Test 8: Terraform configuration is valid
 test_terraform_validate() {
+  # If `terraform` is not installed locally, skip this check so local test runs are less fragile.
+  if ! command -v terraform >/dev/null 2>&1; then
+    return 2
+  fi
+
   cd "${SCRIPT_DIR}/../../../../terraform" 2>/dev/null || return 1
-  terraform validate > /dev/null 2>&1 && return 0 || return 1
+  # Initialize with no backend to make local validation safe
+  terraform init -backend=false >/dev/null 2>&1 || return 1
+  terraform validate >/dev/null 2>&1 && return 0 || return 1
 }
 
 # Test 9: Validate deployment script
