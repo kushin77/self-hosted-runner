@@ -54,36 +54,36 @@ jobs:
               chmod +x ./scripts/check_hardening.sh
               ./scripts/check_hardening.sh
 
-      provision-approle:
-        name: Provision AppRole (requires approval)
-        runs-on: ubuntu-latest
-        needs: preflight
-        if: ${{ github.event.inputs.dry_run != true }}
-        environment: deploy-approle
-        outputs:
-          role_id: ${{ steps.set.outputs.role_id }}
-          secret_id: ${{ steps.set.outputs.secret_id }}
-        steps:
-          - name: Checkout
-            uses: actions/checkout@v4
+  provision-approle:
+    name: Provision AppRole (requires approval)
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: ${{ github.event.inputs.dry_run != true }}
+    environment: deploy-approle
+    outputs:
+      role_id: ${{ steps.set.outputs.role_id }}
+      secret_id: ${{ steps.set.outputs.secret_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-          - name: Provision AppRole
-            env:
-              VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-              VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
-            run: |
-              set -euo pipefail
-              chmod +x scripts/ci/setup-approle.sh
-              scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
-              cat /tmp/approle.json
+      - name: Provision AppRole
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/ci/setup-approle.sh
+          scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
+          cat /tmp/approle.json
 
-          - name: Set outputs
-            id: set
-            run: |
-              ROLE_ID=$(jq -r .role_id /tmp/approle.json)
-              SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
-              echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
-              echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
+      - name: Set outputs
+        id: set
+        run: |
+          ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+          SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+          echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
+          echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
 
   deploy-rotation:
     runs-on: ubuntu-latest
@@ -240,13 +240,12 @@ jobs:
           EOF
           cat deployment-report.txt
 
-      - name: Upload deployment report
+      - name: Upload deployment report to MinIO
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-report
-          path: deployment-report.txt
-          retention-days: 30
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
 
   metrics-verification:
     runs-on: ubuntu-latest
@@ -269,12 +268,12 @@ jobs:
           echo "To verify manually:"
           echo "  curl -s http://<runner-host>:9091/metrics | grep 'runner_rotation\\|vault_rotation'"
 
-      - name: Upload summary
+      - name: Upload summary to MinIO
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: metrics-checklist
-          path: |
-            ./deployment-report.txt
-            ./metrics-checklist.txt
-          retention-days: 30
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file ./deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
+          if [ -f ./metrics-checklist.txt ]; then
+            scripts/minio/upload.sh --file ./metrics-checklist.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "metrics-checklist-${{ github.run_id }}.txt"
+          fi
