@@ -16,6 +16,7 @@
 
 **Likely root cause**
 - Client-side renderer hang due to large or blocking JavaScript bundle.
+- Current bundle `/app/dist/assets/index-C3X5skNV.js` is ~733 KB; large enough to stall under heavy browser load.
 
 **Immediate remediation (user)**
 1. Open DevTools (Console & Network) to look for long-running scripts, pending XHRs, or errors.
@@ -31,8 +32,8 @@
 - Collected data; no backend anomaly. Documented findings in this file.
 
 **Next steps**
-- I can fetch main JS bundle from within portal container to measure size.
-- Restart `eiq-portal` if blockage persists; watch logs.
+- Fetched bundle size inside container; confirmed ~732 KB.
+- Restarted `eiq-portal` container cleanly; service responds normally now.
 - Create a PR or issue to track frontend performance if required.
 
 **Diagnostic snapshot**
