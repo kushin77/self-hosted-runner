@@ -40,13 +40,28 @@ Publishing the portal image
 -------------------------
 
 We provide a CI workflow to build and publish the portal Docker image to GitHub Container Registry on pushes to `main`.
-The workflow file is `.github/workflows/publish-portal-image.yml` and uses `GITHUB_TOKEN` with `packages: write` permission.
+The workflow file is `.github/workflows/publish-portal-image.yml` and is configurable to use a fine-grained PAT stored in the repo secret `GHCR_PAT` (recommended for production). For development the workflow also supports `GITHUB_TOKEN`.
 
 Monitoring / Alerts
 -------------------
 
 A lightweight notification helper is available at `scripts/notify_health.sh` which posts messages to a Slack webhook defined in `SLACK_WEBHOOK`.
 The systemd healthcheck may call this script when reprovisioning occurs; configure a secure webhook in your environment before enabling alerts.
+
+Rotation and secrets
+--------------------
+
+For production, do NOT rely on a local `gh` auth state. Use one of these approaches:
+
+- Store a fine-grained PAT with `packages:write` in GitHub Actions or in a secrets manager and set the repo secret `GHCR_PAT` (used by CI to publish images).
+- Use `scripts/rotate_ghcr_pat.sh` to programmatically update the repo secret when you rotate tokens. Example:
+
+```bash
+# rotate: provide new token in GHCR_PAT env and run script
+GHCR_PAT="ghp_xxx..." ./scripts/rotate_ghcr_pat.sh --repo kushin77/self-hosted-runner
+```
+
+- When promoting to prod, move the persistent credential into Vault or a secure secrets store and give the CI an ephemeral access path.
 
 Healthchecks & Automated Reprovisioning
 --------------------------------------
