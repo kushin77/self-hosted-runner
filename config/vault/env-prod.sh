@@ -7,7 +7,7 @@ export VAULT_SKIP_VERIFY="true"
 
 # AppRole authentication credentials (provisioner-worker)
 # Use placeholder values here; real role/secret IDs must come from secure storage (Vault/secret mount/GitHub Secrets)
-export VAULT_ROLE_ID="<VAULT_ROLE_ID>"
+export VAULT_ROLE_ID="<VAULT_ROLE_ID_PLACEHOLDER>"
 # Secret ID is written to /run/vault/.secret via secure volume mount
 export VAULT_SECRET_ID_PATH="/run/vault/.secret"
 
