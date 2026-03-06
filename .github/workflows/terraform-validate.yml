@@ -1,0 +1,91 @@
+name: Terraform Validation & Audit
+
+on:
+  pull_request:
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-validate.yml'
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'terraform/**'
+  schedule:
+    # Run daily to catch drift
+    - cron: '0 2 * * *'
+
+jobs:
+  validate-all:
+    name: Validate all Terraform modules
+    runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-validate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.5.0'
+
+      - name: Run Terraform validation
+        id: validate
+        run: |
+          bash scripts/automation/terraform/validate_all.sh --verbose
+          echo \"exit_code=$?\" >> $GITHUB_OUTPUT
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-validation-report
+          path: terraform-validation-report.json
+
+      - name: Comment on PR with results
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('terraform-validation-report.json', 'utf8'));
+            const valid = report.valid_modules.length;
+            const invalid = report.invalid_modules.length;
+            const initFail = report.init_failures.length;
+            
+            let comment = '## 🔍 Terraform Validation Report\n\n';
+            comment += `- ✅ Valid: ${valid} modules\n`;
+            comment += `- ❌ Invalid: ${invalid} modules\n`;
+            comment += `- ⚠️ Init Failures: ${initFail} modules\n\n`;
+            
+            if (invalid > 0) {
+              comment += '### Invalid Modules\n';
+              report.invalid_modules.forEach(m => {
+                comment += `- ${m}\n`;
+              });
+            }
+            
+            if (initFail > 0) {
+              comment += '### Init Failures\n';
+              report.init_failures.forEach(m => {
+                comment += `- ${m}\n`;
+              });
+            }
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if validation failed
+        if: steps.validate.outputs.exit_code != '0'
+        run: |
+          echo \"❌ Terraform validation failed\"
+          exit 2
