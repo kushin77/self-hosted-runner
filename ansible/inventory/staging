@@ -1,0 +1,2 @@
+[runners]
+localhost ansible_connection=local ansible_become=true dev_skip_become=true
