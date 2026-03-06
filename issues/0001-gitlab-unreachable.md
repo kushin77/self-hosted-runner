@@ -69,3 +69,12 @@ curl: (6) Could not resolve host: gitlab.internal.elevatediq.com
 **Notes**
 
 This issue file was created automatically by the runner diagnostics workflow. Close this issue once DNS is repaired and the temporary hosts automation is removed.
+
+**Automated mitigation added**
+
+- An Ansible role and playbooks were added to the repo to enable a temporary, automated `/etc/hosts` entry while DNS is remediated:
+   - `ansible/roles/gitlab_host` — role (defaults + tasks + README)
+   - `playbooks/add_gitlab_host.yml` — apply the role to group `runners`
+   - `playbooks/remove_gitlab_host.yml` — remove the hosts entry
+
+Use the playbook with `-e "gitlab_host_ip=<IP>"` to apply. This is idempotent and reversible.
