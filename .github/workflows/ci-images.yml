@@ -10,6 +10,9 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions: write-all
+    concurrency:
+      group: ci-images-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
