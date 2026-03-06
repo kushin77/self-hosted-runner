@@ -58,7 +58,7 @@ jobs:
       name: Provision AppRole (requires approval)
       runs-on: ubuntu-latest
       needs: preflight
-      if: ${{ !secrets.VAULT_ROLE_ID || !secrets.VAULT_SECRET_ID }}
+      if: ${{ github.event.inputs.dry_run != true }}
       environment: deploy-approle
       outputs:
         role_id: ${{ steps.set.outputs.role_id }}
