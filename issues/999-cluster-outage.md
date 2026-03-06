@@ -18,15 +18,18 @@ Evidence
 
 Blocking Impact
 ---------------
-- Cannot apply SealedSecret or Secret to target cluster from this host
-- Cannot run `./scripts/ci/hands_off_runner_deploy.sh` (requires reachable cluster)
-- Cannot validate runner readiness with `scripts/ci/validate_runner_readiness.sh`
+- **TOPOLOGY VIOLATION**: `docker run` is blocked on the current workstation.
+- All high-power/container workloads are mandated to run on `ssh fullstack (192.168.168.42)`.
+- **Connectivity Issue**: The mandated host `192.168.168.42` is currently unreachable via SSH (Permission denied/Connection refused).
+- Cannot apply SealedSecret or Secret to target cluster from this host.
+- Cannot run `./scripts/ci/hands_off_runner_deploy.sh` (requires reachable cluster).
+- Cannot validate runner readiness with `scripts/ci/validate_runner_readiness.sh`.
 
 Required Actions
 ----------------
-1. Restore API server at `192.168.168.42:6443` or provide an alternate kubeconfig/context with a reachable control plane.
-2. Provide the short-lived registration token (`REG_TOKEN`) or apply a SealedSecret for `gitlab-runner-regtoken` in the `gitlab-runner` namespace.
-3. (Optional) If cluster fix will take time, provide permission to provision a local KinD/k3d cluster on this host for smoke-testing. This requires Docker and install permissions.
+1. **Restore Fullstack Access**: Resolve SSH connectivity to `fullstack (192.168.168.42:6443)` so KinD/K3s can be provisioned there.
+2. Provide the short-lived registration token (`REG_TOKEN`) or apply a SealedSecret for `gitlab-runner-regtoken`.
+3. Verify if the workstation policy can be temporarily relaxed for local agent testing (unlikely due to policy enforcement).
 
 Local test option added:
 - Repository now includes `scripts/ci/provision_kind_cluster.sh` and `scripts/ci/install_kubeseal_helper.sh` to provision a local KinD cluster and obtain `kubeseal` client for testing. See `infra/gitlab-runner/README.md` for usage.
