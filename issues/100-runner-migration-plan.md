@@ -16,7 +16,7 @@ Goals
 Steps (local-first)
 -------------------
 1. Render `infra/gitlab-runner/values.generated.example.yaml` from template (no real tokens committed).
-2. Install into test k3s/K8s cluster with `scripts/ci/install_runner_k8s.sh`.
+2. Install into test k3s/K8s cluster with `scripts/ci/install_runner_k8s.sh` (requires REG_TOKEN and KUBECONFIG).
 3. Verify `gitlab-runner` pods and logs; ensure metrics endpoint is reachable.
 4. Update `.gitlab-ci.yml` locally to use the runner tag produced by the k8s runner.
 5. Trigger pipeline (or create temporary local MR) to run `YAMLtest-sovereign-runner`.
