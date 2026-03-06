@@ -76,6 +76,24 @@ jobs:
           pip install --upgrade pip
           pip install ansible jinja2 pyyaml
 
+      - name: Auto-provision AppRole if missing (requires VAULT_ADMIN_TOKEN)
+        if: ${{ !secrets.VAULT_ROLE_ID || !secrets.VAULT_SECRET_ID }}
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "AppRole not present in repo secrets; attempting auto-provision using VAULT_ADMIN_TOKEN"
+          chmod +x scripts/ci/setup-approle.sh
+          # Use a minimal policy file shipped with the repo
+          scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
+          cat /tmp/approle.json
+          ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+          SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+          echo "VAULT_ROLE_ID=$ROLE_ID" >> $GITHUB_ENV
+          echo "VAULT_SECRET_ID=$SECRET_ID" >> $GITHUB_ENV
+
+
       - name: Fetch deploy SSH key from Vault (AppRole auth)
         if: ${{ github.event.inputs.vault_secret_path != '' }}
         run: |
