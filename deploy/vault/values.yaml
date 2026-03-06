@@ -1,0 +1,22 @@
+replicaCount: 1
+
+image:
+  repository: hashicorp/vault
+  tag: 1.14.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8200
+
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 20Gi
+
+server:
+  devMode: false
+
+resources: {}
+
+# Production deployments must configure TLS, storage backend, HA, and auto-unseal (KMS).

@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vault.fullname" . | default (printf "%s-vault" .Release.Name) }}
+  labels:
+    app: vault
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: vault
+  template:
+    metadata:
+      labels:
+        app: vault
+    spec:
+      containers:
+        - name: vault
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          env:
+            - name: VAULT_ADDR
+              value: http://127.0.0.1:8200
+          ports:
+            - containerPort: 8200
+          resources: {{ toYaml .Values.resources | nindent 12 }}

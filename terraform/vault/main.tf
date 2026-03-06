@@ -1,3 +1,20 @@
+// Terraform module scaffold for Vault
+terraform {
+  required_providers {
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = ">= 2.0"
+    }
+  }
+}
+
+resource "kubernetes_namespace" "vault" {
+  metadata {
+    name = var.namespace
+  }
+}
+
+// TODO: Add Helm release for official Vault chart and resources for auto-unseal.
 # Sub-module for Vault AppRole provisioning
 # This lives separately from the main runner terraform configuration to
 # avoid requiring unrelated input variables.
