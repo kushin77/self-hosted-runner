@@ -37,6 +37,9 @@ Local test option added:
 GitLab CI deploy option:
 - A protected, manual GitLab CI job is available to perform the hands-off deploy from GitLab directly: include `.gitlab/ci-includes/runner-deploy.gitlab-ci.yml` and set protected variables `KUBECONFIG_BASE64` and `REG_TOKEN` in the group or project CI settings. This avoids sharing secrets with local hosts and enables fully automated, secrets-safe deployment.
 
+Operator runbook:
+- See `infra/gitlab-runner/deploy_runbook.md` for step-by-step instructions to perform the protected GitLab CI deploy. This provides exact commands to set `KUBECONFIG_BASE64`, add `REG_TOKEN`, run the manual job and verify results.
+
 Suggested Next Steps (once unblocked)
 ------------------------------------
 - Apply the SealedSecret (preferred) or Secret (test-only)
