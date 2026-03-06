@@ -28,6 +28,17 @@ runs-on: [self-hosted, linux, self-hosted-heavy]
 ```
 
 - The repository currently expects `linux` runners; if you use other OSes update relevant workflows.
+
+Heavy runner guidance
+---------------------
+
+Use `self-hosted-heavy` for runners prepared with:
+- Docker / Buildx
+- kind or k3d
+- Terraform and cloud CLIs
+- Sufficient disk, CPU and memory (recommended: 8+ CPUs, 32GB RAM, 100GB disk)
+
+Mark one or more of your self-hosted hosts with labels `self-hosted`, `linux`, and `self-hosted-heavy` so heavy CI jobs are scheduled only on capable machines.
 # Self-hosted Runners — Setup & Requirements
 
 This document describes the minimal configuration and labels expected by repository workflows.

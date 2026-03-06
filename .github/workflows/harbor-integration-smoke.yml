@@ -6,7 +6,7 @@ on:
 
 jobs:
   smoke-test:
-    runs-on: [self-hosted, linux]
+    runs-on: [self-hosted, linux, self-hosted-heavy]
     timeout-minutes: 60
     steps:
       - name: Checkout
