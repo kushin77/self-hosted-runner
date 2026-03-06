@@ -1,0 +1,9 @@
+[Unit]
+Description=Check and reprovision GitHub org runner if offline
+After=network.target
+
+[Service]
+Type=oneshot
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/check_and_reprovision_runner.sh
