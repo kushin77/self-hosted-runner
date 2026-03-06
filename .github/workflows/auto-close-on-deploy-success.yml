@@ -10,7 +10,7 @@ on:
 jobs:
   close-issues:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Close dependent issues and post run links
         uses: actions/github-script@v6

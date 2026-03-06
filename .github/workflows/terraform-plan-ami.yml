@@ -50,3 +50,13 @@ jobs:
           set -euo pipefail
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
           scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan"
+
+      - name: Prepare and upload plan checksum
+        run: |
+          set -euo pipefail
+          # Copy plan to workspace root so checksum references the target filename used during apply
+          mkdir -p /tmp
+          cp terraform/ci-runners-plan.out ./ci-runners-plan.out || true
+          sha256sum ci-runners-plan.out > ci-runners-plan.out.sha
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file ci-runners-plan.out.sha --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan.sha"
