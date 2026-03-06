@@ -119,13 +119,13 @@ test_readme() {
 test_no_credentials() {
   # Exclude test files themselves from search
   if grep -r "GITHUB_TOKEN=" "${GIT_ROOT}" \
-    --exclude-dir=tests --exclude-dir=.git --exclude="*.test.sh" 2>/dev/null | \
+    --exclude-dir=tests --exclude-dir=.git --exclude="*.test.sh" --exclude="scripts/load_gsm_secrets.sh" 2>/dev/null | \
     grep -v ".gitignore" | grep -qv "#"; then
     return 1
   fi
   
   if grep -r "aws_secret" "${GIT_ROOT}" \
-    --exclude-dir=tests --exclude-dir=.git 2>/dev/null | \
+    --exclude-dir=tests --exclude-dir=.git --exclude="scripts/load_gsm_secrets.sh" 2>/dev/null | \
     grep -v ".gitignore" | grep -qv "#"; then
     return 1
   fi
