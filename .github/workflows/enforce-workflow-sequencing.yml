@@ -1,0 +1,265 @@
+name: Enforce Workflow Sequencing & Hands-off Rules
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**/*.yml'
+      - '.github/workflows/**/*.yaml'
+  workflow_dispatch:
+
+jobs:
+  audit-workflow-sequencing:
+    name: Audit Workflow Dependencies & Gating
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      pull-requests: write
+    concurrency:
+      group: workflow-audit-${{ github.ref }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install audit dependencies
+        run: |
+          # Check for yq (YAML parser)
+          if ! command -v yq &> /dev/null; then
+            curl -sL -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            chmod +x /usr/local/bin/yq
+          fi
+          echo "✅ Audit tools ready"
+
+      - name: Scan workflows for sequencing violations
+        id: audit
+        run: |
+          set +e
+          VIOLATIONS=""
+          VIOLATION_COUNT=0
+          
+          echo "[INFO] Scanning .github/workflows for sequencing issues..."
+          
+          for workflow in .github/workflows/*.yml; do
+            [ -f "$workflow" ] || continue
+            
+            NAME=$(yq eval '.name' "$workflow" 2>/dev/null || echo "unknown")
+            BASENAME=$(basename "$workflow")
+            
+            HAS_TRIGGER=$(yq eval '.on | keys[] | select(. == "on")' "$workflow" 2>/dev/null | wc -l)
+            HAS_WORKFLOW_RUN=$(yq eval '.on.workflow_run' "$workflow" 2>/dev/null | grep -c "workflows" || echo 0)
+            HAS_NEEDS=$(yq eval '.jobs[].needs' "$workflow" 2>/dev/null | grep -c "." || echo 0)
+            HAS_CONCURRENCY=$(yq eval '.jobs[].concurrency' "$workflow" 2>/dev/null | grep -c "." || echo 0)
+            
+            # Workflows that should have dependencies
+            DOWNSTREAM_PATTERNS="deploy|apply|rotate|sync-reconcile|publish|final"
+            SHOULD_DEPEND=0
+            
+            if echo "$BASENAME" | grep -iE "$DOWNSTREAM_PATTERNS" > /dev/null 2>&1; then
+              SHOULD_DEPEND=1
+            fi
+            
+            # Check for violations
+            if [ $SHOULD_DEPEND -eq 1 ]; then
+              if [ $HAS_WORKFLOW_RUN -eq 0 ] && [ $HAS_NEEDS -eq 0 ]; then
+                VIOLATIONS="${VIOLATIONS}
+- **$BASENAME** ($NAME): Missing dependency gating (no \`on.workflow_run\` or \`needs\`)"
+                VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+              fi
+              
+              if [ $HAS_CONCURRENCY -eq 0 ]; then
+                VIOLATIONS="${VIOLATIONS}
+- **$BASENAME** ($NAME): Missing \`concurrency\` guard (risk: overlapping runs)"
+                VIOLATION_COUNT=$((VIOLATION_COUNT + 1))
+              fi
+            fi
+          done
+          
+          # Save results
+          if [ $VIOLATION_COUNT -gt 0 ]; then
+            echo "violations=true" >> $GITHUB_OUTPUT
+            echo "violation_count=$VIOLATION_COUNT" >> $GITHUB_OUTPUT
+            # Escape newlines for JSON output
+            VIOLATIONS=$(printf '%s\n' "$VIOLATIONS" | jq -Rs .)
+            echo "violation_details=$VIOLATIONS" >> $GITHUB_OUTPUT
+          else
+            echo "violations=false" >> $GITHUB_OUTPUT
+            echo "violation_count=0" >> $GITHUB_OUTPUT
+          fi
+          
+          set -e
+
+      - name: Check for immutability patterns
+        id: immutability
+        run: |
+          set +e
+          IMMUTABILITY_ISSUES=""
+          ISSUE_COUNT=0
+          
+          echo "[INFO] Validating immutability patterns..."
+          
+          for workflow in .github/workflows/*.yml; do
+            [ -f "$workflow" ] || continue
+            BASENAME=$(basename "$workflow")
+            
+            # Check for artifact uploads/downloads that should use MinIO
+            if grep -q "actions/upload-artifact\|actions/download-artifact" "$workflow" 2>/dev/null; then
+              # Some workflows are allowed to use GitHub artifacts if documented
+              if ! grep -q "# allowed-gh-artifacts:" "$workflow" 2>/dev/null; then
+                IMMUTABILITY_ISSUES="${IMMUTABILITY_ISSUES}
+- **$BASENAME**: Uses GitHub artifacts (consider MinIO for sovereignty); add \`# allowed-gh-artifacts: <reason>\` to whitelist"
+                ISSUE_COUNT=$((ISSUE_COUNT + 1))
+              fi
+            fi
+            
+            # Check for external action dependencies
+            if grep -q "uses: [^@]*@[^v]" "$workflow" 2>/dev/null; then
+              # External GH actions reduce sovereigntyif ! grep -q "# external-actions-approved:" "$workflow"; then
+                # Count these as warnings, not failures
+                echo "[WARN] $BASENAME: Uses external GitHub actions"
+              fi
+            fi
+          done
+          
+          if [ $ISSUE_COUNT -gt 0 ]; then
+            echo "immutability_issues=true" >> $GITHUB_OUTPUT
+            echo "immutability_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+          else
+            echo "immutability_issues=false" >> $GITHUB_OUTPUT
+            echo "immutability_count=0" >> $GITHUB_OUTPUT
+          fi
+          
+          set -e
+
+      - name: Validate hands-off design patterns
+        id: hands-off
+        run: |
+          set +e
+          HANDOFF_ISSUES=""
+          ISSUE_COUNT=0
+          
+          echo "[INFO] Validating hands-off design patterns..."
+          
+          # Check e2e-validate.yml
+          if [ -f ".github/workflows/e2e-validate.yml" ]; then
+            if ! grep -q "needs-validation.*MinIO\|smoke.*test" ".github/workflows/e2e-validate.yml"; then
+              HANDOFF_ISSUES="${HANDOFF_ISSUES}
+- **e2e-validate.yml**: Missing observability checkpoints"
+              ISSUE_COUNT=$((ISSUE_COUNT + 1))
+            fi
+          fi
+          
+          # Check deploy workflows for idempotency
+          for deploy_wf in .github/workflows/deploy*.yml .github/workflows/terraform-apply.yml 2>/dev/null; do
+            [ -f "$deploy_wf" ] || continue
+            if ! grep -q "idempotent\|dry-run\|--no-op" "$deploy_wf"; then
+              HANDOFF_ISSUES="${HANDOFF_ISSUES}
+- **$(basename $deploy_wf)**: Missing idempotency checks (--dry-run, --no-op, etc.)"
+              ISSUE_COUNT=$((ISSUE_COUNT + 1))
+            fi
+          done
+          
+          if [ $ISSUE_COUNT -gt 0 ]; then
+            echo "handoff_issues=true" >> $GITHUB_OUTPUT
+            echo "handoff_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
+          else
+            echo "handoff_issues=false" >> $GITHUB_OUTPUT
+            echo "handoff_count=0" >> $GITHUB_OUTPUT
+          fi
+          
+          set -e
+
+      - name: Generate audit report
+        id: report
+        run: |
+          cat > audit_report.md <<'REPORT_EOF'
+          # Workflow Audit Report
+          
+          **Run:** [${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref }}
+          
+          ## Summary
+          
+          | Category | Status | Issues |
+          |----------|--------|--------|
+          | **Sequencing** | ${{ steps.audit.outputs.violations == 'true' && '❌' || '✅' }} | ${{ steps.audit.outputs.violation_count }} |
+          | **Immutability** | ${{ steps.immutability.outputs.immutability_issues == 'true' && '⚠️' || '✅' }} | ${{ steps.immutability.outputs.immutability_count }} |
+          | **Hands-off Design** | ${{ steps.hands-off.outputs.handoff_issues == 'true' && '⚠️' || '✅' }} | ${{ steps.hands-off.outputs.handoff_count }} |
+          
+          ## Details
+          
+          ### Sequencing Issues
+          ${{ steps.audit.outputs.violations == 'true' && steps.audit.outputs.violation_details || 'None detected ✅' }}
+          
+          ### Immutability Issues
+          ${{ steps.immutability.outputs.immutability_issues == 'true' && steps.immutability.outputs.immutability_details || 'Compliant ✅' }}
+          
+          ### Hands-off Design
+          ${{ steps.hands-off.outputs.handoff_issues == 'true' && steps.hands-off.outputs.handoff_details || 'Compliant ✅' }}
+          
+          ## Remediation
+          
+          When violations are detected, recommended fixes:
+          
+          1. **Sequencing**: Add `on: workflow_run` or `jobs.<job>.needs` to gate on upstream success
+          2. **Immutability**: Replace `actions/upload-artifact` with MinIO calls or add `# allowed-gh-artifacts` comment
+          3. **Hands-off**: Add dry-run validation, idempotency checks, and observability hooks
+          
+          ---
+          *Generated by: `.github/workflows/enforce-workflow-sequencing.yml`*
+          REPORT_EOF
+          
+          cat audit_report.md
+
+      - name: Comment on PR with audit results
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          REPORT=$(cat audit_report.md)
+          
+          gh pr comment "$PR_NUMBER" <<EOF
+          $REPORT
+          EOF
+
+      - name: Fail if critical sequencing violations exist
+        if: steps.audit.outputs.violations == 'true'
+        run: |
+          echo "❌ Critical workflow sequencing violations detected!"
+          echo "Violations: ${{ steps.audit.outputs.violation_count }}"
+          exit 1
+
+      - name: Check if issue #779 needs progress update
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Check if audit passed
+          if [ "${{ steps.audit.outputs.violations }}" == "false" ] && \
+             [ "${{ steps.hands-off.outputs.handoff_issues }}" == "false" ]; then
+            echo "✅ All hands-off automation rules pass - ready to close issue #779"
+            gh issue comment 779 \
+              --body "✅ **Audit Passed** (Run #${{ github.run_number }})
+
+All workflow sequencing and hands-off rules validated:
+- ✅ Sequencing dependencies enforced
+- ✅ Concurrency guards in place
+- ✅ Hands-off design patterns validated
+- ✅ Idempotency checks present
+
+**Recommendation:** Merge this PR and mark issue as resolved." \
+              2>/dev/null || true
+          fi
+
+      - name: Upload audit logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-audit-report-${{ github.run_number }}
+          path: audit_report.md
+          retention-days: 90

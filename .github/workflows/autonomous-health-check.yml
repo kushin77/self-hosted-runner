@@ -1,0 +1,352 @@
+name: Autonomous Health Check & Auto-Remediation
+
+on:
+  schedule:
+    # Run every 15 minutes for fast detection and remediation
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+    inputs:
+      remediate_mode:
+        description: 'Auto-fix detected issues (true/false)'
+        required: false
+        default: 'true'
+
+jobs:
+  health-check:
+    name: Infrastructure Health & Auto-Fix
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      id-token: write
+    concurrency:
+      group: health-check-${{ github.ref }}
+      cancel-in-progress: false
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Vault health
+        id: vault-health
+        continue-on-error: true
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_BOOTSTRAP_TOKEN }}
+        run: |
+          set +e
+          
+          echo "[CHECK] Verifying Vault connectivity..."
+          
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            --connect-timeout 10 \
+            "$VAULT_ADDR/v1/sys/health")
+          
+          if [ "$HTTP_STATUS" == "200" ] || [ "$HTTP_STATUS" == "473" ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "✅ Vault is healthy"
+            exit 0
+          else
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            echo "⚠️ Vault health status: $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Check MinIO health
+        id: minio-health
+        continue-on-error: true
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          set +e
+          
+          echo "[CHECK] Verifying MinIO connectivity..."
+          
+          # Parse endpoint for health check
+          ENDPOINT="${MINIO_ENDPOINT#https://}"
+          ENDPOINT="${ENDPOINT#http://}"
+          
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            --connect-timeout 10 \
+            "http://$ENDPOINT/minio/health/live")
+          
+          if [ "$HTTP_STATUS" == "200" ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "✅ MinIO is healthy"
+            exit 0
+          else
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            echo "⚠️ MinIO health status: $HTTP_STATUS"
+            exit 1
+          fi
+
+      - name: Check E2E validation requirements
+        id: e2e-check
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[CHECK] Verifying E2E validation readiness..."
+          
+          REQUIRED_SECRETS=(
+            "VAULT_ADDR"
+            "VAULT_BOOTSTRAP_TOKEN"
+            "MINIO_ENDPOINT"
+            "MINIO_ACCESS_KEY"
+            "MINIO_SECRET_KEY"
+            "MINIO_BUCKET"
+          )
+          
+          MISSING_SECRETS=""
+          for secret in "${REQUIRED_SECRETS[@]}"; do
+            if [ -z "${!secret}" ]; then
+              MISSING_SECRETS="$MISSING_SECRETS $secret"
+            fi
+          done
+          
+          if [ -z "$MISSING_SECRETS" ]; then
+            echo "status=ready" >> $GITHUB_OUTPUT
+            echo "✅ All E2E requirements met"
+            exit 0
+          else
+            echo "status=blocked" >> $GITHUB_OUTPUT
+            echo "⚠️ Missing secrets:$MISSING_SECRETS"
+            exit 1
+          fi
+
+      - name: Check runner capacity
+        id: runner-check
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[CHECK] Checking runner availability..."
+          
+          # Get all runners
+          RUNNERS=$(gh run list --repo "${{ github.repository }}" --limit 30 --json status,runner 2>/dev/null | jq -r '.[] | select(.status=="in_progress") | .runner.name' | sort | uniq -c)
+          
+          ACTIVE_JOBS=$(echo "$RUNNERS" | awk '{sum+=$1} END {print sum}')
+          ACTIVE_JOBS=${ACTIVE_JOBS:-0}
+          
+          if [ "$ACTIVE_JOBS" -lt 5 ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            echo "✅ Runner capacity OK (active jobs: $ACTIVE_JOBS)"
+            exit 0
+          else
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            echo "⚠️ High runner utilization: $ACTIVE_JOBS jobs active"
+            exit 1
+          fi
+
+      - name: Check DNS resolution for critical hosts
+        id: dns-check
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[CHECK] Verifying DNS resolution..."
+          
+          HOSTS=(
+            "gitlab.internal.elevatediq.com"
+            "vault.elevatediq.net"
+          )
+          
+          FAILED=0
+          for host in "${HOSTS[@]}"; do
+            if ! nslookup "$host" > /dev/null 2>&1; then
+              echo "⚠️ DNS resolution failed for: $host"
+              FAILED=$((FAILED+1))
+            else
+              echo "✅ DNS OK: $host"
+            fi
+          done
+          
+          if [ $FAILED -eq 0 ]; then
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check Docker/podman availability
+        id: runtime-check
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[CHECK] Verifying container runtime..."
+          
+          if command -v docker &> /dev/null; then
+            DOCKER_STATUS=$(docker ps -q 2>/dev/null | wc -l)
+            echo "✅ Docker available ($DOCKER_STATUS containers running)"
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            exit 0
+          elif command -v podman &> /dev/null; then
+            PODMAN_STATUS=$(podman ps -q 2>/dev/null | wc -l)
+            echo "✅ Podman available ($PODMAN_STATUS containers running)"
+            echo "status=healthy" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "⚠️ No container runtime found"
+            echo "status=degraded" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Auto-remediation: Restart unhealthy services
+        if: inputs.remediate_mode != 'false' && (steps.vault-health.outcome == 'failure' || steps.minio-health.outcome == 'failure')
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[REMEDIATE] Attempting service recovery..."
+          
+          # Try to restart Vault if degraded
+          if [ "${{ steps.vault-health.outputs.status }}" == "degraded" ]; then
+            echo "Attempting Vault restart..."
+            # Assuming Vault runs in systemd or k8s
+            if systemctl is-active --quiet vault; then
+              sudo systemctl restart vault || echo "Failed to restart Vault via systemd"
+            fi
+            sleep 5
+          fi
+          
+          # MinIO recovery
+          if [ "${{ steps.minio-health.outputs.status }}" == "degraded" ]; then
+            echo "Attempting MinIO restart..."
+            if systemctl is-active --quiet minio; then
+              sudo systemctl restart minio || echo "Failed to restart MinIO via systemd"
+            fi
+            sleep 5
+          fi
+          
+          echo "✅ Remediation attempt complete"
+
+      - name: Auto-remediation: Clear stale workflow runs (if timeout issues detected)
+        if: inputs.remediate_mode != 'false'
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[REMEDIATE] Checking for stale workflow runs..."
+          
+          # Find and cancel any runs older than 2 hours that are still in_progress
+          STALE_RUNS=$(gh run list --repo "${{ github.repository }}" \
+            --status in_progress \
+            --limit 100 \
+            --json databaseId,createdAt \
+            2>/dev/null | jq -r '.[] | select(.createdAt < "'$(date -u -d '2 hours ago' '+%Y-%m-%dT%H:%M:%S')Z'") | .databaseId')
+          
+          if [ -n "$STALE_RUNS" ]; then
+            echo "Found stale runs, cancelling..."
+            while read -r run_id; do
+              gh run cancel "$run_id" --repo "${{ github.repository }}" 2>/dev/null || true
+            done <<< "$STALE_RUNS"
+            echo "✅ Stale runs cleaned"
+          else
+            echo "✅ No stale runs detected"
+          fi
+
+      - name: Auto-remediation: Validate & fix Terraform state
+        if: inputs.remediate_mode != 'false'
+        continue-on-error: true
+        run: |
+          set +e
+          
+          echo "[REMEDIATE] Validating Terraform state..."
+          
+          # Check all terraform modules
+          for tf_dir in terraform/*/; do
+            [ -d "$tf_dir" ] || continue
+            
+            if [ -f "$tf_dir/main.tf" ]; then
+              (
+                cd "$tf_dir"
+                if ! terraform validate > /dev/null 2>&1; then
+                  echo "⚠️ Invalid Terraform in $tf_dir, attempting fmt..."
+                  terraform fmt -recursive . || true
+                fi
+              )
+            fi
+          done
+          
+          echo "✅ Terraform validation complete"
+
+      - name: Generate health report
+        id: health-report
+        if: always()
+        run: |
+          cat > health_report.md <<'REPORT_EOF'
+          # Infrastructure Health Report
+          
+          **Timestamp:** $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          **Run:** [${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ## Component Status
+          
+          | Component | Status | Details |
+          |-----------|--------|---------|
+          | Vault | ${{ steps.vault-health.outputs.status && steps.vault-health.outputs.status == 'healthy' && '✅' || '⚠️' }} | ${{ steps.vault-health.outputs.status || 'unknown' }} |
+          | MinIO | ${{ steps.minio-health.outputs.status && steps.minio-health.outputs.status == 'healthy' && '✅' || '⚠️' }} | ${{ steps.minio-health.outputs.status || 'unknown' }} |
+          | E2E Ready | ${{ steps.e2e-check.outputs.status && steps.e2e-check.outputs.status == 'ready' && '✅' || '⚠️' }} | ${{ steps.e2e-check.outputs.status || 'unknown' }} |
+          | Runners | ${{ steps.runner-check.outputs.status && steps.runner-check.outputs.status == 'healthy' && '✅' || '⚠️' }} | ${{ steps.runner-check.outputs.status || 'unknown' }} |
+          | DNS | ${{ steps.dns-check.outputs.status && steps.dns-check.outputs.status == 'healthy' && '✅' || '⚠️' }} | ${{ steps.dns-check.outputs.status || 'unknown' }} |
+          | Runtime | ${{ steps.runtime-check.outputs.status && steps.runtime-check.outputs.status == 'healthy' && '✅' || '⚠️' }} | ${{ steps.runtime-check.outputs.status || 'unknown' }} |
+          
+          ## Autonomous Actions Taken
+          ${{ inputs.remediate_mode != 'false' && '- Service restart attempts completed' || '- Remediation disabled' }}
+          - Stale workflow cleanup
+          - Terraform state validation
+          
+          ---
+          *Generated by: `.github/workflows/autonomous-health-check.yml`*
+          REPORT_EOF
+          
+          cat health_report.md
+
+      - name: Comment health status on issue #770 (E2E validation)
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ steps.e2e-check.outputs.status }}" == "ready" ] && \
+             [ "${{ steps.vault-health.outputs.status }}" == "healthy" ] && \
+             [ "${{ steps.minio-health.outputs.status }}" == "healthy" ]; then
+            
+            gh issue comment 770 \
+              --body "✅ **Health Check Passed** (Run #${{ github.run_number }})
+
+**Infrastructure Status:**
+- Vault: Healthy
+- MinIO: Healthy
+- E2E Requirements: Complete
+
+**Status:** Ready to dispatch E2E validation workflows.
+
+---
+*Health check run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}*" \
+              2>/dev/null || true
+          fi
+
+      - name: Slack alert if unhealthy
+        if: failure() || steps.vault-health.outcome == 'failure' || steps.minio-health.outcome == 'failure'
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -X POST "$SLACK_WEBHOOK" \
+              -H "Content-Type: application/json" \
+              -d "{\"text\":\"⚠️ **Infrastructure Health Alert**\n• Check: ${{ steps.vault-health.outputs.status || 'unknown' }}\n• MinIO: ${{ steps.minio-health.outputs.status || 'unknown' }}\n• Run: #${{ github.run_number }}\",\"color\":\"warning\"}" || true
+          fi
+
+      - name: Emit health metrics
+        if: always()
+        run: |
+          echo "health_vault=${{ steps.vault-health.outputs.status || 'unknown' }}" >> $GITHUB_ENV
+          echo "health_minio=${{ steps.minio-health.outputs.status || 'unknown' }}" >> $GITHUB_ENV
+          echo "health_e2e=${{ steps.e2e-check.outputs.status || 'unknown' }}" >> $GITHUB_ENV

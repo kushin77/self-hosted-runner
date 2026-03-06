@@ -7,9 +7,56 @@ on:
         description: 'If true, dispatch the hands-off deploy when validation passes'
         required: false
         default: 'true'
+  workflow_run:
+    workflows: ['Auto-Bootstrap Vault AppRole & Secrets']
+    types: [completed]
+  schedule:
+    # Run daily to ensure continuous validation
+    - cron: '0 3 * * *'
 
 jobs:
+  ensure-bootstrap:
+    name: Pre-flight Check (Bootstrap Ready)
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      actions: write
+    concurrency:
+      group: preflight-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Validate vault secrets are available
+        env:
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          if [ -z "$VAULT_ROLE_ID" ] || [ -z "$VAULT_SECRET_ID" ]; then
+            echo "⚠️ Vault credentials missing, triggering auto-bootstrap..."
+            # Trigger bootstrap workflow
+            gh workflow run auto-bootstrap-vault-secrets.yml \
+              --repo "${{ github.repository }}" \
+              2>/dev/null || echo "Bootstrap trigger sent"
+            
+            # Wait for bootstrap to complete
+            sleep 60
+            exit 1
+          else
+            echo "✅ Vault credentials present"
+          fi
+
   e2e-validate:
+    name: End-to-End Validation
+    needs: [ensure-bootstrap]
+    if: ${{ always() && (needs.ensure-bootstrap.result == 'success' || github.event_name == 'workflow_dispatch') }}
+    concurrency:
+      group: e2e-validate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+    timeout-minutes: 30
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     concurrency:
       group: e2e-validate-${{ github.ref || github.run_id }}
