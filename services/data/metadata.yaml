@@ -1,0 +1,16 @@
+id: "data/services-data:service"
+name: "Data Service"
+repo_path: "services/data"
+owner: "team-data"
+oncall: "oncall@data.example.com"
+status: "alpha"
+description: "Shared data service hosting platform datasets and utilities."
+completionPercent: 10
+tags: [data, storage]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+last_updated: "2026-03-06T00:00:00Z"
