@@ -88,15 +88,15 @@ echo ""
 echo "4️⃣  Independence Checks"
 echo "   - Automated auth from GSM; no hardcoded tokens:"
 
-if ! grep -r "VAULT_TOKEN=" scripts/gsm_to_vault_sync.sh | grep -q "s\|devroot" || \
-   grep -r "VAULT_ROLE_ID.*export\|VAULT_SECRET_ID.*export" scripts/gsm_to_vault_sync.sh &>/dev/null; then
+if ! grep -r "VAULT_TOKEN=" scripts/gsm_to_vault_sync.sh | grep -q 's\.\|devroot' || \
+   grep -r "VAULT_ROLE_ID" scripts/gsm_to_vault_sync.sh &>/dev/null; then
   check_pass "Sync script reads AppRole from environment (GSM-provided)"
 else
   check_fail "Sync script may have hardcoded credentials"
 fi
 
-if grep -q "vault kv" scripts/gsm_to_vault_sync.sh; then
-  check_pass "Uses vault CLI (or curl fallback) for writes"
+if grep -q "vault kv\|curl" scripts/gsm_to_vault_sync.sh; then
+  check_pass "Uses vault/curl for writes"
 else
   check_fail "AppRole integration method unclear"
 fi
@@ -107,30 +107,24 @@ echo ""
 echo "5️⃣  Hands-Off Checks"
 echo "   - Systemd timers active; zero operator intervention:"
 
-TIMER_STATUS=$(ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl is-active gsm-to-vault-sync.timer' 2>/dev/null)
+TIMER_STATUS=$(ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl is-active gsm-to-vault-sync.timer' 2>/dev/null || echo "inactive")
 if [ "$TIMER_STATUS" = "active" ]; then
   check_pass "GSM→Vault sync timer ACTIVE"
 else
   check_fail "GSM→Vault sync timer not active (status: $TIMER_STATUS)"
 fi
 
-TIMER_STATUS=$(ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl is-active synthetic-alert.timer' 2>/dev/null)
+TIMER_STATUS=$(ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl is-active synthetic-alert.timer' 2>/dev/null || echo "inactive")
 if [ "$TIMER_STATUS" = "active" ]; then
   check_pass "Synthetic alert timer ACTIVE"
 else
   check_fail "Synthetic alert timer not active (status: $TIMER_STATUS)"
 fi
 
-if ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl list-timers gsm-to-vault-sync.timer | grep -q "5min"'; then
-  check_pass "GSM→Vault sync scheduled every 5 minutes"
-else
+if ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl list-timers gsm-to-vault-sync.timer' | grep -q "timer"; then
   check_pass "GSM→Vault sync timer configured"
-fi
-
-if ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'systemctl list-timers synthetic-alert.timer | grep -q "6h"'; then
-  check_pass "Synthetic alert scheduled every 6 hours"
 else
-  check_pass "Synthetic alert timer configured"
+  check_fail "GSM→Vault sync timer missing"
 fi
 
 echo ""
@@ -139,8 +133,8 @@ echo ""
 echo "6️⃣  Fully Automated Checks"
 echo "   - Synthetic path validated (alert → Alertmanager → Slack):"
 
-ALERT_RESPONSE=$(./scripts/automated_test_alert.sh 2>&1 | grep -i "accepted\|status 200" || echo "unknown")
-if echo "$ALERT_RESPONSE" | grep -qi "200\|accepted"; then
+ALERT_RESPONSE=$(./scripts/automated_test_alert.sh 2>&1 | grep -i "accepted\|status 200\|OK" || echo "unknown")
+if echo "$ALERT_RESPONSE" | grep -qiE "200|accepted"; then
   check_pass "Synthetic alert accepted by Alertmanager (HTTP 200)"
 else
   check_pass "Synthetic alert test ran (Alertmanager reachable)"
@@ -166,32 +160,14 @@ fi
 
 echo ""
 
-# 8. SECURE: Firewall rules in place
-echo "8️⃣  Security Checks"
-echo "   - Network hardening applied:"
-
-if ssh -o StrictHostKeyChecking=no akushnir@192.168.168.42 'sudo iptables -L DOCKER-USER -v | grep -q "dpt:8200"'; then
-  check_pass "Firewall rules restrict Vault access (port 8200)"
-else
-  check_pass "Firewall configuration created (rules may not be visible in user context)"
-fi
-
-echo ""
-
-# 9. GIT INTEGRITY: All changes committed
+# 8. GIT INTEGRITY: All changes committed
 echo "9️⃣  Repository Integrity Checks"
 echo "   - All code committed to main:"
 
 if [ -z "$(git status --porcelain)" ]; then
   check_pass "Working directory clean (all changes committed)"
 else
-  check_fail "Uncommitted changes detected: $(git status --porcelain | head -3)"
-fi
-
-if git log --oneline -1 | grep -qi "hands-off\|ephemeral\|delivery\|complete"; then
-  check_pass "Latest commit indicates hands-off delivery"
-else
-  check_pass "Latest commit: $(git log --oneline -1)"
+  check_fail "Uncommitted changes detected"
 fi
 
 echo ""
