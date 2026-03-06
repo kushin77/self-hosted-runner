@@ -2,6 +2,13 @@
 set -euo pipefail
 
 # Usage: upload.sh --file <path> --bucket <bucket> --object <key>
+FILE=""
+BUCKET=""
+OBJECT=""
+ENDPOINT=${MINIO_ENDPOINT:-}
+ACCESS_KEY=${MINIO_ACCESS_KEY:-}
+SECRET_KEY=${MINIO_SECRET_KEY:-}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --file) FILE="$2"; shift 2;;
@@ -14,13 +21,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-: "${FILE:?--file is required}"
-: "${BUCKET:?--bucket is required}"
-: "${OBJECT:?--object is required}"
-
-ENDPOINT=${ENDPOINT:-${MINIO_ENDPOINT:-}}
-ACCESS_KEY=${ACCESS_KEY:-${MINIO_ACCESS_KEY:-}}
-SECRET_KEY=${SECRET_KEY:-${MINIO_SECRET_KEY:-}}
+if [ -z "$FILE" ]; then echo "Error: --file is required"; exit 2; fi
+if [ -z "$BUCKET" ]; then echo "Error: --bucket is required"; exit 2; fi
+if [ -z "$OBJECT" ]; then echo "Error: --object is required"; exit 2; fi
 
 if [ -z "$ENDPOINT" ] || [ -z "$ACCESS_KEY" ] || [ -z "$SECRET_KEY" ]; then
   echo "MINIO_ENDPOINT, MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be set (or pass via --endpoint/--access-key/--secret-key)" >&2
