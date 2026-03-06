@@ -7,15 +7,15 @@ The Disaster Recovery system has been transitioned from a Cloud-Secret dependenc
 
 | Attribute | Implementation | Verification |
 |:---|:---|:---|
-| **Immutable** | Backups are `age`-encrypted and immutable in GCS. | ✅ PASS |
+| **Immutable** | Backups are \`age\`-encrypted and immutable in GCS. | ✅ PASS |
 | **Sovereign** | Root secret is never in Cloud; provided via YubiKey. | ✅ PASS |
 | **Ephemeral** | Recovery runners are destroyed after every drill. | ✅ PASS |
 | **Idempotent** | Scripts check remote state before every action. | ✅ PASS |
 
 ## 🚀 Immediate Operational Procedures
-1. **Trigger Sovereign Drill**: Run `./scripts/ci/hands_off_yubikey_bootstrap.sh` locally.
-2. **Review Monitoring**: Check Slack for `#dr-alerts` status updates via the Slack Bridge.
-3. **Audit Results**: All audit logs are pushed to the `reports/` directory in this repo.
+1. **Trigger Sovereign Drill**: Run \`./scripts/ci/hands_off_yubikey_bootstrap.sh\` locally.
+2. **Review Monitoring**: Check Slack for \`#dr-alerts\` status updates via the Slack Bridge.
+3. **Audit Results**: All audit logs are pushed to the \`reports/\` directory in this repo.
 
 ## 📦 Deliverables Traceability
 - **[scripts/ci/hands_off_yubikey_bootstrap.sh](scripts/ci/hands_off_yubikey_bootstrap.sh)**

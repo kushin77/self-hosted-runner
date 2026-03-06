@@ -9,6 +9,6 @@
 - [x] Detailed Runbook and OPS Checklist created.
 
 ## 🤝 Handoff Instructions
-1. Run `git pull origin main` to get the latest sovereign scripts.
+1. Run \`git pull origin main\` to get the latest sovereign scripts.
 2. Assign Issue 906-909 to the Ops lead for the "Final 45 Minutes" configuration.
 3. Close this issue once the first YubiKey-backed drill succeeds.
