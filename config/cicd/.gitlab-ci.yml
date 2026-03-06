@@ -166,6 +166,21 @@ pmo:auto_close:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
 
+# --- Maintenance: scheduled backups for GitLab (encrypted + optional S3 upload)
+maintenance:gitlab_backup:
+  stage: publish
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache bash tar gzip coreutils curl openssh-client ca-certificates || true
+    - chmod +x ./scripts/backup/gitlab_backup_encrypt.sh
+  script:
+    - ./scripts/backup/gitlab_backup_encrypt.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  tags:
+    - sovereign
+  allow_failure: false
+
 # =============================================================================
 # SCM Mirror Stage — GitLab → GitHub (Unidirectional, runs after every push)
 # =============================================================================
