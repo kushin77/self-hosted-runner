@@ -10,6 +10,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node 20
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-node.sh
+          NODE_VERSION=20 ci/scripts/setup-node.sh
+      - name: Setup Node 20 (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/setup-node@v4
         with:
           node-version: '20'
