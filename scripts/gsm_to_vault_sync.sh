@@ -15,6 +15,7 @@ fi
 
 GSM_SECRETS=( 
   "slack-webhook:secret/data/ci/webhooks:webhook" 
+  "gitlab-registration-token:secret/data/ci/gitlab:token"
 )
 
 die(){ echo "$*" >&2; exit 1; }

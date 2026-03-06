@@ -15,6 +15,11 @@ if [ "$PRIMARY_PLATFORM" = "gitlab" ]; then
     . "${SCRIPTS_DIR}/fetch_vault_secrets.sh"
   fi
 
+  # Ensure SLACK_WEBHOOK is set (fallback to Vault if not in env)
+  if [ -z "$SLACK_WEBHOOK" ] && [ -x "${SCRIPTS_DIR}/fetch_vault_secrets.sh" ]; then
+    . "${SCRIPTS_DIR}/fetch_vault_secrets.sh"
+  fi
+
   CONFIG_FILE="/etc/gitlab-runner/config.toml"
   if [ ! -f "$CONFIG_FILE" ] || ! grep -q "\[\[runners\]\]" "$CONFIG_FILE"; then
     echo "No GitLab runner config found; provisioning group-level runner..."
@@ -37,6 +42,11 @@ if [ "$PRIMARY_PLATFORM" = "gitlab" ]; then
   echo "GitLab runner config exists; assuming runner present"
   exit 0
 else
+  # Ensure SLACK_WEBHOOK is set (fallback to Vault if not in env)
+  if [ -z "${SLACK_WEBHOOK:-}" ] && [ -x "${SCRIPTS_DIR}/fetch_vault_secrets.sh" ]; then
+    . "${SCRIPTS_DIR}/fetch_vault_secrets.sh"
+  fi
+
   # Ensure gh is available
   if ! command -v gh >/dev/null; then
     echo "gh CLI not found"

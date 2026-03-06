@@ -18,7 +18,12 @@ REG_TOKEN="${GITLAB_REGISTRATION_TOKEN:-$GITLAB_REGISTRATION_TOKEN}"
 RUNNER_NAME="${RUNNER_NAME:-eiq-gitlab-runner-$(hostname -s)}"
 TAGS="${TAGS:-linux,self-hosted}"
 
-if [ -z "$REG_TOKEN" ]; then
+if [ -z "$REG_TOKEN" ] || [ "$REG_TOKEN" == "null" ]; then
+  # Try environment variable if fetch_vault_secrets didn't catch it
+  REG_TOKEN="${GITLAB_TOKEN:-$GL_PAT}"
+fi
+
+if [ -z "$REG_TOKEN" ] || [ "$REG_TOKEN" == "null" ]; then
   echo "GITLAB_REGISTRATION_TOKEN not set; cannot register runner"
   exit 2
 fi

@@ -44,9 +44,9 @@ if [[ -z "${VAULT_TOKEN:-}" ]]; then
 fi
 
 # Paths are examples - adjust to your Vault layout
-GHCR_PATH="secret/data/ci/ghcr"
-HOOK_PATH="secret/data/ci/webhooks"
-PUSHG_PATH="secret/data/ci/pushgateway"
+GHCR_PATH="secret/ci/ghcr"
+HOOK_PATH="secret/ci/webhooks"
+PUSHG_PATH="secret/ci/pushgateway"
 
 set +e
 GHCR_PAT=$(vault kv get -field=token "$GHCR_PATH" 2>/dev/null)
@@ -65,4 +65,11 @@ fi
 if [ -n "$PUSHGATEWAY_URL" ]; then
   export PUSHGATEWAY_URL
   echo "Fetched PUSHGATEWAY_URL from Vault"
+fi
+
+# Fetch GitLab Registration Token
+GITLAB_REGISTRATION_TOKEN=$(vault kv get -field=token "secret/ci/gitlab" 2>/dev/null)
+if [ -n "$GITLAB_REGISTRATION_TOKEN" ]; then
+  export GITLAB_REGISTRATION_TOKEN
+  echo "Fetched GITLAB_REGISTRATION_TOKEN from Vault"
 fi
