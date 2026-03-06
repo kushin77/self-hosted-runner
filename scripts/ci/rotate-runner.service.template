@@ -1,0 +1,15 @@
+[Unit]
+Description=Auto-rotate GitHub Actions runners
+After=network.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/
+ExecStart=/usr/local/bin/auto_rotate_runners.sh /etc/actions-runner/rotation.conf
+# EnvironmentFile optional for VAULT_ADDR and DRY
+EnvironmentFile=-/etc/default/rotate-runners
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target
