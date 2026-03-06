@@ -29,7 +29,7 @@ runners:
         poll_timeout = 3600
 
   # Use an externally managed secret for the registration token
-  registrationToken: "EXAMPLE_TOKEN"
+  registrationToken: "REPLACE_ME"
   concurrent: 10
   checkInterval: 30
 

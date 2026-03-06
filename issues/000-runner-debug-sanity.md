@@ -21,8 +21,9 @@ Checklist
 - [x] Add pre-stage `YAMLtest-sovereign-runner` job to `.gitlab-ci.yml` (local)
 - [x] Add diagnostics helper `scripts/ci/collect_runner_info.sh`
 - [x] Add Helm values template and install helpers (local)
+- [x] Generated sample `infra/gitlab-runner/values.generated.yaml` (dry-run)
 - [ ] Run diagnostics on runner host and attach redacted archive
-- [ ] Render `values.generated.yaml` and install to test k3s/K8s cluster
+- [ ] Render values with real token and install to test k3s/K8s cluster
 - [ ] Validate `YAMLtest-sovereign-runner` passes on new runner
 - [ ] Migrate group runner registration to k8s-backed runner
 - [ ] Decommission legacy VM-based runners (after rollback window)
