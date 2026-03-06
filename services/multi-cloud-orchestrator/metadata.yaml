@@ -1,0 +1,17 @@
+id: "orchestrator/multi-cloud-orchestrator:service"
+name: "Multi-Cloud Orchestrator"
+repo_path: "services/multi-cloud-orchestrator"
+owner: "team-orchestrator"
+oncall: "oncall@orchestrator.example.com"
+status: "alpha"
+description: "Orchestrates resources across cloud providers for pipeline runs."
+completionPercent: 30
+tags: [orchestration, cloud]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+  latency_ms: null
+last_updated: "2026-03-06T00:00:00Z"
