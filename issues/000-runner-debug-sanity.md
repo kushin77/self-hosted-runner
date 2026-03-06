@@ -33,13 +33,26 @@ Additional artifacts added:
 
 Next steps (short-term)
 ----------------------
-1. The placeholder runner tag in `.gitlab-ci.yml` has been updated to "k8s-runner" for the new runner.
+Next steps (short-term)
+----------------------
+1. The placeholder runner tag in `.gitlab-ci.yml` has been updated to "k8s-runner, sovereign, ephemeral" for the new runner.
 2. On the runner host, run `scripts/ci/collect_runner_info.sh` and attach the redacted archive to this issue.
 3. Paste the failing job's last 20–30 lines here (red error output).
 4. Paste the `[[runners]]` section from `/etc/gitlab-runner/config.toml` (redact tokens/URLs if necessary).
 5. (Local-first) Render `infra/gitlab-runner/values.generated.yaml` from the template and install to a test k3s cluster using `scripts/ci/install_runner_k8s.sh`. - DONE
-6. Trigger a pipeline to run the `YAMLtest-sovereign-runner` job and verify it passes on the new k8s runner.
-7. If successful, migrate the group runner registration fully and decommission the legacy runner.
+6. Apply the registration secret (SealedSecret or Secret) to the target cluster: use `scripts/ci/create_sealedsecret_from_token.sh` to generate the manifest, then `kubectl apply -f` it.
+7. Run `./scripts/ci/hands_off_runner_deploy.sh` to perform the idempotent helm install.
+8. Trigger a pipeline to run the `YAMLtest-sovereign-runner` job and verify it passes on the new k8s runner.
+9. If successful, migrate the group runner registration fully and decommission the legacy runner.
+
+Cluster status note:
+--------------------
+Current check: the kubeconfig context `production-context` points to https://192.168.168.42:6443 which refused connections during automated validation. This blocks in-cluster deploy and verification.
+
+Blocking items (action required):
+- Provide a reachable kubeconfig/context or restore the API server at 192.168.168.42:6443.
+- Provide the short-lived registration token (REG_TOKEN) or apply SealedSecret to the target cluster.
+
 
 Recommended mid-term migration (immutable, sovereign, ephemeral)
 ---------------------------------------------------------------
