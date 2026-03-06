@@ -55,6 +55,8 @@ To deploy the monitoring stack:
 ssh akushnir@192.168.168.42 'cd ~/self-hosted-runner/deploy/monitoring && docker compose up -d'
 ```
 
+Note: Pushgateway host port is remapped to `9092` on the deployment node to avoid conflicts; Prometheus inside the stack scrapes the Pushgateway container on its internal port `9091`.
+
 Vault helper and Pushgateway
 ----------------------------
 
