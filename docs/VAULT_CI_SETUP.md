@@ -19,8 +19,8 @@ Add the following secrets to your GitHub repository settings (`Settings > Secret
 |--------|-------------|---------|
 | `VAULT_ADDR` | Vault server URL | `https://vault.internal.company.com:8200` |
 | `VAULT_NAMESPACE` | Vault namespace (optional, defaults to `admin`) | `elevatediq/prod` |
-| `VAULT_ROLE_ID` | AppRole Role ID for CI auth | `00000000-0000-0000-0000-000000000000` |
-| `VAULT_SECRET_ID` | AppRole Secret ID (rotate regularly) | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
+| `VAULT_ROLE_ID` | AppRole Role ID for CI auth | `<VAULT_ROLE_ID_PLACEHOLDER>` |
+| `VAULT_SECRET_ID` | AppRole Secret ID (rotate regularly) | `<VAULT_SECRET_ID_PLACEHOLDER>` |
 
 ### Vault AppRole Configuration
 
@@ -141,8 +141,8 @@ bash tests/provision_flow.sh
 # PROD mode (real Vault with AppRole)
 export VAULT_ADDR=https://vault.internal.com:8200
 export VAULT_NAMESPACE=elevatediq/prod
-export VAULT_ROLE_ID=xxx
-export VAULT_SECRET_ID=yyy
+export VAULT_ROLE_ID="<VAULT_ROLE_ID_PLACEHOLDER>"
+export VAULT_SECRET_ID="<VAULT_SECRET_ID_PLACEHOLDER>"
 export SECRETS_BACKEND=vault
 bash tests/provision_flow.sh
 ```
