@@ -9,7 +9,21 @@ app.use(bodyParser.json());
 const approvalThreshold = parseFloat(process.env.REPAIR_APPROVAL_THRESHOLD || '0.7');
 const service = new RepairService({ threshold: approvalThreshold });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => {
+  const status = service.getHealthStatus();
+  // Return 503 if circuit breaker is open
+  const statusCode = status.httpClient.circuitBreaker.state === 'OPEN' ? 503 : 200;
+  res.status(statusCode).json(status);
+});
+
+/**
+ * GET /health/circuit-breaker - Check circuit breaker state
+ */
+app.get('/health/circuit-breaker', (req, res) => {
+  const cbState = service.httpClient.getCircuitBreakerState();
+  const statusCode = cbState.state === 'OPEN' ? 503 : 200;
+  res.status(statusCode).json(cbState);
+});
 
 /**
  * POST /analyze - Analyze a failure event and identify repair strategy
@@ -35,6 +49,32 @@ app.post('/analyze', async (req, res) => {
     }
 
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * POST /execute-repair - Execute a repair action with resilience (retry, timeout, circuit breaker)
+ * Body: {action, targetUrl, operationType?, correlationId?}
+ */
+app.post('/execute-repair', async (req, res) => {
+  try {
+    const { action, targetUrl, operationType, correlationId } = req.body || {};
+    
+    if (!action || !targetUrl) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: action, targetUrl' 
+      });
+    }
+
+    const result = await service.executeRepairAction(action, targetUrl, {
+      operationType: operationType || 'complex',
+      correlationId
+    });
+
+    const statusCode = result.status === 'SUCCESS' ? 200 : 500;
+    res.status(statusCode).json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
