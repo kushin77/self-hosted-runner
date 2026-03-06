@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# retry helper: retries command up to $RETRIES times with exponential backoff
+RETRIES=${RETRIES:-3}
+retry() {
+  local attempt=0
+  local delay=1
+  until "$@"; do
+    exit_code=$?
+    attempt=$((attempt+1))
+    if [ "$attempt" -ge "$RETRIES" ]; then
+      echo "Command failed after ${attempt} attempts: $*" >&2
+      return $exit_code
+    fi
+    echo "Command failed (attempt ${attempt}), retrying in ${delay}s..." >&2
+    sleep $delay
+    delay=$((delay * 2))
+  done
+  return 0
+}
+
 # Usage: download.sh --bucket <bucket> --object <key> --out <path>
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -34,6 +53,6 @@ chmod +x "$INSTALLER"
 MC_BIN=${MC_BIN:-/usr/local/bin/mc}
 ALIAS_NAME=${MINIO_ALIAS:-ci-minio}
 
-${MC_BIN} alias set ${ALIAS_NAME} "${ENDPOINT}" "${ACCESS_KEY}" "${SECRET_KEY}" --api S3v4
-${MC_BIN} cp ${ALIAS_NAME}/${BUCKET}/${OBJECT} "$OUT"
+retry ${MC_BIN} alias set ${ALIAS_NAME} "${ENDPOINT}" "${ACCESS_KEY}" "${SECRET_KEY}" --api S3v4
+retry ${MC_BIN} cp ${ALIAS_NAME}/${BUCKET}/${OBJECT} "$OUT"
 echo "Downloaded ${ALIAS_NAME}/${BUCKET}/${OBJECT} to ${OUT}"

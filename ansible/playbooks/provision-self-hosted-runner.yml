@@ -38,13 +38,15 @@
         dest: "{{ workdir }}"
         remote_src: yes
 
-    - name: Create runner registration token (prompt)
-      pause:
-        prompt: "Obtain a registration token and paste it here (repo admin):"
-      register: reg_token_input
+    - name: Ensure runner registration token provided
+      assert:
+        that:
+          - runner_registration_token is defined
+          - runner_registration_token != ''
+        fail_msg: "runner_registration_token must be provided via extra_vars, Vault, or environment-controlled vars for unattended provisioning."
 
     - name: Configure runner (unattended)
-      command: ./config.sh --unattended --url "{{ runner_repo_url }}" --token "{{ reg_token_input.user_input }}" --name "{{ runner_name_prefix }}-{{ inventory_hostname }}"
+      command: ./config.sh --unattended --url "{{ runner_repo_url }}" --token "{{ runner_registration_token }}" --name "{{ runner_name_prefix }}-{{ inventory_hostname }}"
       args:
         chdir: "{{ workdir }}"
 
