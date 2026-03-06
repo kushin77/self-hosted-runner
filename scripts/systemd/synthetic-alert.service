@@ -1,0 +1,15 @@
+[Unit]
+Description=Run synthetic Alertmanager test
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/automated_test_alert.sh
+User=root
+EnvironmentFile=-/etc/default/synthetic_alert
+Restart=no
+
+[Install]
+WantedBy=multi-user.target
