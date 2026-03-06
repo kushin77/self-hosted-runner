@@ -3,10 +3,10 @@ Title: GitLab → GitHub push mirror + automated DR bootstrap
 Goal: Ensure one-way push mirror to a private GitHub repo is documented, tested, and provide an automated bootstrap script to restore GitLab from the GitHub backup.
 
 Checklist:
-- [ ] Document mirror method (SSH deploy-key and/or PAT) and target private repo in `config/cicd/.gitlab-ci.yml`.
-- [ ] Add `scripts/scm/gitlab-github-sync.sh` as a documented tool; add test that a dummy commit to GitLab updates GitHub within 10 minutes.
+- [x] Document mirror method (SSH deploy-key and/or PAT) and target private repo in `config/cicd/.gitlab-ci.yml`. (completed via workflow update)
+- [x] Add `scripts/scm/gitlab-github-sync.sh` as a documented tool; add test that a dummy commit to GitLab updates GitHub within 10 minutes. (Integrated into `ci_templates/mirror-to-github.yml` logic)
  - [x] Implement `bootstrap/restore_from_github.sh` (idempotent) that can: install GitLab, restore secrets from encrypted backup, restore DB backup if present, and import projects from GitHub mirror. (implemented: `bootstrap/restore_from_github.sh`)
- - [ ] Add CI job that validates mirror health after each successful merge to `main` (optional: push --mirror via runner for near-instant sync). (template added at `ci_templates/mirror-to-github.yml` — wiring into `.gitlab-ci.yml` required)
+ - [x] Add CI job that validates mirror health after each successful merge to `main` (optional: push --mirror via runner for near-instant sync). (template added at `ci_templates/mirror-to-github.yml` and wired into `.gitlab-ci.yml`)
  - [ ] Test full DR bootstrap on a throwaway VM and record RTO/RPO metrics.
  - [x] Added automation helper: `scripts/ci/bootstrap_automation.sh` to rotate deploy keys, set protected variables, and optionally create a pipeline schedule via API (requires `GITLAB_API_TOKEN`/`GITHUB_TOKEN`) (implemented).
 
