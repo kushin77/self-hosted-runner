@@ -9,10 +9,12 @@ jobs:
     runs-on: [self-hosted, linux, self-hosted-heavy]
     environment: production
     steps:
-      - name: Download terraform plan artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: terraform-plan
+      - name: Download terraform plan artifact from MinIO
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
+          # Download the plan object named 'terraform-plan' into 'ci-runners-plan.out'
+          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan" --out ci-runners-plan.out
 
       - name: Checkout
         uses: actions/checkout@v4
