@@ -29,7 +29,8 @@ Prerequisites
   # fetch appropriate runner binary (example x64)
   curl -fsSL -o actions-runner.tar.gz https://github.com/actions/runner/releases/download/v2.332.0/actions-runner-linux-x64-2.332.0.tar.gz
   tar xzf actions-runner.tar.gz
-  ./config.sh --url https://github.com/<owner>/<repo> --token $RUNNER_TOKEN --name "onprem-$(hostname)" --labels "self-hosted,on-prem,linux" --work _work
+  # optionally pin a runner release by setting RUNNER_VERSION
+  RUNNER_VERSION=2.332.0 ./config.sh --url https://github.com/<owner>/<repo> --token $RUNNER_TOKEN --name "onprem-$(hostname)" --labels "self-hosted,on-prem,linux" --work _work
   sudo ./svc.sh install
   sudo ./svc.sh start
   ```
@@ -68,6 +69,9 @@ Prerequisites
 
 8) Troubleshooting
 - Check runner service status: `sudo systemctl status actions.runner.*` (or `sudo ./svc.sh status`)
+
+> **Tip:** if your download fails during bootstrap, set `RUNNER_VERSION` to a known-good tag
+> and rerun the installer.  The scripts now automatically retry downloads.
 - Check runner diag logs: `tail -n 200 _diag/*`
 - If runner fails to start, verify connectivity to `https://github.com` and token validity
 
