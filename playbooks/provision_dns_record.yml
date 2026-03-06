@@ -1,0 +1,12 @@
+---
+- name: Provision authoritative DNS record (if provider configured)
+  hosts: localhost
+  gather_facts: no
+  roles:
+    - role: dns_record
+      vars:
+        dns_provider: "{{ dns_provider | default('manual') }}"
+        dns_zone: "{{ dns_zone | default('internal.elevatediq.com') }}"
+        dns_name: "{{ dns_name | default('gitlab.internal.elevatediq.com') }}"
+        dns_value: "{{ dns_value | default('192.168.168.42') }}"
+        dns_ttl: "{{ dns_ttl | default(300) }}"

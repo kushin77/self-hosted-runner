@@ -1,0 +1,30 @@
+---
+- name: Ensure CA destination directory exists
+  file:
+    path: "{{ ca_dest_path }}"
+    state: directory
+    mode: '0755'
+
+- name: Copy CA to remote hosts
+  copy:
+    src: "{{ ca_local_path }}"
+    dest: "{{ ca_dest_path }}/{{ ca_dest_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install CA into trust store (Debian/Ubuntu)
+  become: true
+  command: "{{ update_command }}"
+  args:
+    warn: false
+
+- name: Verify CA present under trust store
+  stat:
+    path: "{{ ca_dest_path }}/{{ ca_dest_name }}"
+  register: ca_stat
+
+- name: Fail if CA not present after install
+  fail:
+    msg: "CA not present at {{ ca_dest_path }}/{{ ca_dest_name }} after installation"
+  when: not ca_stat.stat.exists
