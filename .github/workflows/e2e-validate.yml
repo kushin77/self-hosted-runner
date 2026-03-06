@@ -1,0 +1,53 @@
+name: E2E Validate & Hands-off Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_deploy:
+        description: 'If true, dispatch the hands-off deploy when validation passes'
+        required: false
+        default: 'true'
+
+jobs:
+  e2e-validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure helper scripts are executable
+        run: |
+          chmod +x scripts/ci/check-secrets.sh || true
+          chmod +x scripts/minio/install-mc.sh || true
+          chmod +x scripts/minio/upload.sh || true
+          chmod +x scripts/minio/download.sh || true
+
+      - name: Validate required secrets
+        run: scripts/ci/check-secrets.sh
+
+      - name: Install mc (MinIO client)
+        run: scripts/minio/install-mc.sh
+
+      - name: Upload test object to MinIO
+        run: scripts/minio/upload.sh
+
+      - name: Download test object from MinIO
+        run: scripts/minio/download.sh
+
+      - name: Dispatch hands-off deploy
+        if: ${{ inputs.run_deploy == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          echo "Dispatching deploy-rotation-staging with hands_off=true"
+          curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${REPO}/actions/workflows/deploy-rotation-staging.yml/dispatches \
+            -d '{"ref":"main","inputs":{"hands_off":"true"}}'
