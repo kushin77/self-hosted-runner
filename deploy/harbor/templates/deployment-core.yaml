@@ -19,4 +19,16 @@ spec:
           image: "{{ .Values.image.core.repository }}:{{ .Values.image.core.tag }}"
           ports:
             - containerPort: 8080
+          # Database / external services configuration
+          env:
+            - name: DATABASE_HOST
+              value: "{{ .Values.database.host }}"
+            - name: DATABASE_USER
+              value: "{{ .Values.database.user }}"
+            - name: DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ .Values.database.passwordSecret }}"
+                  key: "password"
+
           resources: {{ toYaml .Values.resources | nindent 12 }}
