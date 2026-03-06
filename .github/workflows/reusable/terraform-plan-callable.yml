@@ -14,6 +14,10 @@ on:
         required: true
       MINIO_ENDPOINT:
         required: false
+      MINIO_ACCESS_KEY:
+        required: true
+      MINIO_SECRET_KEY:
+        required: true
 
 jobs:
   plan:
@@ -21,6 +25,10 @@ jobs:
     steps:
       - name: Download AMI tfvars artifact from MinIO
         if: ${{ inputs.ami-tfvars-object != '' }}
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
           chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
@@ -54,12 +62,20 @@ jobs:
           terraform plan -var-file=ami.tfvars -out=ci-runners-plan.out ./modules/ci-runners
 
       - name: Upload terraform plan to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
           scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}"
 
       - name: Prepare and upload plan checksum
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
           mkdir -p /tmp
