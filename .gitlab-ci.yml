@@ -62,6 +62,8 @@ YAMLtest-sovereign-runner:
     - echo "Runner: $CI_RUNNER_DESCRIPTION"
   tags:
     - "k8s-runner"
+    - "sovereign"
+    - "ephemeral"
 
 # --- Initialize Stage ---
 prepare:env:
