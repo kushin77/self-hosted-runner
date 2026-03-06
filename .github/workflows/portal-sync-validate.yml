@@ -1,0 +1,35 @@
+name: Portal Metadata Validate
+
+on:
+  pull_request:
+    paths:
+      - '**/metadata.yml'
+      - '**/metadata.yaml'
+      - '**/function-metadata.yaml'
+      - 'portal-sync/**'
+  push:
+    paths:
+      - '**/metadata.yml'
+      - '**/metadata.yaml'
+      - '**/function-metadata.yaml'
+      - 'portal-sync/**'
+
+jobs:
+  validate:
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install pyyaml jsonschema
+      - name: Run metadata validator
+        run: |
+          python3 scripts/generate_function_metadata.py --validate --output portal-artifact.json
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-artifact
+          path: portal-artifact.json

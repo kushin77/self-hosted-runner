@@ -1,10 +1,9 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense } from 'react';
 import { AlertsPanel } from '../components/Alerts';
 import { SystemStatus } from '../components/SystemStatus';
 
-const AdvancedAnalytics = lazy(() =>
-  import('./Analytics').then((m) => ({ default: m.AdvancedAnalytics }))
-);
+// Lazy-load analytics (recharts heavy dependency) so it isn't bundled in the initial payload
+const AdvancedAnalytics = React.lazy(() => import('./Analytics').then((m) => ({ default: m.AdvancedAnalytics })));
 
 export const Observability: React.FC = () => {
   return (

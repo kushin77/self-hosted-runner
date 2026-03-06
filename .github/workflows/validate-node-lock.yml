@@ -4,12 +4,18 @@ on: [push, pull_request]
 jobs:
   validate-lockfile:
     name: Validate lockfile
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-node.sh
+          NODE_VERSION=20 ci/scripts/setup-node.sh
+      - name: Setup Node 20 (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/setup-node@v4
         with:
           node-version: '20'
