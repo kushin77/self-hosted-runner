@@ -1,0 +1,11 @@
+[Unit]
+Description=Runner healthcheck and reprovision (self-hosted-runner)
+After=network.target
+
+[Service]
+Type=oneshot
+User=akushnir
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/check_and_reprovision_runner.sh
+WorkingDirectory=/home/akushnir/self-hosted-runner
+StandardOutput=journal
+StandardError=journal
