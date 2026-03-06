@@ -40,6 +40,7 @@ runners:
       name = "${RUNNER_NAME}"
       url = "${GITLAB_URL}"
       executor = "kubernetes"
+      tags = "k8s-runner,ephemeral"
       [runners.kubernetes]
         namespace = "${NAMESPACE}"
         image = "docker:24.0.5"
