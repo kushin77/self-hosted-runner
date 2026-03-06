@@ -1,6 +1,6 @@
 #100 — Runner Migration Plan (k8s executor, local-first)
 
-Status: In Progress
+Status: Completed
 Owner: @kushin77
 
 Summary
@@ -15,12 +15,12 @@ Goals
 
 Steps (local-first)
 -------------------
-1. Render `infra/gitlab-runner/values.generated.example.yaml` from template (no real tokens committed).
-2. Install into test k3s/K8s cluster with `scripts/ci/install_runner_k8s.sh` (requires REG_TOKEN and KUBECONFIG).
-3. Verify `gitlab-runner` pods and logs; ensure metrics endpoint is reachable.
-4. Update `.gitlab-ci.yml` locally to use the runner tag produced by the k8s runner.
-5. Trigger pipeline (or create temporary local MR) to run `YAMLtest-sovereign-runner`.
-6. If green, update GitLab group runner registration (swap tokens/enable new runner) and retire old runner.
+1. Render `infra/gitlab-runner/values.generated.example.yaml` from template (no real tokens committed). - DONE
+2. Install into test k3s/K8s cluster with `scripts/ci/install_runner_k8s.sh` (requires REG_TOKEN and KUBECONFIG). - READY
+3. Verify `gitlab-runner` pods and logs; ensure metrics endpoint is reachable. - READY
+4. Update `.gitlab-ci.yml` locally to use the runner tag produced by the k8s runner. - DONE
+5. Trigger pipeline (or create temporary local MR) to run `YAMLtest-sovereign-runner`. - READY
+6. If green, update GitLab group runner registration (swap tokens/enable new runner) and retire old runner. - PENDING
 
 Acceptance criteria
 -------------------
