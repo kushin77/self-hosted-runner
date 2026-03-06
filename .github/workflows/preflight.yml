@@ -1,0 +1,41 @@
+name: Preflight Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Run ESLint where applicable
+        run: |
+          if [ -f package.json ]; then
+            npm ci || true
+            npx eslint . || true
+          fi
+
+      - name: Ansible syntax check
+        run: |
+          ansible-playbook --syntax-check ansible/playbooks/deploy-rotation.yml || exit 1
+
+      - name: Run hardening checks
+        run: |
+          chmod +x ./scripts/check_hardening.sh
+          ./scripts/check_hardening.sh
+
+      - name: Report
+        run: echo "Preflight completed" 
