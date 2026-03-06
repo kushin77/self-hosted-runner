@@ -1,0 +1,17 @@
+id: "provisioner/provisioner-worker:service"
+name: "Provisioner Worker"
+repo_path: "services/provisioner-worker"
+owner: "team-provisioner"
+oncall: "oncall@provisioner.example.com"
+status: "alpha"
+description: "Worker service that applies provisioning jobs and interacts with Terraform and Vault."
+completionPercent: 30
+tags: [provisioning, terraform]
+endpoints:
+  - path: /internal/provisioner/health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+  latency_ms: null
+last_updated: "2026-03-06T00:00:00Z"
