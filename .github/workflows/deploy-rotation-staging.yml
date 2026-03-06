@@ -65,6 +65,22 @@ jobs:
 
           echo "No VAULT_ROLE_ID/VAULT_SECRET_ID and no VAULT_ADMIN_TOKEN available; proceeding but Vault steps will fail if required"
 
+      - name: Persist AppRole to repo secrets (hands-off)
+        if: ${{ github.event.inputs.hands_off == 'true' && secrets.GITHUB_ADMIN_TOKEN }}
+        env:
+          GITHUB_ADMIN_TOKEN: ${{ secrets.GITHUB_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -f /tmp/approle.json ]; then
+            chmod +x scripts/ci/persist-secret.sh
+            ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+            SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+            scripts/ci/persist-secret.sh VAULT_ROLE_ID "$ROLE_ID"
+            scripts/ci/persist-secret.sh VAULT_SECRET_ID "$SECRET_ID"
+          else
+            echo "No /tmp/approle.json present; nothing to persist"
+          fi
+
       - name: Fetch deploy SSH key from Vault (AppRole auth)
         if: ${{ github.event.inputs.vault_secret_path != '' }}
         run: |
