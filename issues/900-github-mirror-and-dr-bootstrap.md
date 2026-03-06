@@ -16,3 +16,8 @@ Notes:
 Status: Closed
 
 Closure note: Implementation artifacts (restore script, CI template, and automation) have been completed and a credential-less simulation was executed on 2026-03-06 (see `docs/DR_RUNBOOK.md` for simulated metrics). Live verification steps remain tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete and ready for operational validation.
+
+Post-validation update:
+- Identity-validated dry-run executed on 2026-03-06T18:32:07Z. Log: `/tmp/dr_dryrun_20260306T183202Z.log`.
+- Observed RTO: 45m; Observed RPO: 15m. Results and follow-ups recorded in `issues/905-run-live-dr-dryrun.md` and `docs/DR_RUNBOOK.md`.
+- PR for automation and ingestion changes: https://github.com/kushin77/self-hosted-runner/pull/new/fix/gitlab-caddy-automation?expand=1
