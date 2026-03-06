@@ -14,3 +14,11 @@ Actions:
 
 Notes:
 - Do NOT paste secret values in any issue or repo file. Use placeholders in reports.
+
+Run attempt:
+- Date: 2026-03-06
+- Status: Blocked — `VAULT_ADDR` not set on this runner when automated provisioning was attempted.
+- Next action: Please provision `VAULT_ADDR` and either:
+	- provide `VAULT_ADMIN_TOKEN` on the runner for the auto-provision flow, or
+	- place `VAULT_ROLE_ID` and `VAULT_SECRET_ID` (or `VAULT_SECRET_ID_PATH`) on the runner host for the non-admin flow.
+- Once the operator confirms secrets are present I will run the chosen E2E path, revoke/cleanup temporary credentials, and update this issue with results and redacted logs.
