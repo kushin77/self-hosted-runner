@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer to run auto-rotate GitHub Actions runners daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+# Randomized delay to reduce thundering herd
+RandomizedDelaySec=30m
+
+[Install]
+WantedBy=timers.target
