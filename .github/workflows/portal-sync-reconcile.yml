@@ -24,8 +24,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           python3 scripts/reconcile_and_create_issues.py --create-issues --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name || github.repository }}
-      - name: Upload portal artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: portal-artifact
-          path: portal-artifact.json
+      - name: Upload portal artifact to MinIO
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
