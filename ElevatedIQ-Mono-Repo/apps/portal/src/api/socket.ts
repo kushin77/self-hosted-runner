@@ -8,7 +8,7 @@ export function createSocket(url = 'http://localhost:9090') {
     autoConnect: false,
     transports: ['websocket', 'polling'],
     reconnection: true,
-    reconnectionAttempts: Infinity,
+    reconnectionAttempts: 10,
     reconnectionDelay: 1000,
     reconnectionDelayMax: 60000,
     timeout: 20000,
@@ -26,13 +26,20 @@ export function useSocket(opts?: { url?: string; autoConnect?: boolean }) {
     const onConnect = () => {
       console.debug('[portal-socket] connected', sock.id);
       useStore.getState().setSocketConnected(true);
+      useStore.getState().setSocketReconnectFailed(false);
     };
     const onConnectError = (err: any) => {
       console.warn('[portal-socket] connect_error', err);
     };
+    const onReconnectFailed = () => {
+      console.error('[portal-socket] reconnect_failed — max attempts reached, stopping retries');
+      useStore.getState().setSocketConnected(false);
+      useStore.getState().setSocketReconnectFailed(true);
+    };
 
     sock.on('connect', onConnect);
     sock.on('connect_error', onConnectError);
+    sock.io.on('reconnect_failed', onReconnectFailed);
 
     sock.on('metrics:update', (payload) => {
       useStore.getState().setMetrics(payload);
@@ -59,6 +66,7 @@ export function useSocket(opts?: { url?: string; autoConnect?: boolean }) {
     return () => {
       sock.off('connect', onConnect);
       sock.off('connect_error', onConnectError);
+      sock.io.off('reconnect_failed', onReconnectFailed);
       sock.off('disconnect');
       sock.disconnect();
       ref.current = null;

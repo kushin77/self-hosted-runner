@@ -70,6 +70,7 @@ interface Store {
   isLoading: boolean;
   error: string | null;
   isSocketConnected: boolean;
+  socketReconnectFailed: boolean;
   
   setMetrics: (metrics: MetricsSummary) => void;
   setRunners: (runners: Runner[]) => void;
@@ -81,6 +82,7 @@ interface Store {
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
   setSocketConnected: (connected: boolean) => void;
+  setSocketReconnectFailed: (failed: boolean) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -93,6 +95,7 @@ export const useStore = create<Store>((set) => ({
   isLoading: false,
   error: null,
   isSocketConnected: false,
+  socketReconnectFailed: false,
   
   setMetrics: (metrics) => set({ metrics }),
   setRunners: (runners) => set({ runners }),
@@ -104,4 +107,5 @@ export const useStore = create<Store>((set) => ({
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
   setSocketConnected: (connected) => set({ isSocketConnected: connected }),
+  setSocketReconnectFailed: (failed) => set({ socketReconnectFailed: failed }),
 }));
