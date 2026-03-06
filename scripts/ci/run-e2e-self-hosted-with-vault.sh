@@ -8,32 +8,42 @@ set -euo pipefail
 
 usage(){
   cat <<EOF
-Usage: $0 [-t] [-p VAULT_SECRET_PATH]
+Usage: $0 [-t] [-p VAULT_SECRET_PATH] [-s]
 
 Environment expectations:
-  - VAULT_ADDR must be set
+  - VAULT_ADDR must be set (unless using -s simulate)
   - Either VAULT_ROLE_ID and VAULT_SECRET_ID OR VAULT_SECRET_ID_PATH must be set
   - Optional: GITHUB_TOKEN + gh CLI to trigger repository workflows
 
 Options:
   -t    Run in "trigger workflow" mode: attempt to trigger GitHub workflow via gh
   -p    Path to Vault secret file (alternative to VAULT_SECRET_ID_PATH env)
+  -s    Simulate mode: bypass Vault checks and run tests with mocked values
 EOF
 }
 
 TRIGGER_WORKFLOW=0
 SECRET_PATH=""
-while getopts ":tp:" opt; do
+SIMULATE=0
+while getopts ":tps:" opt; do
   case ${opt} in
     t) TRIGGER_WORKFLOW=1 ;;
     p) SECRET_PATH="$OPTARG" ;;
+    s) SIMULATE=1 ;;
     *) usage; exit 1 ;;
   esac
 done
 
-if [ -z "${VAULT_ADDR:-}" ]; then
-  echo "ERROR: VAULT_ADDR is not set. Ask ops to provision Vault AppRole details." >&2
-  exit 2
+if [ "$SIMULATE" -eq 0 ]; then
+  if [ -z "${VAULT_ADDR:-}" ]; then
+    echo "ERROR: VAULT_ADDR is not set. Ask ops to provision Vault AppRole details." >&2
+    exit 2
+  fi
+else
+  echo "[e2e] Simulate mode enabled: skipping Vault address check and using mocked values"
+  export VAULT_ADDR="https://vault.local:8200"
+  export VAULT_ROLE_ID="SIMULATED_ROLE_ID"
+  export VAULT_SECRET_ID="SIMULATED_SECRET_ID"
 fi
 
 if [ -z "${VAULT_ROLE_ID:-}" ] && [ -z "${VAULT_ROLE_ID_PLACEHOLDER:-}" ]; then
