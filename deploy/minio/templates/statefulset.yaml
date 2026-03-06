@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "minio.fullname" . | default (printf "%s-minio" .Release.Name) }}
+  labels:
+    app.kubernetes.io/name: {{ include "minio.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  serviceName: {{ include "minio.fullname" . | default (printf "%s-minio" .Release.Name) }}-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "minio.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "minio.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: minio
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+            - server
+            - /data
+          ports:
+            - containerPort: 9000
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.accessKeySecretName }}
+                  key: {{ .Values.accessKeySecretKey }}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secretKeySecretName }}
+                  key: {{ .Values.secretKeySecretKey }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes: []
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - "{{ .Values.persistence.accessMode }}"
+        resources:
+          requests:
+            storage: {{ .Values.persistence.size }}
+        storageClassName: {{ if .Values.persistence.storageClass }}"{{ .Values.persistence.storageClass }}"{{ else }}""{{ end }}

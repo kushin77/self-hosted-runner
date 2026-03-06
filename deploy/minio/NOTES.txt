@@ -1,0 +1,15 @@
+1. Create credentials secret (example):
+
+   kubectl create secret generic minio-credentials \
+     --from-literal=accesskey=MINIOACCESSKEY \
+     --from-literal=secretkey=MINIOSECRETKEY
+
+2. Install chart (example):
+
+   helm install my-minio ./deploy/minio \
+     --set accessKeySecretName=minio-credentials \
+     --set secretKeySecretName=minio-credentials
+
+3. To enable TLS: create a TLS secret named by `tls.secretName` and set `tls.enabled=true`.
+
+4. If Prometheus is used, set `prometheus.enabled=true` so ServiceMonitor is generated.
