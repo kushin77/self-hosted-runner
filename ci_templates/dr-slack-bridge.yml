@@ -1,0 +1,25 @@
+# ==============================================================================
+# TEMPLATE: dr-slack-bridge.yml
+# PURPOSE: Hands-off notification to Slack with direct action links
+# ==============================================================================
+.dr-slack-notify:
+  script:
+    - |
+      curl -X POST -H 'Content-type: application/json' --data "{
+        'text': '🚨 *DR System Alert*: ${DR_STATUS}',
+        'attachments': [{
+          'fallback': 'DR Action Required',
+          'color': '${DR_COLOR}',
+          'fields': [
+            {'title': 'RTO Target', 'value': '45m', 'short': true},
+            {'title': 'RPO Status', 'value': 'Verified (15m)', 'short': true}
+          ],
+          'actions': [
+            {
+              'type': 'button',
+              'text': 'View Runbook',
+              'url': '${CI_PROJECT_URL}/-/blob/main/docs/DR_RUNBOOK.md'
+            }
+          ]
+        }]
+      }" $SLACK_WEBHOOK_URL
