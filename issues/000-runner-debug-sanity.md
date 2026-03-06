@@ -23,18 +23,20 @@ Checklist
 - [x] Add Helm values template and install helpers (local)
 - [x] Generated sample `infra/gitlab-runner/values.generated.yaml` (dry-run)
 - [ ] Run diagnostics on runner host and attach redacted archive
-- [ ] Render values with real token and install to test k3s/K8s cluster
-- [ ] Validate `YAMLtest-sovereign-runner` passes on new runner
-- [ ] Migrate group runner registration to k8s-backed runner
+- [x] Render values with real token and install to test k3s/K8s cluster
+- [ ] Validate `YAMLtest-sovereign-runner` passes on new runner - ready for user
+- [ ] Migrate group runner registration to k8s-backed runner - ready for user
 - [ ] Decommission legacy VM-based runners (after rollback window)
 
 Next steps (short-term)
 ----------------------
-1. Replace the placeholder runner tag in `.gitlab-ci.yml` with the exact group-runner tag for testing locally.
+1. The placeholder runner tag in `.gitlab-ci.yml` has been updated to "k8s-runner" for the new runner.
 2. On the runner host, run `scripts/ci/collect_runner_info.sh` and attach the redacted archive to this issue.
 3. Paste the failing job's last 20–30 lines here (red error output).
 4. Paste the `[[runners]]` section from `/etc/gitlab-runner/config.toml` (redact tokens/URLs if necessary).
-5. (Local-first) Render `infra/gitlab-runner/values.generated.yaml` from the template and install to a test k3s cluster using `scripts/ci/install_runner_k8s.sh`.
+5. (Local-first) Render `infra/gitlab-runner/values.generated.yaml` from the template and install to a test k3s cluster using `scripts/ci/install_runner_k8s.sh`. - DONE
+6. Trigger a pipeline to run the `YAMLtest-sovereign-runner` job and verify it passes on the new k8s runner.
+7. If successful, migrate the group runner registration fully and decommission the legacy runner.
 
 Recommended mid-term migration (immutable, sovereign, ephemeral)
 ---------------------------------------------------------------
