@@ -8,6 +8,10 @@ on:
         required: true
         default: 'plan'
 
+concurrency:
+  group: terraform-dns-apply
+  cancel-in-progress: false
+
 jobs:
   terraform:
     name: Terraform Route53 DNS
