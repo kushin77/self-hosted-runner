@@ -13,9 +13,9 @@ Add the following repository secrets in GitHub (Settings → Secrets and variabl
 
 | Secret | Example | Description |
 |--------|---------|-------------|
-| `VAULT_ADDR` | `http://vault.local:8200` | Vault server URL |
-| `VAULT_ROLE_ID` | `3df2e4bdb7d5ee2005ea65ccbc5d32f3` | AppRole Role ID for CI |
-| `VAULT_SECRET_ID` | `uuid-xxx-xxx` | AppRole Secret ID (rotate regularly) |
+| `VAULT_ADDR` | `<VAULT_ADDR>` | Vault server URL (set in GitHub Actions secrets) |
+| `VAULT_ROLE_ID` | `<VAULT_ROLE_ID>` | AppRole Role ID for CI (store in GitHub Secrets) |
+| `VAULT_SECRET_ID` | `<VAULT_SECRET_ID>` | AppRole Secret ID (rotate regularly; store in GitHub Secrets) |
 
 Required Vault Secret
 ---
