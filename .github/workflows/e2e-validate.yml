@@ -57,15 +57,7 @@ jobs:
       actions: write
       id-token: write
     timeout-minutes: 30
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
-    concurrency:
-      group: e2e-validate-${{ github.ref || github.run_id }}
-      cancel-in-progress: false
-    runs-on: [self-hosted, linux]
-    permissions:
-      contents: read
-      actions: write
-      id-token: write
+
 
     steps:
       - name: Checkout
