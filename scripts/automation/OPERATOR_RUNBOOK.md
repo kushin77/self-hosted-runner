@@ -46,50 +46,26 @@ From a machine with SSH access to the legacy host, clone this repo and run:
 
 ### After Installing the Key:
 
-Once the key is installed, you have two choices:
+Once the key is installed, reply on [Issue #787](https://github.com/kushin77/self-hosted-runner/issues/787) with:
 
-**A. Automatic trigger (preferred):**
-- Reply on [Issue #787](https://github.com/kushin77/self-hosted-runner/issues/787) with the exact phrase: `key-installed`
-- I will detect this reply and immediately dispatch the `legacy-node-cleanup` workflow, monitor it to completion, and close the issue upon success.
+```
+key-installed
+```
 
-**B. Manual workflow dispatch (if automatic trigger fails):**
-- Ensure the key is installed on the legacy host.
-- Manually dispatch the workflow via GitHub CLI:
-  ```bash
-  gh workflow run legacy-node-cleanup.yml --ref main --field confirm=CLEANUP_LEGACY_NODE
-  ```
-- Or trigger via GitHub UI: https://github.com/kushin77/self-hosted-runner/actions/workflows/legacy-node-cleanup.yml → "Run workflow"
-
-## Branch Management (Issue: automation agent help-wanted)
-
-Several automation branches were created and pushed during the CI/CD automation initiative. See the linked help issue for a list of branches that may require manual review or approval before PR merge.
-
-Status:
-- PRs created for most automation branches ✓
-- Some branches have diverged histories — manual rebase/resolution recommended
-- Help issue created with branch list and recommended actions
+The system will detect this reply and automatically:
+1. Dispatch the legacy-node-cleanup workflow
+2. Monitor it to completion
+3. Download artifacts and close the issue upon success
 
 ## Automation Pipeline Summary
 
-| Automation | Status | Trigger | Location |
-|-----------|--------|---------|----------|
-| Terraform Validation | ✓ Complete | Manual dispatch | `.github/workflows/terraform-validate-dispatch.yml` |
-| MinIO Local Smoke Test | ✓ Complete | Manual dispatch | `.github/workflows/minio-local-validate.yml` |
-| Stale Branch Cleanup | ✓ Complete | Manual dispatch | `.github/workflows/stale-branch-cleanup.yml` |
-| Legacy Node Cleanup | ⏳ Blocked on SSH key | Manual dispatch + confirmation | `.github/workflows/legacy-node-cleanup.yml` |
-
-## Key Files
-
-- **Deploy Public Key**: `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIG+vqHubKjpwPpBHIeFFmuFiNaAaw2yHvjFd4yFDZHkt deploy-key-automated-20260306`
-- **Helper Script**: `scripts/automation/legacy/install_deploy_key.sh`
-- **Terraform Validation Helper**: `scripts/automation/terraform/validate_all.sh`
-- **MinIO Local Test Helper**: `scripts/automation/minio/local_minio_validate.sh`
-
-## Issues & Tracking
-
-- [Issue #787](https://github.com/kushin77/self-hosted-runner/issues/787) — Legacy Node Cleanup (awaiting SSH key install)
-- [Automation agent help-wanted](https://github.com/kushin77/self-hosted-runner/issues) — Branches needing manual review
+| Automation | Status | Trigger |
+|-----------|--------|---------|
+| Terraform Validation | ✓ Complete | Manual dispatch |
+| MinIO Local Smoke Test | ✓ Complete | Manual dispatch |
+| Stale Branch Cleanup | ✓ Complete | Manual dispatch |
+| Legacy Node Cleanup | ⏳ Blocked on SSH key | Manual dispatch + confirmation |
 
 ## Questions?
 
-Post on the relevant issue or reach out to the automation agent (will monitor Issue #787 for `key-installed` confirmation).
+Post on Issue #787 or check AUTOMATION_INITIATIVE_COMPLETE.md for details.

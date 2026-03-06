@@ -1,0 +1,39 @@
+name: Legacy Key Listener
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  actions: write
+
+jobs:
+  trigger-legacy-cleanup:
+    if: ${{ github.event.issue.number == 787 && github.event.comment.body == 'key-installed' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch legacy-node-cleanup workflow
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            // workflow file to dispatch (existing in repo)
+            const workflow_id = 'legacy-node-cleanup.yml';
+            await github.rest.actions.createWorkflowDispatch({
+              owner,
+              repo,
+              workflow_id,
+              ref: 'main',
+              inputs: { confirm: 'CLEANUP_LEGACY_NODE' }
+            });
+      - name: Comment that dispatch was requested
+        uses: actions/github-script@v6
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: 'Detected `key-installed` confirmation — requested dispatch of legacy-node-cleanup and will monitor progress.'
+            });
