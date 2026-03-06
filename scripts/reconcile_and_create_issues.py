@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""Reconcile repo services against metadata files and optionally open GitHub issues.
+
+Checks for service directories under `services/` that lack `metadata.yaml` and
+reports them. If run with `--create-issues` and `GITHUB_TOKEN` is provided, it
+will create issues using the GitHub API for each missing metadata file (idempotent
+by checking existing open issues with the `portal-sync` label).
+"""
+import argparse
+import json
+import os
+import sys
+from glob import glob
+
+try:
+    import requests
+except Exception:
+    print('Missing requests. Install with: pip install requests', file=sys.stderr)
+    sys.exit(2)
+
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+SERVICES_GLOB = os.path.join(ROOT, 'services', '*')
+
+GITHUB_API = 'https://api.github.com'
+
+def find_services_without_metadata():
+    services = []
+    for path in glob(SERVICES_GLOB):
+        if os.path.isdir(path):
+            meta1 = os.path.join(path, 'metadata.yaml')
+            meta2 = os.path.join(path, 'metadata.yml')
+            if not (os.path.exists(meta1) or os.path.exists(meta2)):
+                services.append(os.path.relpath(path, ROOT))
+    return services
+
+def list_existing_issues(owner, repo, token):
+    issues = []
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/issues"
+    params = {'state': 'open', 'labels': 'portal-sync', 'per_page': 100}
+    headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github+json'}
+    resp = requests.get(url, headers=headers, params=params)
+    resp.raise_for_status()
+    for it in resp.json():
+        issues.append(it['title'])
+    return issues
+
+def create_issue(owner, repo, token, title, body, labels=['portal-sync','needs-info']):
+    url = f"{GITHUB_API}/repos/{owner}/{repo}/issues"
+    headers = {'Authorization': f'token {token}', 'Accept': 'application/vnd.github+json'}
+    payload = {'title': title, 'body': body, 'labels': labels}
+    resp = requests.post(url, headers=headers, json=payload)
+    resp.raise_for_status()
+    return resp.json()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--create-issues', action='store_true')
+    parser.add_argument('--owner', default=None)
+    parser.add_argument('--repo', default=None)
+    args = parser.parse_args()
+
+    missing = find_services_without_metadata()
+    if not missing:
+        print('No services missing metadata.')
+        return 0
+
+    print('Services missing metadata:')
+    for s in missing:
+        print(' -', s)
+
+    if args.create_issues:
+        token = os.environ.get('GITHUB_TOKEN')
+        if not token:
+            print('GITHUB_TOKEN not set; cannot create issues.', file=sys.stderr)
+            return 3
+        if not args.owner or not args.repo:
+            print('owner and repo are required to create issues.', file=sys.stderr)
+            return 4
+
+        existing = list_existing_issues(args.owner, args.repo, token)
+        for s in missing:
+            title = f"[portal-sync] Missing metadata: {s}"
+            if title in existing:
+                print(f'Issue already exists: {title}')
+                continue
+            body = f"## Summary\nThe `{s}` component is missing portal metadata required for cataloging in the Portal.\n\n## Suggested action\n- Add `metadata.yaml` to `{s}` with required fields. Use `portal-sync/metadata-template.yaml`."
+            created = create_issue(args.owner, args.repo, token, title, body)
+            print('Created issue:', created.get('html_url'))
+
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())
