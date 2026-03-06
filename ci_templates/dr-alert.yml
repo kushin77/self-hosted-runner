@@ -1,3 +1,24 @@
+# ==============================================================================
+# TEMPLATE: dr-alert.yml
+# PURPOSE: Enterprise-grade Slack notifications for DR health
+# ==============================================================================
 .dr-notify-slack:
   script:
-    - curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"DR Job Status: ${CI_JOB_STATUS}\"}" $SLACK_WEBHOOK_URL
+    - |
+      if [ -z "$SLACK_WEBHOOK_URL" ]; then echo "Error: SLACK_WEBHOOK_URL not set"; exit 1; fi
+      PAYLOAD=$(cat <<JSON
+      {
+        "text": "🚨 *DR Alert: ${CI_JOB_NAME:-Manual Run}*",
+        "attachments": [{
+          "color": "${DR_STATUS_COLOR:-danger}",
+          "fields": [
+            {"title": "Project", "value": "${CI_PROJECT_PATH:-Local}", "short": true},
+            {"title": "Status", "value": "${CI_JOB_STATUS:-Unknown}", "short": true},
+            {"title": "Strategy", "value": "Sovereign Root-of-Trust", "short": true}
+          ],
+          "actions": [{"type": "button", "text": "View Runbook", "url": "${CI_PROJECT_URL}/-/blob/main/docs/DR_RUNBOOK.md"}]
+        }]
+      }
+      JSON
+      )
+      curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
