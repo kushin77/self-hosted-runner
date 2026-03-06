@@ -12,7 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js
+      - name: Install Node (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-node.sh
+          NODE_VERSION=20 ci/scripts/setup-node.sh
+      - name: Use Node.js (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/setup-node@v4
         with:
           node-version: '20'
