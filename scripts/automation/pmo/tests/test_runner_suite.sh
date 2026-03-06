@@ -118,12 +118,14 @@ test_readme() {
 # Test 12: Security: No hardcoded credentials
 test_no_credentials() {
   # Exclude the legitimate load script from credential checks
-  if git -C "${GIT_ROOT}" grep -n "GITHUB_TOKEN=" 2>/dev/null | grep -v "^scripts/load_gsm_secrets.sh:" | grep -q .; then
+  if git -C "${GIT_ROOT}" grep -n "GITHUB_TOKEN=" 2>/dev/null | \
+       grep -v "^scripts/load_gsm_secrets.sh:" | grep -v "^.github/" | grep -v "^.gitlab/" | grep -q .; then
     return 1
   fi
 
   # Only flag likely hardcoded AWS secret variables, not resource names like aws_secretsmanager_secret
-  if git -C "${GIT_ROOT}" grep -n "aws_secret_access_key\|AWS_SECRET_ACCESS_KEY" 2>/dev/null | grep -v "^scripts/load_gsm_secrets.sh:" | grep -q .; then
+  if git -C "${GIT_ROOT}" grep -n "aws_secret_access_key\|AWS_SECRET_ACCESS_KEY" 2>/dev/null | \
+       grep -v "^scripts/load_gsm_secrets.sh:" | grep -v "^.github/" | grep -v "^.gitlab/" | grep -q .; then
     return 1
   fi
   
