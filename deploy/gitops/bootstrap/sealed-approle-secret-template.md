@@ -9,7 +9,7 @@ Do NOT commit unsealed secrets. Use `kubeseal` with your cluster public key to c
 ```bash
 kubectl create secret generic vault-approle-secret \
   --namespace gitops \
-  --from-literal=secretId='<VAULT_SECRET_ID_FROM_VAULT>' \
+  --from-literal=secretId='<VAULT_SECRET_ID_PLACEHOLDER>' \
   --dry-run=client -o yaml > vault-approle-secret.yaml
 ```
 
