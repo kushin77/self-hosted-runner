@@ -1,0 +1,193 @@
+{
+  "generated": true,
+  "timestamp": "2026-03-06T00:57:23.334742Z",
+  "files": [
+    {
+      "path": "services/ai-oracle/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "ai/ai-oracle:service",
+        "name": "AI Oracle",
+        "repo_path": "services/ai-oracle",
+        "owner": "team-ai",
+        "oncall": "oncall@ai.example.com",
+        "status": "alpha",
+        "description": "AI inference and prompt orchestration service for the platform.",
+        "completionPercent": 20,
+        "tags": [
+          "ai",
+          "inference"
+        ],
+        "endpoints": [
+          {
+            "path": "/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    },
+    {
+      "path": "services/eiq-api/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "eiq/eiq-api:service",
+        "name": "EIQ API",
+        "repo_path": "services/eiq-api",
+        "owner": "team-eiq",
+        "oncall": "oncall@eiq.example.com",
+        "status": "alpha",
+        "description": "Public API surface for Elevated IQ portal integrations.",
+        "completionPercent": 25,
+        "tags": [
+          "api",
+          "portal"
+        ],
+        "endpoints": [
+          {
+            "path": "/api/v1/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    },
+    {
+      "path": "services/managed-auth/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "auth/managed-auth:service",
+        "name": "Managed Auth",
+        "repo_path": "services/managed-auth",
+        "owner": "team-auth",
+        "oncall": "oncall@auth.example.com",
+        "status": "alpha",
+        "description": "Managed authentication microservice for pipelines and portal integration.",
+        "completionPercent": 35,
+        "tags": [
+          "auth",
+          "secrets"
+        ],
+        "endpoints": [
+          {
+            "path": "/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    },
+    {
+      "path": "services/multi-cloud-orchestrator/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "orchestrator/multi-cloud-orchestrator:service",
+        "name": "Multi-Cloud Orchestrator",
+        "repo_path": "services/multi-cloud-orchestrator",
+        "owner": "team-orchestrator",
+        "oncall": "oncall@orchestrator.example.com",
+        "status": "alpha",
+        "description": "Orchestrates resources across cloud providers for pipeline runs.",
+        "completionPercent": 30,
+        "tags": [
+          "orchestration",
+          "cloud"
+        ],
+        "endpoints": [
+          {
+            "path": "/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    },
+    {
+      "path": "services/pipeline-repair/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "repair/pipeline-repair:service",
+        "name": "Pipeline Repair",
+        "repo_path": "services/pipeline-repair",
+        "owner": "team-repair",
+        "oncall": "oncall@repair.example.com",
+        "status": "alpha",
+        "description": "Autonomous repair engine for failed pipelines and runbooks.",
+        "completionPercent": 40,
+        "tags": [
+          "repair",
+          "automation"
+        ],
+        "endpoints": [
+          {
+            "path": "/api/repair/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    },
+    {
+      "path": "services/provisioner-worker/metadata.yaml",
+      "valid": true,
+      "reason": null,
+      "metadata": {
+        "id": "provisioner/provisioner-worker:service",
+        "name": "Provisioner Worker",
+        "repo_path": "services/provisioner-worker",
+        "owner": "team-provisioner",
+        "oncall": "oncall@provisioner.example.com",
+        "status": "alpha",
+        "description": "Worker service that applies provisioning jobs and interacts with Terraform and Vault.",
+        "completionPercent": 30,
+        "tags": [
+          "provisioning",
+          "terraform"
+        ],
+        "endpoints": [
+          {
+            "path": "/internal/provisioner/health",
+            "method": "GET"
+          }
+        ],
+        "scorecard": {
+          "tests": 0,
+          "coverage": 0.0,
+          "latency_ms": null
+        },
+        "last_updated": "2026-03-06T00:00:00Z"
+      }
+    }
+  ],
+  "total": 6
+}
