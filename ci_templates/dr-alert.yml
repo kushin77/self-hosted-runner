@@ -1,3 +1,25 @@
+# ==============================================================================
+# TEMPLATE: dr-alert.yml
+# PURPOSE: Enterprise-grade Slack notifications for DR health
+# ==============================================================================
 .dr-notify-slack:
   script:
-    - curl -X POST -H 'Content-type: application/json' --data "{\"text\":\"DR Job Status: ${CI_JOB_STATUS}\"}" $SLACK_WEBHOOK_URL
+    - |
+      PAYLOAD=$(cat <<JSON
+      {
+        "text": "🚨 *DR Alert: ${DR_JOB_NAME:-Manually Triggered}*",
+        "attachments": [{
+          "color": "${DR_STATUS_COLOR:-danger}",
+          "title": "System Connectivity Status",
+          "fields": [
+            {"title": "Target RTO", "value": "45m", "short": true},
+            {"title": "Target RPO", "value": "15m", "short": true},
+            {"title": "Strategy", "value": "Sovereign Root-of-Trust", "short": true},
+            {"title": "Host", "value": "$(hostname)", "short": true}
+          ],
+          "actions": [{"type": "button", "text": "View DR Runbook", "url": "${CI_PROJECT_URL}/-/blob/main/docs/DR_RUNBOOK.md"}]
+        }]
+      }
+      JSON
+      )
+      curl -X POST -H 'Content-type: application/json' --data "$PAYLOAD" $SLACK_WEBHOOK_URL
