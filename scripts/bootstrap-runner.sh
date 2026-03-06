@@ -29,10 +29,25 @@ fi
 mkdir -p "$WORKDIR"
 cd "$WORKDIR"
 
-ARCH=x64
+ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "x64")
 URL="https://github.com/actions/runner/releases/download/v${VERSION}/actions-runner-linux-${ARCH}-${VERSION}.tar.gz"
+
+download_with_retries() {
+    local url="$1" dest="$2" i
+    for i in 1 2 3; do
+        if curl -fsSL --retry 3 --retry-delay 2 "$url" -o "$dest"; then
+            return 0
+        fi
+        sleep $((i * 2))
+    done
+    return 1
+}
+
 echo "Downloading runner from $URL"
-curl -fsSL -o actions-runner.tar.gz "$URL"
+if ! download_with_retries "$URL" actions-runner.tar.gz; then
+    echo "Failed to download runner from $URL" >&2
+    exit 1
+fi
 tar xzf actions-runner.tar.gz
 
 echo "Configuring runner for https://github.com/${OWNER}/${REPO}"
