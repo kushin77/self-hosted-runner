@@ -12,10 +12,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker
+      - name: Set up Docker Buildx (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-buildx.sh
+          ci/scripts/setup-buildx.sh
+      - name: Set up Docker Buildx (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: docker/setup-buildx-action@v2
 
-      - name: Install kind
+      - name: Install kind (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-kind.sh
+          ci/scripts/setup-kind.sh v0.20.0
+      - name: Install kind (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: engineerd/setup-kind@v0.5.0
 
       - name: Create kind cluster
@@ -23,12 +35,24 @@ jobs:
           kind create cluster --name harbor-smoke --wait 120s
 
       - name: Setup kubectl
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-kubectl.sh
+          ci/scripts/setup-kubectl.sh 1.28.0
+      - name: Setup kubectl (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: azure/setup-kubectl@v3
 
       - name: Setup Helm
         uses: azure/setup-helm@v3
 
       - name: Setup Terraform
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-terraform.sh
+          ci/scripts/setup-terraform.sh 1.5.9
+      - name: Setup Terraform (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: hashicorp/setup-terraform@v2
 
       - name: Run Terraform wrapper (provision Postgres+Redis and create Harbor secrets)
