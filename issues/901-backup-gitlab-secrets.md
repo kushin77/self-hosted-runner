@@ -19,3 +19,7 @@ Security:
 Status: Closed
 
 Closure note: Backup and encryption automation implemented; simulated validation executed on 2026-03-06 (see `docs/DR_RUNBOOK.md`). Live restore/decrypt verification remains tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete.
+
+Post-validation update:
+- Identity-validated dry-run executed on 2026-03-06T18:32:07Z. Log: `/tmp/dr_dryrun_20260306T183202Z.log`.
+- Next step: verify encrypted backup objects in `ci-gcs-bucket` and run decrypt-integrity tests (requires `gcloud` reauth). See follow-ups in `issues/905-run-live-dr-dryrun.md`.
