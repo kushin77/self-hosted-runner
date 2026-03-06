@@ -29,9 +29,16 @@ on:
         default: false
   schedule:
     - cron: '0 3 * * *'
+  workflow_run:
+    workflows: ["Preflight Checks"]
+    types: [completed]
 
 jobs:
   deploy-rotation:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: deploy-rotation-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read
