@@ -34,8 +34,8 @@ jobs:
       - name: Run metadata validator
         run: |
           python3 scripts/generate_function_metadata.py --validate --output portal-artifact.json
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: portal-artifact
-          path: portal-artifact.json
+      - name: Upload portal artifact to MinIO
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
