@@ -11,7 +11,7 @@ jobs:
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node (self-hosted)
         if: contains(runner.labels, 'self-hosted')

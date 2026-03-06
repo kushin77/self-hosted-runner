@@ -22,7 +22,7 @@ jobs:
       cancel-in-progress: false
     runs-on: [self-hosted, linux]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install Python (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |

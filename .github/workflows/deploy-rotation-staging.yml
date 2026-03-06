@@ -48,7 +48,7 @@ jobs:
       ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Ensure AppRole credentials (use repo secrets or auto-provision with VAULT_ADMIN_TOKEN)
         id: approle_setup
