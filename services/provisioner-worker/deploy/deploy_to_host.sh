@@ -40,8 +40,14 @@ if [ "$METHOD" = "docker" ]; then
     echo "docker not found on target host" >&2
     exit 3
   fi
-  docker-compose -f docker-compose.yml pull --ignore-pull-failures || true
-  docker-compose -f docker-compose.yml up -d
+  # Use local wrapper to prefer modern `docker compose` when available
+  if [ -x "$REMOTE_DIR/scripts/bin/docker-compose" ]; then
+    DC="$REMOTE_DIR/scripts/bin/docker-compose"
+  else
+    DC=docker-compose
+  fi
+  $DC -f docker-compose.yml pull --ignore-pull-failures || true
+  $DC -f docker-compose.yml up -d
 else
   # systemd path
   if [ ! -f provisioner-worker.service ]; then
