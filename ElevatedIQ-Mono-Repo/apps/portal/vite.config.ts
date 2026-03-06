@@ -42,15 +42,8 @@ export default defineConfig({
         },
       },
     },
-    // Increase chunk size warning threshold (now 733 KB is huge)
+    // Chunk size warning thresholds
     chunkSizeWarningLimit: 300,
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
   },
   server: {
     // expose on all interfaces so remote hosts can connect (required for

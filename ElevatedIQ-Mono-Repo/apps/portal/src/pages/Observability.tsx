@@ -1,7 +1,9 @@
-import React from 'react';
-import { AdvancedAnalytics } from './Analytics';
+import React, { Suspense } from 'react';
 import { AlertsPanel } from '../components/Alerts';
 import { SystemStatus } from '../components/SystemStatus';
+
+// Lazy-load analytics (recharts heavy dependency) so it isn't bundled in the initial payload
+const AdvancedAnalytics = React.lazy(() => import('./Analytics').then((m) => ({ default: m.AdvancedAnalytics })));
 
 export const Observability: React.FC = () => {
   return (
@@ -15,7 +17,9 @@ export const Observability: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <AdvancedAnalytics />
+          <Suspense fallback={<div className="text-zinc-400">Loading analytics...</div>}>
+            <AdvancedAnalytics />
+          </Suspense>
         </div>
         <div className="space-y-6">
           <SystemStatus />
