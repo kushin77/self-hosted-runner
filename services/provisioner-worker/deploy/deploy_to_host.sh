@@ -25,7 +25,14 @@ if [ -d "$REMOTE_DIR/.git" ]; then
   sudo -u $(whoami) git checkout $BRANCH 2>/dev/null || sudo -u $(whoami) git checkout -B $BRANCH origin/$BRANCH || true
   sudo -u $(whoami) git pull --rebase origin $BRANCH || true
 else
-  sudo rm -rf $REMOTE_DIR || true
+  # Use guarded safe delete wrapper to avoid accidental mass-deletes
+  if [ -x "$PWD/../../scripts/safe_delete.sh" ]; then
+    echo "Using safe_delete wrapper for $REMOTE_DIR (dry-run)"
+    "$PWD/../../scripts/safe_delete.sh" --path "$REMOTE_DIR" --dry-run || true
+    # To actually perform delete in automation, callers must pass --confirm and --no-dry-run
+  else
+    echo "safe_delete wrapper not found; skipping destructive delete for safety"
+  fi
   sudo mkdir -p $REMOTE_DIR
   sudo chown $(whoami) $REMOTE_DIR
   git clone $REPO $REMOTE_DIR

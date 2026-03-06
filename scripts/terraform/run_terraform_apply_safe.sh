@@ -30,6 +30,14 @@ if ! command -v terraform >/dev/null 2>&1; then
   exit 2
 fi
 
+# Safety: require remote backend configured unless explicitly allowed
+if [ "${ALLOW_LOCAL_STATE:-false}" != "true" ]; then
+  if ! grep -R "backend \"s3\"" -n . >/dev/null 2>&1 && ! grep -R "backend \"azurerm\"" -n . >/dev/null 2>&1; then
+    echo "Error: No remote backend configured for Terraform. Set ALLOW_LOCAL_STATE=true to bypass (not recommended)." >&2
+    exit 3
+  fi
+fi
+
 # Determine plan file
 if [ -z "$PLAN_FILE" ]; then
   if [ -f "$DEFAULT_PLAN" ]; then

@@ -1,6 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# retry helper: retries command up to $RETRIES times with exponential backoff
+RETRIES=${RETRIES:-3}
+retry() {
+  local attempt=0
+  local delay=1
+  until "$@"; do
+    exit_code=$?
+    attempt=$((attempt+1))
+    if [ "$attempt" -ge "$RETRIES" ]; then
+      echo "Command failed after ${attempt} attempts: $*" >&2
+      return $exit_code
+    fi
+    echo "Command failed (attempt ${attempt}), retrying in ${delay}s..." >&2
+    sleep $delay
+    delay=$((delay * 2))
+  done
+  return 0
+}
+
 # Usage: upload.sh --file <path> --bucket <bucket> --object <key>
 FILE=""
 BUCKET=""
@@ -37,7 +56,7 @@ chmod +x "$INSTALLER"
 MC_BIN=${MC_BIN:-/usr/local/bin/mc}
 ALIAS_NAME=${MINIO_ALIAS:-ci-minio}
 
-${MC_BIN} alias set ${ALIAS_NAME} "${ENDPOINT}" "${ACCESS_KEY}" "${SECRET_KEY}" --api S3v4
-${MC_BIN} mb --ignore-existing ${ALIAS_NAME}/${BUCKET}
-${MC_BIN} cp "$FILE" ${ALIAS_NAME}/${BUCKET}/${OBJECT}
+retry ${MC_BIN} alias set ${ALIAS_NAME} "${ENDPOINT}" "${ACCESS_KEY}" "${SECRET_KEY}" --api S3v4
+retry ${MC_BIN} mb --ignore-existing ${ALIAS_NAME}/${BUCKET}
+retry ${MC_BIN} cp "$FILE" ${ALIAS_NAME}/${BUCKET}/${OBJECT}
 echo "Uploaded ${FILE} to ${ENDPOINT}/${BUCKET}/${OBJECT}"

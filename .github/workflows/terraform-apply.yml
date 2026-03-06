@@ -23,6 +23,22 @@ jobs:
           # Download the plan object named 'terraform-plan' into 'ci-runners-plan.out'
           scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan" --out ci-runners-plan.out
 
+      - name: Download terraform plan checksum from MinIO
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
+          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan.sha" --out ci-runners-plan.out.sha || true
+
+      - name: Verify terraform plan checksum
+        run: |
+          set -euo pipefail
+          if [ -f ci-runners-plan.out.sha ]; then
+            sha256sum -c ci-runners-plan.out.sha
+          else
+            echo "Warning: checksum file not found; aborting apply for safety" >&2
+            exit 2
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 

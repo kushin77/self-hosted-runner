@@ -11,6 +11,7 @@ EXEMPT = {
     'validate-manifests.yml',
     'auto-close-on-deploy-success.yml',
     'terraform-plan-ami.yml',
+    'workflow-audit.yml',  # PR-only audit workflow; no recursion/workflow_run trigger
 }
 
 KEYWORDS = ['workflow_run', 'workflow_call', 'needs:', 'concurrency:', 'on: workflow_run']
