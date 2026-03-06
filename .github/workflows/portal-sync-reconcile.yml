@@ -15,6 +15,11 @@ jobs:
       group: portal-sync-reconcile-${{ github.ref || github.run_id }}
       cancel-in-progress: false
     runs-on: [self-hosted, linux]
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+      MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +37,14 @@ jobs:
         run: |
           python3 scripts/reconcile_and_create_issues.py --create-issues --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name || github.repository }}
       - name: Upload portal artifact to MinIO
+        if: ${{ env.MINIO_ENDPOINT != '' }}
         run: |
           set -euo pipefail
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
+          scripts/minio/upload.sh --file portal-artifact.json --bucket "$MINIO_BUCKET" --object "portal-artifact-${{ github.run_id }}.json"
+      - name: Upload portal artifact (hosted fallback)
+        if: ${{ env.MINIO_ENDPOINT == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-artifact-${{ github.run_id }}
+          path: portal-artifact.json
