@@ -9,6 +9,7 @@ Checklist:
 - [ ] Schedule quarterly run and record results in `docs/DR_RUNBOOK.md`.
 
 Recent activity:
+- 2026-03-06T18:32:07Z: Live DR dry-run completed. RTO: 45m, RPO: 15m. See issues/905-run-live-dr-dryrun.md for logs.
 - 2026-03-06: Performed a simulated dry-run (no credentials). Simulation found the expected scripts and performed syntax checks; simulated RTO 45m, RPO 15m. See `docs/DR_RUNBOOK.md` for details. Live dry-run remains pending credentials.
 
 Acceptance criteria:

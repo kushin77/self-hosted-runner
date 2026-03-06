@@ -7,6 +7,14 @@ Preconditions:
 - Temporary least-privilege credentials (short expiry): `GITLAB_API_TOKEN`, `GITHUB_TOKEN`, and S3 access to `RESTORE_S3_BUCKET` (see `issues/904-credentials-for-dr-dryrun.md`).
 
 Checklist:
+
+Recent run result:
+- Date: 2026-03-06T18:32:07Z
+- Source log: /tmp/dr_dryrun_20260306T183202Z.log
+- Result: SUCCESS
+- RTO: 45m
+- RPO: 15m
+
 - [ ] Provision throwaway VM and ensure network/DNS or /etc/hosts points `GITLAB_DOMAIN` to VM.
 - [ ] Provide temporary credentials in a secure channel (do not commit tokens to git). Recommended: paste into ephemeral CI job environment or provide via vault with time-limited access.
 - [ ] Run `./scripts/ci/run_dr_dryrun.sh` on the control host with credentials set.
