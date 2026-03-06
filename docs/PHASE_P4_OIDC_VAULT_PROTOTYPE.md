@@ -15,11 +15,17 @@ Usage notes
   3. Call `get-runner-token.sh secret/data/ci/self-hosted/my-runner --vault-addr https://vault.example.com` to print the registration token.
   4. Run `rotate-runner.sh /opt/actions-runner https://github.com/owner/repo my-runner secret/data/ci/self-hosted/my-runner` to rotate.
 
+Vault policy example
+- See `docs/vault/runner_policy.hcl` for a minimal Vault policy granting read access to runner tokens under `secret/data/ci/self-hosted/*`.
+
+Terraform/user-data integration
+- See `terraform/examples/oidc_user_data.tpl` for a simple cloud-init/user-data template demonstrating how the prototype scripts can be used in instance bootstrap to obtain a token and register a runner.
+
 Security
 - Do NOT commit tokens to logs or VCS. The scripts attempt to avoid printing tokens; use environment-scoped retrieval and OS-level secret stores in production.
 - Vault must be configured with a proper role and policy that allows reading the KV secret. Provide example Vault policy in a follow-up.
 
 Next steps
-- Add example Vault role and policy snippets (in a follow-up PR).
-- Integrate these scripts into Terraform `user_data` for automated bootstrap.
-- Implement unit/integration tests and a CI workflow to exercise the prototype in staging.
+- Add Vault policy & role sample for common cloud providers (AWS/GCP/Azure) and example Terraform to create them.
+- Write integration tests to exercise the OIDC login path and secret retrieval against a staging Vault instance.
+- Hardening: add retries, backoff, and more robust error handling for production use.
