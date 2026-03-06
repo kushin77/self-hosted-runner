@@ -28,6 +28,9 @@ Required Actions
 2. Provide the short-lived registration token (`REG_TOKEN`) or apply a SealedSecret for `gitlab-runner-regtoken` in the `gitlab-runner` namespace.
 3. (Optional) If cluster fix will take time, provide permission to provision a local KinD/k3d cluster on this host for smoke-testing. This requires Docker and install permissions.
 
+Local test option added:
+- Repository now includes `scripts/ci/provision_kind_cluster.sh` and `scripts/ci/install_kubeseal_helper.sh` to provision a local KinD cluster and obtain `kubeseal` client for testing. See `infra/gitlab-runner/README.md` for usage.
+
 Suggested Next Steps (once unblocked)
 ------------------------------------
 - Apply the SealedSecret (preferred) or Secret (test-only)

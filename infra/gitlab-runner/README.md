@@ -51,3 +51,27 @@ Notes
 -----
 - Do NOT commit real tokens into Git. Use SealedSecrets or ExternalSecrets.
 - If cluster is unreachable, consider provisioning a local Kind/k3d cluster for testing.
+
+Local test cluster (KinD)
+-------------------------
+If you cannot reach the production cluster from this host, you can provision a local KinD cluster for smoke-testing. The repository contains a helper script:
+
+```bash
+./scripts/ci/provision_kind_cluster.sh gitlab-runner-test
+```
+
+Prerequisites: `docker` and `kind` installed. If `kubeseal` is required for SealedSecrets creation, use the helper below to download the client into `infra/tools`:
+
+```bash
+./scripts/ci/install_kubeseal_helper.sh 0.20.0
+export PATH="$PWD/infra/tools:$PATH"
+```
+
+Once the local cluster exists, apply the generated secret (see `scripts/ci/create_sealedsecret_from_token.sh`) and run the hands-off deploy:
+
+```bash
+kubectl apply -f infra/gitlab-runner/sealedsecret.generated.yaml
+./scripts/ci/hands_off_runner_deploy.sh
+```
+
+This creates an isolated test environment that mimics the production deployment in an ephemeral, immutable manner.
