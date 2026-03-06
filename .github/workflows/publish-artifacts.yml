@@ -1,0 +1,63 @@
+name: Publish artifacts and images to internal registry (manual)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    name: Build image and publish artifacts
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx (self-hosted)
+        run: |
+          chmod +x ci/scripts/setup-buildx.sh || true
+          ci/scripts/setup-buildx.sh || true
+
+      - name: Build Docker image
+        env:
+          REGISTRY: ${{ secrets.REGISTRY_URL }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/${{ github.repository }}:${{ github.sha }}"
+          docker build -t "$IMAGE" -f services/managed-auth/Dockerfile .
+
+      - name: Login to registry
+        env:
+          REGISTRY_URL: ${{ secrets.REGISTRY_URL }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+        run: |
+          chmod +x ci/scripts/login-registry.sh
+          ci/scripts/login-registry.sh
+
+      - name: Push image
+        env:
+          REGISTRY: ${{ secrets.REGISTRY_URL }}
+        run: |
+          set -euo pipefail
+          IMAGE="$REGISTRY/${{ github.repository }}:${{ github.sha }}"
+          docker push "$IMAGE"
+
+      - name: Package artifact
+        run: |
+          mkdir -p artifacts
+          tar -czf artifacts/${{ github.sha }}-services.tar.gz services/ || true
+
+      - name: Install mc (MinIO client)
+        run: |
+          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+
+      - name: Upload artifact to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          mc alias set minio "${MINIO_ENDPOINT}" "${MINIO_ACCESS_KEY}" "${MINIO_SECRET_KEY}" --api S3v4
+          mc mb --ignore-existing minio/ci-artifacts || true
+          mc cp artifacts/${{ github.sha }}-services.tar.gz minio/ci-artifacts/
