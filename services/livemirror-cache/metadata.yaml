@@ -1,0 +1,16 @@
+id: "cache/livemirror-cache:service"
+name: "LiveMirror Cache"
+repo_path: "services/livemirror-cache"
+owner: "team-cache"
+oncall: "oncall@cache.example.com"
+status: "alpha"
+description: "In-memory/local cache for live mirror operations to speed reads."
+completionPercent: 20
+tags: [cache, performance]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+last_updated: "2026-03-06T00:00:00Z"
