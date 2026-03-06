@@ -12,3 +12,7 @@ Checklist:
 
 Notes:
 - This complements issues/004-implement-restore-pipeline.md; use that issue as the parent for automation work.
+
+Status: Closed
+
+Closure note: Implementation artifacts (restore script, CI template, and automation) have been completed and a credential-less simulation was executed on 2026-03-06 (see `docs/DR_RUNBOOK.md` for simulated metrics). Live verification steps remain tracked in `issues/905-run-live-dr-dryrun.md`. Closing this issue as implementation complete and ready for operational validation.
