@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image:
+  repository: goharbor/harbor-core
+  tag: v2.6.0
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 200Gi
+
+resources: {}
+
+# Note: For production, prefer the official Helm chart and configure DB, Redis, TLS, and Trivy scanner.
