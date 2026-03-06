@@ -23,8 +23,9 @@ if [ -z "$STATUS" ]; then
   echo "No runner found; provisioning..."
   bash "$PROVISION_SCRIPT"
   # Notify if reprovision occurred
-  if [ -x "$(pwd)/scripts/notify_health.sh" ]; then
-    scripts/notify_health.sh "No runner found — reprovisioned org runner on $(hostname)"
+  NOTIFY_SCRIPT="${RUNNER_DIR}/scripts/notify_health.sh"
+  if [ -x "$NOTIFY_SCRIPT" ]; then
+    "$NOTIFY_SCRIPT" "No runner found — reprovisioned org runner on $(hostname)"
   fi
   exit 0
 fi
@@ -33,8 +34,9 @@ if [ "$STATUS" != "\"online\"" ] && [ "$STATUS" != "online" ]; then
   echo "Runner status: $STATUS — reprovisioning..."
   bash "$PROVISION_SCRIPT"
   # Notify if reprovision occurred
-  if [ -x "$(pwd)/scripts/notify_health.sh" ]; then
-    scripts/notify_health.sh "Runner offline ($STATUS) — reprovisioned org runner on $(hostname)"
+  NOTIFY_SCRIPT="${RUNNER_DIR}/scripts/notify_health.sh"
+  if [ -x "$NOTIFY_SCRIPT" ]; then
+    "$NOTIFY_SCRIPT" "Runner offline ($STATUS) — reprovisioned org runner on $(hostname)"
   fi
 else
   echo "Runner is online: $STATUS"
