@@ -14,14 +14,10 @@ on:
         description: 'SSH user for Ansible (when using private key)'
         required: false
         default: 'deploy'
-      gsm_provider:
-        description: 'GSM provider to fetch secrets from (gcp/vault/aws/none)'
+      vault_secret_path:
+        description: 'Vault secret path for deploy SSH private key (e.g., secret/data/runnercloud/deploy-ssh-key)'
         required: false
-        default: 'gcp'
-      gsm_secret_name:
-        description: 'Secret name/path in GSM containing the deploy SSH private key'
-        required: false
-        default: ''
+        default: 'secret/data/runnercloud/deploy-ssh-key'
       dry_run:
         description: 'Run in check mode (dry-run)?'
         required: false
@@ -35,35 +31,51 @@ jobs:
       contents: read
       id-token: write
     env:
-      # Path where fetched SSH key will be written if GSM is used
+      # Path where fetched SSH key will be written if Vault is used
       ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Fetch deploy SSH key from GCP Secret Manager (via OIDC)
-        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
-        uses: google-github-actions/auth@v1
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-
-      - name: Read SSH private key from GCP Secret Manager
-        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
-        id: get-secret
-        uses: google-github-actions/get-secretmanager-secret@v0
-        with:
-          secret: ${{ github.event.inputs.gsm_secret_name }}
-        env:
-          ANSIBLE_SSH_KEY_PATH: ${{ env.ANSIBLE_SSH_KEY_PATH }}
-      
-      - name: Write SSH key to file and set perms
-        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
+      - name: Fetch deploy SSH key from Vault (AppRole auth)
+        if: ${{ github.event.inputs.vault_secret_path != '' }}
         run: |
-          echo "Writing fetched SSH key to $ANSIBLE_SSH_KEY_PATH"
+          set -e
+          echo "Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
+          
+          # Authenticate using AppRole
+          VAULT_TOKEN=$(curl -s -X POST \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" \
+            -H "Content-Type: application/json" \
+            -d "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_SECRET_ID }}\"}" \
+            | jq -r '.auth.client_token')
+          
+          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+            echo "❌ Failed to authenticate to Vault"
+            exit 1
+          fi
+          
+          echo "✓ Vault authentication successful"
+          
+          # Fetch SSH key from Vault secret
+          SSH_KEY=$(curl -s -X GET \
+            "${{ secrets.VAULT_ADDR }}/v1/${{ github.event.inputs.vault_secret_path }}" \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            | jq -r '.data.data.private_key')
+          
+          if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
+            echo "❌ Failed to fetch SSH key from Vault at path: ${{ github.event.inputs.vault_secret_path }}"
+            exit 1
+          fi
+          
+          # Write SSH key to file with restricted permissions
           mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
-          echo "${{ steps.get-secret.outputs.secret }}" > "$ANSIBLE_SSH_KEY_PATH" || true
+          echo "$SSH_KEY" > "$ANSIBLE_SSH_KEY_PATH"
           chmod 600 "$ANSIBLE_SSH_KEY_PATH"
+          echo "✓ SSH key written to $ANSIBLE_SSH_KEY_PATH with mode 0600"
+          
+          # Wipe token from memory
+          unset VAULT_TOKEN
 
       - name: Set up Python for Ansible
         uses: actions/setup-python@v4
@@ -89,8 +101,8 @@ jobs:
           ansible-playbook \
             --syntax-check \
             --inventory="${{ github.event.inputs.inventory_file }}" \
-            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
-            -u "${{ github.event.inputs.ansible_user }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
             ansible/playbooks/deploy-rotation.yml
           echo "✅ Syntax check passed"
 
@@ -100,8 +112,8 @@ jobs:
           ansible-playbook \
             --check \
             --inventory="${{ github.event.inputs.inventory_file }}" \
-            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
-            -u "${{ github.event.inputs.ansible_user }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
             ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
             ansible/playbooks/deploy-rotation.yml
           echo "✅ Dry-run check completed"
@@ -111,8 +123,8 @@ jobs:
         run: |
           ansible-playbook \
             --inventory="${{ github.event.inputs.inventory_file }}" \
-            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
-            -u "${{ github.event.inputs.ansible_user }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
             ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
             --extra-vars="deploy_timestamp=$(date -Iseconds)" \
             ansible/playbooks/deploy-rotation.yml
@@ -124,7 +136,8 @@ jobs:
           ansible \
             --inventory="${{ github.event.inputs.inventory_file }}" \
             runners \
-            -u "${{ github.event.inputs.ansible_user }}" \
+            ${{ github.event.inputs.vault_secret_path != '' && format('--private-key={0}', env.ANSIBLE_SSH_KEY_PATH) || '' }} \
+            ${{ github.event.inputs.ansible_user != '' && format('-u {0}', github.event.inputs.ansible_user) || '' }} \
             -m command \
             -a "systemctl status vault-integration.service"
           echo "✅ Service status verified"
