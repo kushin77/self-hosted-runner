@@ -20,24 +20,27 @@
       loop:
         - "{{ install_dir }}"
         - "{{ config_dir }}"
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Copy vault-integration script (idempotent)
       copy:
-        src: ../../../scripts/automation/pmo/vault-integration.sh
+        src: ../../scripts/automation/pmo/vault-integration.sh
         dest: "{{ install_dir }}/vault-integration.sh"
         owner: root
         group: root
         mode: '0555'
         backup: yes
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Copy example rotation config if present (non-fatal)
       copy:
-        src: ../../../scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml
+        src: ../../scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml
         dest: "{{ install_dir }}/vault-rotation.yaml"
         owner: root
         group: root
         mode: '0440'
       ignore_errors: true
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Deploy tmpfiles.d config to create ephemeral runtime cache dir
       copy:
@@ -46,9 +49,11 @@
         owner: root
         group: root
         mode: '0644'
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Create runtime cache dir via systemd-tmpfiles
       command: systemd-tmpfiles --create {{ tmpfiles_conf }}
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: "Deploy systemd service unit (hardened: read-only paths, runtime dir)"
       template:
@@ -57,9 +62,11 @@
         owner: root
         group: root
         mode: '0644'
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Reload systemd manager configuration
       command: systemctl daemon-reload
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Ensure systemd runtime directory exists
       file:
@@ -68,12 +75,14 @@
         owner: root
         group: root
         mode: '0750'
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Enable and start vault integration service (idempotent)
       systemd:
         name: "{{ service_name }}.service"
         enabled: yes
         state: started
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
 
     - name: Make install files effectively immutable (remove world write)
       file:
@@ -82,3 +91,4 @@
         owner: root
         group: root
         mode: '0555'
+      when: not (hostvars[inventory_hostname].get('dev_skip_become', False) | bool)
