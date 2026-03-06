@@ -1,0 +1,25 @@
+name: MinIO Chart Smoke Test
+
+on:
+  pull_request:
+    paths:
+      - 'deploy/minio/**'
+      - '.github/workflows/minio-smoke.yml'
+
+jobs:
+  lint-and-template:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Helm lint
+        run: |
+          helm lint deploy/minio
+
+      - name: Helm template
+        run: |
+          helm template test-minio deploy/minio --values deploy/minio/values.yaml
