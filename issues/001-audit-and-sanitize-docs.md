@@ -19,7 +19,7 @@ Findings (scan run 2026-03-06):
 
 - Many docs already use placeholders (examples: `docs/VAULT_CI_SETUP.md`, `docs/VAULT_DEPLOY_WORKFLOW_SETUP.md`).
 - Tracked artifacts containing environment/test values remain and should be removed or redacted:
-	- `artifacts/test-logs/vault-integration-2026-03-05.log` (contains `VAULT_ROLE_ID=test-role-id`).
+	- `artifacts/test-logs/vault-integration-2026-03-05.log` (contained a test VAULT_ROLE_ID value — redacted in repo history).
 	- Files under `actions-runner/_work/` included runner workspace copies with concrete VAULT_ROLE_ID values (removed from index where detected).
 - Workflow templates and scripts correctly reference `VAULT_ROLE_ID`/`VAULT_SECRET_ID` as secrets (keep placeholders), but outputs or logs that capture those values must not be committed.
 
