@@ -67,6 +67,12 @@ variable "github_repo" {
   description = "GitHub repository name"
 }
 
+variable "ami_id" {
+  type        = string
+  description = "Optional AMI ID produced by Packer. If empty, the module will use the latest Ubuntu AMI."
+  default     = ""
+}
+
 # Data source: Latest Ubuntu 22.04 LTS AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
@@ -188,10 +194,14 @@ locals {
   }))
 }
 
+locals {
+  effective_ami = var.ami_id != "" ? var.ami_id : data.aws_ami.ubuntu.id
+}
+
 # Standard runner instances
 resource "aws_instance" "runners_standard" {
   count                       = ceil(var.runner_count / 2)
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = local.effective_ami
   instance_type               = var.instance_type_standard
   vpc_security_group_ids      = [aws_security_group.runners.id]
   subnet_id                   = var.subnet_ids[count.index % length(var.subnet_ids)]
@@ -221,7 +231,7 @@ resource "aws_instance" "runners_standard" {
 # High-memory runner instances
 resource "aws_instance" "runners_highmem" {
   count                       = var.runner_count - ceil(var.runner_count / 2)
-  ami                         = data.aws_ami.ubuntu.id
+  ami                         = local.effective_ami
   instance_type               = var.instance_type_highmem
   vpc_security_group_ids      = [aws_security_group.runners.id]
   subnet_id                   = var.subnet_ids[count.index % length(var.subnet_ids)]
