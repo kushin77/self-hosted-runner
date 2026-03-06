@@ -18,4 +18,5 @@ echo "Installing deploy public key to $TARGET..."
 ssh "$TARGET" "mkdir -p ~/.ssh && chmod 700 ~/.ssh && touch ~/.ssh/authorized_keys && grep -qxF \"$PUBKEY\" ~/.ssh/authorized_keys || echo \"$PUBKEY\" >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys"
 
 echo "Public key installed (or already present) on $TARGET."
-echo "You can now reply on Issue #787 with 'key-installed' and the cleanup will auto-trigger."
+
+echo "You can now reply on Issue #787 and I'll re-dispatch the legacy-node-cleanup workflow." 
