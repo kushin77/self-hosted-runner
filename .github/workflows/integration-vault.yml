@@ -1,0 +1,27 @@
+name: Integration - Vault
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - test/integration-vault
+
+jobs:
+  vault-integration:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start docker
+        uses: docker/setup-buildx-action@v2
+
+      - name: Ensure docker compose available
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker-compose
+
+      - name: Run integration tests
+        run: |
+          chmod +x tests/integration/run_vault_integration.sh
+          ./tests/integration/run_vault_integration.sh
