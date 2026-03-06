@@ -1,0 +1,51 @@
+name: Terraform Plan (consume Packer AMI)
+
+on:
+  workflow_run:
+    workflows: ["Packer AMI Build"]
+    types: [completed]
+
+jobs:
+  terraform-plan:
+    name: Terraform plan using Packer AMI
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: self-hosted
+    steps:
+      - name: Download AMI tfvars artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ami-tfvars
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        run: |
+          set -euo pipefail
+          TF_VER=1.5.7
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
+          terraform version
+
+      - name: Terraform init
+        working-directory: terraform
+        run: |
+          terraform init -backend=false
+
+      - name: Terraform plan (ci-runners)
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          # copy the ami.tfvars produced by packer-build artifact into place
+          cp ../terraform/packer-ami/ami.tfvars . || true
+          terraform plan -var-file=ami.tfvars -out=ci-runners-plan.out ./modules/ci-runners
+
+      - name: Upload terraform plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: terraform/ci-runners-plan.out
