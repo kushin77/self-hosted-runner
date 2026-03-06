@@ -10,6 +10,7 @@ OK: harbor-integration-smoke.yml
 OK: harbor-smoke.yml
 OK: minio-validate.yml
 OK: p2-vault-integration.yml
+OK: portal-ci.yml
 OK: portal-sync-reconcile.yml
 OK: portal-sync-validate.yml
 OK (exempt): preflight.yml
@@ -22,6 +23,6 @@ OK (exempt): terraform-plan-ami.yml
 OK (exempt): ts-check.yml
 OK (exempt): validate-manifests.yml
 OK (exempt): validate-node-lock.yml
-OK: workflow-audit.yml
+OK (exempt): workflow-audit.yml
 
 Report written to workflow-audit-report.txt
