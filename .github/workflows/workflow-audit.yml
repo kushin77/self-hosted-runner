@@ -13,6 +13,11 @@ jobs:
     concurrency:
       group: workflow-audit-${{ github.ref || github.run_id }}
       cancel-in-progress: false
+    env:
+      MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+      MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+      MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,8 +31,12 @@ jobs:
         run: |
           python3 .github/scripts/check_workflow_sequencing.py
 
-      - name: Upload report
-        if: always()
+      - name: Upload report (self-hosted → MinIO)
+        if: always() && env.MINIO_ENDPOINT != ''
+        run: bash ci/scripts/upload_to_minio.sh workflow-audit-report.txt
+
+      - name: Upload report (hosted fallback)
+        if: always() && env.MINIO_ENDPOINT == ''
         uses: actions/upload-artifact@v4
         with:
           name: workflow-audit-report
