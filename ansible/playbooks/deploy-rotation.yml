@@ -1,13 +1,16 @@
 ---
-name: Deploy Vault rotation daemon and integration
+- name: Deploy Vault rotation daemon and integration (immutable, idempotent, ephemeral)
 hosts: runners
 become: true
 vars:
-  install_dir: /opt/runner/integrations
+  # Install to a read-only location; runtime state will be placed under /run
+  install_dir: /usr/libexec/runner/integrations
   config_dir: /etc/runner
   service_name: vault-integration
+  runtime_cache_dir: /run/vault-credentials
+  tmpfiles_conf: /etc/tmpfiles.d/vault-integration.conf
 tasks:
-  - name: Ensure installation directories exist
+  - name: Ensure install and config directories exist (read-only after deploy)
     file:
       path: "{{ item }}"
       state: directory
@@ -18,24 +21,36 @@ tasks:
       - "{{ install_dir }}"
       - "{{ config_dir }}"
 
-  - name: Copy vault-integration script
+  - name: Copy vault-integration script (idempotent)
     copy:
       src: ../../../scripts/automation/pmo/vault-integration.sh
       dest: "{{ install_dir }}/vault-integration.sh"
       owner: root
       group: root
-      mode: '0755'
+      mode: '0555'
+      backup: yes
 
-  - name: Copy example rotation config if present
+  - name: Copy example rotation config if present (non-fatal)
     copy:
       src: ../../../scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml
       dest: "{{ install_dir }}/vault-rotation.yaml"
       owner: root
       group: root
-      mode: '0640'
+      mode: '0440'
     ignore_errors: true
 
-  - name: Deploy systemd service unit
+  - name: Deploy tmpfiles.d config to create ephemeral runtime cache dir
+    copy:
+      content: "{{ runtime_cache_dir }}    0750    root    root    -    -"
+      dest: "{{ tmpfiles_conf }}"
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Create runtime cache dir via systemd-tmpfiles
+    command: systemd-tmpfiles --create {{ tmpfiles_conf }}
+
+  - name: Deploy systemd service unit (hardened: read-only paths, runtime dir)
     template:
       src: ../templates/vault-integration.service.j2
       dest: /etc/systemd/system/{{ service_name }}.service
@@ -46,8 +61,24 @@ tasks:
   - name: Reload systemd manager configuration
     command: systemctl daemon-reload
 
-  - name: Enable and start vault integration service
+  - name: Ensure systemd runtime directory exists
+    file:
+      path: "/run/{{ service_name }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0750'
+
+  - name: Enable and start vault integration service (idempotent)
     systemd:
       name: "{{ service_name }}.service"
       enabled: yes
       state: started
+
+  - name: Make install files effectively immutable (remove world write)
+    file:
+      path: "{{ install_dir }}"
+      recurse: yes
+      owner: root
+      group: root
+      mode: '0555'
