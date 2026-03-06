@@ -9,6 +9,10 @@ on:
 jobs:
   portal-typescript:
     name: Portal TypeScript Check
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: portal-typescript-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4

@@ -13,6 +13,9 @@ permissions:
 jobs:
   provision:
     if: contains(github.event.comment.body, 'agent:run-provision')
+    concurrency:
+      group: agent-provision-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

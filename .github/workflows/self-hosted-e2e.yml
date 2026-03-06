@@ -7,10 +7,17 @@ on:
         description: 'Trigger mode: run or provision'
         required: false
         default: 'run'
+  workflow_run:
+    workflows: ["Preflight Checks"]
+    types: [completed]
 
 jobs:
   e2e:
     name: Run E2E on self-hosted runner
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: self-hosted-e2e-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: self-hosted
     environment: production
     steps:

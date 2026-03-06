@@ -4,6 +4,10 @@ on: [push, pull_request]
 jobs:
   validate-lockfile:
     name: Validate lockfile
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: validate-node-lock-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: [self-hosted, linux]
     steps:
       - name: Checkout
