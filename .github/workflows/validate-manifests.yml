@@ -33,6 +33,11 @@ jobs:
 
       - name: Upload report (self-hosted)
         if: contains(runner.labels, 'self-hosted')
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
         run: |
           set -euo pipefail
           chmod +x ci/scripts/upload_to_minio.sh
@@ -41,7 +46,7 @@ jobs:
           echo "Kubeconform report uploaded to: $URL"
 
       - name: Upload report (hosted fallback)
-        if: not(contains(runner.labels, 'self-hosted'))
+        if: "!contains(runner.labels, 'self-hosted')"
         uses: actions/upload-artifact@v4
         with:
           name: kubeconform-report
