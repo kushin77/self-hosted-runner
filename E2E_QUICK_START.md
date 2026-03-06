@@ -1,3 +1,54 @@
+# E2E Quick Start
+
+This quick-start gets you from zero to a validated hands-off deploy.
+
+Prereqs
+- Repository admin or maintainer permissions
+- `gh` CLI configured with an account that can set repository secrets
+
+Steps
+
+1. Add MinIO secrets (replace values):
+
+```bash
+gh secret set MINIO_ENDPOINT --body "https://minio.example.com" --repo kushin77/self-hosted-runner
+gh secret set MINIO_ACCESS_KEY --body "MINIOACCESS" --repo kushin77/self-hosted-runner
+gh secret set MINIO_SECRET_KEY --body "MINIOSECRET" --repo kushin77/self-hosted-runner
+gh secret set MINIO_BUCKET --body "github-actions-artifacts" --repo kushin77/self-hosted-runner
+```
+
+2. (Optional) Add `VAULT_ADMIN_TOKEN` to enable auto-provisioning:
+
+```bash
+gh secret set VAULT_ADMIN_TOKEN --body "s.XXX" --repo kushin77/self-hosted-runner
+```
+
+3. (Optional) Add `GITHUB_ADMIN_TOKEN` to allow workflows to persist generated secrets:
+
+```bash
+gh secret set GITHUB_ADMIN_TOKEN --body "ghp_XXX" --repo kushin77/self-hosted-runner
+```
+
+4. Ensure `deploy-approle` environment has required reviewers (Settings → Environments → deploy-approle).
+
+5. Trigger the E2E workflow (this will validate MinIO and, on success, dispatch the hands-off deploy):
+
+```bash
+gh workflow run e2e-validate.yml --repo kushin77/self-hosted-runner --field run_deploy=true
+gh run list --repo kushin77/self-hosted-runner --workflow=e2e-validate.yml
+gh run view <run-id> --repo kushin77/self-hosted-runner --log
+```
+
+Expected outcome
+- MinIO upload/download succeed (checksum verified)
+- `deploy-rotation-staging` workflow dispatched with `hands_off=true`
+- If environment approval is required, approve in the Actions UI to proceed with provisioning
+
+Troubleshooting
+- If the E2E step fails at "Validate required secrets", ensure `MINIO_*` secrets are present.
+- If MinIO upload fails, verify endpoint reachability and credentials.
+
+If you want me to persist secrets and run the E2E workflow, provide a minimal-scope `GITHUB_ADMIN_TOKEN` and the MinIO values; otherwise ask an admin to add the secrets and reply when done.
 # E2E Quick Start for Ops
 
 **Status**: ✅ Ready for provisioning (all automation complete)  
