@@ -16,7 +16,7 @@ runners:
   config: |
     [[runners]]
       name = "local-k8s-runner"
-      url = "https://gitlab.example.internal"
+      url = "https://gitlab.internal.elevatediq.com"
       executor = "kubernetes"
       [runners.kubernetes]
         namespace = "gitlab-runner"

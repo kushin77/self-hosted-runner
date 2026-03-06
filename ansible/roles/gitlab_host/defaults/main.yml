@@ -1,0 +1,4 @@
+---
+# Default variables for gitlab_host role
+gitlab_host_ip: ""
+gitlab_host_name: "gitlab.internal.elevatediq.com"
