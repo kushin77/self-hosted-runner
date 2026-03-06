@@ -1,0 +1,55 @@
+name: MinIO Artifact Smoke Test (GitHub-hosted Debug)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate-minio:
+    name: Validate MinIO upload/download (github-hosted, debug)
+    runs-on: ubuntu-latest
+    env:
+      ACTIONS_STEP_DEBUG: "true"
+      ACTIONS_RUNNER_DEBUG: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare test file
+        run: |
+          echo "minio-smoke-test-$(date -Iseconds)" > /tmp/minio-smoke.txt
+          sha256sum /tmp/minio-smoke.txt | awk '{print $1}' > /tmp/minio-smoke.sha
+
+      - name: Upload test object to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          OBJ="minio-smoke-${{ github.run_id }}.txt"
+          scripts/minio/upload.sh --file /tmp/minio-smoke.txt --bucket "$MINIO_BUCKET" --object "$OBJ"
+          echo "OBJECT=$OBJ" > /tmp/minio-smoke.meta
+
+      - name: Download test object from MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
+          OBJ=$(cat /tmp/minio-smoke.meta | sed -n 's/^OBJECT=//p')
+          scripts/minio/download.sh --bucket "$MINIO_BUCKET" --object "$OBJ" --out /tmp/minio-smoke-down.txt
+          sha256sum /tmp/minio-smoke-down.txt | awk '{print $1}' > /tmp/minio-smoke-down.sha
+
+      - name: Verify checksum
+        run: |
+          if cmp -s /tmp/minio-smoke.sha /tmp/minio-smoke-down.sha; then
+            echo "MinIO smoke test succeeded"
+          else
+            echo "MinIO smoke test failed: checksum mismatch" >&2
+            exit 2
+          fi
