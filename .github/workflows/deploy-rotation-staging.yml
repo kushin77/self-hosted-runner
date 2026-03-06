@@ -10,6 +10,18 @@ on:
       tags:
         description: 'Ansible tags to run (empty = all tasks)'
         required: false
+      ansible_user:
+        description: 'SSH user for Ansible (when using private key)'
+        required: false
+        default: 'deploy'
+      gsm_provider:
+        description: 'GSM provider to fetch secrets from (gcp/vault/aws/none)'
+        required: false
+        default: 'gcp'
+      gsm_secret_name:
+        description: 'Secret name/path in GSM containing the deploy SSH private key'
+        required: false
+        default: ''
       dry_run:
         description: 'Run in check mode (dry-run)?'
         required: false
@@ -22,9 +34,36 @@ jobs:
     permissions:
       contents: read
       id-token: write
+    env:
+      # Path where fetched SSH key will be written if GSM is used
+      ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Fetch deploy SSH key from GCP Secret Manager (via OIDC)
+        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - name: Read SSH private key from GCP Secret Manager
+        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
+        id: get-secret
+        uses: google-github-actions/get-secretmanager-secret@v0
+        with:
+          secret: ${{ github.event.inputs.gsm_secret_name }}
+        env:
+          ANSIBLE_SSH_KEY_PATH: ${{ env.ANSIBLE_SSH_KEY_PATH }}
+      
+      - name: Write SSH key to file and set perms
+        if: ${{ github.event.inputs.gsm_provider == 'gcp' && github.event.inputs.gsm_secret_name != '' }}
+        run: |
+          echo "Writing fetched SSH key to $ANSIBLE_SSH_KEY_PATH"
+          mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
+          echo "${{ steps.get-secret.outputs.secret }}" > "$ANSIBLE_SSH_KEY_PATH" || true
+          chmod 600 "$ANSIBLE_SSH_KEY_PATH"
 
       - name: Set up Python for Ansible
         uses: actions/setup-python@v4
@@ -50,6 +89,8 @@ jobs:
           ansible-playbook \
             --syntax-check \
             --inventory="${{ github.event.inputs.inventory_file }}" \
+            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
+            -u "${{ github.event.inputs.ansible_user }}" \
             ansible/playbooks/deploy-rotation.yml
           echo "✅ Syntax check passed"
 
@@ -59,6 +100,8 @@ jobs:
           ansible-playbook \
             --check \
             --inventory="${{ github.event.inputs.inventory_file }}" \
+            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
+            -u "${{ github.event.inputs.ansible_user }}" \
             ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
             ansible/playbooks/deploy-rotation.yml
           echo "✅ Dry-run check completed"
@@ -68,6 +111,8 @@ jobs:
         run: |
           ansible-playbook \
             --inventory="${{ github.event.inputs.inventory_file }}" \
+            --private-key="${{ env.ANSIBLE_SSH_KEY_PATH }}" \
+            -u "${{ github.event.inputs.ansible_user }}" \
             ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
             --extra-vars="deploy_timestamp=$(date -Iseconds)" \
             ansible/playbooks/deploy-rotation.yml
@@ -79,6 +124,7 @@ jobs:
           ansible \
             --inventory="${{ github.event.inputs.inventory_file }}" \
             runners \
+            -u "${{ github.event.inputs.ansible_user }}" \
             -m command \
             -a "systemctl status vault-integration.service"
           echo "✅ Service status verified"
