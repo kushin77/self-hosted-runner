@@ -29,6 +29,8 @@ Checklist
 Additional artifacts added:
 - `scripts/ci/create_sealedsecret_from_token.sh` — helper to generate a SealedSecret or plain Secret manifest from a registration token (keeps token out of VCS)
 - `infra/gitlab-runner/sealedsecret.example.yaml` — example SealedSecret manifest for reference
+- `scripts/ci/validate_runner_readiness.sh` — validator that checks kube connectivity and runner pod readiness
+- `scripts/ci/trigger_yamltest_pipeline.sh` — helper to trigger the validation pipeline once runner is available (requires GitLab API token)
 - [ ] Decommission legacy VM-based runners (after rollback window)
 
 Next steps (short-term)
