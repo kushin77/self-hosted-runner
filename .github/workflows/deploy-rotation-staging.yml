@@ -44,11 +44,14 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Ensure AppRole credentials (use repo secrets or auto-provision with VAULT_ADMIN_TOKEN)
+        id: approle_setup
         run: |
           set -euo pipefail
           # If repo secrets are already present, use them
-          if [ -n "${VAULT_ROLE_ID:-}" ] && [ -n "${VAULT_SECRET_ID:-}" ]; then
+          if [ -n "${VAULT_ROLE_ID_SECRET:-}" ] && [ -n "${VAULT_SECRET_ID_SECRET:-}" ]; then
             echo "Using existing VAULT_ROLE_ID/VAULT_SECRET_ID from secrets"
+            echo "role_id=$VAULT_ROLE_ID_SECRET" >> $GITHUB_OUTPUT
+            echo "secret_id=$VAULT_SECRET_ID_SECRET" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -61,42 +64,38 @@ jobs:
             scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
             ROLE_ID=$(jq -r .role_id /tmp/approle.json)
             SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
-            echo "VAULT_ROLE_ID=$ROLE_ID" >> $GITHUB_ENV
-            echo "VAULT_SECRET_ID=$SECRET_ID" >> $GITHUB_ENV
-            echo "AppRole created and credentials injected into environment"
+            echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
+            echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
+            echo "AppRole created and credentials set in outputs"
             exit 0
           fi
-
-          echo "No VAULT_ROLE_ID/VAULT_SECRET_ID and no VAULT_ADMIN_TOKEN available; proceeding but Vault steps will fail if required"
+        env:
+          VAULT_ROLE_ID_SECRET: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID_SECRET: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_ADMIN_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
 
       - name: Persist AppRole to repo secrets (hands-off)
-        if: ${{ github.event_inputs.hands_off == 'true' }}
+        if: ${{ github.event_inputs.hands_off == 'true' && steps.approle_setup.outputs.role_id != '' }}
         env:
           # Use GITHUB_ADMIN_TOKEN from secrets directly in the run context
           GITHUB_TOKEN: ${{ secrets.GITHUB_ADMIN_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -f /tmp/approle.json ]; then
-            chmod +x scripts/ci/persist-secret.sh
-            ROLE_ID=$(jq -r .role_id /tmp/approle.json)
-            SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
-            scripts/ci/persist-secret.sh VAULT_ROLE_ID "$ROLE_ID"
-            scripts/ci/persist-secret.sh VAULT_SECRET_ID "$SECRET_ID"
-          else
-            echo "No /tmp/approle.json present; nothing to persist"
-          fi
+          chmod +x scripts/ci/persist-secret.sh
+          scripts/ci/persist-secret.sh VAULT_ROLE_ID "${{ steps.approle_setup.outputs.role_id }}"
+          scripts/ci/persist-secret.sh VAULT_SECRET_ID "${{ steps.approle_setup.outputs.secret_id }}"
 
       - name: Fetch deploy SSH key from Vault (AppRole auth)
         if: ${{ github.event.inputs.vault_secret_path != '' }}
         env:
-          VAULT_ROLE_ID: ${{ env.VAULT_ROLE_ID }}
-          VAULT_SECRET_ID: ${{ env.VAULT_SECRET_ID }}
+          VAULT_ROLE_ID: ${{ steps.approle_setup.outputs.role_id }}
+          VAULT_SECRET_ID: ${{ steps.approle_setup.outputs.secret_id }}
         run: |
           set -e
           echo "Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
 
-          ROLE_ID="${VAULT_ROLE_ID:-${{ secrets.VAULT_ROLE_ID || '' }}}"
-          SECRET_ID="${VAULT_SECRET_ID:-${{ secrets.VAULT_SECRET_ID || '' }}}"
+          ROLE_ID="${VAULT_ROLE_ID}"
+          SECRET_ID="${VAULT_SECRET_ID}"
 
           if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
             echo "❌ AppRole credentials not available." 
