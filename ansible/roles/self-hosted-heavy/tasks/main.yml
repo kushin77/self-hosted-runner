@@ -116,3 +116,46 @@
     - /usr/local/bin/helm
     - /usr/local/bin/terraform
   become: true
+
+- name: Register GitHub Actions runner (optional)
+  block:
+    - name: Ensure runner directory exists
+      file:
+        path: /opt/actions-runner
+        state: directory
+        owner: "{{ runner_user }}"
+        mode: '0755'
+
+    - name: Download actions runner archive
+      get_url:
+        url: "https://github.com/actions/runner/releases/download/{{ github_runner_version }}/actions-runner-linux-x64-{{ github_runner_version }}.tar.gz"
+        dest: /tmp/actions-runner.tar.gz
+
+    - name: Extract actions runner
+      unarchive:
+        src: /tmp/actions-runner.tar.gz
+        dest: /opt/actions-runner
+        remote_src: yes
+
+    - name: Configure the runner (uses provided token)
+      become: true
+      become_user: "{{ runner_user }}"
+      command: >-
+        /opt/actions-runner/config.sh --unattended --url {{ github_runner_url }} --token {{ github_runner_token }} --name {{ inventory_hostname }} --labels self-hosted,linux,self-hosted-heavy --work _work
+      args:
+        creates: /opt/actions-runner/.runner
+
+    - name: Install systemd service for runner
+      template:
+        src: actions.runner.service.j2
+        dest: /etc/systemd/system/actions.runner.{{ inventory_hostname }}.service
+        mode: '0644'
+
+    - name: Reload systemd and start runner service
+      systemd:
+        daemon_reload: yes
+        name: actions.runner.{{ inventory_hostname }}.service
+        enabled: yes
+        state: started
+  when: github_runner_token is defined and github_runner_token != ''
+  become: true

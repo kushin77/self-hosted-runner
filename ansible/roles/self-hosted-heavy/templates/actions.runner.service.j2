@@ -1,0 +1,13 @@
+[Unit]
+Description=GitHub Actions Runner ({{ inventory_hostname }})
+After=network.target
+
+[Service]
+User={{ runner_user }}
+WorkingDirectory=/opt/actions-runner
+ExecStart=/opt/actions-runner/run.sh
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
