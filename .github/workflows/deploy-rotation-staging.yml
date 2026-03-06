@@ -3,6 +3,10 @@ name: Deploy Rotation Automation to Staging
 on:
   workflow_dispatch:
     inputs:
+      hands_off:
+        description: 'Enable hands-off persistence? (true/false)'
+        required: false
+        default: 'false'
       inventory_file:
         description: 'Path to Ansible inventory file (relative to repo root)'
         required: true
