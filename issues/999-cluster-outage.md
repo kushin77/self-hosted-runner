@@ -31,6 +31,9 @@ Required Actions
 Local test option added:
 - Repository now includes `scripts/ci/provision_kind_cluster.sh` and `scripts/ci/install_kubeseal_helper.sh` to provision a local KinD cluster and obtain `kubeseal` client for testing. See `infra/gitlab-runner/README.md` for usage.
 
+GitLab CI deploy option:
+- A protected, manual GitLab CI job is available to perform the hands-off deploy from GitLab directly: include `.gitlab/ci-includes/runner-deploy.gitlab-ci.yml` and set protected variables `KUBECONFIG_BASE64` and `REG_TOKEN` in the group or project CI settings. This avoids sharing secrets with local hosts and enables fully automated, secrets-safe deployment.
+
 Suggested Next Steps (once unblocked)
 ------------------------------------
 - Apply the SealedSecret (preferred) or Secret (test-only)
