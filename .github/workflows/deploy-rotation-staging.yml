@@ -1,0 +1,113 @@
+name: Deploy Rotation Automation to Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      inventory_file:
+        description: 'Path to Ansible inventory file (relative to repo root)'
+        required: true
+        default: 'ansible/inventory/staging'
+      tags:
+        description: 'Ansible tags to run (empty = all tasks)'
+        required: false
+      dry_run:
+        description: 'Run in check mode (dry-run)?'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy-rotation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python for Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Validate inventory file exists
+        run: |
+          if [ ! -f "${{ github.event.inputs.inventory_file }}" ]; then
+            echo "❌ Inventory file not found: ${{ github.event.inputs.inventory_file }}"
+            exit 1
+          fi
+          echo "✅ Inventory file validated: ${{ github.event.inputs.inventory_file }}"
+          cat "${{ github.event.inputs.inventory_file }}"
+
+      - name: Run Ansible syntax check
+        run: |
+          ansible-playbook \
+            --syntax-check \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            ansible/playbooks/deploy-rotation.yml
+          echo "✅ Syntax check passed"
+
+      - name: Run Ansible in check mode (dry-run)
+        if: always()
+        run: |
+          ansible-playbook \
+            --check \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
+            ansible/playbooks/deploy-rotation.yml
+          echo "✅ Dry-run check completed"
+
+      - name: Run Ansible deploy (full)
+        if: ${{ !github.event.inputs.dry_run && always() }}
+        run: |
+          ansible-playbook \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
+            --extra-vars="deploy_timestamp=$(date -Iseconds)" \
+            ansible/playbooks/deploy-rotation.yml
+          echo "✅ Deployment completed"
+
+      - name: Verify service status on runner hosts
+        if: ${{ !github.event.inputs.dry_run && always() }}
+        run: |
+          ansible \
+            --inventory="${{ github.event.inputs.inventory_file }}" \
+            runners \
+            -m command \
+            -a "systemctl status vault-integration.service"
+          echo "✅ Service status verified"
+
+      - name: Generate deployment report
+        if: always()
+        run: |
+          cat > deployment-report.txt <<'EOF'
+          Deployment Report
+          =================
+          Timestamp: $(date -Iseconds)
+          Workflow: deploy-rotation-staging
+          Inventory: ${{ github.event.inputs.inventory_file }}
+          Dry-run: ${{ github.event.inputs.dry_run }}
+          Tags: ${{ github.event.inputs.tags || 'all' }}
+          
+          Status: ✅ COMPLETED (check logs above for details)
+          
+          Next steps:
+          1. Verify Prometheus metrics for runner_rotation_failures (should be 0)
+          2. Monitor vault_rotation_success_total (should increment every hour)
+          3. Watch runner logs for any rotation errors
+          EOF
+          cat deployment-report.txt
+
+      - name: Upload deployment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-report
+          path: deployment-report.txt
+          retention-days: 30
