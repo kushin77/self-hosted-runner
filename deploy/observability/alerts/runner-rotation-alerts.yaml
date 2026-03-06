@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: runner-rotation-alerts
+  labels:
+    role: monitoring
+spec:
+  groups:
+  - name: runner-rotation.rules
+    rules:
+    - alert: RunnerRotationFailures
+      expr: runner_rotation_failures_total > 0
+      for: 5m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Runner rotation failures detected"
+        description: "One or more self-hosted runner rotation failures detected ({{ $value }}). Check auto-rotate logs and Vault connectivity."
