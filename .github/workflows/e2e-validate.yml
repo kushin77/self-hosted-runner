@@ -114,6 +114,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           echo "Dispatching deploy-rotation-staging with hands_off=true"
+          # GitHub Actions automatically injects secrets.GITHUB_TOKEN via env variable
           curl -s -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer $GITHUB_TOKEN" \

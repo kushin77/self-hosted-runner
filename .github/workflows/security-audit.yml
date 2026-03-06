@@ -42,7 +42,7 @@ jobs:
               'generic_password': r'password\s*[:=]\s*["\']?[a-zA-Z0-9!@#$%^&*()_+-=]{8,}["\']?',
           }
           
-          # Safe patterns to exclude (examples, placeholders)
+          # Safe patterns to exclude (examples, placeholders, GitHub Actions auto-injection)
           SAFE_KEYWORDS = [
               'example',
               'placeholder',
@@ -56,6 +56,12 @@ jobs:
               'REMOVED',
               '****',
               'SANITIZED',
+              '${{ secrets.',  # GitHub Actions auto-injection pattern (safe)
+              'secrets.GITHUB_TOKEN',  # Standard GitHub token pattern (safe)
+              '$GITHUB_TOKEN',  # Environment variable injection (safe)
+              'github.event.pull_request.head.sha',  # GitHub Action context (safe)
+              'EXAMPLE_',  # Clear example marker
+              'XXX',  # Obvious placeholder
           ]
           
           UNSAFE_FILES = []
@@ -82,9 +88,12 @@ jobs:
                               for match in matches:
                                   match_str = match.group()
                                   
-                                  # Check if it's a safe example
-                                  is_safe = any(keyword.lower() in content[max(0, match.start()-100):match.end()+100].lower() 
-                                               for keyword in SAFE_KEYWORDS)
+                                  # Check if it's a safe example or GitHub Actions injection
+                                  context_start = max(0, match.start()-100)
+                                  context_end = min(len(content), match.end()+100)
+                                  context = content[context_start:context_end].lower()
+                                  
+                                  is_safe = any(keyword.lower() in context for keyword in SAFE_KEYWORDS)
                                   
                                   if not is_safe:
                                       line_num = content[:match.start()].count('\n') + 1

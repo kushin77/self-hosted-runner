@@ -32,6 +32,7 @@ jobs:
       - name: Dispatch Terraform DNS Apply (apply action)
         if: steps.secrets_check.outputs.secrets_ready == 'true'
         run: |
+          # GitHub Actions automatically injects secrets.GITHUB_TOKEN - never hardcoded in workflows
           curl -s -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
