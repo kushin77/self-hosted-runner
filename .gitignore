@@ -21,3 +21,4 @@ actions-runner/
 .venv*/
 .venv/
 services/*/.venv*
+artifacts/test-logs/
