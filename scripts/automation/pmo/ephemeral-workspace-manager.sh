@@ -23,6 +23,11 @@ log() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# safe_delete resolver (used for purging overlays)
+SAFE_DELETE="$(pwd)/scripts/safe_delete.sh"
+if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../../scripts/safe_delete.sh"; fi
+if [ ! -x "$SAFE_DELETE" ]; then SAFE_DELETE="$(dirname "$0")/../scripts/safe_delete.sh"; fi
+
 error() {
   echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $*" >&2
   exit 1
@@ -131,7 +136,11 @@ cleanup_job_workspace() {
   
   # Step 4: Atomic purge with verification
   log "  → Purging job workspace..."
-  rm -rf "$JOB_OVERLAY" 2>/dev/null || error "Failed to remove overlay directory"
+  if [ -x "$SAFE_DELETE" ]; then
+    "$SAFE_DELETE" --path "$JOB_OVERLAY" --confirm --no-dry-run || error "Failed to remove overlay directory"
+  else
+    rm -rf "$JOB_OVERLAY" 2>/dev/null || error "Failed to remove overlay directory"
+  fi
   
   # Verify cleanup
   if [ -d "$JOB_OVERLAY" ]; then

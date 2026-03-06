@@ -1,0 +1,30 @@
+name: Portal CI
+
+on:
+  push:
+    paths:
+      - 'apps/portal/**'
+  pull_request:
+    paths:
+      - 'apps/portal/**'
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux]
+    concurrency:
+      group: portal-ci-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install deps
+        working-directory: apps/portal/server
+        run: npm ci
+      - name: Run lint/test (none included)
+        run: echo "No tests configured"
+      - name: Build docker image (CI only, not published)
+        run: |
+          docker build -t portal-local:ci apps/portal
