@@ -37,17 +37,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Auto-provision AppRole if missing (requires VAULT_ADMIN_TOKEN)
+        if: ${{ !secrets.VAULT_ROLE_ID || !secrets.VAULT_SECRET_ID }}
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "AppRole not present in repo secrets; attempting auto-provision using VAULT_ADMIN_TOKEN"
+          chmod +x scripts/ci/setup-approle.sh
+          scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
+          cat /tmp/approle.json
+          ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+          SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+          echo "VAULT_ROLE_ID=$ROLE_ID" >> $GITHUB_ENV
+          echo "VAULT_SECRET_ID=$SECRET_ID" >> $GITHUB_ENV
+
       - name: Fetch deploy SSH key from Vault (AppRole auth)
         if: ${{ github.event.inputs.vault_secret_path != '' }}
         run: |
           set -e
           echo "Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
-          
+
+          ROLE_ID="${VAULT_ROLE_ID:-${{ secrets.VAULT_ROLE_ID }}}"
+          SECRET_ID="${VAULT_SECRET_ID:-${{ secrets.VAULT_SECRET_ID }}}"
+
+          if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
+            echo "❌ AppRole credentials not available. Ensure repository secrets VAULT_ROLE_ID/VAULT_SECRET_ID are set or enable auto-provisioning via VAULT_ADMIN_TOKEN." 
+            exit 1
+          fi
+
           # Authenticate using AppRole
           VAULT_TOKEN=$(curl -s -X POST \
             "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" \
             -H "Content-Type: application/json" \
-            -d "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_SECRET_ID }}\"}" \
+            -d "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}" \
             | jq -r '.auth.client_token')
           
           if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
