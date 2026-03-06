@@ -141,7 +141,8 @@ if [ -z "$SECRET_ID" ] || [ "$SECRET_ID" = "null" ]; then
   exit 1
 fi
 
-echo "{\"role_id\": \"$ROLE_ID\", \"secret_id\": \"$SECRET_ID\", \"policy\": \"$POLICY_NAME\", \"role\": \"$ROLE_NAME\" }" | tee /dev/stderr
+# Output result JSON to stdout only. Do not duplicate secrets to stderr/logs.
+printf '%s\n' "{\"role_id\": \"$ROLE_ID\", \"secret_id\": \"$SECRET_ID\", \"policy\": \"$POLICY_NAME\", \"role\": \"$ROLE_NAME\" }"
 
 if [ -n "$OUTPUT_FILE" ]; then
   printf '%s' "{\"role_id\": \"$ROLE_ID\", \"secret_id\": \"$SECRET_ID\"}\n" > "$OUTPUT_FILE"
