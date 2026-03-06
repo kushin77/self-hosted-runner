@@ -5,7 +5,7 @@ You can obtain `GITHUB_TOKEN` from GSM using `scripts/load_gsm_secrets.sh`.
 
 Usage:
     # Set the `GITHUB_TOKEN` environment variable before running, for example:
-    # export GITHUB_TOKEN=REDACTED
+    # export GITHUB_TOKEN (redacted)
     # Then run: REPO=owner/repo python3 scripts/manage_github_issues.py create
     # Or to close: REPO=owner/repo python3 scripts/manage_github_issues.py close --title "Issue Title"
 
