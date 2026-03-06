@@ -21,7 +21,13 @@ jobs:
         if: not(contains(runner.labels, 'self-hosted'))
         uses: docker/setup-buildx-action@v2
 
-      - name: Install kind
+      - name: Install kind (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-kind.sh
+          ci/scripts/setup-kind.sh v0.20.0
+      - name: Install kind (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: engineerd/setup-kind@v0.5.0
 
       - name: Create kind cluster
