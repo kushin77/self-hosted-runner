@@ -1,0 +1,7 @@
+---
+# Default versions for runner tooling
+runner_user: runner
+kind_version: v0.20.0
+kubectl_release: v1.29.0
+helm_version: v3.12.3
+terraform_version: 1.14.6

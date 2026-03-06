@@ -1,0 +1,8 @@
+---
+- name: Prepare self-hosted-heavy runner hosts
+  hosts: runners
+  become: true
+  vars:
+    runner_user: runner
+  roles:
+    - role: ../roles/self-hosted-heavy

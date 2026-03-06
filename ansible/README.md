@@ -1,3 +1,16 @@
+Ansible runner setup
+=====================
+
+This folder contains an opinionated Ansible playbook and role to prepare hosts for running `self-hosted-heavy` GitHub Actions workloads.
+
+Files
+- `playbooks/setup-self-hosted-heavy.yml` — playbook to apply the `self-hosted-heavy` role to hosts in the `runners` group.
+- `roles/self-hosted-heavy/` — role that installs Docker, kind, kubectl, Helm, Terraform, and `gh`.
+
+Workflow
+1. Create an inventory listing the runner hosts under group `runners`.
+2. Run the playbook with `ansible-playbook -i inventory.ini ansible/playbooks/setup-self-hosted-heavy.yml`.
+3. Register the GitHub Actions runner on each host and add labels: `self-hosted`, `linux`, `self-hosted-heavy`.
 Ansible playbooks for provisioning self-hosted GitHub Actions runners
 
 Quickstart
