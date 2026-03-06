@@ -1,0 +1,17 @@
+id: "ai/ai-oracle:service"
+name: "AI Oracle"
+repo_path: "services/ai-oracle"
+owner: "team-ai"
+oncall: "oncall@ai.example.com"
+status: "alpha"
+description: "AI inference and prompt orchestration service for the platform."
+completionPercent: 20
+tags: [ai, inference]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+  latency_ms: null
+last_updated: "2026-03-06T00:00:00Z"
