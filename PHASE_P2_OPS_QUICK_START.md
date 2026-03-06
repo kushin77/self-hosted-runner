@@ -42,8 +42,8 @@ ssh user@prod-host
 sudo apt-get install nodejs npm docker.io
 
 # Export app vaultAppRole credentials
-export VAULT_ROLE_ID="<from-vault>"
-export VAULT_SECRET_ID="<from-vault>"
+export VAULT_ROLE_ID="<VAULT_ROLE_ID_PLACEHOLDER>"
+export VAULT_SECRET_ID="<VAULT_SECRET_ID_PLACEHOLDER>"
 export VAULT_ADDR="https://vault.example.com"
 export PROVISIONER_REDIS_URL="redis://redis-host:6379"
 ```
