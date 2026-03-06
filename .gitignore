@@ -15,3 +15,9 @@ terraform/examples/**/.terraform/
 actions-runner-*/externals/
 actions-runner/
 /tmp/
+
+# Ignore local virtualenvs
+.venv-ansible/
+.venv*/
+.venv/
+services/*/.venv*

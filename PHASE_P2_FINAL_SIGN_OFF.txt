@@ -26,7 +26,7 @@ ENVIRONMENT: Production (192.168.168.42) + Vault (127.0.0.1:8200)
 
 ✅ VAULT INTEGRATION
    - AppRole created and credentials generated
-   - VAULT_ROLE_ID: 3df2e4bdb7d5ee2005ea65ccbc5d32f3
+  - VAULT_ROLE_ID: <VAULT_ROLE_ID_PLACEHOLDER>
    - Secret ID: Securely deployed (/home/akushnir/.vault/secret-id, perms: 600)
    - Token TTL: 1-4 hours (configurable)
    - Secret rotation: Framework in place (vault-integration.sh)

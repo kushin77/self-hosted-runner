@@ -32,8 +32,8 @@
 
 ### AppRole Credentials Generated & Deployed
 ```
-VAULT_ROLE_ID:       3df2e4bdb7d5ee2005ea65ccbc5d32f3
-VAULT_SECRET_ID:     17ac8967947cb8db41ae4ed45a346bcdc85a48174de1cd1db97b78a259062b38
+VAULT_ROLE_ID:       <VAULT_ROLE_ID_PLACEHOLDER>
+VAULT_SECRET_ID:     <VAULT_SECRET_ID_PLACEHOLDER>
 VAULT_ADDR:          http://127.0.0.1:8200
 SECRET_ID_LOCATION:  /home/akushnir/.vault/secret-id (on 192.168.168.42)
 ```
@@ -87,7 +87,7 @@ SECRET_ID_LOCATION:  /home/akushnir/.vault/secret-id (on 192.168.168.42)
 1. **Vault Service Restart** (optional, for manual testing):
    ```bash
    ssh akushnir@192.168.168.42
-   export VAULT_ROLE_ID=3df2e4bdb7d5ee2005ea65ccbc5d32f3
+   export VAULT_ROLE_ID=<VAULT_ROLE_ID_PLACEHOLDER>
    export VAULT_SECRET_ID_PATH=/home/akushnir/.vault/secret-id
    cd /home/akushnir/prod-deployment/services/managed-auth
    pkill -f "node index.js" || true
