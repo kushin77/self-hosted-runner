@@ -37,8 +37,8 @@ Set the following environment variables on the worker container or host:
 
 ```sh
 VAULT_ADDR=https://vault.example.com
-VAULT_ROLE_ID=<role-id>
-VAULT_SECRET_ID=<secret-id>   # mount via secret manager, not in plain env
+VAULT_ROLE_ID=<VAULT_ROLE_ID_PLACEHOLDER>
+VAULT_SECRET_ID=<VAULT_SECRET_ID_PLACEHOLDER>   # mount via secret manager, not in plain env
 USE_TERRAFORM_CLI=1
 JOBSTORE_PERSIST=1           # can be 0 if using redis queue only
 JOBSTORE_FILE=/var/lib/provisioner-worker/jobstore.json
