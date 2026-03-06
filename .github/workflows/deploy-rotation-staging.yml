@@ -23,6 +23,8 @@ on:
         required: false
         type: boolean
         default: false
+  schedule:
+    - cron: '0 3 * * *'
 
 jobs:
   deploy-rotation:
