@@ -1,0 +1,8 @@
+# /etc/default/rotate-runners
+# Example environment variables for rotation service
+# Set DRY=1 for testing to avoid changing runners
+DRY=1
+# Set VAULT_ADDR to your Vault address
+VAULT_ADDR=https://vault.staging.example.com
+# Optionally override TEXTFILE_DIR if using different node_exporter configuration
+TEXTFILE_DIR=/var/lib/node_exporter/textfile_collector

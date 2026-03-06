@@ -1,0 +1,3 @@
+# Example rotation.conf
+# Format: <runner_dir>,<repo_url>,<runner_name>,<vault_secret_path>
+/opt/actions-runner,https://github.com/owner/repo,staging-runner,secret/data/ci/self-hosted/staging-runner

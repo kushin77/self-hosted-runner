@@ -1,0 +1,69 @@
+---
+- name: Deploy runner rotation automation to staging hosts
+  hosts: runners_staging
+  become: yes
+  vars:
+    rotation_script_src: scripts/ci/auto_rotate_runners.sh
+    rotation_service_template: scripts/ci/rotate-runner.service.template
+    rotation_timer_template: scripts/ci/rotate-runner.timer.template
+    rotation_conf_dest: /etc/actions-runner/rotation.conf
+    rotation_defaults_dest: /etc/default/rotate-runners
+    textfile_dir: /var/lib/node_exporter/textfile_collector
+  tasks:
+    - name: Ensure textfile collector dir exists
+      file:
+        path: "{{ textfile_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install auto-rotate script
+      copy:
+        src: "{{ rotation_script_src }}"
+        dest: /usr/local/bin/auto_rotate_runners.sh
+        mode: '0755'
+
+    - name: Copy service template
+      template:
+        src: "{{ rotation_service_template }}"
+        dest: /etc/systemd/system/auto-rotate-runners.service
+        mode: '0644'
+
+    - name: Copy timer template
+      template:
+        src: "{{ rotation_timer_template }}"
+        dest: /etc/systemd/system/auto-rotate-runners.timer
+        mode: '0644'
+
+    - name: Install example rotation.conf
+      copy:
+        src: ansible/roles/rotation/files/rotation.conf.example
+        dest: "{{ rotation_conf_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Install defaults file (set DRY=1 to test)
+      copy:
+        src: ansible/roles/rotation/files/rotate-runners.defaults
+        dest: "{{ rotation_defaults_dest }}"
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Reload systemd and enable timer
+      systemd:
+        daemon_reload: yes
+        name: auto-rotate-runners.timer
+        enabled: yes
+        state: started
+
+    - name: Show last run log
+      command: journalctl -u auto-rotate-runners.service --no-pager -n 50
+      register: journal_output
+      failed_when: false
+
+    - name: Print journal snippet
+      debug:
+        var: journal_output.stdout_lines
