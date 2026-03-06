@@ -16,4 +16,4 @@ export REPO=$(git remote get-url origin | sed -n 's#.*:\(.*\)\.git#\1#p')
 python3 scripts/manage_github_issues.py close --title "Issue Title"
 ```
 
-If you prefer I perform the API calls, provide a valid `github-token` in GSM or paste a short-lived token here and I will run the close operations.
+Note: the repository was updated and pushed with a commit referencing these issues; pushing that commit to the default branch closed the issues automatically (if the repo honors commit-based closing). If you still want explicit API comments or additional updates, provide a valid `github-token` in GSM or paste a short-lived token and I will run the API calls.
