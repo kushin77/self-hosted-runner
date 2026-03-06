@@ -1,0 +1,32 @@
+name: Auto-close dependent issues on successful deploy
+
+on:
+  workflow_run:
+    workflows:
+      - .github/workflows/deploy-immutable-ephemeral.yml
+      - .github/workflows/deploy-rotation-staging.yml
+    types: [completed]
+
+jobs:
+  close-issues:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close dependent issues and post run links
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const runUrl = run.html_url || run.url;
+            const issuesToClose = [710, 711, 756, 768, 773];
+            const body = `Automated: deploy workflow **${run.name}** (run #${run.run_number}) succeeded. See details: ${runUrl}\n\nClosing dependent issues as part of CI/CD sovereignty completion.`;
+            for (const num of issuesToClose) {
+              try {
+                await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: num, body});
+                await github.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: num, state: 'closed'});
+              } catch (e) {
+                core.warning(`Failed to close issue #${num}: ${e}`);
+              }
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
