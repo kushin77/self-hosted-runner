@@ -1,6 +1,8 @@
 name: E2E Validate & Hands-off Deploy
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       run_deploy:
@@ -9,8 +11,31 @@ on:
         default: 'true'
 
 jobs:
+  ensure-bootstrap:
+    runs-on: [self-hosted, linux]
+    continue-on-error: true
+    permissions:
+      contents: read
+    outputs:
+      bootstrap_ready: ${{ steps.check-vault.outputs.bootstrap_ready }}
+    steps:
+      - name: Check Vault secrets
+        id: check-vault
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        run: |
+          if [[ -n "${VAULT_ADDR:-}" && -n "${VAULT_TOKEN:-}" ]]; then
+            echo "bootstrap_ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Vault secrets not configured — marking bootstrap as not ready"
+            echo "bootstrap_ready=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
   e2e-validate:
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    needs: ensure-bootstrap
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.ensure-bootstrap.outputs.bootstrap_ready == 'true' }}
     concurrency:
       group: e2e-validate-${{ github.ref || github.run_id }}
       cancel-in-progress: false
