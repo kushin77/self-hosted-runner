@@ -10,8 +10,9 @@ services:
 
   pushgateway:
     image: prom/pushgateway:latest
+    # Host port remapped to avoid conflicts on node (use 9092 if 9091 is occupied)
     ports:
-      - "9091:9091"
+      - "9092:9091"
     restart: unless-stopped
 
   alertmanager:
