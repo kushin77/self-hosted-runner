@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Function Metadata",
+  "type": "object",
+  "required": ["id","name","repo_path","owner","status","last_updated"],
+  "properties": {
+    "id": { "type": "string", "description": "Canonical id: team/service:function" },
+    "name": { "type": "string" },
+    "repo_path": { "type": "string", "description": "Relative repo path to code" },
+    "owner": { "type": "string" },
+    "oncall": { "type": "string" },
+    "status": { "type": "string", "enum": ["draft","alpha","beta","stable","deprecated"] },
+    "description": { "type": "string" },
+    "completionPercent": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "inputs": { "type": "array", "items": { "type": "object" } },
+    "outputs": { "type": "array", "items": { "type": "object" } },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "endpoints": { "type": "array", "items": { "type": "object" } },
+    "scorecard": {
+      "type": "object",
+      "properties": {
+        "tests": { "type": "integer" },
+        "coverage": { "type": "number" },
+        "latency_ms": { "type": ["number", "null"] },
+        "accuracy_percent": { "type": ["number","null"] }
+      }
+    },
+    "build_status": { "type": "string" },
+    "last_updated": { "type": "string", "format": "date-time" },
+    "portal_url": { "type": "string" }
+  },
+  "additionalProperties": false
+}
