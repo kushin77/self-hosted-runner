@@ -19,7 +19,13 @@ jobs:
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Install Python (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          chmod +x ci/scripts/setup-python.sh
+          ci/scripts/setup-python.sh 3.11
+      - name: Set up Python (hosted fallback)
+        if: not(contains(runner.labels, 'self-hosted'))
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
