@@ -1,0 +1,93 @@
+---
+- name: Create MinIO data directory
+  file:
+    path: "{{ minio_data_path }}"
+    state: directory
+    mode: '0755'
+  become: yes
+
+- name: Create Docker network for MinIO
+  docker_network:
+    name: "{{ docker_network }}"
+    driver: bridge
+    state: present
+  become: yes
+
+- name: Pull MinIO Docker image
+  docker_image:
+    name: "{{ docker_image }}"
+    source: pull
+    force_source: yes
+  become: yes
+
+- name: Deploy MinIO container
+  docker_container:
+    name: "{{ container_name }}"
+    image: "{{ docker_image }}"
+    state: started
+    restart_policy: unless-stopped
+    hostname: "{{ minio_endpoint }}"
+    networks:
+      - name: "{{ docker_network }}"
+    env:
+      MINIO_ROOT_USER: "{{ minio_root_user }}"
+      MINIO_ROOT_PASSWORD: "{{ minio_root_password }}"
+      MINIO_BROWSER_REDIRECT_URL: "https://{{ minio_endpoint }}:{{ minio_https_port }}"
+    volumes:
+      - "{{ minio_data_path }}:/data"
+    ports:
+      - "0.0.0.0:{{ minio_port }}:9000"
+      - "0.0.0.0:{{ minio_console_port }}:9001"
+    healthcheck:
+      test:
+        - CMD
+        - curl
+        - -f
+        - http://localhost:9000/minio/health/live
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      io.elevatediq.service: minio
+      io.elevatediq.managed: "ansible"
+  become: yes
+  register: minio_container_info
+
+- name: Wait for MinIO to be healthy
+  uri:
+    url: "http://127.0.0.1:{{ minio_port }}/minio/health/live"
+    status_code: 200
+  retries: 30
+  delay: 2
+  until: uri_status is defined and uri_status == 200
+
+- name: Check if bucket already exists
+  shell: |
+    docker exec {{ container_name }} \
+      /opt/bin/mc mb --ignore-existing \
+      --quiet "local/{{ minio_bucket }}" || true
+  become: yes
+  changed_when: false
+
+- name: Verify bucket creation
+  shell: |
+    docker exec {{ container_name }} \
+      /opt/bin/mc ls --recursive "local/{{ minio_bucket }}" --summarize || true
+  become: yes
+  changed_when: false
+  register: bucket_verify
+
+- name: MinIO deployment summary
+  debug:
+    msg: |
+      MinIO successfully deployed:
+      - Endpoint: https://{{ minio_endpoint }}:{{ minio_https_port }}
+      - Console: http://{{ minio_endpoint }}:{{ minio_console_port }}
+      - API Port: {{ minio_port }}
+      - Console Port: {{ minio_console_port }}
+      - Data Path: {{ minio_data_path }}
+      - Bucket: {{ minio_bucket }}
+      - Root User: {{ minio_root_user }}
+      - Container: {{ container_name }}
+      - Status: {{ minio_container_info.container.State.Status }}

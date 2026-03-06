@@ -1,0 +1,15 @@
+---
+minio_root_user: minioadmin
+minio_root_password: ""  # MUST be set via vars or vault
+
+minio_bucket: github-actions-artifacts
+minio_port: 9000
+minio_console_port: 9001
+minio_https_port: 9000
+
+minio_endpoint: minio.internal.elevatediq.com
+minio_data_path: /data/minio
+
+docker_image: "minio/minio:latest"
+docker_network: "minio-network"
+container_name: "minio"

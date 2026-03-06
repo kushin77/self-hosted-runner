@@ -1,0 +1,39 @@
+---
+# playbooks/deploy_minio.yml
+# Deploys MinIO artifact storage with idempotent configuration.
+
+- name: Deploy MinIO S3-compatible artifact storage
+  hosts: "{{ minio_target_group | default('minio_servers') }}"
+  become: yes
+  gather_facts: yes
+
+  vars:
+    minio_root_password: "{{ vault_minio_root_password | default(lookup('env', 'MINIO_ROOT_PASSWORD')) }}"
+
+  tasks:
+    - name: Fail if MinIO password not provided
+      fail:
+        msg: "minio_root_password must be set via var, vault, or MINIO_ROOT_PASSWORD env var"
+      when: minio_root_password == ""
+
+    - name: Include MinIO deployment role
+      include_role:
+        name: minio
+      vars:
+        minio_root_password: "{{ minio_root_password }}"
+        minio_bucket: "{{ minio_bucket | default('github-actions-artifacts') }}"
+        minio_port: "{{ minio_port | default(9000) }}"
+        minio_console_port: "{{ minio_console_port | default(9001) }}"
+
+  post_tasks:
+    - name: Verify MinIO health
+      uri:
+        url: "http://127.0.0.1:{{ minio_port | default(9000) }}/minio/health/live"
+        status_code: 200
+      retries: 5
+      delay: 5
+      until: uri_status is defined and uri_status == 200
+
+    - name: MinIO deployment complete
+      debug:
+        msg: "MinIO artifact storage successfully deployed and healthy"

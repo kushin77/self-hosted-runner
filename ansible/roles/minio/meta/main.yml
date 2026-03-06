@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  author: "ElevatedIQ DevOps"
+  description: "Deploy MinIO S3-compatible artifact storage for GitHub Actions"
+  company: "ElevatedIQ"
+  license: "Proprietary"
+  min_ansible_version: "2.9"
+  tags:
+    - artifact-storage
+    - s3
+    - minio
+    - ci-cd
+    - hands-off
+    - immutable
+    - sovereign
+    - ephemeral
+
+dependencies:
+  - role: docker
+    when: ansible_os_family == "Debian"
