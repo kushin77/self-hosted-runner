@@ -1,0 +1,49 @@
+## Example generated values (DO NOT COMMIT REAL TOKENS)
+replicaCount: 1
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  name: gitlab-runner
+
+runners:
+  image: "gitlab/gitlab-runner:alpine"
+  privileged: false
+  config: |
+    [[runners]]
+      name = "local-k8s-runner"
+      url = "https://gitlab.example.internal"
+      executor = "kubernetes"
+      [runners.kubernetes]
+        namespace = "gitlab-runner"
+        image = "docker:24.0.5"
+        privileged = false
+        pull_policy = "IfNotPresent"
+        cpu_request = "100m"
+        memory_request = "128Mi"
+        helper_image = "gitlab/gitlab-runner-helper:latest"
+        poll_timeout = 3600
+
+  registrationToken: "REPLACE_WITH_REGISTRATION_TOKEN"
+  concurrent: 10
+  checkInterval: 30
+
+terminationGracePeriodSeconds: 30
+
+podSecurityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
