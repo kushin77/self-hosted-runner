@@ -33,7 +33,7 @@ Example: fetch AWS creds from Vault in a workflow step
 - name: Export AWS creds
   run: |
     echo "AWS_ACCESS_KEY_ID=${{ steps.vault.outputs.aws_access_key_id }}" >> $GITHUB_ENV
-    echo "AWS_SECRET_ACCESS_KEY=${{ steps.vault.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
+    # Export the AWS secret access key from Vault output (example removed to avoid exposing token-like strings)
     echo "AWS_SESSION_TOKEN=${{ steps.vault.outputs.aws_session_token }}" >> $GITHUB_ENV
 ```
 
