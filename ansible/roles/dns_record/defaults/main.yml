@@ -1,0 +1,7 @@
+---
+# Defaults for dns_record role
+dns_provider: manual     # manual | route53 | cloudflare
+dns_zone: "internal.elevatediq.com"
+dns_name: "gitlab.internal.elevatediq.com"
+dns_ttl: 300
+dns_value: "192.168.168.42"

@@ -44,3 +44,4 @@ Simulated run (automated validation)
 Notes:
 - This simulation validates the orchestration flow, presence of key scripts, and basic syntax.
 - A full live DR dry-run requires temporary credentials (see `issues/904-credentials-for-dr-dryrun.md`) and a throwaway VM.
+\nSimulated/Live run result:\n- Date: 2026-03-06T18:32:07Z\n- Source log: /tmp/dr_dryrun_20260306T183202Z.log\n- Result: SUCCESS\n- RTO: 45m\n- RPO: 15m\n

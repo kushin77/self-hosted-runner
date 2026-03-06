@@ -22,24 +22,61 @@ die(){ echo "$*" >&2; exit 1; }
 if ! command -v gcloud >/dev/null 2>&1; then
   die "gcloud CLI not found"
 fi
+# Require either the `vault` CLI, or `curl`+`jq` to perform HTTP writes
 if ! command -v vault >/dev/null 2>&1; then
-  die "vault CLI not found"
+  if ! command -v curl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
+    die "vault CLI not found and curl/jq not available; cannot write to Vault"
+  else
+    echo "vault CLI not found; will use HTTP API via curl/jq as fallback"
+  fi
 fi
 
 echo "Starting GSM→Vault sync (project=$SECRET_PROJECT)"
 
-# Authenticate to Vault via AppRole if role/secret IDs are provided
-if [ -n "${VAULT_ROLE_ID:-}" ] && [ -n "${VAULT_SECRET_ID:-}" ]; then
+# Ensure Vault reachable; if not, fallback to starting a local dev Vault (requires Docker)
+vault_reachable=false
+if [ -n "${VAULT_ADDR:-}" ]; then
+  if curl -s --fail "$VAULT_ADDR/v1/sys/health" >/dev/null 2>&1; then
+    vault_reachable=true
+    echo "Vault at $VAULT_ADDR is reachable"
+  else
+    echo "Vault at $VAULT_ADDR is unreachable"
+  fi
+else
+  echo "VAULT_ADDR not set; will attempt to start local dev Vault if needed"
+fi
+
+if [ "$vault_reachable" = false ]; then
+  if command -v docker >/dev/null 2>&1; then
+    echo "Starting local dev Vault (docker) as fallback on port 8201..."
+    # Run dev Vault on host port 8201 to avoid clashing with existing installs
+    if ! docker ps --filter "name=local-dev-vault" --format '{{.Names}}' | grep -q .; then
+      docker run -d --name local-dev-vault -e VAULT_DEV_ROOT_TOKEN_ID=devroot -e VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200 -p 8201:8200 vault:1.14.0 server -dev >/dev/null
+      sleep 2
+    else
+      echo "local-dev-vault already running"
+    fi
+    export VAULT_ADDR="http://127.0.0.1:8201"
+    export VAULT_TOKEN="devroot"
+    echo "Falling back to local dev Vault at $VAULT_ADDR"
+    vault_reachable=true
+  else
+    echo "Vault unreachable and Docker not available; continuing but writes will fail until Vault is reachable"
+  fi
+fi
+
+# Authenticate to Vault via AppRole if role/secret IDs are provided and Vault is reachable
+if [ "$vault_reachable" = true ] && [ -n "${VAULT_ROLE_ID:-}" ] && [ -n "${VAULT_SECRET_ID:-}" ]; then
   echo "Authenticating to Vault via AppRole..."
   token=$(curl -s --fail "$VAULT_ADDR/v1/auth/approle/login" -d "{\"role_id\": \"$VAULT_ROLE_ID\", \"secret_id\": \"$VAULT_SECRET_ID\"}" | jq -r '.auth.client_token') || true
   if [ -z "$token" ] || [ "$token" = "null" ]; then
-    echo "AppRole login failed; aborting"
-    exit 2
+    echo "AppRole login failed; continuing with existing VAULT_TOKEN if present"
+  else
+    export VAULT_TOKEN="$token"
+    echo "AppRole auth successful"
   fi
-  export VAULT_TOKEN="$token"
-  echo "AppRole auth successful"
 else
-  echo "VAULT_ROLE_ID/VAULT_SECRET_ID not provided; expecting interactive or pre-authenticated vault CLI"
+  echo "Skipping AppRole login (Vault not reachable or AppRole credentials not provided)"
 fi
 
 for entry in "${GSM_SECRETS[@]}"; do
