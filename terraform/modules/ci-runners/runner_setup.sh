@@ -38,9 +38,9 @@ if [ -z "$RUNNER_VERSION" ]; then
     RUNNER_VERSION=$(curl -s https://api.github.com/repos/actions/runner/releases/latest | jq -r '.tag_name' | sed 's/v//')
 fi
 RUNNER_ARCH=$([ "$(uname -m)" = "aarch64" ] && echo "arm64" || echo "x64")
-RUNNER_URL="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-${RUNNER_ARCH}-${RUNNER_VERSION}.tar.gz"
+RUNNER_URL="https://github.com/actions/runner/releases/download/v$${RUNNER_VERSION}/actions-runner-linux-$${RUNNER_ARCH}-$${RUNNER_VERSION}.tar.gz"
 
-echo "[$(date +'%Y-%m-%d %H:%M:%S')] Downloading runner v${RUNNER_VERSION}..."
+echo "[$(date +'%Y-%m-%d %H:%M:%S')] Downloading runner v$${RUNNER_VERSION}..."
 
 download_with_retries() {
     local url="$1" dest="$2" i
