@@ -7,69 +7,17 @@ on:
     types: [completed]
 
 jobs:
-  apply-ci-runners:
-    name: Apply ci-runners (requires environment approval)
+  call-apply:
+    name: Call reusable Terraform apply
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     concurrency:
       group: terraform-apply-${{ github.ref || github.run_id }}
       cancel-in-progress: false
-    runs-on: [self-hosted, linux, self-hosted-heavy]
-    environment: production
-    steps:
-      - name: Download terraform plan artifact from MinIO
-        run: |
-          set -euo pipefail
-          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
-          # Download the plan object named 'terraform-plan' into 'ci-runners-plan.out'
-          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan" --out ci-runners-plan.out
-
-      - name: Download terraform plan checksum from MinIO
-        run: |
-          set -euo pipefail
-          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
-          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "terraform-plan.sha" --out ci-runners-plan.out.sha || true
-
-      - name: Verify terraform plan checksum
-        run: |
-          set -euo pipefail
-          if [ -f ci-runners-plan.out.sha ]; then
-            sha256sum -c ci-runners-plan.out.sha
-          else
-            echo "Warning: checksum file not found; aborting apply for safety" >&2
-            exit 2
-          fi
-
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        run: |
-          set -euo pipefail
-          TF_VER=1.5.7
-          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
-          unzip -o /tmp/terraform.zip -d /usr/local/bin
-          terraform version
-
-      - name: Place ami.tfvars if present
-        run: |
-          # copy ami.tfvars into terraform root if present
-          ls -la || true
-          if [ -f terraform/packer-ami/ami.tfvars ]; then
-            cp terraform/packer-ami/ami.tfvars terraform/ami.tfvars || true
-          fi
-
-      - name: Terraform apply (using plan)
-        working-directory: terraform
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          set -euo pipefail
-          # Apply the exact plan produced earlier (safe, reproducible)
-          if [ -f ci-runners-plan.out ]; then
-            terraform apply -input=false ci-runners-plan.out
-          else
-            echo "Plan artifact not found; ensure packer->terraform plan job ran and artifact uploaded" >&2
-            exit 2
-          fi
+    uses: ./.github/workflows/reusable/terraform-apply-callable.yml
+    secrets:
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+    with:
+      plan-object: terraform-plan
