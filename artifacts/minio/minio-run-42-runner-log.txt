@@ -1,0 +1,400 @@
+          "file": 2,
+          "line": 73,
+          "col": 14,
+          "lit": "true"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 74,
+          "col": 3,
+          "lit": "fetch-depth"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 76,
+          "col": 14,
+          "lit": "1"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 77,
+          "col": 3,
+          "lit": "fetch-tags"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 79,
+          "col": 14,
+          "lit": "false"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 80,
+          "col": 3,
+          "lit": "show-progress"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 82,
+          "col": 14,
+          "lit": "true"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 83,
+          "col": 3,
+          "lit": "lfs"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 85,
+          "col": 14,
+          "lit": "false"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 86,
+          "col": 3,
+          "lit": "submodules"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 94,
+          "col": 14,
+          "lit": "false"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 95,
+          "col": 3,
+          "lit": "set-safe-directory"
+        },
+        "value": {
+          "type": 0,
+          "file": 2,
+          "line": 97,
+          "col": 14,
+          "lit": "true"
+        }
+      },
+      {
+        "key": {
+          "type": 0,
+          "file": 2,
+          "line": 98,
+          "col": 3,
+          "lit": "github-server-url"
+        },
+        "value": ""
+      }
+    ]
+  },
+  "execution": {
+    "executionType": "nodeJS",
+    "hasPre": false,
+    "hasPost": true,
+    "script": "dist/index.js",
+    "pre": null,
+    "post": "dist/index.js",
+    "nodeVersion": "node20",
+    "cleanupCondition": "always()",
+    "initCondition": "always()"
+  },
+  "deprecated": null
+}
+[2026-03-06 20:02:57Z INFO ActionManager] Action pre node.js file: N/A.
+[2026-03-06 20:02:57Z INFO ActionManager] Action node.js file: dist/index.js.
+[2026-03-06 20:02:57Z INFO ActionManager] Action post node.js file: dist/index.js.
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Work': '/home/akushnir/self-hosted-runner/actions-runner/_work'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Temp': '/home/akushnir/self-hosted-runner/actions-runner/_work/_temp'
+[2026-03-06 20:02:57Z INFO ExecutionContext] Write event payload to /home/akushnir/self-hosted-runner/actions-runner/_work/_temp/_github_workflow/event.json
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Work': '/home/akushnir/self-hosted-runner/actions-runner/_work'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Temp': '/home/akushnir/self-hosted-runner/actions-runner/_work/_temp'
+[2026-03-06 20:02:57Z INFO ExtensionManager] Getting extensions for interface: 'GitHub.Runner.Worker.IFileCommandExtension'
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'repository': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 6,
+  "col": 14,
+  "lit": "elevatediq-ai/ElevatedIQ-Mono-Repo"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'ref': default value evaluate result: ""
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'token': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 24,
+  "col": 14,
+  "lit": "***"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'ssh-key': default value evaluate result: ""
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'ssh-known-hosts': default value evaluate result: ""
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'ssh-strict': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 47,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'ssh-user': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 51,
+  "col": 14,
+  "lit": "git"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'persist-credentials': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 54,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'path': default value evaluate result: ""
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'clean': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 59,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'filter': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 64,
+  "col": 14,
+  "lit": ""
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'sparse-checkout': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 69,
+  "col": 14,
+  "lit": ""
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'sparse-checkout-cone-mode': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 73,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'fetch-depth': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 76,
+  "col": 14,
+  "lit": "1"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'fetch-tags': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 79,
+  "col": 14,
+  "lit": "false"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'show-progress': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 82,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'lfs': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 85,
+  "col": 14,
+  "lit": "false"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'submodules': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 94,
+  "col": 14,
+  "lit": "false"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'set-safe-directory': default value evaluate result: {
+  "type": 0,
+  "file": 2,
+  "line": 97,
+  "col": 14,
+  "lit": "true"
+}
+[2026-03-06 20:02:57Z INFO ActionManifestManagerLegacy] Input 'github-server-url': default value evaluate result: ""
+[2026-03-06 20:02:57Z INFO ExtensionManager] Getting extensions for interface: 'GitHub.Runner.Worker.IActionCommandExtension'
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command internal-set-repo-path
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command set-env
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command set-output
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command save-state
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command add-path
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command add-mask
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command add-matcher
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command remove-matcher
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command warning
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command error
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command notice
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command debug
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command group
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command endgroup
+[2026-03-06 20:02:57Z INFO ActionCommandManager] Register action command extension for command echo
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:57Z INFO HostContext] Well known directory 'Externals': '/home/akushnir/self-hosted-runner/actions-runner/externals'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper] Starting process:
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   File name: '/home/akushnir/self-hosted-runner/actions-runner/externals/node20/bin/node'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Arguments: '"/home/akushnir/self-hosted-runner/actions-runner/_work/_actions/actions/checkout/v4/dist/index.js"'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Working directory: '/home/akushnir/self-hosted-runner/actions-runner/_work/ElevatedIQ-Mono-Repo/ElevatedIQ-Mono-Repo'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Require exit code zero: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Encoding web name:  ; code page: ''
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Force kill process on cancellation: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Redirected STDIN: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Persist current code page: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   Keep redirected STDIN open: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper]   High priority process: 'False'
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper] Updated oom_score_adj to 500 for PID: 3803733.
+[2026-03-06 20:02:57Z INFO ProcessInvokerWrapper] Process started with process id 3803733, waiting for process exit.
+[2026-03-06 20:02:58Z INFO AddMaskCommandExtension] Add new secret mask with length of 32
+[2026-03-06 20:02:58Z INFO JobServerQueue] Try to upload 2 log files or attachments, success rate: 2/2.
+[2026-03-06 20:02:58Z INFO JobServerQueue] Tried to upload 1 file(s) to results, success rate: 1/1.
+[2026-03-06 20:02:58Z INFO ProcessInvokerWrapper] STDOUT/STDERR stream read finished.
+[2026-03-06 20:02:58Z INFO ProcessInvokerWrapper] STDOUT/STDERR stream read finished.
+[2026-03-06 20:02:58Z INFO ProcessInvokerWrapper] Finished process 3803733 with exit code 0, and elapsed time 00:00:00.1577148.
+[2026-03-06 20:02:58Z INFO CreateStepSummaryCommand] Step Summary file (/home/akushnir/self-hosted-runner/actions-runner/_work/_temp/_runner_file_commands/step_summary_b9b57011-fd55-4f46-8421-4bdb696e693f) is empty; skipping attachment upload
+[2026-03-06 20:02:58Z INFO StepsRunner] Step result: 
+[2026-03-06 20:02:58Z INFO ExecutionContext] Publish step telemetry for current step {
+  "action": "actions/checkout",
+  "ref": "v4",
+  "type": "node20",
+  "stage": "Post",
+  "stepId": "1a8ced5d-23fe-4c57-bfcf-10bb75a5d445",
+  "result": "succeeded",
+  "errorMessages": [
+    "The process '/usr/bin/git' failed with exit code 128"
+  ],
+  "executionTimeInSeconds": 1,
+  "startTime": "2026-03-06T20:02:57.9213542Z",
+  "finishTime": "2026-03-06T20:02:58.0910171Z"
+}.
+[2026-03-06 20:02:58Z INFO StepsRunner] No need for updating job result with current step result 'Succeeded'.
+[2026-03-06 20:02:58Z INFO StepsRunner] Current state: job state = 'Failed'
+[2026-03-06 20:02:58Z INFO JobRunner] Finalize job.
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Diag': '/home/akushnir/self-hosted-runner/actions-runner/_diag'
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:58Z INFO HostContext] Well known directory 'Diag': '/home/akushnir/self-hosted-runner/actions-runner/_diag'
+[2026-03-06 20:02:58Z INFO JobExtension] Initialize Env context
+[2026-03-06 20:02:58Z INFO JobExtension] Initialize steps context
+[2026-03-06 20:02:58Z INFO JobExtension] Total accessible running process: 276.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3696141 (kworker/u16:1-flush-252:0)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3696141/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3696141/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3717638 (kworker/7:2-mm_percpu_wq)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3717638/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3717638/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3728655 (kworker/0:3-events)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3728655/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3728655/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3733588 (kworker/u16:0-events_unbound)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3733588/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3733588/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3762094 (kworker/3:2-events)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3762094/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3762094/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3795740 (kworker/u16:2-events_unbound)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3795740/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3795740/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803115 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803115/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803438 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803438/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803474 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803474/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803507 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803507/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803582 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803582/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803611 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803611/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803717 (kworker/u16:4)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803717/environ
+[2026-03-06 20:02:58Z WARN JobExtension] Ignore exception during read process environment variables: Access to the path '/proc/3803717/environ' is denied.
+[2026-03-06 20:02:58Z INFO JobExtension] Inspecting process environment variables. PID: 3803722 (sleep)
+[2026-03-06 20:02:58Z INFO LinuxProcessExtensions] Read env from /proc/3803722/environ
+[2026-03-06 20:02:58Z INFO JobExtension] Wait for all connectivity checks to finish.
+[2026-03-06 20:02:58Z INFO JobExtension] Connectivity check result: GitHub.Runner.Worker.JobExtension+CheckResult
+[2026-03-06 20:02:58Z INFO JobExtension] Connectivity check result: GitHub.Runner.Worker.JobExtension+CheckResult
+[2026-03-06 20:02:58Z INFO JobExtension] Connectivity check result: GitHub.Runner.Worker.JobExtension+CheckResult
+[2026-03-06 20:02:58Z INFO ExecutionContext] Publish step telemetry for current step {
+  "action": "complete_job",
+  "type": "runner",
+  "stage": "Post",
+  "stepId": "255e2433-013c-455a-b6d7-b59a610588a2",
+  "result": "succeeded",
+  "errorMessages": [],
+  "executionTimeInSeconds": 1,
+  "startTime": "2026-03-06T20:02:58.0958985Z",
+  "finishTime": "2026-03-06T20:02:58.1521318Z"
+}.
+[2026-03-06 20:02:58Z INFO JobRunner] Job result after all job steps finish: Failed
+[2026-03-06 20:02:58Z INFO JobRunner] Completing the job execution context.
+[2026-03-06 20:02:58Z INFO JobRunner] Shutting down the job server queue.
+[2026-03-06 20:02:58Z INFO JobServerQueue] Fire signal to shutdown all queues.
+[2026-03-06 20:02:59Z INFO JobServerQueue] All queue process task stopped.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Try to append 1 batches web console lines for record '1a8ced5d-23fe-4c57-bfcf-10bb75a5d445', success rate: 1/1.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Try to append 1 batches web console lines for record '255e2433-013c-455a-b6d7-b59a610588a2', success rate: 1/1.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Web console line queue drained.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Uploading 3 files in one shot.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Try to upload 3 log files or attachments, success rate: 3/3.
+[2026-03-06 20:02:59Z INFO JobServerQueue] File upload queue drained.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Starting results-based upload queue...
+[2026-03-06 20:02:59Z INFO JobServerQueue] Uploading 4 file(s) in one shot through results service.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Got a step log file to send to results service.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Starting upload of step log file to results service ResultsLog, /home/akushnir/self-hosted-runner/actions-runner/_diag/blocks/69edb202-fc87-401a-a70c-9c2048fef3b7_59f1b461-c044-4980-b8d4-c48b77963a7e.1
+[2026-03-06 20:02:59Z INFO JobServerQueue] Got a step log file to send to results service.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Starting upload of step log file to results service ResultsLog, /home/akushnir/self-hosted-runner/actions-runner/_diag/blocks/69edb202-fc87-401a-a70c-9c2048fef3b7_1a8ced5d-23fe-4c57-bfcf-10bb75a5d445.1
+[2026-03-06 20:02:59Z INFO JobServerQueue] Got a step log file to send to results service.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Starting upload of step log file to results service ResultsLog, /home/akushnir/self-hosted-runner/actions-runner/_diag/blocks/69edb202-fc87-401a-a70c-9c2048fef3b7_255e2433-013c-455a-b6d7-b59a610588a2.1
+[2026-03-06 20:02:59Z INFO JobServerQueue] Got a job log file to send to results service.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Starting upload of job log file to results service ResultsLog, /home/akushnir/self-hosted-runner/actions-runner/_diag/blocks/69edb202-fc87-401a-a70c-9c2048fef3b7_ea548c10-436e-5a0f-a279-0282a29ed375.1
+[2026-03-06 20:02:59Z INFO JobServerQueue] Tried to upload 4 file(s) to results, success rate: 4/4.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Results upload queue drained.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Timeline update queue drained.
+[2026-03-06 20:02:59Z INFO JobServerQueue] Disposing job server ...
+[2026-03-06 20:02:59Z INFO JobServerQueue] Disposing results server ...
+[2026-03-06 20:02:59Z INFO JobServerQueue] All queue process tasks have been stopped, and all queues are drained.
+[2026-03-06 20:02:59Z INFO TempDirectoryManager] Cleaning runner temp folder: /home/akushnir/self-hosted-runner/actions-runner/_work/_temp
+[2026-03-06 20:02:59Z INFO HostContext] Well known directory 'Bin': '/home/akushnir/self-hosted-runner/actions-runner/bin.2.332.0'
+[2026-03-06 20:02:59Z INFO HostContext] Well known directory 'Root': '/home/akushnir/self-hosted-runner/actions-runner'
+[2026-03-06 20:02:59Z INFO HostContext] Well known directory 'Diag': '/home/akushnir/self-hosted-runner/actions-runner/_diag'
+[2026-03-06 20:02:59Z INFO HostContext] Well known config file 'Telemetry': '/home/akushnir/self-hosted-runner/actions-runner/_diag/.telemetry'
+[2026-03-06 20:02:59Z INFO JobRunner] Raising job completed against run service
+[2026-03-06 20:03:00Z INFO Worker] Job completed.
