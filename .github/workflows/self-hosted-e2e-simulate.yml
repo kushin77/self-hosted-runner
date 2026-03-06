@@ -7,10 +7,17 @@ on:
         description: 'Run in simulate mode to validate flow without Vault'
         required: false
         default: 'true'
+  workflow_run:
+    workflows: ["Preflight Checks"]
+    types: [completed]
 
 jobs:
   simulate-e2e:
     name: Simulate E2E on self-hosted runner
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: self-hosted-e2e-simulate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     runs-on: self-hosted
     steps:
       - name: Checkout
