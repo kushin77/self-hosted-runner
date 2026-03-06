@@ -54,6 +54,37 @@ jobs:
           chmod +x ./scripts/check_hardening.sh
           ./scripts/check_hardening.sh
 
+    provision-approle:
+      name: Provision AppRole (requires approval)
+      runs-on: ubuntu-latest
+      needs: preflight
+      if: ${{ !secrets.VAULT_ROLE_ID || !secrets.VAULT_SECRET_ID }}
+      environment: deploy-approle
+      outputs:
+        role_id: ${{ steps.set.outputs.role_id }}
+        secret_id: ${{ steps.set.outputs.secret_id }}
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Provision AppRole
+          env:
+            VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+            VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+          run: |
+            set -euo pipefail
+            chmod +x scripts/ci/setup-approle.sh
+            scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
+            cat /tmp/approle.json
+
+        - name: Set outputs
+          id: set
+          run: |
+            ROLE_ID=$(jq -r .role_id /tmp/approle.json)
+            SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
+            echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
+            echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
+
   deploy-rotation:
     runs-on: ubuntu-latest
     needs: preflight
@@ -76,22 +107,6 @@ jobs:
           pip install --upgrade pip
           pip install ansible jinja2 pyyaml
 
-      - name: Auto-provision AppRole if missing (requires VAULT_ADMIN_TOKEN)
-        if: ${{ !secrets.VAULT_ROLE_ID || !secrets.VAULT_SECRET_ID }}
-        env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
-        run: |
-          set -euo pipefail
-          echo "AppRole not present in repo secrets; attempting auto-provision using VAULT_ADMIN_TOKEN"
-          chmod +x scripts/ci/setup-approle.sh
-          # Use a minimal policy file shipped with the repo
-          scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json
-          cat /tmp/approle.json
-          ROLE_ID=$(jq -r .role_id /tmp/approle.json)
-          SECRET_ID=$(jq -r .secret_id /tmp/approle.json)
-          echo "VAULT_ROLE_ID=$ROLE_ID" >> $GITHUB_ENV
-          echo "VAULT_SECRET_ID=$SECRET_ID" >> $GITHUB_ENV
 
 
       - name: Fetch deploy SSH key from Vault (AppRole auth)
