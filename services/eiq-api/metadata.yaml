@@ -1,0 +1,17 @@
+id: "eiq/eiq-api:service"
+name: "EIQ API"
+repo_path: "services/eiq-api"
+owner: "team-eiq"
+oncall: "oncall@eiq.example.com"
+status: "alpha"
+description: "Public API surface for Elevated IQ portal integrations."
+completionPercent: 25
+tags: [api, portal]
+endpoints:
+  - path: /api/v1/health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+  latency_ms: null
+last_updated: "2026-03-06T00:00:00Z"
