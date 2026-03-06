@@ -1,0 +1,43 @@
+name: Local MinIO Smoke Test
+
+on:
+  push:
+    paths:
+      - '.github/workflows/minio-local-validate.yml'
+      - 'scripts/automation/minio/**'
+  workflow_dispatch:
+
+jobs:
+  minio-local-validate:
+    name: Run local MinIO smoke-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure Docker is available
+        run: |
+          docker --version
+
+      - name: Make script executable
+        run: |
+          chmod +x scripts/automation/minio/local_minio_validate.sh
+
+      - name: Run local MinIO smoke-test
+        env:
+          MINIO_ROOT_USER: minioadmin
+          MINIO_ROOT_PASSWORD: minioadmin
+          MINIO_PORT: 9000
+          MINIO_BUCKET: hands-off-test
+        run: |
+          sudo bash scripts/automation/minio/local_minio_validate.sh
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: minio-local-validate-artifacts
+          path: |
+            /tmp/minio_test_object.txt
+            /tmp/minio_test_object_downloaded.txt
+            
