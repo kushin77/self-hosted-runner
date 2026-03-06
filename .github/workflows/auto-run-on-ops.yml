@@ -7,8 +7,11 @@ on:
 jobs:
   run-e2e-on-ops-confirmation:
     name: Run E2E when Ops confirms Vault provisioning
-    runs-on: self-hosted
     if: github.event.issue.number == 764
+    concurrency:
+      group: auto-run-on-ops-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: self-hosted
     steps:
       - name: Checkout
         uses: actions/checkout@v4

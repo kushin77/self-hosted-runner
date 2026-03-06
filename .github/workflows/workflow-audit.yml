@@ -1,0 +1,31 @@
+name: Workflow Sequencing Audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+
+jobs:
+  audit:
+    name: Audit workflows for sequencing protections
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run workflow sequencing audit
+        run: |
+          python3 .github/scripts/check_workflow_sequencing.py
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workflow-audit-report
+          path: workflow-audit-report.txt
