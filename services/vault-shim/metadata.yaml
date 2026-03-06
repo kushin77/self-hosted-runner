@@ -1,0 +1,16 @@
+id: "vault/vault-shim:service"
+name: "Vault Shim"
+repo_path: "services/vault-shim"
+owner: "team-secrets"
+oncall: "oncall@secrets.example.com"
+status: "alpha"
+description: "Compatibility shim for HashiCorp Vault used in provisioning workflows."
+completionPercent: 30
+tags: [secrets, vault]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+last_updated: "2026-03-06T00:00:00Z"

@@ -1,0 +1,16 @@
+id: "spot/spot-lifecycle:service"
+name: "Spot Lifecycle"
+repo_path: "services/spot-lifecycle"
+owner: "team-cloud"
+oncall: "oncall@cloud.example.com"
+status: "alpha"
+description: "Manages lifecycle of spot instances for cost-optimized runs."
+completionPercent: 25
+tags: [cloud, spot]
+endpoints:
+  - path: /health
+    method: GET
+scorecard:
+  tests: 0
+  coverage: 0.0
+last_updated: "2026-03-06T00:00:00Z"
