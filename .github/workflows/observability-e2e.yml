@@ -72,11 +72,7 @@ jobs:
       matrix:
         test_mode: [mock, real]
       fail-fast: false
-    if: |
-      always() && (
-        (matrix.test_mode == 'mock') ||
-        (matrix.test_mode == 'real' && github.event.inputs.test_real == 'true')
-      )
+    if: always()
     steps:
       - name: Checkout
         uses: actions/checkout@v4
