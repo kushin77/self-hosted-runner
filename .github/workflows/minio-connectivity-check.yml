@@ -60,15 +60,18 @@ jobs:
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
         run: |
           echo "## MinIO Connectivity Test" >> $GITHUB_STEP_SUMMARY
-          
+
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
           # Extract host and port from endpoint
           ENDPOINT="${MINIO_ENDPOINT#*://}"
           ENDPOINT="${ENDPOINT%/*}"
           HOST="${ENDPOINT%%:*}"
           PORT="${ENDPOINT##*:}"
-          
+
           echo "Testing connectivity to MinIO endpoint: $ENDPOINT" >> $GITHUB_STEP_SUMMARY
-          
+
           # Test TCP connectivity
           if timeout 5 bash -c "cat < /dev/null > /dev/tcp/$HOST/$PORT" 2>/dev/null; then
             echo "✅ TCP connectivity to $HOST:$PORT successful" >> $GITHUB_STEP_SUMMARY
@@ -76,17 +79,17 @@ jobs:
             echo "❌ TCP connectivity to $HOST:$PORT **FAILED** (timeout or refused)" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          
+
           # Install mc and test S3 API
           chmod +x scripts/minio/install-mc.sh 2>/dev/null || true
-          ./scripts/minio/install-mc.sh || true
-          
+          retry_command 3 5 ./scripts/minio/install-mc.sh || true
+
           echo "Testing MinIO S3 API with mc..." >> $GITHUB_STEP_SUMMARY
-          
-          if mc alias set ci-test "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" 2>&1 | tee /tmp/mc-alias.log; then
+
+          if retry_command 3 5 mc alias set ci-test "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY" 2>&1 | tee /tmp/mc-alias.log; then
             echo "✅ MinIO alias configured successfully" >> $GITHUB_STEP_SUMMARY
-            
-            if mc ls ci-test 2>&1 | tee /tmp/mc-ls.log; then
+
+            if retry_command 3 5 mc ls ci-test 2>&1 | tee /tmp/mc-ls.log; then
               echo "✅ MinIO bucket listing successful" >> $GITHUB_STEP_SUMMARY
             else
               echo "❌ MinIO bucket listing **FAILED**" >> $GITHUB_STEP_SUMMARY
@@ -98,21 +101,21 @@ jobs:
             cat /tmp/mc-alias.log >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          
+
           # Test read/write
           echo "Testing read/write operations..." >> $GITHUB_STEP_SUMMARY
           TEST_FILE="/tmp/minio-test-$(date +%s).txt"
           echo "test-content-$(date)" > "$TEST_FILE"
-          
-          if mc cp "$TEST_FILE" "ci-test/$MINIO_BUCKET/connectivity-test.txt" 2>&1 | tee /tmp/mc-cp.log; then
+
+          if retry_command 3 5 mc cp "$TEST_FILE" "ci-test/$MINIO_BUCKET/connectivity-test.txt" 2>&1 | tee /tmp/mc-cp.log; then
             echo "✅ Write operation successful" >> $GITHUB_STEP_SUMMARY
-            
-            if mc cat "ci-test/$MINIO_BUCKET/connectivity-test.txt" > /tmp/mc-read.txt 2>&1; then
+
+            if retry_command 3 5 mc cat "ci-test/$MINIO_BUCKET/connectivity-test.txt" > /tmp/mc-read.txt 2>&1; then
               echo "✅ Read operation successful" >> $GITHUB_STEP_SUMMARY
               echo "Test file content: $(cat /tmp/mc-read.txt)" >> $GITHUB_STEP_SUMMARY
-              
+
               # Cleanup
-              mc rm "ci-test/$MINIO_BUCKET/connectivity-test.txt" || true
+              retry_command 3 5 mc rm "ci-test/$MINIO_BUCKET/connectivity-test.txt" || true
               echo "✅ Cleanup successful" >> $GITHUB_STEP_SUMMARY
             else
               echo "❌ Read operation **FAILED**" >> $GITHUB_STEP_SUMMARY
@@ -123,6 +126,6 @@ jobs:
             cat /tmp/mc-cp.log >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
-          
+
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## ✅ All MinIO connectivity checks passed" >> $GITHUB_STEP_SUMMARY
