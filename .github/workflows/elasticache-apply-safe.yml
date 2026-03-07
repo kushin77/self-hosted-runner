@@ -1,0 +1,75 @@
+name: Terraform ElastiCache Apply (safe)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'If "true", perform terraform apply when credentials are available'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: elasticache-apply-safe-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  plan-or-apply:
+    name: Plan or Apply ElastiCache (safe)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.6.8'
+
+      - name: Determine credential path
+        id: creds
+        run: |
+          echo "checking for AWS_OIDC_ROLE or AWS_ACCESS_KEY_ID..."
+          if [ -n "${{ secrets.AWS_OIDC_ROLE || '' }}" ] || [ -n "${{ secrets.AWS_ACCESS_KEY_ID || '' }}" ]; then
+            echo "mode=full" >> $GITHUB_OUTPUT
+          else
+            echo "mode=dry-run" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Full plan+apply (OIDC or keys present)
+        if: steps.creds.outputs.mode == 'full' && (github.event.inputs.apply == 'true')
+        uses: ./.github/workflows/reusable/terraform-apply-callable.yml
+        secrets:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_OIDC_ROLE: ${{ secrets.AWS_OIDC_ROLE }}
+        with:
+          var-file: terraform/elasticache-params.tfvars
+
+      - name: Dry-run plan (no backend) and upload artifact
+        if: steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true')
+        run: |
+          set -euo pipefail
+          cd terraform
+          terraform init -backend=false
+          terraform validate || true
+          terraform plan -var-file=elasticache-params.tfvars -out=elastiCache-dryrun.tfplan || true
+          mkdir -p ../workflow_artifacts/${{ github.run_id }}
+          tar -czf ../workflow_artifacts/${{ github.run_id }}/elastiCache-dryrun.tgz elastiCache-dryrun.tfplan || true
+        env:
+          TF_IN_AUTOMATION: true
+
+      - name: Upload dry-run artifact
+        if: steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true')
+        uses: actions/upload-artifact@v4
+        with:
+          name: elastiCache-dryrun-${{ github.run_id }}
+          path: workflow_artifacts/${{ github.run_id }}/elastiCache-dryrun.tgz
+
+      - name: Notify
+        if: steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true')
+        run: |
+          echo "Dry-run completed. No backend credentials available or apply not requested. Artifact uploaded: elastiCache-dryrun-${{ github.run_id }}"
