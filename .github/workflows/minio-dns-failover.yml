@@ -35,6 +35,9 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+
+      - name: Load resilience utilities
+        run: source .github/scripts/resilience.sh
       
       - name: Install tools
         run: |
