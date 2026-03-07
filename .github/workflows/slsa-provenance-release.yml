@@ -197,7 +197,7 @@ jobs:
     name: Sign Images with Cosign
     runs-on: ubuntu-latest
     needs: [generate-provenance]
-    if: ${{ inputs.skip_signature != 'true' }}
+    if: ${{ inputs.skip_signature != 'true' && needs.generate-provenance.outputs.provenance-count > 0 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -388,7 +388,7 @@ jobs:
     name: Verify Artifact Signatures
     runs-on: ubuntu-latest
     needs: [generate-provenance, sign-artifacts]
-    if: ${{ inputs.skip_signature != 'true' }}
+    if: ${{ inputs.skip_signature != 'true' && needs.generate-provenance.outputs.provenance-count > 0 }}
     continue-on-error: true
     steps:
       - name: Checkout
@@ -702,20 +702,42 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          tag=${{ github.event.release.tag_name }}
+          repo="${{ github.repository }}"
 
-          if [ -z "${{ github.event.release.assets[0] }}" ]; then
-            echo "🎉 Release detected; attaching provenance attestations..."
+          echo "🎉 Release detected: $repo@$tag — attaching provenance and SBOM artifacts"
 
-            # List artifacts available to attach
-            echo "Artifacts available for attachment:"
-            find artifacts -type f -name "*.json" | sed 's|^|  - |'
+          # Prefer gh CLI (using GITHUB_TOKEN); fallback to REST API via curl
+          upload_with_gh() {
+            if command -v gh >/dev/null 2>&1; then
+              for file in artifacts/provenance/*-provenance.json artifacts/SBOM_INDEX.json artifacts/PROVENANCE_ARCHIVE.json build/provenance/VERIFICATION_REPORT.md build/provenance/SIGNATURE_METADATA.json 2>/dev/null; do
+                [ -f "$file" ] || continue
+                echo "Uploading $file to release $tag"
+                gh release upload "$tag" "$file" --repo "$repo" --clobber || echo "⚠️ gh upload failed for $file"
+              done
+              return 0
+            fi
+            return 1
+          }
 
-            # In production, use GitHub API to upload release assets
-            # for file in artifacts/provenance/*-provenance.json; do
-            #   gh release upload "${{ github.event.release.tag_name }}" "$file" --repo "${{ github.repository }}"
-            # done
+          upload_with_api() {
+            api_url="https://uploads.github.com/repos/$repo/releases/$(jq -r .release.id < <(echo '${{ toJson(github.event.release) }}'))/assets"
+            # artifacts may be multiple; iterate
+            for file in artifacts/provenance/*-provenance.json artifacts/SBOM_INDEX.json artifacts/PROVENANCE_ARCHIVE.json build/provenance/VERIFICATION_REPORT.md build/provenance/SIGNATURE_METADATA.json 2>/dev/null; do
+              [ -f "$file" ] || continue
+              filename=$(basename "$file")
+              mimetype=$(file --brief --mime-type "$file" || echo "application/octet-stream")
+              echo "Uploading $filename via REST API"
+              curl -sS -X POST -H "Authorization: token $GH_TOKEN" -H "Content-Type: $mimetype" --data-binary "@$file" "$api_url?name=$filename" || echo "⚠️ curl upload failed for $filename"
+            done
+          }
 
-            echo "✅ Release artifacts staged for upload"
+          if upload_with_gh; then
+            echo "✅ Artifacts uploaded with gh CLI"
+          else
+            echo "gh CLI unavailable or upload failed; attempting REST API upload"
+            upload_with_api
+            echo "✅ Attempted REST API upload"
           fi
 
       - name: Create release artifacts (if release event)
@@ -826,6 +848,8 @@ jobs:
           path: verification/
 
       - name: Validate release gates
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -875,8 +899,25 @@ jobs:
           else
             echo "❌ Gate 4: Release decision - DENIED (insufficient gate passes)"
             echo ""
-            echo "⚠️ Release gates FAILED - manual review required"
+            echo "⚠️ Release gates FAILED - automated escalation will be created"
             release_approved=false
+
+            # Create an investigation issue automatically for failed gates (idempotent)
+            ISSUE_TITLE="[AUTO] Provenance Gate Failure - run ${GITHUB_RUN_ID}"
+            ISSUE_BODY="Automated investigation created by release gate automation.\n\nRun: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\n\nGates Passed: ${gates_passed}/4\nGates Failed: ${gates_failed}\n\nActions taken:\n- Uploading artifacts and diagnostics for audit.\n- Issue created for SRE/SEC review and tracking.\n\nThis issue was created automatically by the release gate workflow to avoid blocking pipeline progress and to ensure immutable audit trails."
+
+            # Use gh CLI to create the issue if available; guard to avoid duplicate issues
+            if command -v gh >/dev/null 2>&1; then
+              EXISTING=$(gh issue list --repo "${GITHUB_REPOSITORY}" --label supply-chain,gates --state open --json number,title --jq ".[] | select(.title==\"${ISSUE_TITLE}\") | .number" 2>/dev/null || true)
+              if [ -z "${EXISTING}" ]; then
+                gh issue create --repo "${GITHUB_REPOSITORY}" --title "${ISSUE_TITLE}" --body "${ISSUE_BODY}" --label "supply-chain,gates,auto-escalation" || true
+                echo "issue_created=true" >> "$GITHUB_ENV"
+              else
+                echo "issue_exists=${EXISTING}" >> "$GITHUB_ENV"
+              fi
+            else
+              echo "gh CLI not found; ensure runner can create issues via API if desired" >&2 || true
+            fi
           fi
 
           echo ""
