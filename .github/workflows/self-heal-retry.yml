@@ -14,6 +14,9 @@ jobs:
     steps:
       - name: Check for required secrets and dispatch self-heal
         uses: actions/github-script@v6
+        env:
+          RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         with:
           script: |
             const missing = [];
