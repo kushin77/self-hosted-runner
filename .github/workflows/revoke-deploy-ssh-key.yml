@@ -1,5 +1,5 @@
 name: Revoke Compromised DEPLOY_SSH_KEY
-# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
+# sequencing-protection: converted to `workflow_call` + `concurrency`
 
 on:
   workflow_dispatch:
@@ -15,6 +15,12 @@ on:
         description: 'Notify ops team after revocation'
         required: false
         default: 'true'
+
+  workflow_call: {}
+
+concurrency:
+  group: revoke-deploy-ssh-key-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read

@@ -16,6 +16,12 @@ on:
           - 7d
           - 30d
 
+  workflow_call: {}
+
+concurrency:
+  group: comprehensive-metrics-report-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read
