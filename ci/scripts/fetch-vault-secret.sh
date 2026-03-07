@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# CI helper: fetch secret from Vault (simple KV v2 aware)
+# Usage: ci/scripts/fetch-vault-secret.sh <secret-path>
+
+SECRET_PATH=${1:?Usage: $0 <secret-path>} # e.g. secret/data/ci/db
+
+if [ -z "${VAULT_ADDR:-}" ]; then
+  echo "VAULT_ADDR not set" >&2
+  exit 1
+fi
+
+if [ -z "${VAULT_TOKEN:-}" ]; then
+  echo "VAULT_TOKEN not set" >&2
+  exit 1
+fi
+
+curl -s -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$SECRET_PATH" | jq -r '.data.data.value // .data.value // empty'
+#!/usr/bin/env bash
+set -euo pipefail
 # Fetch a secret value from Vault and optionally export it as an env var
 # Usage: VAULT_ADDR=... VAULT_TOKEN=... ./ci/scripts/fetch-vault-secret.sh secret/path field [ENV_VAR_NAME]
 
