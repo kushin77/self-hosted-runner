@@ -1,0 +1,9 @@
+[runners]
+worker1 ansible_host=192.168.168.42 ansible_user=akushnir ansible_become=true
+
+[all:vars]
+ansible_user=akushnir
+ansible_become=true
+runner_repo_url=https://github.com/kushin77/self-hosted-runner
+runner_name_prefix=eiq-runner
+workdir=/opt/actions-runner
