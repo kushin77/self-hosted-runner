@@ -44,7 +44,9 @@ fi
 if [[ -n "${TEST_SLACK_WEBHOOK:-}" ]]; then
   echo "Falling back to direct Slack POST using TEST_SLACK_WEBHOOK (env)."
   slack_payload='{"text":"[ALERT TEST] This is a direct test message from automated_test_alert.sh"}'
-  curl -sS -X POST -H 'Content-type: application/json' --data "$slack_payload" "${TEST_SLACK_WEBHOOK}" && echo "Direct Slack POST sent." || echo "Direct Slack POST failed." >&2
+  # Use "--" to stop curl option parsing so a webhook that begins with '-'
+  # won't be interpreted as an option. Use --data-raw to avoid curl processing.
+  curl -sS -X POST -H 'Content-type: application/json' --data-raw "$slack_payload" -- "${TEST_SLACK_WEBHOOK}" && echo "Direct Slack POST sent." || echo "Direct Slack POST failed." >&2
   exit 0
 fi
 
