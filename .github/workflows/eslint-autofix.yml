@@ -24,6 +24,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -50,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           cd ElevatedIQ-Mono-Repo/apps/portal
-          npm install --no-audit --no-fund || npm ci --no-audit --no-fund || true
+          retry_command 5 10 sh -c "npm install --no-audit --no-fund" || retry_command 5 10 sh -c "npm ci --no-audit --no-fund" || true
           npx eslint --fix src/ dist/ 2>&1 || echo "ESLint completed with status $?"
           echo "Fixed files:"
           git diff --name-only

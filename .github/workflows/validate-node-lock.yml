@@ -13,6 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Setup Node (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |
@@ -34,8 +39,8 @@ jobs:
             echo "--- Checking $p ---"
             if [ -f "$p/package.json" ]; then
               pushd "$p"
-              npm ci --no-audit --no-fund
-              npm install --package-lock-only --no-audit --no-fund
+              retry_command 5 10 sh -c "npm ci --no-audit --no-fund"
+              retry_command 5 10 sh -c "npm install --package-lock-only --no-audit --no-fund"
               git diff --exit-code package-lock.json || { echo "package-lock.json would change in $p"; exit 1; }
               popd
             else
