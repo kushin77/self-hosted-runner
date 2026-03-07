@@ -95,8 +95,23 @@ jobs:
             exit 1
           fi
 
-      - name: Upload diagnostic artifacts (always)
-        if: always()
+      - name: Upload diagnostic artifacts (self-hosted)
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          FILE=/tmp/gcp_validation_output.txt
+          if [ -f "$FILE" ]; then
+            TAR=dr-diagnostics-${{ github.run_id }}.tgz
+            tar -czf "$TAR" "$FILE" || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded DR diagnostics to: $URL"
+          else
+            echo "No diagnostic output to upload"
+          fi
+
+      - name: Upload diagnostic artifacts (hosted fallback)
+        if: always() && ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: dr-diagnostics-${{ github.run_id }}
