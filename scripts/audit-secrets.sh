@@ -64,17 +64,22 @@ EOF
   shift
 done
 
-echo -e "${BLUE}=== Secrets Audit Tool ===${NC}"
-echo "Scanning: $WORKFLOWS_DIR"
-echo ""
+# Only show progress messages in human-readable modes
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${BLUE}=== Secrets Audit Tool ===${NC}"
+  echo "Scanning: $WORKFLOWS_DIR"
+  echo ""
+  echo -e "${BLUE}[1/5] Extracting secret references...${NC}"
+fi
 
 # Extract all secrets from workflows
-echo -e "${BLUE}[1/5] Extracting secret references...${NC}"
 SECRETS_FILE="$TEMP_DIR/secrets.txt"
 grep -rh '\${{ secrets\.' "$WORKFLOWS_DIR" 2>/dev/null | grep -oE 'secrets\.[A-Z_]+' | sed 's/^secrets\.//' | sort -u > "$SECRETS_FILE" || true
 
 # Extract secret usages per workflow
-echo -e "${BLUE}[2/5] Mapping secret usage per workflow...${NC}"
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${BLUE}[2/5] Mapping secret usage per workflow...${NC}"
+fi
 USAGE_FILE="$TEMP_DIR/usage.txt"
 {
   for workflow in "$WORKFLOWS_DIR"/*.yml; do
@@ -87,7 +92,9 @@ USAGE_FILE="$TEMP_DIR/usage.txt"
 } > "$USAGE_FILE" || true
 
 # Count secrets
-echo -e "${BLUE}[3/5] Analyzing patterns...${NC}"
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${BLUE}[3/5] Analyzing patterns...${NC}"
+fi
 TOTAL_SECRETS=$(wc -l < "$SECRETS_FILE")
 TOTAL_WORKFLOWS=$(find "$WORKFLOWS_DIR" -name "*.yml" -type f | wc -l)
 
@@ -103,7 +110,9 @@ OPTIONAL_SECRETS=(
 )
 
 # Validate required secrets exist in GitHub
-echo -e "${BLUE}[4/5] Validating configuration...${NC}"
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${BLUE}[4/5] Validating configuration...${NC}"
+fi
 VALIDATION_FILE="$TEMP_DIR/validation.txt"
 GH_SECRETS=$(gh secret list --repo kushin77/self-hosted-runner 2>/dev/null | awk '{print $1}' | tail -n +2 || true)
 
@@ -124,7 +133,9 @@ GH_SECRETS=$(gh secret list --repo kushin77/self-hosted-runner 2>/dev/null | awk
   done
 } | sort -u > "$VALIDATION_FILE"
 
-echo -e "${BLUE}[5/5] Generating report...${NC}"
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${BLUE}[5/5] Generating report...${NC}"
+fi
 
 # Output functions
 output_text_summary() {
@@ -391,7 +402,7 @@ if [ -n "$SEARCH_PATTERN" ]; then
   echo -e "${BLUE}Searching for secrets matching pattern: ${YELLOW}$SEARCH_PATTERN${NC}"
   echo ""
   grep "$SEARCH_PATTERN" "$SECRETS_FILE" | while read -r secret; do
-    local count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+    count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
     echo "  • $secret (used in $count workflows)"
   done
 elif [ "$OUTPUT_FORMAT" = "json" ]; then
@@ -405,4 +416,6 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}✅ Audit complete${NC}"
+if [ "$OUTPUT_FORMAT" != "json" ]; then
+  echo -e "${GREEN}✅ Audit complete${NC}"
+fi

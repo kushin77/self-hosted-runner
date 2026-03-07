@@ -1,0 +1,65 @@
+name: Observability E2E Scheduled Run
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily at 02:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  scheduled-e2e:
+    name: Scheduled Observability E2E (real receivers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare
+        id: prep
+        run: |
+          set -euo pipefail
+          echo "Running scheduled Observability E2E"
+
+      - name: Check and run Slack test
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          if [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "SLACK secret present - running Slack E2E"
+            SLACK_FILE=$(mktemp)
+            echo -n "$SLACK_WEBHOOK_URL" > "$SLACK_FILE"
+            SLACK_URL=$(cat "$SLACK_FILE")
+            rm "$SLACK_FILE"
+            cd scripts/automation/pmo/prometheus
+            chmod +x run_e2e_ephemeral_test.sh
+            ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_URL"
+          else
+            echo "SLACK_WEBHOOK_URL not set - skipping Slack test"
+          fi
+
+      - name: Check and run PagerDuty test
+        env:
+          PAGERDUTY_SERVICE_KEY: ${{ secrets.PAGERDUTY_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PAGERDUTY_SERVICE_KEY:-}" ]; then
+            echo "PagerDuty secret present - running PagerDuty E2E"
+            PD_FILE=$(mktemp)
+            echo -n "$PAGERDUTY_SERVICE_KEY" > "$PD_FILE"
+            PD_KEY=$(cat "$PD_FILE")
+            rm "$PD_FILE"
+            cd scripts/automation/pmo/prometheus
+            chmod +x run_e2e_ephemeral_test.sh
+            ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
+          else
+            echo "PAGERDUTY_SERVICE_KEY not set - skipping PagerDuty test"
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Scheduled Observability E2E run complete"
