@@ -7,6 +7,10 @@ on:
         description: 'If true, will update GitHub secret (default: false)'
         required: false
         default: 'false'
+      debug:
+        description: 'Enable debug diagnostics (verbose logs)'
+        required: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -23,6 +27,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Debug diagnostics (optional)
+        if: ${{ github.event.inputs.debug == 'true' }}
+        run: |
+          echo "=== Debug diagnostics ==="
+          uname -a || true
+          echo "Runner info:"
+          echo "OS: $(lsb_release -ds 2>/dev/null || cat /etc/os-release 2>/dev/null)"
+          echo "Environment vars (partial):"
+          env | sort | sed -n '1,120p'
+          echo "Attempting DNS + connectivity test to VAULT_ADDR"
+          VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+          echo "VAULT_ADDR=$VAULT_ADDR"
+          timeout 10 curl -v --connect-timeout 8 "$VAULT_ADDR/v1/sys/health" || true
 
       - name: Install dependencies (jq, curl)
         run: |
@@ -71,6 +89,7 @@ jobs:
           echo "✅ Authenticated to Vault (dry-run)"
 
       - name: Generate Secret ID (dry-run, do not persist)
+        id: generate
         if: steps.vault-auth.outputs.vault_token_present == 'true'
         env:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
