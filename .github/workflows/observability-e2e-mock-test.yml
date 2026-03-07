@@ -1,0 +1,45 @@
+name: Observability E2E Mock Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'Enable debug output'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+jobs:
+  mock-e2e-test:
+    name: Run Mock E2E Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run mock webhook test (no secrets)
+        env:
+          DEBUG_MODE: ${{ github.event.inputs.debug_mode || 'false' }}
+        run: |
+          set -euo pipefail
+          cd scripts/automation/pmo/prometheus
+          chmod +x run_e2e_ephemeral_test.sh
+          # Run without any --slack-url or --pagerduty-key args
+          # This will use the internal mock webhook
+          ./run_e2e_ephemeral_test.sh
+
+      - name: Collect logs artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-mock-logs
+          path: |
+            scripts/automation/pmo/prometheus/*.log
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "Mock E2E test complete. Check artifacts: observability-e2e-mock-logs"
