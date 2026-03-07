@@ -11,7 +11,7 @@
 Copy & run **all 4 commands** in your terminal:
 
 ```bash
-gh secret set MINIO_ENDPOINT --body "https://minio.your-domain.com" --repo kushin77/self-hosted-runner
+gh secret set MINIO_ENDPOINT --body "https://mc.elevatediq.ai:9000" --repo kushin77/self-hosted-runner
 gh secret set MINIO_ACCESS_KEY --body "minioadmin" --repo kushin77/self-hosted-runner
 gh secret set MINIO_SECRET_KEY --body "minioadmin-secret" --repo kushin77/self-hosted-runner
 gh secret set MINIO_BUCKET --body "github-actions-artifacts" --repo kushin77/self-hosted-runner
