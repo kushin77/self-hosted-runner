@@ -311,7 +311,7 @@ jobs:
           cat artifacts/MANIFEST.json
 
       - name: Upload to artifact storage
-        if: ${{ secrets.SBOM_STORAGE_BUCKET != '' }}
+        if: always()
         continue-on-error: true
         run: |
           set -euo pipefail
