@@ -28,6 +28,8 @@ jobs:
       MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
     steps:
       - uses: actions/checkout@v4
+        - name: Load resilience utilities
+          run: source .github/scripts/resilience.sh
       - name: Install Python (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |
