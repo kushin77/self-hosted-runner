@@ -1,4 +1,5 @@
 name: MinIO DNS Failover & Archival Recovery
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
   schedule:
