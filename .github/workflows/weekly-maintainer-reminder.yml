@@ -1,0 +1,36 @@
+name: Weekly Maintainer Reminder
+
+on:
+  schedule:
+    - cron: '0 9 * * MON'
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - name: Post weekly reminders to maintainer issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issues = [1156, 1157];
+            const body = `Automated weekly reminder: please review and complete the checklist in this issue (or mark completed). If already done, please close the issue and add a short note with timestamp and actor.`;
+            for (const issue_number of issues) {
+              const comments = await github.rest.issues.listComments({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number
+              });
+              const last = comments.data[comments.data.length - 1];
+              const lastIsBotSame = last && last.user && (last.user.type === 'Bot' || last.user.login === 'github-actions[bot]') && last.body === body;
+              if (!lastIsBotSame) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number,
+                  body
+                });
+              }
+            }
