@@ -26,7 +26,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
-        run: npm ci --prefix ElevatedIQ-Mono-Repo/apps/portal
-      - name: Run type check
-        run: npm run type-check --prefix ElevatedIQ-Mono-Repo/apps/portal
+      - name: Install dependencies (with retry)
+        run: |
+          chmod +x scripts/automation/ci_retry.sh || true
+          ./scripts/automation/ci_retry.sh 3 5 -- npm ci --prefix ElevatedIQ-Mono-Repo/apps/portal
+      - name: Run type check (with retry)
+        run: |
+          ./scripts/automation/ci_retry.sh 3 5 -- npm run type-check --prefix ElevatedIQ-Mono-Repo/apps/portal
