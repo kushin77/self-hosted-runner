@@ -94,18 +94,39 @@ jobs:
           echo "missing=${missing[*]}" >> $GITHUB_OUTPUT
           echo "all_present=${ALL_PRESENT}" >> $GITHUB_OUTPUT
 
-          # Close issue #1343 when secrets satisfied
+          # Idempotently manage issue #1343 based on secrets state
           if [ "$ALL_PRESENT" = true ]; then
-            state=$(gh issue view 1343 --json state --jq '.state' 2>/dev/null || echo "open")
-            if [ "$state" = "OPEN" ]; then
-              gh issue close 1343 --repo ${REPO} || true
-              gh issue comment 1064 --repo ${REPO} --body "Automated: required secrets are now present; closed #1343 and re-checking workflows." || true
+            # Close issue #1343 if it exists and is open (idempotent)
+            if gh issue view 1343 --repo ${REPO} >/dev/null 2>&1; then
+              state=$(gh issue view 1343 --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "OPEN")
+              if [ "$state" = "OPEN" ]; then
+                gh issue update 1343 --repo ${REPO} --state closed --state_reason completed || true
+              fi
+            fi
+            # Idempotent comment on tracking issue 1064 (edit if exists, create if not)
+            TRACK_BODY="Automated: required secrets are now present; closed #1343 and re-checking workflows."
+            EXISTING=$(gh api "/repos/${REPO}/issues/1064/comments" --jq ".[] | select(.body | contains(\"required secrets are now present\")) | .id" 2>/dev/null | head -1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$TRACK_BODY" || true
+            else
+              gh issue comment 1064 --repo ${REPO} --body "$TRACK_BODY" || true
             fi
           else
-            gh issue comment 1343 --repo ${REPO} --body "Automated re-check: missing secrets: ${missing[*]}. System will retry provisioning or await operator action." || true
+            # Post idempotent status update on issue #1343 (create if missing)
+            if ! gh issue view 1343 --repo ${REPO} >/dev/null 2>&1; then
+              gh issue create --repo ${REPO} --title "Missing required secrets for automation" --body "The following required secrets are missing and prevent automation: ${missing[*]}" --label "missing-secrets" --json number --jq .number >/dev/null 2>&1 || true
+            else
+              BODY="Automated re-check: missing secrets: ${missing[*]}. System will retry provisioning or await operator action."
+              EXISTING_COMMENT=$(gh api "/repos/${REPO}/issues/1343/comments" --jq ".[] | select(.body | contains(\"Automated re-check\")) | .id" 2>/dev/null | head -1 || true)
+              if [ -n "$EXISTING_COMMENT" ]; then
+                gh api "/repos/${REPO}/issues/comments/${EXISTING_COMMENT}" -X PATCH -f body="$BODY" || true
+              else
+                gh issue comment 1343 --repo ${REPO} --body "$BODY" || true
+              fi
+            fi
           fi
 
-      - name: Post remediation summary to incident
+      - name: Post remediation summary to incident (idempotent)
         env:
           REPO: ${{ github.repository }}
         run: |
@@ -113,4 +134,13 @@ jobs:
           SUMMARY="Remediation Dispatcher run: triggered at $(date -u +'%Y-%m-%dT%H:%M:%SZ')\n"
           SUMMARY+="Failed runs attempted rerun: ${{ steps.gather.outputs.failed_runs:-none }}\n"
           SUMMARY+="Missing secrets: ${{ steps.secrets.outputs.missing:-none }}\n"
-          gh issue comment 1348 --repo ${REPO} --body "$SUMMARY" || true
+
+          # Idempotent comment posting (edit if exists, create if missing)
+          if gh issue view 1348 --repo ${REPO} >/dev/null 2>&1; then
+            EXISTING=$(gh api "/repos/${REPO}/issues/1348/comments" --jq ".[] | select(.body | contains(\"Remediation Dispatcher run\")) | .id" 2>/dev/null | head -1 || true)
+            if [ -n "$EXISTING" ]; then
+              gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$SUMMARY" || true
+            else
+              gh issue comment 1348 --repo ${REPO} --body "$SUMMARY" || true
+            fi
+          fi
