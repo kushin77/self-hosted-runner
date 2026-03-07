@@ -6,14 +6,17 @@ on:
       plan-object:
         required: true
         type: string
+      aws_access_key_id:
+        required: false
+        type: string
+      aws_secret_access_key:
+        required: false
+        type: string
+      aws_region:
+        required: false
+        type: string
     secrets:
       MINIO_BUCKET:
-        required: true
-      AWS_ACCESS_KEY_ID:
-        required: true
-      AWS_SECRET_ACCESS_KEY:
-        required: true
-      AWS_REGION:
         required: true
 
 jobs:
@@ -65,9 +68,9 @@ jobs:
       - name: Terraform apply (using plan, with retry)
         working-directory: terraform
         env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
+          AWS_ACCESS_KEY_ID: ${{ inputs.aws_access_key_id || secrets.AWS_ACCESS_KEY_ID || '' }}
+          AWS_SECRET_ACCESS_KEY: ${{ inputs.aws_secret_access_key || secrets.AWS_SECRET_ACCESS_KEY || '' }}
+          AWS_REGION: ${{ inputs.aws_region || secrets.AWS_REGION || '' }}
         run: |
           set -euo pipefail
           source ../.github/scripts/resilience.sh || true

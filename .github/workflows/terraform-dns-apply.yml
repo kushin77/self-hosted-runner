@@ -11,8 +11,17 @@ on:
   workflow_call: {}
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   terraform:
     name: Terraform Route53 DNS
+    needs: [fetch-aws-creds]
     runs-on: ubuntu-latest
     concurrency:
       group: terraform-dns-apply-${{ github.ref || github.run_id }}
@@ -26,12 +35,12 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Configure AWS credentials
-        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY }}
+        if: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id != '' }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-access-key-id: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          aws-secret-access-key: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          aws-region: ${{ needs.fetch-aws-creds.outputs.aws_region || 'us-east-1' }}
 
       - name: Terraform Init
         working-directory: terraform/modules/dns/gitlab
