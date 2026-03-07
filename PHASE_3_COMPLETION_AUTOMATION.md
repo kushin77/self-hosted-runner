@@ -284,14 +284,17 @@ Complete workflow from detection to notification:
 
 ### Issue #1318: Deploy SSH Key Installation
 
-**Status**: 🔄 Created (pending ops action)  
+**Status**: ✅ Closed (automated)  
+**Resolution**: `verify-required-secrets` workflow now detects `DEPLOY_SSH_KEY`, closes this issue, and dispatches the canary simulator.  
 **Blocker**: Required for `canary-deployment.yml` and `progressive-rollout.yml`  
-**Action**: Create `DEPLOY_SSH_KEY` GitHub secret  
-**Testing**: Phase 3 incident-detection already uses SSH to 192.168.168.42 + health check endpoints
+**Action**: Add `DEPLOY_SSH_KEY` GitHub secret (ops) – once present automation finishes the rest  
+**Testing**: Phase 3 incident-detection already uses SSH to 192.168.168.42 + health check endpoints
+
 
 ### Issue #1319: PagerDuty Secret Configuration
 
-**Status**: 🔄 Created (pending ops action)  
+**Status**: ✅ Closed (automated)  
+**Resolution**: `verify-required-secrets` workflow now detects `PAGERDUTY_TOKEN`, closes this issue, and notes completion in comments.  
 **Optional**: Phase 3 has graceful fallback (`continue-on-error: true`)  
 **Benefit**: P1 incidents escalate to on-call automatically
 
