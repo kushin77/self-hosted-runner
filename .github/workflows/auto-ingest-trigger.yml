@@ -1,4 +1,5 @@
-name: Auto: Verify and DR tests after GCP secret ingestion
+---
+name: "Auto: Verify and DR tests after GCP secret ingestion"
 
 on:
   issue_comment:
@@ -7,7 +8,9 @@ on:
 jobs:
   on-ingest-confirmation:
     name: Trigger verification and DR tests
-    if: github.event.issue.number == 1239 && contains(github.event.comment.body, 'ingested: true')
+    if: >
+      ${{ github.event.issue.number == 1239 &&
+         contains(github.event.comment.body, 'ingested: true') }}
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -29,18 +32,22 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '✅ Ingestion confirmed. Triggering verification and DR smoke-tests...'
+              body: '✅ Ingestion confirmed — triggering verification.'
             })
 
       - name: Dispatch verify-secrets-and-diagnose workflow
         run: |
-          gh workflow run verify-secrets-and-diagnose.yml --repo ${{ github.repository }} --ref main || true
+          gh workflow run verify-secrets-and-diagnose.yml \
+            --repo ${{ github.repository }} \
+            --ref main || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Dispatch dr-smoke-test workflow
         run: |
-          gh workflow run dr-smoke-test.yml --repo ${{ github.repository }} --ref main || true
+          gh workflow run dr-smoke-test.yml \
+            --repo ${{ github.repository }} \
+            --ref main || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -53,5 +60,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '📊 Verification and DR tests dispatched. Check [Actions](https://github.com/${{ github.repository }}/actions) for run details.'
+              body: "📊 Verification dispatched. See Actions tab."
             })
