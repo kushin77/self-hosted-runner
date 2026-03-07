@@ -60,6 +60,41 @@ jobs:
               }
             }
 
+            // Optionally notify PagerDuty via Events API v2 when key available (non-fatal)
+            const pagerKey = process.env.PAGERDUTY_SERVICE_KEY || '';
+            if (pagerKey) {
+              try {
+                const pdBody = {
+                  routing_key: pagerKey,
+                  event_action: 'trigger',
+                  payload: {
+                    summary: `Observability E2E failure - ${runUrl}`,
+                    severity: 'error',
+                    source: 'github.actions'
+                  }
+                };
+                await require('node-fetch')('https://events.pagerduty.com/v2/enqueue', {
+                  method: 'POST',
+                  body: JSON.stringify(pdBody),
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                core.info('Triggered PagerDuty event');
+              } catch (e) {
+                core.warning('Failed to trigger PagerDuty event: ' + e.message);
+              }
+            }
+
+            // Optionally assign issue when ALERT_ASSIGNEE provided
+            const assignee = process.env.ALERT_ASSIGNEE || '';
+            if (assignee && issueNumber) {
+              try {
+                await github.rest.issues.addAssignees({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, assignees: [assignee] });
+                core.info(`Assigned issue #${issueNumber} to ${assignee}`);
+              } catch (e) {
+                core.warning('Failed to assign issue: ' + e.message);
+              }
+            }
+
       - name: Close alert on success
         if: ${{ github.event.workflow_run.conclusion == 'success' }}
         uses: actions/github-script@v6
@@ -79,7 +114,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
-      - name: Export Slack secret for js step
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+      - name: Export secrets for js step
         run: |
-          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV
+          if [ "${{ secrets.SLACK_WEBHOOK_URL || '' }}" != "" ]; then echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV; fi
+          if [ "${{ secrets.PAGERDUTY_SERVICE_KEY || '' }}" != "" ]; then echo "PAGERDUTY_SERVICE_KEY=${{ secrets.PAGERDUTY_SERVICE_KEY }}" >> $GITHUB_ENV; fi
+          if [ "${{ secrets.ALERT_ASSIGNEE || '' }}" != "" ]; then echo "ALERT_ASSIGNEE=${{ secrets.ALERT_ASSIGNEE }}" >> $GITHUB_ENV; fi
