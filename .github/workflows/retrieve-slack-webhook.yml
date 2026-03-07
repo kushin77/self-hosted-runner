@@ -13,6 +13,10 @@ jobs:
   retrieve:
     runs-on: [self-hosted, linux]
     steps:
+      - name: Load resilience helpers
+      run: |
+        set -euo pipefail
+        source .github/scripts/resilience.sh || true
       - name: Check for SLACK_WEBHOOK in runner env
         id: check
         run: |

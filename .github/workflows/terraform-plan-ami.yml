@@ -18,3 +18,8 @@ jobs:
     with:
       ami-tfvars-object: ami-tfvars
       plan-object: terraform-plan
+
+  - name: Load resilience helpers
+  run: |
+    set -euo pipefail
+    source .github/scripts/resilience.sh || true

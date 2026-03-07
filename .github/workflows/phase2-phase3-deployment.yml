@@ -16,6 +16,10 @@ jobs:
       phase2_ready: ${{ steps.check.outputs.phase2_ready }}
       phase3_ready: ${{ steps.check.outputs.phase3_ready }}
     steps:
+      - name: Load resilience helpers
+      run: |
+        set -euo pipefail
+        source .github/scripts/resilience.sh || true
       - name: Checkout
         uses: actions/checkout@v4
 

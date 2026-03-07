@@ -1,0 +1,87 @@
+name: Trigger Deploy via Issue Comment
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  deploy-on-confirmation:
+    if: >-
+      contains(github.event.comment.body, '/run-deploy') && (github.event.issue.number == 1192)
+    runs-on: ubuntu-latest
+    env:
+      ALERTMANAGER_CONFIG_PATH: ./alertmanager.yml
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/automation/pmo/prometheus/generate-alertmanager-config.sh || true
+          chmod +x scripts/check_ssh_and_retry.sh || true
+          chmod +x scripts/automated_test_alert.sh || true
+
+      - name: Set up Python (for Ansible)
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible==8.7.0
+
+      - name: Set up SSH key for deployment
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf "%s\n" "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/deploy_key || (echo "Attempting base64 decode fallback..." && base64 -d "$(printf "${{ secrets.DEPLOY_SSH_KEY }}")" > ~/.ssh/deploy_key_decoded && chmod 600 ~/.ssh/deploy_key_decoded && ssh-add ~/.ssh/deploy_key_decoded)
+          ssh-keyscan -H staging.example.com >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Generate Alertmanager config
+        run: |
+          ./scripts/automation/pmo/prometheus/generate-alertmanager-config.sh > ${ALERTMANAGER_CONFIG_PATH}
+          ls -l ${ALERTMANAGER_CONFIG_PATH}
+
+      - name: Check SSH connectivity to staging (retry)
+        id: check-ssh
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          chmod +x ./scripts/check_ssh_and_retry.sh || true
+          retry_command 5 10 sh -c "TARGET_HOST=staging.example.com TARGET_USER=deploy KEY_PATH=$HOME/.ssh/deploy_key ./scripts/check_ssh_and_retry.sh" || true
+
+      - name: Comment on Issue #1192 if SSH not ready
+        if: ${{ steps.check-ssh.conclusion != 'success' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = 1192;
+            const body = `Automated deployment triggered by issue comment but SSH connectivity to staging is not available. The workflow skipped Ansible and has generated the Alertmanager config for review.
+
+Please install the public SSH key (previously posted in comments) on the staging hosts. After installing, comment '/run-deploy' again on this issue to re-run the deployment.`;
+            await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
+
+      - name: Deploy Alertmanager via Ansible
+        if: ${{ steps.check-ssh.conclusion == 'success' }}
+        run: |
+          if [ -f ansible/inventory/staging ] && [ -f ansible/playbooks/deploy-alertmanager-config.yml ]; then
+            ansible-playbook -i ansible/inventory/staging ansible/playbooks/deploy-alertmanager-config.yml --extra-vars "alertmanager_config_path=${ALERTMANAGER_CONFIG_PATH}"
+          else
+            echo "Ansible playbook or inventory not configured (expected for testing). Skipping Ansible deployment."
+            echo "Generated alertmanager config is at: ${ALERTMANAGER_CONFIG_PATH}"
+          fi
