@@ -282,7 +282,7 @@ jobs:
 **Workflow Run:** [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
           # Find or create health tracking issue
-          health_issue=$(gh issue list --label hands-off-health-report --state open --sort created --direction asc --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+          health_issue=$(gh issue list --label hands-off-health-report --state open --search "sort:created-asc" --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
 
           if [ -z "$health_issue" ]; then
             health_issue=$(gh issue create \
