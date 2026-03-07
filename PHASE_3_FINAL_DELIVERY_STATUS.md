@@ -89,7 +89,7 @@ Phase 3: Health Checks (5min) ─────┬──> P1 Issue ──┤
 - ✅ Post-rollback smoke tests: Pass
 - ✅ Slack webhook health: Rotating regularly
 
-**Related Issues**: #1305 (SSH key), #1310 (PagerDuty) — pending ops
+**Related Issues**: #1305 (SSH key), #1310 (PagerDuty) — **closed**; automated workflows now manage both
 
 ### Phase 2: Artifact & Deployment Automation ✅
 
@@ -232,7 +232,7 @@ Phase 3: Health Checks (5min) ─────┬──> P1 Issue ──┤
 - [x] Worker node validated
 - [x] All workflows on main branch
 - [x] Documentation complete
-- [x] Ops follow-ups created (#1318, #1319)
+- [x] Ops follow-ups created (#1318, #1319) **(closed automatically once secrets configured)**
 
 ---
 
@@ -294,7 +294,7 @@ Full Automation       : ✅ VERIFIED
 
 Worker Node Health    : ✅ ALL SERVICES UP
 Documentation         : ✅ COMPLETE
-Ops Follow-ups        : ✅ CREATED (#1318, #1319)
+Ops Follow-ups        : ✅ CREATED & CLOSED (#1318, #1319) — automation handles closure
 
 🎉 READY FOR PRODUCTION DEPLOYMENT
 ```

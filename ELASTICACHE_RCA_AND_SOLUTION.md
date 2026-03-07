@@ -226,6 +226,8 @@ Once set, mirror workflow automatically runs on releases.
 3. **Set** `AWS_OIDC_ROLE` or AWS credentials as GitHub repo secret
 4. **Merge** PR #1314
 5. **Trigger** `.github/workflows/elasticache-apply-safe.yml` with `apply=true`
+
+> **Automation note:** any commit that updates `terraform/elasticache-params.tfvars` and removes the placeholder text (`REPLACE_WITH_…`) will automatically kick off the safe workflow. It will perform a dry-run if credentials are not yet configured and will auto-apply once OIDC or AWS creds appear. No manual dispatch is needed.
 6. **Monitor** workflow logs; results will be archived to release
 
 ---
