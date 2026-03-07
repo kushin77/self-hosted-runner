@@ -267,7 +267,23 @@ jobs:
 
           cat /tmp/compliance-report.md
 
-      - name: Upload compliance report
+      - name: Upload compliance report (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          FILE=/tmp/compliance-report.md
+          if [ -f "$FILE" ]; then
+            TAR=compliance-report-${{ github.run_id }}.tgz
+            tar -czf "$TAR" -C /tmp compliance-report.md || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded compliance report to: $URL"
+          else
+            echo "No compliance report found"
+          fi
+
+      - name: Upload compliance report (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: compliance-report
