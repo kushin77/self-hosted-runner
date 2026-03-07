@@ -129,11 +129,13 @@ jobs:
       - name: Post remediation summary to incident (idempotent)
         env:
           REPO: ${{ github.repository }}
+          FAILED_RUNS: ${{ steps.gather.outputs.failed_runs }}
+          MISSING_SECRETS: ${{ steps.secrets.outputs.missing }}
         run: |
           set -euo pipefail
           SUMMARY="Remediation Dispatcher run: triggered at $(date -u +'%Y-%m-%dT%H:%M:%SZ')\n"
-          SUMMARY+="Failed runs attempted rerun: ${{ steps.gather.outputs.failed_runs:-none }}\n"
-          SUMMARY+="Missing secrets: ${{ steps.secrets.outputs.missing:-none }}\n"
+          SUMMARY+="Failed runs attempted rerun: ${FAILED_RUNS:-none}\n"
+          SUMMARY+="Missing secrets: ${MISSING_SECRETS:-none}\n"
 
           # Idempotent comment posting (edit if exists, create if missing)
           if gh issue view 1348 --repo ${REPO} >/dev/null 2>&1; then
