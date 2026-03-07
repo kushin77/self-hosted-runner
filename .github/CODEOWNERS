@@ -44,3 +44,24 @@ docs/AI_AGENT_SAFETY_FRAMEWORK.md @kushin77
 config/cicd/ @kushin77
 alerts/ @kushin77
 deploy/dashboards/ @kushin77
+
+# 🔐 SECRETS ENGINEERING (Mandatory Reviews)
+# All secrets changes require secrets engineer + ops lead approval
+.secrets/ @kushin77 @ops-team
+SECRETS_SETUP_GUIDE.md @kushin77 @ops-team
+SECRETS_REPOSITORY_RULES.md @kushin77 @security-team
+.github/workflows/rotate-secret*.yml @kushin77 @ops-team
+.github/workflows/secrets-*.yml @kushin77 @security-team
+.github/workflows/verify-secrets*.yml @kushin77
+.github/workflows/*-secret*.yml @kushin77
+
+# Sensitive infrastructure workflows (require secrets review)
+.github/workflows/*auth*.yml @kushin77 @ops-team
+.github/workflows/*credential*.yml @kushin77 @security-team
+.github/workflows/*vault*.yml @kushin77 @infrastructure-team
+.github/workflows/*gcp*.yml @kushin77 @ops-team
+.github/workflows/*aws*.yml @kushin77
+
+# Emergency response procedures (fast-track approval)
+*EMERGENCY*.md @kushin77 @ops-team
+*emergency*.yml @kushin77
