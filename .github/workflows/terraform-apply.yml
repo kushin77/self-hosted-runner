@@ -21,3 +21,8 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
     with:
       plan-object: terraform-plan
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
