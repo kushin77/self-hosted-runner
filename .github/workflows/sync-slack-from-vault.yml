@@ -1,0 +1,80 @@
+name: Sync SLACK_WEBHOOK from Vault
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+  id-token: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install vault CLI
+        run: |
+          if ! command -v vault >/dev/null; then
+            curl -fsSL https://releases.hashicorp.com/vault/1.12.3/vault_1.12.3_linux_amd64.zip -o /tmp/vault.zip
+            sudo apt-get update -y && sudo apt-get install -y unzip
+            unzip -o /tmp/vault.zip -d /tmp
+            sudo mv /tmp/vault /usr/local/bin/vault
+          fi
+
+      - name: Fetch SLACK webhook from Vault
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_OWNER: ${{ github.repository_owner }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          HOOK_PATH="secret/data/ci/webhooks"
+
+          if [[ -z "${VAULT_ADDR:-}" ]]; then
+            echo "VAULT_ADDR missing; cannot fetch from Vault";
+            gh issue comment 480 --repo "$GITHUB_REPOSITORY" --body "Vault sync attempted but VAULT_ADDR not configured in repo secrets." || true
+            exit 0
+          fi
+
+          if [[ -z "${VAULT_TOKEN:-}" ]]; then
+            if [[ -n "${VAULT_ROLE_ID:-}" && -n "${VAULT_SECRET_ID:-}" ]]; then
+              echo "Attempting AppRole login to Vault..."
+              resp=$(curl -sS --request POST --data "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}" "${VAULT_ADDR%/}/v1/auth/approle/login" || true)
+              VAULT_TOKEN=$(echo "$resp" | sed -n 's/.*"client_token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
+              if [[ -n "${VAULT_TOKEN:-}" ]]; then
+                export VAULT_TOKEN
+                echo "AppRole login successful."
+              else
+                echo "AppRole login failed; continuing without VAULT_TOKEN."
+              fi
+            else
+              echo "No VAULT_TOKEN or AppRole creds available."
+            fi
+          fi
+
+          set +e
+          WEBHOOK=$(vault kv get -field=webhook "$HOOK_PATH" 2>/dev/null || true)
+          set -e
+
+          if [[ -n "$WEBHOOK" ]]; then
+            echo "Webhook found in Vault. Checking repo secret..."
+            exists=$(gh secret list --repo "$GITHUB_REPOSITORY" --json name --jq '.[] | .name' | grep -F SLACK_WEBHOOK_URL || true)
+            if [[ -n "$exists" ]]; then
+              gh issue comment 480 --repo "$GITHUB_REPOSITORY" --body "Vault sync found a Slack webhook but the repository secret `SLACK_WEBHOOK_URL` already exists; not overwriting." || true
+              echo "Secret exists; not overwriting."
+            else
+              echo "$WEBHOOK" | gh secret set SLACK_WEBHOOK_URL --repo "$GITHUB_REPOSITORY" --body -
+              gh issue comment 480 --repo "$GITHUB_REPOSITORY" --body "Repository secret `SLACK_WEBHOOK_URL` created from Vault (path: $HOOK_PATH)." || true
+              echo "SLACK_WEBHOOK_URL set from Vault."
+            fi
+          else
+            gh issue comment 480 --repo "$GITHUB_REPOSITORY" --body "Vault sync completed: no Slack webhook found at $HOOK_PATH; nothing was created." || true
+            echo "No webhook in Vault path $HOOK_PATH"
+          fi
