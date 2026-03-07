@@ -23,14 +23,16 @@ jobs:
       - name: Download terraform plan artifact from MinIO (with retry)
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh scripts/automation/ci_retry.sh
-          ./scripts/automation/ci_retry.sh 3 5 -- ./scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object }}" --out ci-runners-plan.out
+          retry_command 3 5 ./scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object }}" --out ci-runners-plan.out
 
       - name: Download terraform plan checksum from MinIO (with retry)
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh scripts/automation/ci_retry.sh
-          ./scripts/automation/ci_retry.sh 2 3 -- ./scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object }}.sha" --out ci-runners-plan.out.sha || true
+          retry_command 2 3 ./scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object }}.sha" --out ci-runners-plan.out.sha || true
 
       - name: Verify terraform plan checksum
         run: |
@@ -48,8 +50,9 @@ jobs:
       - name: Setup Terraform
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           TF_VER=1.5.7
-          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
+          retry_command 3 5 curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
           unzip -o /tmp/terraform.zip -d /usr/local/bin
           terraform version
 
@@ -67,11 +70,12 @@ jobs:
           AWS_REGION: ${{ secrets.AWS_REGION }}
         run: |
           set -euo pipefail
+          source ../.github/scripts/resilience.sh || true
           chmod +x ../scripts/automation/ci_retry.sh
           if [ -f ../ci-runners-plan.out ]; then
-            ../scripts/automation/ci_retry.sh 2 10 -- terraform apply -input=false ../ci-runners-plan.out
+            retry_command 2 10 terraform apply -input=false ../ci-runners-plan.out
           elif [ -f ci-runners-plan.out ]; then
-            ../scripts/automation/ci_retry.sh 2 10 -- terraform apply -input=false ci-runners-plan.out
+            retry_command 2 10 terraform apply -input=false ci-runners-plan.out
           else
             echo "Plan artifact not found; aborting" >&2
             exit 2
