@@ -194,9 +194,7 @@ jobs:
     name: Sign Images with Cosign
     runs-on: ubuntu-latest
     needs: [generate-provenance]
-    if: |
-      secrets.COSIGN_PRIVATE_KEY != '' &&
-      inputs.skip_signature != 'true'
+    if: inputs.skip_signature != 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -335,7 +333,7 @@ jobs:
     name: Verify Provenance Quality
     runs-on: ubuntu-latest
     needs: [generate-provenance]
-    if: needs.generate-provenance.outputs.provenance-count > 0
+    if: ${{ needs.generate-provenance.outputs.provenance-count > 0 }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
