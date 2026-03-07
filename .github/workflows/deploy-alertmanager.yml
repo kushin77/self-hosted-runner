@@ -56,10 +56,17 @@ jobs:
       - name: Start ssh-agent and add deploy key
         run: |
           mkdir -p ~/.ssh
-          printf "%s\n" "$DEPLOY_SSH_KEY" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
+          printf "%s\n" "$DEPLOY_SSH_KEY" > /tmp/deploy_key || true
+          chmod 600 /tmp/deploy_key || true
           eval "$(ssh-agent -s)"
-          ssh-add /tmp/deploy_key
+          if ssh-add /tmp/deploy_key 2>/tmp/ssh-add.err; then
+            echo 'ssh-add succeeded'
+          else
+            echo 'ssh-add failed, attempting base64 decode'
+            base64 -d /tmp/deploy_key > /tmp/deploy_key_dec || true
+            chmod 600 /tmp/deploy_key_dec || true
+            ssh-add /tmp/deploy_key_dec
+          fi
 
       - name: Generate Alertmanager config
         env:
