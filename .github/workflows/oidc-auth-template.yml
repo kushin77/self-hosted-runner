@@ -1,0 +1,41 @@
+name: OIDC Auth Template (Credentialless Provisioning)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  oidc-auth-and-validate:
+    name: OIDC Auth and Preflight Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: AWS: configure via OIDC
+        if: ${{ secrets.USE_OIDC == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION }}
+
+      - name: GCP: authenticate via OIDC
+        if: ${{ secrets.USE_OIDC == 'true' }}
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_WORKLOAD_SERVICE_ACCOUNT }}
+
+      - name: Validate GCP service account (best-effort)
+        run: |
+          set -euo pipefail
+          if [ "${{ secrets.USE_OIDC }}" = "true" ]; then
+            echo "Running GCP validations using OIDC-authenticated identity"
+            bash scripts/infra/validate-gcp-service-account.sh || true
+          else
+            echo "USE_OIDC not enabled; skip OIDC validations"
+          fi
+
+      - name: ElastiCache dry-run (Terraform)
+        run: |
+          set -euo pipefail
+          bash scripts/infra/provision-elasticache-redis.sh --dry-run || true
