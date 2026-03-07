@@ -210,39 +210,74 @@ jobs:
         with:
           cosign-release: v2.2.0
 
-      - name: Setup Cosign key
+      - name: Setup Cosign key (detect validity)
         env:
           COSIGN_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
         run: |
-          echo "$COSIGN_KEY" | base64 -d > /tmp/cosign.key
-          chmod 600 /tmp/cosign.key
-          echo "COSIGN_KEY_FILE=/tmp/cosign.key" >> "$GITHUB_ENV"
+          set -euo pipefail
 
-      - name: Sign images (no-op if registry offline)
+          if [ -n "${COSIGN_KEY:-}" ]; then
+            if echo "$COSIGN_KEY" | base64 -d > /tmp/cosign.key 2>/dev/null; then
+              chmod 600 /tmp/cosign.key
+              echo "COSIGN_KEY_FILE=/tmp/cosign.key" >> "$GITHUB_ENV"
+              echo "COSIGN_KEY_PRESENT=true" >> "$GITHUB_ENV"
+              echo "✅ Valid COSIGN_PRIVATE_KEY detected; using key-based signing"
+            else
+              echo "⚠️ COSIGN_PRIVATE_KEY present but invalid base64 PEM; falling back to keyless signing"
+              rm -f /tmp/cosign.key || true
+              echo "COSIGN_KEY_PRESENT=false" >> "$GITHUB_ENV"
+            fi
+          else
+            echo "⏭️ COSIGN_PRIVATE_KEY not set; will attempt keyless signing (OIDC)"
+            echo "COSIGN_KEY_PRESENT=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Sign images (prefer digest from provenance; keyless fallback)
         env:
           REGISTRY_HOST: ${{ secrets.REGISTRY_HOST || 'ghcr.io' }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          COSIGN_EXPERIMENTAL: 1
         continue-on-error: true
         run: |
           set -euo pipefail
 
-          if [ -z "$REGISTRY_USERNAME" ]; then
-            echo "⏭️ Registry credentials unavailable; skipping image signing (no-op safe)"
+          # If no provenance produced, nothing to sign
+          prov_dir=build/provenance
+          if [ ! -d "$prov_dir" ] || [ -z "$(ls -A $prov_dir 2>/dev/null)" ]; then
+            echo "⏭️ No provenance files found; skipping signing"
             exit 0
           fi
 
-          # Find all images built in this run
-          images=$(find services -name Dockerfile -type f | \
-            sed 's|/Dockerfile||' | \
-            sed "s|^|$REGISTRY_HOST/${{ github.repository }}/|" | \
-            sed "s|$|:${{ github.sha }}|")
+          # If registry credentials are not provided, warn but still attempt keyless signing
+          if [ -z "${REGISTRY_USERNAME:-}" ]; then
+            echo "⚠️ Registry username not provided; attempting keyless signing where possible"
+          fi
 
-          for img in $images; do
-            echo "🔐 Signing $img"
-            cosign sign --key "$COSIGN_KEY_FILE" "$img" || {
-              echo "⚠️ Warning: Cosign signature failed for $img (may be offline); continuing"
-              continue
-            }
+          for prov in $prov_dir/*-provenance.json; do
+            [ -f "$prov" ] || continue
+
+            name=$(jq -r '.subject[0].name // empty' "$prov" || true)
+            digest=$(jq -r '.subject[0].digest.sha256 // empty' "$prov" || true)
+
+            if [ -n "$digest" ]; then
+              base=$(echo "$name" | sed 's/:.*$//')
+              img="$base@sha256:$digest"
+            else
+              img="$name"
+            fi
+
+            [ -n "$img" ] || { echo "⚠️ Could not determine image reference from $prov; skipping"; continue; }
+
+            echo "🔐 Signing image from provenance: $img"
+            if [ "${COSIGN_KEY_PRESENT:-false}" = "true" ]; then
+              cosign sign --key "$COSIGN_KEY_FILE" "$img" || {
+                echo "⚠️ Key signing failed for $img; attempting keyless signing"
+                cosign sign --keyless "$img" || echo "⚠️ Keyless signing also failed for $img; continuing"
+              }
+            else
+              echo "🔑 No valid key available; attempting keyless signing for $img"
+              cosign sign --keyless "$img" || echo "⚠️ Keyless signing failed for $img; continuing"
+            fi
           done
 
       - name: Attest provenance
@@ -255,22 +290,42 @@ jobs:
           for prov in build/provenance/*-provenance.json; do
             [ -f "$prov" ] || continue
 
-            # Extract image name from provenance
-            img=$(jq -r '.subject[0].name' "$prov" 2>/dev/null || echo "")
+            # Extract image name and digest from provenance (prefer digest for idempotency)
+            name=$(jq -r '.subject[0].name // empty' "$prov" 2>/dev/null || true)
+            digest=$(jq -r '.subject[0].digest.sha256 // empty' "$prov" 2>/dev/null || true)
+
+            if [ -n "$digest" ]; then
+              base=$(echo "$name" | sed 's/:.*$//')
+              img="$base@sha256:$digest"
+            else
+              img="$name"
+            fi
+
             # Skip if image is empty or literal 'null'
             [ -n "$img" ] || continue
             [ "$img" != "null" ] || continue
 
             echo "📝 Attesting provenance for $img"
-            cosign attest --key "$COSIGN_KEY_FILE" --predicate "$prov" "$img" || {
-              echo "⚠️ Attestation failed for $img; continuing"
-              continue
-            }
+            if [ "${COSIGN_KEY_PRESENT:-false}" = "true" ]; then
+              cosign attest --key "$COSIGN_KEY_FILE" --predicate "$prov" "$img" || {
+                echo "⚠️ Attestation failed for $img using key; attempting keyless attestation"
+                cosign attest --keyless --predicate "$prov" "$img" || {
+                  echo "⚠️ Keyless attestation also failed for $img; continuing"
+                }
+              }
+            else
+              echo "🔑 No valid key available; attempting keyless attestation for $img"
+              cosign attest --keyless --predicate "$prov" "$img" || {
+                echo "⚠️ Keyless attestation failed for $img; continuing"
+              }
+            fi
           done
 
       - name: Cleanup key
         if: always()
-        run: rm -f /tmp/cosign.key
+        run: |
+          rm -f /tmp/cosign.key || true
+          echo "Cleanup complete"
 
   # Stage 4: Store provenance and SBOM artifacts
   store-artifacts:
