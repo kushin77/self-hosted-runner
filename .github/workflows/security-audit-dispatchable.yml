@@ -1,0 +1,29 @@
+name: Security Audit (dispatchable placeholder)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  run-audit:
+    name: Run placeholder security audit (dispatchable)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create placeholder reports
+        run: |
+          echo '{}' > gitleaks-report.json
+          echo '{}' > trivy-report.json
+
+      - name: Upload gitleaks report
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+      - name: Upload trivy report
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
