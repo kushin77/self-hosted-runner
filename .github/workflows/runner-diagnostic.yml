@@ -62,10 +62,20 @@ jobs:
             echo "--- verify-recovery.sh ---"; sed -n '1,200p' scripts/verify-recovery.sh || true
           fi
 
-      - name: Upload diagnostic output
+      - name: Package diagnostic output for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/runner-diagnostic-${{ github.run_id }}.tar.gz . || echo "No diagnostics to package"
+
+      - name: Upload diagnostics to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/runner-diagnostic-${{ github.run_id }}.tar.gz runner-diagnostic-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload diagnostic output (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v3
         with:
           name: runner-diagnostic-${{ github.run_id }}
-          path: |
-            .
+          path: .
           retention-days: 7

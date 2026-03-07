@@ -250,8 +250,20 @@ jobs:
           set -euo pipefail
           ./scripts/automated_test_alert.sh || true
 
-      - name: Upload generated Alertmanager config as artifact
+      - name: Package alertmanager config for MinIO
         if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/alertmanager-config.tar.gz "${ALERTMANAGER_CONFIG_PATH}" 2>/dev/null || echo "Config packaged"
+
+      - name: Upload Alertmanager config to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        continue-on-error: true
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/alertmanager-config.tar.gz alertmanager-config.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload generated Alertmanager config as artifact (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         continue-on-error: true
         uses: actions/upload-artifact@v4
         with:

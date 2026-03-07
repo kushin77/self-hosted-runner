@@ -46,6 +46,7 @@ jobs:
           CANARY_DEPLOY=$(get_status "canary-deployment.yml")
           ELASTICACHE=$(get_status "elasticache-apply-safe.yml")
           STAGING_HEAL=$(get_status "staging-cluster-heal.yml")
+          TF_AUTO=$(get_status "terraform-auto-apply.yml")
 
           echo "dr_smoke=$DR_SMOKE" >> $GITHUB_OUTPUT
           echo "dr_weekly=$DR_WEEKLY" >> $GITHUB_OUTPUT
@@ -59,6 +60,7 @@ jobs:
           echo "canary_deploy=$CANARY_DEPLOY" >> $GITHUB_OUTPUT
           echo "elasticache=$ELASTICACHE" >> $GITHUB_OUTPUT
           echo "staging_heal=$STAGING_HEAL" >> $GITHUB_OUTPUT
+          echo "tf_auto=$TF_AUTO" >> $GITHUB_OUTPUT
 
       - name: Check critical issue status
         id: issues
@@ -163,9 +165,9 @@ jobs:
           | Self-Healing | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Ingestion Monitor | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Daily Reminder | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Terraform Auto-Apply | $(echo "${{ steps.collect.outputs.tf_auto }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.tf_auto }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.tf_auto }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | ElastiCache Apply | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Secret Verifier | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
-          | Canary Simulator | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Staging Heal | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Prog. Rollout Sim | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | SLSA Release | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |

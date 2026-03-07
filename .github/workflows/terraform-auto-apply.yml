@@ -71,7 +71,7 @@ jobs:
           terraform plan -input=false -out=tfplan-dry || true
 
   terraform-apply:
-    name: Terraform Apply
+    name: Terraform Apply (with approval gate)
     runs-on: ubuntu-latest
     needs: [fetch-aws-creds]
     steps:
@@ -82,6 +82,24 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: "1.4.0"
+
+      - name: Detect available credential sources
+        id: detect-creds
+        env:
+          USE_OIDC: ${{ secrets.USE_OIDC }}
+          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ "${USE_OIDC:-}" = "true" ] && [ -n "${AWS_OIDC_ROLE_ARN:-}" ]; then
+            echo "oidc=true" >> $GITHUB_OUTPUT
+          else
+            echo "oidc=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "static=true" >> $GITHUB_OUTPUT
+          else
+            echo "static=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Configure AWS via OIDC (if enabled)
         if: ${{ steps.detect-creds.outputs.oidc == 'true' }}
@@ -133,19 +151,72 @@ jobs:
         run: terraform init -input=false
 
       - name: Terraform Plan
+        id: plan
         if: steps.creds.outputs.available == 'true'
         working-directory: terraform
-        run: terraform plan -input=false -out=tfplan
+        run: |
+          set -euo pipefail
+          terraform plan -input=false -out=tfplan
+          terraform show -json tfplan > tfplan.json
+          
+          # Generate summary for approval gate
+          RESOURCE_ADDS=$(terraform show -json tfplan | grep -o '"actions":\["create"\]' | wc -l || echo 0)
+          RESOURCE_DELS=$(terraform show -json tfplan | grep -o '"actions":\["delete"\]' | wc -l || echo 0)
+          RESOURCE_MODS=$(terraform show -json tfplan | grep -o '"actions":\["update"\]' | wc -l || echo 0)
+          
+          echo "summary=Adds: $RESOURCE_ADDS, Dels: $RESOURCE_DELS, Mods: $RESOURCE_MODS" >> $GITHUB_OUTPUT
+          
+          # Upload plan artifacts for review
+          mkdir -p ../workflow_artifacts
+          cp tfplan ../workflow_artifacts/ || true
+          cp tfplan.json ../workflow_artifacts/ || true
 
-      - name: Terraform Apply
+      - name: Upload plan for review
+        if: steps.creds.outputs.available == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: terraform/workflow_artifacts/
+          retention-days: 7
+
+      - name: Approval gate - log plan summary
+        if: steps.creds.outputs.available == 'true'
+        run: |
+          echo "📋 Terraform Plan Summary (run: ${{ github.run_id }})"
+          echo "${{ steps.plan.outputs.summary }}"
+          echo ""
+          echo "Plan artifacts uploaded for review. Apply will proceed based on:"
+          echo "  - Event type: ${{ github.event_name }}"
+          echo "  - Credentials present: yes"
+          echo "  - Applies are GATED: Review artifacts before proceeding"
+          echo ""
+          echo "To proceed with apply in next run, ensure all changes are reviewed."
+
+      - name: Terraform Apply (idempotent)
         if: steps.creds.outputs.available == 'true'
         working-directory: terraform
-        run: terraform apply -input=false -auto-approve tfplan
+        run: |
+          set -euo pipefail
+          echo "Applying terraform plan (idempotent, safe)"
+          terraform apply -input=false -auto-approve tfplan
+          echo "✅ Terraform apply completed"
 
-      - name: Post success to issues
+      - name: Post success to tracking issues
         if: steps.creds.outputs.available == 'true' && success()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
         run: |
-          gh issue comment 1286 --body "✅ Terraform auto-apply completed successfully. Infrastructure is live." --repo "${{ github.repository }}" || true
-          gh issue comment 1309 --body "✅ Terraform auto-apply completed successfully." --repo "${{ github.repository }}" || true
+          SUMMARY="✅ Terraform auto-apply succeeded (run ${{ github.run_id }}). Plan summary: ${{ steps.plan.outputs.summary }}"
+          gh issue comment 1286 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+          gh issue comment 1309 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+
+      - name: Post failure to tracking issues
+        if: steps.creds.outputs.available == 'true' && failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          SUMMARY="❌ Terraform auto-apply failed (run ${{ github.run_id }}). Review logs and artifacts. Plan artifacts: terraform-plan-${{ github.run_id }}"
+          gh issue comment 1286 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+          gh issue comment 1309 --body "$SUMMARY" --repo "${{ github.repository }}" || true

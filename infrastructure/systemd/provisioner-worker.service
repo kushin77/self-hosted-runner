@@ -1,0 +1,45 @@
+[Unit]
+Description=Provisioner Worker Service (Phase P2)
+Documentation=file:///opt/provisioner-worker/docs/PROVISIONER_WORKER_PROD_ROLLOUT.md
+After=network-online.target redis.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=provisioner-worker
+Group=provisioner-worker
+
+# Working directory and executable
+WorkingDirectory=/opt/provisioner-worker
+ExecStart=/usr/bin/node /opt/provisioner-worker/dist/worker.js
+
+# Environment variables (sourced from /etc/provisioner-worker/env or similar)
+EnvironmentFile=/etc/provisioner-worker/provisioner-worker.env
+Environment="USE_TERRAFORM_CLI=1"
+Environment="JOBSTORE_PERSIST=1"
+Environment="JOBSTORE_FILE=/var/lib/provisioner-worker/jobstore.json"
+
+# Restart policy (idempotent, hands-off)
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=provisioner-worker
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/provisioner-worker
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target

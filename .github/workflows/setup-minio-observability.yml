@@ -257,8 +257,15 @@ jobs:
           cat /tmp/grafana-minio-dashboard.json
           cp /tmp/grafana-minio-dashboard.json artifacts/grafana-minio-dashboard.json
 
-      - name: Upload Dashboard JSON
-        if: ${{ github.event.inputs.action == 'generate-dashboard-json' }}
+      - name: Package and upload dashboard to MinIO
+        if: ${{ github.event.inputs.action == 'generate-dashboard-json' }} && contains(runner.labels, 'self-hosted')
+        run: |
+          mkdir -p /tmp/minio-uploads
+          cp artifacts/grafana-minio-dashboard.json /tmp/minio-uploads/
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/grafana-minio-dashboard.json grafana-minio-dashboard.json || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload Dashboard JSON (hosted fallback)
+        if: ${{ github.event.inputs.action == 'generate-dashboard-json' }} && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: minio-observability-dashboard
