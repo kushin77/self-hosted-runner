@@ -8,10 +8,107 @@ This repository runs CI on local, organization-controlled self-hosted GitHub Act
 - Avoid using `ubuntu-latest`, `windows-latest`, or `macos-latest` in this repository.
 
 ## Secrets & Credentials
-- Do NOT place secrets in repository files or artifacts. Use one of:
-  - GitHub Repository/Environment secrets
-  - Vault (preferred) and fetch at runtime using the approved vault helper scripts
-- Runner-level sensitive files (SSH keys, cloud creds) must be stored on the runner host and access-controlled by OS-level permissions; document their location in the ops runbook (not in Git).
+
+### Core Rules
+- **NEVER** commit secrets to git. Use proper secret management tools instead.
+- **NEVER** print secrets in logs. GitHub masks secrets by default (`***`), but ensure no raw values appear.
+- **NEVER** hardcode credentials in YAML/scripts. Always use `${{ secrets.SECRET_NAME }}` syntax.
+- **NEVER** share secrets via Slack, email, or GitHub comments.
+
+### Where to Store Secrets
+Use this decision tree for each new secret:
+
+```
+Repo-level secret (used in this repo only)?
+  → Use GitHub Secrets (Settings → Secrets)
+  → Set with: gh secret set SECRET_NAME --repo kushin77/self-hosted-runner
+
+Shared across multiple repos?
+  → Use Google Secret Manager (GSM, gcp-eiq project)
+  → Set with: gcloud secrets create secret-name --data-file=- --project=gcp-eiq
+
+Requires dynamic rotation (< 24h lifetime)?
+  → Use HashiCorp Vault (preferred)
+  → See: docs/VAULT_GETTING_STARTED.md
+
+Runner-level files (SSH keys, configs)?
+  → Store ON RUNNER HOST (not in Git)
+  → Access-control with OS permissions
+  → Document location in ops runbook only
+```
+
+### Adding a New Secret
+1. **Find it**: `bash scripts/audit-secrets.sh --search "PATTERN"` to see existing secrets
+2. **Index it**: Read [SECRETS_INDEX.md](SECRETS_INDEX.md) — all secrets are cataloged here
+3. **Add it**: Create secret, use in workflow, update documentation
+4. **Validate it**: `bash scripts/audit-secrets.sh --validate` before submitting PR
+5. **Reference it**: PR must include link to [SECRETS_INDEX.md](SECRETS_INDEX.md) update
+
+### Required Reading Before Adding Secrets
+- **[SECRETS_INDEX.md](SECRETS_INDEX.md)** — Complete catalog + how to search programmatically
+- **[DEVELOPER_SECRETS_GUIDE.md](DEVELOPER_SECRETS_GUIDE.md)** — Step-by-step guide for developers
+- **[SECRETS_SETUP_GUIDE.md](SECRETS_SETUP_GUIDE.md)** — Configuration & troubleshooting
+
+### Rotation Schedules
+- **30-90 days**: SSH keys, API keys, database passwords, OAuth tokens
+- **180 days**: Service account keys, SMTP credentials, MinIO keys, webhooks
+- **365 days**: Project IDs, OIDC endpoints, configuration URLs (reference data)
+- **24 hours** (auto): Vault Secret IDs (handled by Vault)
+
+### Most Common Secrets
+
+| Secret | Where | Access | Rotation | Use Case |
+|--------|-------|--------|----------|----------|
+| `DEPLOY_SSH_KEY` | GitHub | `gh secret list` | 90d | Ansible SSH authentication |
+| `RUNNER_MGMT_TOKEN` | GitHub | `gh secret list` | 90d | GitHub API access |
+| `AWS_OIDC_ROLE_ARN` | GitHub | `gh secret list` | Never | Terraform AWS access (OIDC) |
+| `GCP_PROJECT_ID` | GitHub | `gh secret list` | Never | GCP project identifier |
+| `terraform-aws-prod` | GSM | `gcloud secrets list` | 90d | AWS Access Key (Terraform) |
+| `MINIO_*` | GitHub | `gh secret list` | 180d | Artifact storage (S3-compatible) |
+| `VAULT_ROLE_ID` | GitHub | `gh secret list` | Never | Vault AppRole ID |
+
+### Valid Workflow Syntax Examples
+
+✅ **Correct** — Secret used in step environment:
+```yaml
+- name: Deploy
+  env:
+    API_KEY: ${{ secrets.API_KEY }}
+  run: curl -H "Authorization: $API_KEY" https://api.example.com
+```
+
+❌ **Wrong** — Secret in top-level env:
+```yaml
+env:
+  API_KEY: ${{ secrets.API_KEY }}  # Not masked properly at top
+```
+
+❌ **Wrong** — Hardcoded value:
+```yaml
+run: curl -H "Authorization: hardcoded-key-12345" https://api.example.com
+```
+
+### Audit & Validation
+Before opening a PR, verify your changes:
+```bash
+# See all secrets and their usage
+bash scripts/audit-secrets.sh --full
+
+# Check if required secrets are configured
+bash scripts/audit-secrets.sh --validate
+
+# Search for specific secret
+bash scripts/audit-secrets.sh --search "GCP_"
+
+# Generate JSON manifest (for CI integration)
+bash scripts/audit-secrets.sh --json > secrets-manifest.json
+```
+
+### Troubleshooting Secrets
+- **Secret not found**: `gh secret list --repo kushin77/self-hosted-runner`
+- **OIDC failing**: See [DEVELOPER_SECRETS_GUIDE.md](DEVELOPER_SECRETS_GUIDE.md#troubleshooting)
+- **GSM access denied**: Check service account has `roles/secretmanager.secretAccessor`
+- **Rotation overdue**: Check [SECRETS_INDEX.md](SECRETS_INDEX.md) rotation schedule
 
 ## PR / Review Policy
 - All changes to workflows, runner configuration, and provisioning code MUST have at least one review from a code owner listed in `.github/CODEOWNERS`.

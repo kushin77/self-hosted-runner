@@ -88,11 +88,16 @@ jobs:
           DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
         run: |
           set -euo pipefail
-          echo "DEBUG: PAGERDUTY_SERVICE_KEY length: ${#PAGERDUTY_SERVICE_KEY}"
-          [ -z "$PAGERDUTY_SERVICE_KEY" ] && { echo "ERROR: PAGERDUTY_SERVICE_KEY is empty!"; exit 1; }
+          # Write PagerDuty secret to temp file to avoid shell expansion issues
+          PD_FILE=$(mktemp)
+          echo -n "$PAGERDUTY_SERVICE_KEY" > "$PD_FILE"
+          PD_KEY=$(cat "$PD_FILE")
+          rm "$PD_FILE"
+          echo "DEBUG: PAGERDUTY key length after read: ${#PD_KEY}"
+          [ -z "$PD_KEY" ] && { echo "ERROR: PAGERDUTY key is empty after read"; exit 1; }
           cd scripts/automation/pmo/prometheus
           chmod +x run_e2e_ephemeral_test.sh
-          ./run_e2e_ephemeral_test.sh --pagerduty-key "$PAGERDUTY_SERVICE_KEY"
+          ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
 
       - name: Collect mock logs artifact
         if: always()
