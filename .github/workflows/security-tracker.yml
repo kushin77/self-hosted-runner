@@ -42,6 +42,7 @@ jobs:
             --repo ${{ github.repository }} \
             --state open \
             --label "security" \
+            --sort created --direction asc \
             --json number,title \
             --jq '.[] | "\(.number):\(.title)"')
 
