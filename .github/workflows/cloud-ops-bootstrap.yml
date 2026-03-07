@@ -153,7 +153,7 @@ jobs:
           set -euo pipefail
           synced=0
 
-          for gsm_name in aws-access-key-id aws-secret-access-key aws-oidc-role-arn terraform-aws-prod terraform-aws-secret terraform-aws-region; do
+          for gsm_name in aws-access-key-id aws-secret-access-key aws-oidc-role-arn terraform-aws-prod terraform-aws-secret terraform-aws-region registry-host registry-username registry-password; do
             value=$(gcloud secrets versions access latest --secret="$gsm_name" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "")
             if [ -z "$value" ]; then
               echo "⏭ $gsm_name — not found in GSM, skipping"
@@ -161,6 +161,16 @@ jobs:
             fi
 
             repo_name=$(echo "$gsm_name" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
+            # Map registry secrets to conventional names
+            if [ "$gsm_name" = "registry-host" ]; then
+              repo_name="REGISTRY_HOST"
+            fi
+            if [ "$gsm_name" = "registry-username" ]; then
+              repo_name="REGISTRY_USERNAME"
+            fi
+            if [ "$gsm_name" = "registry-password" ]; then
+              repo_name="REGISTRY_PASSWORD"
+            fi
             echo "::add-mask::$value"
 
             if [ "$DRY_RUN" = "true" ]; then
