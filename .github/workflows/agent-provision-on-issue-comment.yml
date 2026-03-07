@@ -41,11 +41,11 @@ jobs:
 
       - name: Publish repo secrets and cleanup temp token
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          printf '%s' "$GITHUB_TOKEN" | gh auth login --with-token
+          printf '%s' "$GH_TOKEN" | gh auth login --with-token
           echo "Setting VAULT_ROLE_ID"
           printf '%s' "${{ steps.extract.outputs.role }}" | gh secret set VAULT_ROLE_ID --repo "$GITHUB_REPOSITORY"
           echo "Setting VAULT_SECRET_ID"
