@@ -184,6 +184,13 @@ jobs:
           REPO="${{ github.repository }}"
           TRACKING_ISSUE=1064
 
+          # Ensure the tracking issue is open so comments are visible
+          ISSUE_STATE=$(gh issue view ${TRACKING_ISSUE} --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "")
+          if [ "$ISSUE_STATE" = "closed" ]; then
+            gh issue update ${TRACKING_ISSUE} --repo ${REPO} --state open || true
+            echo "Reopened tracking issue ${TRACKING_ISSUE}"
+          fi
+
           # Post or update status (idempotent via comment edit)
           EXISTING=$(gh api "/repos/${REPO}/issues/${TRACKING_ISSUE}/comments" --jq ".[] | select(.body | contains(\"System Status Aggregator\")) | .id" 2>/dev/null | head -1 || true)
 
