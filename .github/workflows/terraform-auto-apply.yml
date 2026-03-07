@@ -158,14 +158,14 @@ jobs:
           set -euo pipefail
           terraform plan -input=false -out=tfplan
           terraform show -json tfplan > tfplan.json
-          
+
           # Generate summary for approval gate
           RESOURCE_ADDS=$(terraform show -json tfplan | grep -o '"actions":\["create"\]' | wc -l || echo 0)
           RESOURCE_DELS=$(terraform show -json tfplan | grep -o '"actions":\["delete"\]' | wc -l || echo 0)
           RESOURCE_MODS=$(terraform show -json tfplan | grep -o '"actions":\["update"\]' | wc -l || echo 0)
-          
+
           echo "summary=Adds: $RESOURCE_ADDS, Dels: $RESOURCE_DELS, Mods: $RESOURCE_MODS" >> $GITHUB_OUTPUT
-          
+
           # Upload plan artifacts for review
           mkdir -p ../workflow_artifacts
           cp tfplan ../workflow_artifacts/ || true

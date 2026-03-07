@@ -73,11 +73,11 @@ jobs:
           terraform plan -var-file=elasticache-params.tfvars -out=elastiCache-dryrun.tfplan || true
           # Render plan as JSON (version-independent format)
           terraform show -json elastiCache-dryrun.tfplan > elastiCache-dryrun.json || true
-          
+
           # Extract summary info
           RESOURCE_CHANGES=$(terraform show -json elastiCache-dryrun.tfplan | grep -o '"change":' | wc -l || echo 0)
           echo "plan_summary=Terraform plan with ~${RESOURCE_CHANGES} resource changes" >> $GITHUB_OUTPUT
-          
+
           # Create artifact directory
           mkdir -p ../workflow_artifacts/${{ github.run_id }}
           cp elastiCache-dryrun.tfplan ../workflow_artifacts/${{ github.run_id }}/ || true
@@ -133,7 +133,7 @@ jobs:
           APPLY_INPUT=${{ github.event.inputs.apply || 'false' }}
           BODY="ElastiCache workflow run triggered (event: $EVENT). mode=$MODE, tfvars_valid=$TFVARS_VALID, apply_requested=$APPLY_INPUT, run_id=${{ github.run_id }}."
           gh issue comment 1324 --repo ${{ github.repository }} --body "$BODY" || true
-      
+
       - name: Close issue #1324 on success
         if: steps.creds.outputs.mode == 'full' && success()
         env:
