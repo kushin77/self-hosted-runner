@@ -857,7 +857,23 @@ jobs:
           4. Log verification events in audit systems
           REPORT
 
-      - name: Upload verification report
+      - name: Upload verification report (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          FILE=build/provenance/VERIFICATION_REPORT.md
+          if [ -f "$FILE" ]; then
+            TAR=provenance-verification-${{ github.run_id }}.tgz
+            tar -czf "$TAR" -C build/provenance VERIFICATION_REPORT.md || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded verification report to: $URL"
+          else
+            echo "No verification report to upload"
+          fi
+
+      - name: Upload verification report (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: provenance-verification
@@ -1043,8 +1059,22 @@ jobs:
 
           cat release-gate-report.md
 
-      - name: Upload gate report
-        if: always()
+      - name: Upload gate report (self-hosted)
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          if [ -f release-gate-report.md ]; then
+            TAR=release-gate-report-${{ github.run_id }}.tgz
+            tar -czf "$TAR" release-gate-report.md || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded gate report to: $URL"
+          else
+            echo "No gate report to upload"
+          fi
+
+      - name: Upload gate report (hosted fallback)
+        if: always() && ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: release-gate-report

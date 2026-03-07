@@ -215,8 +215,18 @@ $FAILURE_DETAILS
           }
           EOF
 
-      - name: Upload metrics
-        if: always()
+      - name: Upload metrics (self-hosted)
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          TAR=minio-failover-metrics-${{ github.run_id }}.tgz
+          tar -czf "$TAR" .metrics || true
+          chmod +x ci/scripts/upload_to_minio.sh || true
+          URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+          echo "Uploaded minio metrics to: $URL"
+
+      - name: Upload metrics (hosted fallback)
+        if: always() && ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: minio-failover-metrics
