@@ -1,0 +1,28 @@
+name: Auto-Remediate Dependencies
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # daily at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  auto_remediate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up gh CLI
+        uses: cli/gh-action@v2
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Make remediation script executable
+        run: chmod +x scripts/auto_remediate_deps.sh
+
+      - name: Run auto-remediation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/auto_remediate_deps.sh
