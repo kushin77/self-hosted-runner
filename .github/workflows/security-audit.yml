@@ -24,6 +24,17 @@ jobs:
         with:
           args: --path=. --report-format=json --report-path=./gitleaks-report.json || true
 
+      - name: Fallback: ensure gitleaks report exists
+        if: always()
+        run: |
+          set -euo pipefail
+          if [ -f gitleaks-report.json ]; then
+            echo "gitleaks-report.json already present"
+          else
+            echo "Attempting to generate gitleaks-report.json via docker image fallback"
+            docker run --rm -v "$PWD":/workspace zricethezav/gitleaks:v7.4.0 gitleaks detect --path=/workspace --report-format=json --report-path=/workspace/gitleaks-report.json || true
+          fi
+
       - name: Debug gitleaks workspace
         if: always()
         run: |
@@ -91,7 +102,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0.10.0
+        uses: aquasecurity/trivy-action@v0
         with:
           scan-type: 'filesystem'
           format: 'json'
