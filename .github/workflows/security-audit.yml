@@ -195,3 +195,4 @@ jobs:
           gh workflow run security-findings-remediation.yml \
             --repo ${{ github.repository }} \
             --ref main || true
+# Force re-register timestamp: Sat Mar  7 07:03:38 AM UTC 2026
