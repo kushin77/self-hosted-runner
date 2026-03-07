@@ -85,6 +85,15 @@ jobs:
             AWS_STATUS="✅ Configured"
           fi
 
+          SSH_STATUS="❌ Not set"
+          if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            SSH_STATUS="✅ Provided"
+          fi
+          PAGER_STATUS="❌ Not set"
+          if [ -n "${{ secrets.PAGERDUTY_TOKEN }}" ]; then
+            PAGER_STATUS="✅ Provided"
+          fi
+
           # Count open issues by label
           TOTAL_OPEN=$(gh issue list --repo ${REPO} --state open --json number --jq 'length' 2>/dev/null || echo "?")
 
@@ -114,6 +123,8 @@ jobs:
           |----------|--------|
           | GCP Workload Identity | ${GCP_STATUS} |
           | AWS (OIDC/Static) | ${AWS_STATUS} |
+          | Deploy SSH Key | ${SSH_STATUS} |
+          | PagerDuty Token | ${PAGER_STATUS} |
 
           ### ⚙️ Automation Cadence
 
