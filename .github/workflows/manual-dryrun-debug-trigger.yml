@@ -8,6 +8,12 @@ on:
         required: false
         default: 'true'
 
+  workflow_call: {}
+
+concurrency:
+  group: manual-dryrun-debug-trigger-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write
