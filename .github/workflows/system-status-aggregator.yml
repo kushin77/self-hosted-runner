@@ -118,12 +118,34 @@ jobs:
             fi
           done
 
-          # close any 'Missing required GitHub Secrets' issues if none are missing
+          # Manage 'Missing required GitHub Secrets' issues idempotently
           if [ ${#missing[@]} -eq 0 ]; then
+            # Close known issue numbers if present
             for issue in 1343 1345 1347; do
               gh issue list --repo ${REPO} --state open --json number,title --jq ".[] | select(.number==${issue}) | .number" | grep -q . && \
                 gh issue update ${issue} --repo ${REPO} --state closed --state_reason completed || true
             done
+
+            # Close any open issues labeled 'missing-secrets'
+            OPEN_MS=$(gh issue list --repo ${REPO} --label "missing-secrets" --state open --json number --jq '.[].number' 2>/dev/null || true)
+            for i in $OPEN_MS; do
+              gh issue update ${i} --repo ${REPO} --state closed --state_reason completed || true
+            done
+          else
+            # Build a helpful, idempotent issue body for missing secrets
+            BODY="The following required repository secrets are missing and block automation:\n\n"
+            for s in "${missing[@]}"; do
+              BODY+="- $s\n"
+            done
+            BODY+="\nPlease add them as GitHub repository secrets. This repository's System Status Aggregator will close this issue automatically once all required secrets are present."
+
+            # Update existing open issue labeled 'missing-secrets' or create one if absent
+            EXISTING_MS=$(gh issue list --repo ${REPO} --label "missing-secrets" --state open --json number --jq '.[0].number' 2>/dev/null || true)
+            if [ -n "$EXISTING_MS" ]; then
+              gh issue update ${EXISTING_MS} --repo ${REPO} --body "$BODY" || true
+            else
+              gh issue create --repo ${REPO} --title "Missing required GitHub Secrets" --body "$BODY" --label "missing-secrets" || true
+            fi
           fi
 
           # Count open issues by label
