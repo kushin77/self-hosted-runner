@@ -95,16 +95,7 @@ jobs:
             AWS_STATUS="✅ Configured"
           fi
 
-          SSH_KEY_STATUS="❌ Missing"
-          if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
-            SSH_KEY_STATUS="✅ Present"
-          fi
-
-          PD_STATUS="❌ Missing"
-          if [ -n "${{ secrets.PAGERDUTY_TOKEN }}" ]; then
-            PD_STATUS="✅ Present"
-          fi
-
+          # high-level credential state used in the final table
           SSH_STATUS="❌ Not set"
           if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
             SSH_STATUS="✅ Provided"
@@ -163,6 +154,8 @@ jobs:
           | Security Audit | Daily 02:00 UTC |
           | Operator Reminder | Daily 09:00 UTC |
           | SLSA Release | Manual / on-tag |
+          | Canary Simulator | Every 15 min (scheduled) |
+          | Prog. Rollout Simulator | Every 15 min (scheduled) |
           | Canary Deployment | Manual dispatch or automated via progressive-rollout workflows |
 
           ### 🎯 Automation Status: ✅ FULLY HANDS-OFF
