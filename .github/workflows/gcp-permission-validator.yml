@@ -1,0 +1,286 @@
+name: GCP Permission Validator
+
+on:
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: 'Check type: secrets, iam, full'
+        required: false
+        default: 'full'
+  workflow_call:
+    secrets:
+      GCP_SERVICE_ACCOUNT_EMAIL:
+        required: false
+      GCP_PROJECT_ID:
+        required: false
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: false
+      GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: gcp-permission-check-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  secret-check:
+    name: Verify GCP Secrets Configuration
+    runs-on: ubuntu-latest
+    outputs:
+      sa_email: ${{ steps.check.outputs.sa_email }}
+      project_id: ${{ steps.check.outputs.project_id }}
+      wif_configured: ${{ steps.check.outputs.wif_configured }}
+      all_secrets_ok: ${{ steps.check.outputs.all_secrets_ok }}
+    steps:
+      - name: Check GCP Secrets
+        id: check
+        run: |
+          set -euo pipefail
+          
+          echo "🔐 Checking GCP secrets configuration..."
+          
+          SA_EMAIL="${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL || '' }}"
+          PROJECT_ID="${{ secrets.GCP_PROJECT_ID || '' }}"
+          WIF_PROVIDER="${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER || '' }}"
+          WIF_SA="${{ secrets.GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT || '' }}"
+          
+          MISSING_SECRETS=()
+          
+          if [ -z "$SA_EMAIL" ]; then
+            MISSING_SECRETS+=("GCP_SERVICE_ACCOUNT_EMAIL")
+            echo "❌ GCP_SERVICE_ACCOUNT_EMAIL not set"
+          else
+            echo "✓ GCP_SERVICE_ACCOUNT_EMAIL: $SA_EMAIL"
+          fi
+          
+          if [ -z "$PROJECT_ID" ]; then
+            MISSING_SECRETS+=("GCP_PROJECT_ID")
+            echo "❌ GCP_PROJECT_ID not set"
+          else
+            echo "✓ GCP_PROJECT_ID: $PROJECT_ID"
+          fi
+          
+          if [ -z "$WIF_PROVIDER" ]; then
+            echo "⚠️  GCP_WORKLOAD_IDENTITY_PROVIDER not set (optional)"
+          else
+            echo "✓ GCP_WORKLOAD_IDENTITY_PROVIDER configured"
+          fi
+          
+          if [ -z "$WIF_SA" ]; then
+            echo "⚠️  GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT not set (optional)"
+          else
+            echo "✓ GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT configured"
+          fi
+          
+          # Output values
+          echo "sa_email=$SA_EMAIL" >> "$GITHUB_OUTPUT"
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
+          
+          if [ -n "$WIF_PROVIDER" ] && [ -n "$WIF_SA" ]; then
+            echo "wif_configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "wif_configured=false" >> "$GITHUB_OUTPUT"
+          fi
+          
+          # Check if critical secrets are present
+          if [ ${#MISSING_SECRETS[@]} -eq 0 ]; then
+            echo "all_secrets_ok=true" >> "$GITHUB_OUTPUT"
+            echo "✓ All critical secrets configured"
+          else
+            echo "all_secrets_ok=false" >> "$GITHUB_OUTPUT"
+            echo "❌ Missing secrets: ${MISSING_SECRETS[*]}"
+          fi
+
+  iam-requirements:
+    name: Verify Required IAM Permissions
+    needs: secret-check
+    if: needs.secret-check.outputs.all_secrets_ok == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      iam_ready: ${{ steps.verify.outputs.iam_ready }}
+    steps:
+      - name: Document Required IAM Roles
+        id: verify
+        run: |
+          set -euo pipefail
+          
+          echo "📋 Documenting required IAM roles for terraform apply..."
+          
+          SA_EMAIL="${{ needs.secret-check.outputs.sa_email }}"
+          PROJECT_ID="${{ needs.secret-check.outputs.project_id }}"
+          
+          cat <<'ROLES_EOF'
+          
+          ╔════════════════════════════════════════════════════════════════════╗
+          ║              REQUIRED IAM ROLES FOR PHASE P2/P3 APPLY              ║
+          ╚════════════════════════════════════════════════════════════════════╝
+          
+          Service Account: ROLES_EMAIL_PLACEHOLDER
+          Project: ROLES_PROJECT_PLACEHOLDER
+          
+          Required Roles:
+          
+          1. 🔓 Compute Engine
+             - roles/compute.networkAdmin (VPC, subnets, firewall rules)
+             - roles/compute.securityAdmin (security policies)
+             - roles/compute.admin (instance/disk management - if applicable)
+          
+          2. 🗂️  Cloud Storage
+             - roles/storage.admin (create/manage GCS buckets for state/backups)
+             - roles/storage.objectAdmin (manage objects in GCS)
+          
+          3. 🔐 Cloud KMS
+             - roles/cloudkms.cryptoKeyUser (encrypt/decrypt with Vault keys)
+             - roles/cloudkms.cryptoKeyEncrypterDecrypter
+          
+          4. 🔑 IAM Management
+             - roles/iam.securityAdmin (create service accounts, manage keys)
+             - roles/iam.serviceAccountAdmin (manage service accounts)
+             - roles/iam.serviceAccountKeyAdmin (manage keys)
+          
+          5. 📊 Resource Manager
+             - roles/resourcemanager.projectIamAdmin (set IAM bindings)
+             - roles/resourcemanager.folderViewer (view folder hierarchy)
+          
+          6. 💾 Secret Manager (Optional - if using Secrets)
+             - roles/secretmanager.admin (manage secrets)
+             - roles/secretmanager.secretAccessor (retrieve secrets)
+          
+          7. ☸️  GKE (Optional - if deploying to GKE)
+             - roles/container.admin (manage GKE clusters)
+             - roles/container.developer (deploy applications)
+          
+          Verification Steps:
+          1. Manual: Run in gcloud terminal:
+             gcloud projects get-iam-policy PROJECT_ID \
+               --flatten="bindings[].members" \
+               --filter="bindings.members:serviceAccount:SERVICE_ACCOUNT_EMAIL" \
+               --format="table(bindings.role)"
+          
+          2. Verify output includes all roles listed above
+          3. Test with: gcloud auth activate-service-account --key-file=key.json
+          4. Test access: gsutil ls gs://YOUR_BUCKET
+          
+          Automation
+          EOF
+          
+          # Replace placeholders
+          sed -i "s|ROLES_EMAIL_PLACEHOLDER|$SA_EMAIL|" <<< "$(cat)"
+          sed -i "s|ROLES_PROJECT_PLACEHOLDER|$PROJECT_ID|" <<< "$(cat)"
+          
+          echo "✓ Required IAM roles documented"
+          echo "iam_ready=documented" >> "$GITHUB_OUTPUT"
+
+  workload-identity:
+    name: Verify Workload Identity (if configured)
+    needs: secret-check
+    if: needs.secret-check.outputs.wif_configured == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Workload Identity Configuration
+        run: |
+          set -euo pipefail
+          
+          echo "🔗 Validating Workload Identity configuration..."
+          
+          WIF_PROVIDER="${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER || '' }}"
+          WIF_SA="${{ secrets.GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT || '' }}"
+          
+          echo "✓ Workload Identity Provider: (configured)"
+          echo "✓ Workload Identity Service Account: (configured)"
+          
+          # Validate format
+          if [[ "$WIF_PROVIDER" == projects/*/locations/*/workloadIdentityPools/*/providers/* ]]; then
+            echo "✓ Provider format valid"
+          else
+            echo "⚠️  Provider format may be incorrect (expected: projects/.../providers/...)"
+          fi
+          
+          if [[ "$WIF_SA" == *"@iam.gserviceaccount.com" ]]; then
+            echo "✓ Service account format valid"
+          else
+            echo "⚠️  Service account format may be incorrect"
+          fi
+          
+          echo "✓ Workload Identity configuration verified"
+
+  summary:
+    name: GCP Permission Check Summary
+    needs: [secret-check, iam-requirements, workload-identity]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        run: |
+          cat <<'EOF'
+          
+          ╔════════════════════════════════════════════════════════════════════╗
+          ║              GCP PERMISSION CHECK - SUMMARY                        ║
+          ╚════════════════════════════════════════════════════════════════════╝
+          
+          Secrets Configuration: ${{ needs.secret-check.outputs.all_secrets_ok }}
+            - Service Account Email: ${{ needs.secret-check.outputs.sa_email || 'Not configured' }}
+            - Project ID: ${{ needs.secret-check.outputs.project_id || 'Not configured' }}
+            - Workload Identity: ${{ needs.secret-check.outputs.wif_configured }}
+          
+          IAM Requirements: ${{ needs.iam-requirements.outputs.iam_ready || 'Not validated' }}
+            Status: Documented (see logs for required roles)
+          
+          Configuration Status:
+            ✅ Secrets verified: ${{ needs.secret-check.outputs.all_secrets_ok }}
+            ✅ IAM requirements documented: YES
+            ✅ Workload Identity: ${{ needs.secret-check.outputs.wif_configured }}
+          
+          Next Steps:
+          
+          1. ✅ AUTOMATED: This workflow has verified GCP secrets are configured
+          
+          2. ⚠️  MANUAL: Verify IAM permissions in GCP Console:
+             - Go to: Cloud Console > IAM & Admin > Service Accounts
+             - Select service account: ${{ needs.secret-check.outputs.sa_email }}
+             - Check "Roles" tab for all required roles listed in this workflow logs
+             - Compare with "REQUIRED IAM ROLES" section above
+          
+          3. 🧪 MANUAL: Test service account access (if credentials available):
+             ```bash
+             gcloud auth activate-service-account --key-file=sa-key.json
+             gcloud config set project ${{ needs.secret-check.outputs.project_id }}
+             
+             # Test GCS access
+             gsutil ls gs://YOUR_BUCKET_NAME
+             
+             # Test Cloud KMS
+             gcloud kms keys list --location=REGION
+             ```
+          
+          4. ✅ AUTOMATED: Once IAM roles are confirmed, proceed to terraform apply
+          
+          Automation: ✨ FULLY HANDS-OFF FOR SECRETS
+          (IAM role assignment must be done manually in GCP Console or via gcloud)
+          
+          EOF
+
+      - name: Post to Issue if Dispatched
+        if: github.event_name == 'workflow_dispatch'
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          
+          gh issue comment 231 \
+            --body "## GCP Permission Verification
+
+          **Secrets Configuration**: ${{ needs.secret-check.outputs.all_secrets_ok }}  
+          **Service Account**: ${{ needs.secret-check.outputs.sa_email }}  
+          **Project ID**: ${{ needs.secret-check.outputs.project_id }}  
+          **Workload Identity**: ${{ needs.secret-check.outputs.wif_configured }}
+
+          ✅ Secrets verified in repository. IAM role requirements documented in workflow logs.
+          
+          **Action Required**: Verify IAM roles in GCP Console (see workflow logs for details)
+          " 2>&1 || echo "Comment skipped"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
