@@ -8,25 +8,21 @@ on:
 jobs:
   check-and-heal:
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: read
+    permissions: write-all
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Check repository runners
         id: check
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const resp = await github.rest.actions.listSelfHostedRunnersForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
-            const offline = resp.data.runners.filter(r => r.status !== 'online')
-            core.setOutput('offline_count', offline.length)
-            core.setOutput('offline_names', offline.map(r=>r.name).join(','))
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          runners_json=$(gh api /repos/${{ github.repository }}/actions/runners)
+          offline_count=$(echo "$runners_json" | jq '.runners | map(select(.status != "online")) | length')
+          offline_names=$(echo "$runners_json" | jq -r '.runners | map(select(.status != "online")) | map(.name) | join(",")')
+          echo "offline_count=$offline_count" >> $GITHUB_OUTPUT
+          echo "offline_names=$offline_names" >> $GITHUB_OUTPUT
 
       - name: Report offline runners
         if: steps.check.outputs.offline_count != '0'
