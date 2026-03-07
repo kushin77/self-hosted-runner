@@ -46,8 +46,9 @@ jobs:
       - name: Get latest security audit run
         id: get-run
         run: |
+          source .github/scripts/resilience.sh || true
           # Get the most recent completed security-audit workflow run
-          RUN_ID=$(gh run list \
+          RUN_ID=$(retry_command 2 3 gh run list \
             --workflow security-audit.yml \
             --repo ${{ github.repository }} \
             --status completed \

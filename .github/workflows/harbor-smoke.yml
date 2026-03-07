@@ -22,8 +22,10 @@ jobs:
 
       - name: Helm lint
         run: |
-          helm lint deploy/harbor
+          source .github/scripts/resilience.sh || true
+          retry_command 2 3 helm lint deploy/harbor
 
       - name: Helm template
         run: |
-          helm template harbor deploy/harbor --values deploy/harbor/values.yaml
+          source .github/scripts/resilience.sh || true
+          retry_command 2 3 helm template harbor deploy/harbor --values deploy/harbor/values.yaml
