@@ -36,6 +36,9 @@ jobs:
       minio_endpoint: ${{ steps.fetch.outputs.minio_endpoint }}
       minio_access_key_id: ${{ steps.fetch.outputs.minio_access_key_id }}
       minio_secret_access_key: ${{ steps.fetch.outputs.minio_secret_access_key }}
+      registry_host: ${{ steps.fetch.outputs.registry_host }}
+      registry_username: ${{ steps.fetch.outputs.registry_username }}
+      registry_password: ${{ steps.fetch.outputs.registry_password }}
     steps:
       - name: Authenticate to Google Cloud (OIDC)
         id: auth
@@ -78,6 +81,9 @@ jobs:
           MINIO_ENDPOINT=$(fetch_secret "minio-endpoint" "")
           MINIO_KEY=$(fetch_secret "minio-access-key-id" "")
           MINIO_SECRET=$(fetch_secret "minio-secret-access-key" "")
+          REGISTRY_HOST=$(fetch_secret "registry-host" "")
+          REGISTRY_USER=$(fetch_secret "registry-username" "")
+          REGISTRY_PASS=$(fetch_secret "registry-password" "")
           
           # Validate credentials exist
           if [ -z "$AWS_ACCESS_KEY" ]; then
@@ -103,9 +109,15 @@ jobs:
           echo "minio_endpoint=$MINIO_ENDPOINT" >> "$GITHUB_OUTPUT"
           echo "minio_access_key_id=$MINIO_KEY" >> "$GITHUB_OUTPUT"
           echo "minio_secret_access_key=$MINIO_SECRET" >> "$GITHUB_OUTPUT"
+          echo "registry_host=$REGISTRY_HOST" >> "$GITHUB_OUTPUT"
+          echo "registry_username=$REGISTRY_USER" >> "$GITHUB_OUTPUT"
+          echo "registry_password=$REGISTRY_PASS" >> "$GITHUB_OUTPUT"
           
           echo "✅ Successfully fetched AWS credentials from GSM"
           echo "   Region: $AWS_REGION"
+          if [ -n "$REGISTRY_USER" ]; then
+            echo "   Registry host: ${REGISTRY_HOST:-ghcr.io} (user supplied)"
+          fi
 
       - name: Verify Credentials Access
         env:
