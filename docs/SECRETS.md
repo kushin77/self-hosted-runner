@@ -20,3 +20,28 @@ Guidance:
 Security:
 
 - Store secrets in GitHub Actions secrets (not in code). Use least privilege credentials and rotate regularly.
+
+Provisioning steps (copyable commands for admins):
+
+- Create a machine/service account (preferred) and generate a short-lived PAT with the minimal scope required. For `RUNNER_MGMT_TOKEN` the PAT should include:
+	- `administration:read` (minimum)
+
+- Add repository secrets using the GitHub CLI (examples):
+
+	- Add `RUNNER_MGMT_TOKEN` (PAT):
+
+		gh secret set RUNNER_MGMT_TOKEN --repo kushin77/self-hosted-runner --body "<PASTE_PAT_HERE>"
+
+	- Add `DEPLOY_SSH_KEY` (private key file):
+
+		gh secret set DEPLOY_SSH_KEY --repo kushin77/self-hosted-runner --body-file /path/to/private_key
+
+- Verify secrets from the repo (read-only listing):
+
+		gh secret list --repo kushin77/self-hosted-runner
+
+Notes:
+
+- Use a machine/service account and avoid using personal tokens.
+- Limit PAT scope and set an expiration. Record rotation steps and owners in this document.
+- Once both `RUNNER_MGMT_TOKEN` and `DEPLOY_SSH_KEY` are present the automation (`secrets-health`, `self-heal-retry`, and `runner-self-heal`) will automatically dispatch remediation and post results to the configured issues.
