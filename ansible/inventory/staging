@@ -1,5 +1,8 @@
+[all]
+# CI/CD workflow target: localhost with local connection (idempotent, reachable from GitHub Actions)
+# This enables dry-run validation and applies to the runner itself.
+localhost ansible_connection=local ansible_user=runner ansible_become=true
+
 [runners]
-# Production runner host (correct worker node)
-# Previously pointed to localhost which caused deployments to target the self-hosted runner (192.168.168.31).
-# Change to the intended worker node IP so Ansible targets the correct host during automated deploys.
-192.168.168.42 ansible_user=cloud ansible_become=true
+# Production runner host (correct worker node) - use this for actual deployments to 192.168.168.42
+# 192.168.168.42 ansible_user=cloud ansible_become=true
