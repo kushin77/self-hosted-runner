@@ -39,12 +39,18 @@ jobs:
           SELF_HEAL=$(get_status "self-healing-orchestrator.yml")
           MONITOR=$(get_status "monitor-ingestion.yml")
           REMINDER=$(get_status "operator-gcp-reminder.yml")
+          VERIFY=$(get_status "verify-required-secrets.yml")
+          CANARY_SIM=$(get_status "canary-simulate-dispatch.yml")
+          PROG_SIM=$(get_status "progressive-rollout-simulate.yml")
 
           echo "dr_smoke=$DR_SMOKE" >> $GITHUB_OUTPUT
           echo "dr_weekly=$DR_WEEKLY" >> $GITHUB_OUTPUT
           echo "self_heal=$SELF_HEAL" >> $GITHUB_OUTPUT
           echo "monitor=$MONITOR" >> $GITHUB_OUTPUT
           echo "reminder=$REMINDER" >> $GITHUB_OUTPUT
+          echo "verify=$VERIFY" >> $GITHUB_OUTPUT
+          echo "canary_sim=$CANARY_SIM" >> $GITHUB_OUTPUT
+          echo "prog_sim=$PROG_SIM" >> $GITHUB_OUTPUT
 
       - name: Check critical issue status
         id: issues
@@ -85,6 +91,16 @@ jobs:
             AWS_STATUS="✅ Configured"
           fi
 
+          SSH_KEY_STATUS="❌ Missing"
+          if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+            SSH_KEY_STATUS="✅ Present"
+          fi
+
+          PD_STATUS="❌ Missing"
+          if [ -n "${{ secrets.PAGERDUTY_TOKEN }}" ]; then
+            PD_STATUS="✅ Present"
+          fi
+
           SSH_STATUS="❌ Not set"
           if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
             SSH_STATUS="✅ Provided"
@@ -109,6 +125,9 @@ jobs:
           | Self-Healing | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.self_heal }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Ingestion Monitor | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.monitor }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Daily Reminder | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.reminder }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Secret Verifier | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Canary Simulator | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Prog. Rollout Sim | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
 
           ### 📋 Issue Summary
 
