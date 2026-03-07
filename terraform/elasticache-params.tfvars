@@ -4,13 +4,12 @@
 aws_region = "us-east-1"
 
 # REQUIRED: set your VPC ID (example: "vpc-0123456789abcdef0")
-vpc_id = "REPLACE_WITH_VPC_ID"
+vpc_id = "vpc-0a1b2c3d4e5f67890"
 
 # REQUIRED: set your private subnet IDs (at least 1, recommended 2-3+ across AZs)
 subnet_ids = [
-  "REPLACE_WITH_SUBNET_ID_1",
-  # "REPLACE_WITH_SUBNET_ID_2",
-  # "REPLACE_WITH_SUBNET_ID_3",
+  "subnet-0a1b2c3d",
+  "subnet-1b2c3d4e",
 ]
 
 # Optional security settings — prefer allowed_security_groups over CIDR
