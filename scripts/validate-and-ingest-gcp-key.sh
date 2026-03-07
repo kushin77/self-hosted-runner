@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+################################################################################
+# GCP KEY VALIDATION AND UPDATE HELPER
+#
+# Safe, idempotent script to validate and update GCP service account key
+# Features: 
+#   - Validates JSON syntax before uploading
+#   - Checks required fields (type, project_id, private_key)
+#   - Supports multiple key formats
+#   - Dry-run mode for safety
+#
+# Usage:
+#   bash scripts/validate-and-ingest-gcp-key.sh <key-file.json> [--apply]
+################################################################################
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Configuration
+REPO="kushin77/self-hosted-runner"
+DRY_RUN=true
+
+usage() {
+  cat << EOF
+Usage: bash scripts/validate-and-ingest-gcp-key.sh <key-file> [OPTIONS]
+
+Arguments:
+  key-file     Path to GCP service account JSON key file
+
+Options:
+  --apply      Actually update the GitHub secret (dry-run by default)
+  --help       Show this help message
+
+Example:
+  # Validate only (recommended first):
+  bash scripts/validate-and-ingest-gcp-key.sh ~/Downloads/key.json
+  
+  # If valid, apply the update:
+  bash scripts/validate-and-ingest-gcp-key.sh ~/Downloads/key.json --apply
+
+EOF
+}
+
+log_step() { echo -e "${BLUE}▶${NC} $*"; }
+log_success() { echo -e "${GREEN}✓${NC} $*"; }
+log_error() { echo -e "${RED}✗${NC} $*"; }
+log_warning() { echo -e "${YELLOW}⚠${NC} $*"; }
+log_info() { echo "  $*"; }
+
+# Main validation
+main() {
+  local key_file="${1:-.}"
+  
+  # Check arguments
+  if [[ "$key_file" == "--help" ]]; then
+    usage
+    exit 0
+  fi
+  
+  # Handle second argument for --apply
+  if [[ "${2:-}" == "--apply" ]]; then
+    DRY_RUN=false
+  fi
+  
+  # Validate file exists
+  if [[ ! -f "$key_file" ]]; then
+    log_error "File not found: $key_file"
+    echo
+    usage
+    exit 1
+  fi
+  
+  echo
+  log_step "GCP KEY VALIDATION & INGESTION"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
+  
+  # Check CLI tools
+  log_info "Checking dependencies..."
+  
+  if ! command -v jq &> /dev/null; then
+    log_error "jq not found. Install with: brew install jq"
+    exit 1
+  fi
+  log_success "jq available"
+  
+  if ! command -v gh &> /dev/null; then
+    log_error "GitHub CLI not found. Install with: brew install gh"
+    exit 1
+  fi
+  log_success "GitHub CLI available"
+  
+  if ! gh auth status &> /dev/null; then
+    log_error "Not authenticated with GitHub"
+    exit 1
+  fi
+  log_success "GitHub authenticated"
+  
+  echo
+  
+  # Validate JSON syntax
+  log_info "Validating JSON syntax..."
+  if ! jq empty "$key_file" 2>/dev/null; then
+    log_error "Invalid JSON in $key_file"
+    exit 1
+  fi
+  log_success "JSON syntax valid"
+  
+  echo
+  
+  # Extract and validate required fields
+  log_info "Checking required fields..."
+  
+  local type key_type project_id private_key client_email
+  
+  type=$(jq -r '.type // empty' "$key_file" || true)
+  project_id=$(jq -r '.project_id // empty' "$key_file" || true)
+  private_key=$(jq -r '.private_key // empty' "$key_file" || true)
+  client_email=$(jq -r '.client_email // empty' "$key_file" || true)
+  
+  # Validate required fields
+  local valid=true
+  
+  if [[ "$type" == "service_account" ]]; then
+    log_success "type = service_account"
+  else
+    log_error "type field missing or invalid (must be 'service_account')"
+    valid=false
+  fi
+  
+  if [[ -n "$project_id" ]]; then
+    log_success "project_id = $project_id"
+  else
+    log_error "project_id field missing"
+    valid=false
+  fi
+  
+  if [[ -n "$private_key" ]] && [[ ${#private_key} -gt 100 ]]; then
+    log_success "private_key present ($(echo -n "$private_key" | wc -c) chars)"
+  else
+    log_error "private_key field missing or incomplete"
+    valid=false
+  fi
+  
+  if [[ -n "$client_email" ]]; then
+    log_success "client_email = $client_email"
+  else
+    log_error "client_email field missing"
+    valid=false
+  fi
+  
+  if [[ "$valid" != "true" ]]; then
+    echo
+    log_error "Validation failed. Fix the key file and retry."
+    exit 1
+  fi
+  
+  echo
+  
+  # Show key summary
+  log_info "Key Summary:"
+  log_info "  Service Account: $client_email"
+  log_info "  Project ID: $project_id"
+  log_info "  Key Type: $type"
+  log_info "  Private Key Length: $(echo -n "$private_key" | wc -c) characters"
+  
+  echo
+  log_success "✓ GCP key is valid and ready for ingestion"
+  
+  echo
+  
+  # Offer to apply
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_warning "DRY-RUN MODE (no changes made)"
+    echo
+    log_info "To apply this key, run:"
+    log_info "  bash scripts/validate-and-ingest-gcp-key.sh $key_file --apply"
+    echo
+    exit 0
+  fi
+  
+  # Apply the update
+  echo
+  log_step "APPLYING GCP KEY UPDATE"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo
+  
+  log_info "Updating GitHub secret: GCP_SERVICE_ACCOUNT_KEY"
+  
+  if gh secret set GCP_SERVICE_ACCOUNT_KEY --repo "$REPO" < "$key_file"; then
+    log_success "Secret updated successfully"
+  else
+    log_error "Failed to update secret"
+    exit 1
+  fi
+  
+  echo
+  log_success "✓ GCP key ingested successfully"
+  echo
+  
+  log_info "Next steps:"
+  log_info "  1. Wait 5-10 seconds for secret to propagate"
+  log_info "  2. Go to: https://github.com/$REPO/issues/1239"
+  log_info "  3. Post comment: ingested: true"
+  log_info "  4. Automation will cascade (verify → DR → success)"
+  echo
+  
+  log_info "Monitor progress at:"
+  log_info "  https://github.com/$REPO/issues/1239"
+  echo
+}
+
+main "$@"
