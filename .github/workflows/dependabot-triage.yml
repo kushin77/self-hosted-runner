@@ -1,0 +1,51 @@
+name: Dependabot Triage
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # run daily at 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gather open dependabot alerts
+        id: alerts
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          alerts=$(gh api "/repos/${REPO}/dependabot/alerts?state=open" --jq '.[] | "#\(.number) - \(.security_advisory.summary) (\(.security_advisory.severity))"' 2>/dev/null || echo "")
+          count=$(echo "$alerts" | grep -c '^#' || echo 0)
+          echo "alerts=$alerts" >> "$GITHUB_OUTPUT"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+
+      - name: Update dependabot issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          ISSUE=1349
+          count=${{ steps.alerts.outputs.count }}
+          body="### Dependabot Alert Summary\n\n- Open alerts: $count\n\n" \
+               "$(echo "${{ steps.alerts.outputs.alerts }}")"
+
+          # find existing comment
+          existing=$(gh api "/repos/${REPO}/issues/${ISSUE}/comments" --jq ".[] | select(.body | contains(\"Dependabot Alert Summary\")) | .id" 2>/dev/null | head -1 || true)
+          if [ -n "$existing" ]; then
+            gh api "/repos/${REPO}/issues/comments/${existing}" -X PATCH -f body="$body" || true
+            echo "Updated dependabot summary comment"
+          else
+            gh issue comment $ISSUE --repo $REPO --body "$body" || true
+            echo "Posted new dependabot summary comment"
+          fi
+
+          # auto-close issue when no alerts remain
+          if [ "$count" -eq 0 ]; then
+            gh issue update $ISSUE --repo $REPO --state closed --state_reason completed || true
+            echo "Closed dependabot issue since no alerts remain"
+          fi
