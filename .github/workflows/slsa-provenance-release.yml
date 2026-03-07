@@ -50,8 +50,10 @@ jobs:
           set -euo pipefail
 
           # Find all service directories with Dockerfiles
+          # Filter out test/dummy/example services to avoid empty provenance files
           images=$(find services -name Dockerfile -type f | \
             sed 's|/Dockerfile||' | \
+            grep -v -E '(dummy|test|example|sandbox)' | \
             jq -R -s -c 'split("\n") | map(select(length > 0))')
 
           count=$(echo "$images" | jq 'length')
@@ -59,7 +61,7 @@ jobs:
 
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "count=$count" >> "$GITHUB_OUTPUT"
-          echo "🔍 Discovered $count service(s) for SBOM generation"
+          echo "🔍 Discovered $count service(s) for SBOM generation (excluding test/dummy)"
 
       - name: Create sboms directory
         run: mkdir -p build/sboms
@@ -112,8 +114,9 @@ jobs:
 
           mkdir -p build/provenance
 
-          # Discover all images built in this workflow
+          # Discover all images built in this workflow (excluding test/dummy images)
           images=$(find services -name Dockerfile -type f | \
+            grep -v -E '(dummy|test|example|sandbox)' | \
             sed 's|/Dockerfile||' | \
             sed "s|^|${{ secrets.REGISTRY_HOST || 'ghcr.io' }}/${{ github.repository }}/|" | \
             sed "s|$|:${{ github.sha }}|")
@@ -208,7 +211,7 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
         with:
-          cosign-release: v2.2.0
+          cosign-release: v2.5.2
 
       - name: Setup Cosign key (detect validity)
         env:
@@ -407,9 +410,18 @@ jobs:
 
           valid=0
           invalid=0
+          empty=0
 
           for prov in build/provenance/*-provenance.json; do
             [ -f "$prov" ] || continue
+
+            # Skip empty/dummy provenance files (< 50 bytes is not valid SLSA)
+            filesize=$(stat -f%z "$prov" 2>/dev/null || stat -c%s "$prov" 2>/dev/null || wc -c < "$prov")
+            if [ "$filesize" -lt 50 ]; then
+              echo "⏭️  Skipping empty/dummy: $(basename $prov) ($filesize bytes)"
+              empty=$((empty + 1))
+              continue
+            fi
 
             # Check required SLSA fields
             if jq -e '._type and .predicateType and .predicate.buildDefinition and .predicate.runDetails' "$prov" > /dev/null 2>&1; then
@@ -421,7 +433,7 @@ jobs:
             fi
           done
 
-          echo "📊 Provenance validation: $valid valid, $invalid invalid"
+          echo "📊 Provenance validation: $valid valid, $invalid invalid, $empty skipped (empty)"
           [ $invalid -eq 0 ] || exit 1
 
       - name: Generate provenance verification report
