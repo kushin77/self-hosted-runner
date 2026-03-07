@@ -8,11 +8,15 @@ on:
         description: 'terraform action: plan or apply'
         required: true
         default: 'plan'
+  workflow_call: {}
 
 jobs:
   terraform:
     name: Terraform Route53 DNS
     runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-dns-apply-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 

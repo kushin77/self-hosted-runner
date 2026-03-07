@@ -7,7 +7,13 @@ on:
         description: 'Run ID to monitor (e.g., 22790583296)'
         required: true
   schedule:
-    - cron: '*/15 * * * *' # every 15 minutes
+    - '*/15 * * * *' # every 15 minutes
+
+  workflow_call: {}
+
+concurrency:
+  group: monitor-dr-reconciliation-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read

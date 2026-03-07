@@ -3,6 +3,12 @@ name: Retrieve SLACK_WEBHOOK from Runner
 on:
   workflow_dispatch:
 
+  workflow_call: {}
+
+concurrency:
+  group: retrieve-slack-webhook-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   retrieve:
     runs-on: [self-hosted, linux]
