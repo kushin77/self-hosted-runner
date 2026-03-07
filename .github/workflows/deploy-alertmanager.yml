@@ -56,7 +56,7 @@ jobs:
       - name: Start ssh-agent and add deploy key
         run: |
           mkdir -p ~/.ssh
-          echo "${DEPLOY_SSH_KEY}" > /tmp/deploy_key
+          printf "%s\n" "$DEPLOY_SSH_KEY" > /tmp/deploy_key
           chmod 600 /tmp/deploy_key
           eval "$(ssh-agent -s)"
           ssh-add /tmp/deploy_key
