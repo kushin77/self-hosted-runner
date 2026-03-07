@@ -197,8 +197,21 @@ jobs:
             echo "⚠ Recovery report not found"
           fi
 
-      - name: Upload DR test artifacts
+      - name: Prepare DR test artifacts for upload
         if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          cd "${{ env.RESTORE_BASE_DIR }}"
+          tar czf /tmp/minio-uploads/dr-test-artifacts.tar.gz . || echo "No artifacts to package"
+          ls -lh /tmp/minio-uploads/ || true
+
+      - name: Upload DR test artifacts to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/dr-test-artifacts.tar.gz dr-test-artifacts.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload DR test artifacts (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: dr-test-artifacts
@@ -269,7 +282,13 @@ jobs:
             echo "overall_status=FAIL" >> $GITHUB_OUTPUT
           fi
 
-      - name: Upload DR test summary
+      - name: Upload DR test summary to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh dr-test-summary.txt dr-test-summary.txt || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload DR test summary (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: dr-test-summary

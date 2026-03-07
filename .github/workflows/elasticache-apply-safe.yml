@@ -62,30 +62,54 @@ jobs:
           echo "Full plan+apply path detected. This workflow performs a dry-run when credentials are not present."
           echo "Note: invoking a reusable workflow as a step is unsupported; full applies are handled by the dedicated terraform apply job when credentials are available."
 
-      - name: Dry-run plan (no backend) and upload artifact
+      - name: Dry-run plan (no backend) and render as JSON
         if: ${{ steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true' && !(github.event_name == 'push' && steps.tfvars.outputs.valid == 'true')) }}
+        id: plan
         run: |
           set -euo pipefail
           cd terraform
           terraform init -backend=false
           terraform validate || true
           terraform plan -var-file=elasticache-params.tfvars -out=elastiCache-dryrun.tfplan || true
+          # Render plan as JSON (version-independent format)
+          terraform show -json elastiCache-dryrun.tfplan > elastiCache-dryrun.json || true
+          
+          # Extract summary info
+          RESOURCE_CHANGES=$(terraform show -json elastiCache-dryrun.tfplan | grep -o '"change":' | wc -l || echo 0)
+          echo "plan_summary=Terraform plan with ~${RESOURCE_CHANGES} resource changes" >> $GITHUB_OUTPUT
+          
+          # Create artifact directory
           mkdir -p ../workflow_artifacts/${{ github.run_id }}
-          tar -czf ../workflow_artifacts/${{ github.run_id }}/elastiCache-dryrun.tgz elastiCache-dryrun.tfplan || true
+          cp elastiCache-dryrun.tfplan ../workflow_artifacts/${{ github.run_id }}/ || true
+          cp elastiCache-dryrun.json ../workflow_artifacts/${{ github.run_id }}/ || true
         env:
           TF_IN_AUTOMATION: true
 
-      - name: Upload dry-run artifact
+      - name: Upload dry-run artifacts (binary plan + JSON)
         if: ${{ steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true') }}
         uses: actions/upload-artifact@v4
         with:
-          name: elastiCache-dryrun-${{ github.run_id }}
-          path: workflow_artifacts/${{ github.run_id }}/elastiCache-dryrun.tgz
+          name: elastiCache-plan-${{ github.run_id }}
+          path: workflow_artifacts/${{ github.run_id }}/
+          retention-days: 7
 
-      - name: Notify
+      - name: Notify (dry-run or plan only)
         if: ${{ steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true') }}
         run: |
-          echo "Dry-run completed. No backend credentials available or apply not requested. Artifact uploaded: elastiCache-dryrun-${{ github.run_id }}"
+          PLAN_DESC="${{ steps.plan.outputs.plan_summary || 'Terraform plan' }}"
+          echo "✅ Dry-run plan completed. Artifacts available: elastiCache-plan-${{ github.run_id }}"
+          echo "   Plan Type: ${PLAN_DESC}"
+          echo "   JSON format for version-independent rendering"
+
+      - name: Add approval gate / manual apply link
+        if: ${{ steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "✅ Credentials available. To proceed with terraform apply:"
+          echo "   1. Review the plan artifact: elastiCache-plan-${{ github.run_id }}"
+          echo "   2. Run workflow dispatch with apply=true to trigger apply"
+          echo "   3. Or use: gh workflow run elasticache-apply-safe.yml -f apply=true"
 
       - name: Comment on issue #1324
         if: always()

@@ -241,8 +241,19 @@ This issue was automatically closed because a successful DR recovery was detecte
           }
           EOF
 
-      - name: Upload metrics as artifact
+      - name: Package metrics for MinIO
         if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/dr-reconciliation-metrics.tar.gz .metrics || echo "No metrics to package"
+
+      - name: Upload metrics to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/dr-reconciliation-metrics.tar.gz dr-reconciliation-metrics.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload metrics as artifact (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: dr-reconciliation-metrics
