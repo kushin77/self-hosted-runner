@@ -21,16 +21,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
         run: |
+          set +e
           # Detect if we are using the fallback token
           if [[ "${{ secrets.RUNNER_MGMT_TOKEN }}" == "" ]]; then
             echo "::warning ::RUNNER_MGMT_TOKEN not found. Using GITHUB_TOKEN fallback (may result in 403 Forbidden for runner management)."
           fi
 
           # Use PAT if available for administration access, otherwise fallback to GITHUB_TOKEN
-          runners_json=$(gh api /repos/${{ github.repository }}/actions/runners || echo "FAILED")
+          runners_json=$(gh api /repos/${{ github.repository }}/actions/runners)
+          RETVAL=$?
           
-          if [[ "$runners_json" == "FAILED" ]]; then
-            echo "::error ::Failed to retrieve runners list via API. Ensure RUNNER_MGMT_TOKEN is configured with 'administration:read' scope."
+          if [ $RETVAL -ne 0 ]; then
+            echo "::error ::Failed to retrieve runners list via API (Exit Code $RETVAL). Ensure RUNNER_MGMT_TOKEN is configured with 'administration:read' scope."
             echo "offline_count=0" >> $GITHUB_OUTPUT
             exit 0
           fi
@@ -40,6 +42,7 @@ jobs:
           
           echo "offline_count=$offline_count" >> $GITHUB_OUTPUT
           echo "offline_names=$offline_names" >> $GITHUB_OUTPUT
+          set -e
 
       - name: Report offline runners
         if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
