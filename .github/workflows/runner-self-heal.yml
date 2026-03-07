@@ -23,7 +23,7 @@ jobs:
       - name: Check repository runners
         id: check
         env:
-          GH_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
+          GITHUB_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
         run: |
           set +e
           # Detect if we are using the fallback token
