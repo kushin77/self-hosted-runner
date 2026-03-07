@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [ main, master ]
 
+  workflow_call: {}
+
+concurrency:
+  group: ci-images-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest

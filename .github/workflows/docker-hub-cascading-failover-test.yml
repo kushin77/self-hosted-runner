@@ -16,6 +16,12 @@ on:
           - aws-ecr-primary
           - google-gar-primary
 
+  workflow_call: {}
+
+concurrency:
+  group: docker-hub-cascading-failover-test-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   cascading-failover-test:
     runs-on: ubuntu-latest
