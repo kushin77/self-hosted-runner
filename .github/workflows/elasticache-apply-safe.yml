@@ -85,8 +85,19 @@ jobs:
         env:
           TF_IN_AUTOMATION: true
 
-      - name: Upload dry-run artifacts (binary plan + JSON)
+      - name: Package elastiCache plan for MinIO
         if: ${{ steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true') }}
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/elastiCache-plan-${{ github.run_id }}.tar.gz workflow_artifacts/${{ github.run_id }}/ || echo "No artifacts to package"
+
+      - name: Upload elastiCache plan to MinIO
+        if: ${{ (steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true')) && contains(runner.labels, 'self-hosted') }}
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/elastiCache-plan-${{ github.run_id }}.tar.gz elastiCache-plan-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload dry-run artifacts (hosted fallback)
+        if: ${{ (steps.creds.outputs.mode == 'dry-run' || (steps.creds.outputs.mode == 'full' && github.event.inputs.apply != 'true')) && !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: elastiCache-plan-${{ github.run_id }}
