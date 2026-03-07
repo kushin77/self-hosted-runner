@@ -1,0 +1,408 @@
+#!/bin/bash
+# Secrets Audit Script - Programmatic discovery and reporting
+# Usage: bash scripts/audit-secrets.sh [--full|--json|--search PATTERN|--validate|--missing-only|--html]
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+WORKFLOWS_DIR="$REPO_ROOT/.github/workflows"
+TEMP_DIR="/tmp/secrets-audit-$$"
+
+mkdir -p "$TEMP_DIR"
+trap "rm -rf $TEMP_DIR" EXIT
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Defaults
+OUTPUT_FORMAT="text"
+SEARCH_PATTERN=""
+VALIDATE_MODE=false
+MISSING_ONLY=false
+HTML_OUTPUT=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --full) OUTPUT_FORMAT="full" ;;
+    --json) OUTPUT_FORMAT="json" ;;
+    --html) OUTPUT_FORMAT="html"; HTML_OUTPUT="${2:-.}/secret-audit.html"; shift ;;
+    --search) SEARCH_PATTERN="$2"; shift ;;
+    --validate) VALIDATE_MODE=true ;;
+    --missing-only) MISSING_ONLY=true ;;
+    --help) 
+      cat << 'EOF'
+Secrets Audit Script - Find all secrets within workflows
+
+Usage: bash scripts/audit-secrets.sh [OPTIONS]
+
+Options:
+  --full              Full report with all details (default: summary)
+  --json              JSON output for programmatic access
+  --html FILE         Generate HTML report (default: secret-audit.html)
+  --search PATTERN    Search for secrets matching pattern (e.g., "GCP_")
+  --validate          Validate required secrets are configured
+  --missing-only      Show only missing required secrets
+  --help              Show this help message
+
+Examples:
+  bash scripts/audit-secrets.sh --full
+  bash scripts/audit-secrets.sh --json > secrets.json
+  bash scripts/audit-secrets.sh --search "AWS_"
+  bash scripts/audit-secrets.sh --validate
+  bash scripts/audit-secrets.sh --html report.html
+EOF
+      exit 0
+      ;;
+    *) echo "Unknown option: $1"; exit 1 ;;
+  esac
+  shift
+done
+
+echo -e "${BLUE}=== Secrets Audit Tool ===${NC}"
+echo "Scanning: $WORKFLOWS_DIR"
+echo ""
+
+# Extract all secrets from workflows
+echo -e "${BLUE}[1/5] Extracting secret references...${NC}"
+SECRETS_FILE="$TEMP_DIR/secrets.txt"
+grep -rh '\${{ secrets\.' "$WORKFLOWS_DIR" 2>/dev/null | grep -oE 'secrets\.[A-Z_]+' | sed 's/^secrets\.//' | sort -u > "$SECRETS_FILE" || true
+
+# Extract secret usages per workflow
+echo -e "${BLUE}[2/5] Mapping secret usage per workflow...${NC}"
+USAGE_FILE="$TEMP_DIR/usage.txt"
+{
+  for workflow in "$WORKFLOWS_DIR"/*.yml; do
+    workflow_name="$(basename "$workflow")"
+    secrets_in_workflow=$(grep -o '\${{ secrets\.[A-Z_]*' "$workflow" 2>/dev/null | grep -oE '[A-Z_]+$' | sort -u || true)
+    for secret in $secrets_in_workflow; do
+      echo "$secret|$workflow_name"
+    done
+  done
+} > "$USAGE_FILE" || true
+
+# Count secrets
+echo -e "${BLUE}[3/5] Analyzing patterns...${NC}"
+TOTAL_SECRETS=$(wc -l < "$SECRETS_FILE")
+TOTAL_WORKFLOWS=$(find "$WORKFLOWS_DIR" -name "*.yml" -type f | wc -l)
+
+# Define required and optional secrets
+REQUIRED_SECRETS=("DEPLOY_SSH_KEY" "RUNNER_MGMT_TOKEN" "GITHUB_TOKEN")
+OPTIONAL_SECRETS=(
+  "GCP_WORKLOAD_IDENTITY_PROVIDER" "GCP_SERVICE_ACCOUNT_EMAIL" "GCP_PROJECT_ID"
+  "GCP_SERVICE_ACCOUNT_KEY" "GCP_WORKLOAD_IDENTITY_SERVICE_ACCOUNT"
+  "AWS_OIDC_ROLE_ARN" "USE_OIDC"
+  "MINIO_ENDPOINT" "MINIO_ACCESS_KEY" "MINIO_SECRET_KEY" "MINIO_BUCKET"
+  "SMTP_RELAY_URL" "PAGERDUTY_TOKEN" "COSIGN_PRIVATE_KEY"
+  "VAULT_ROLE_ID" "VAULT_SECRET_ID"
+)
+
+# Validate required secrets exist in GitHub
+echo -e "${BLUE}[4/5] Validating configuration...${NC}"
+VALIDATION_FILE="$TEMP_DIR/validation.txt"
+GH_SECRETS=$(gh secret list --repo kushin77/self-hosted-runner 2>/dev/null | awk '{print $1}' | tail -n +2 || true)
+
+{
+  for secret in "${REQUIRED_SECRETS[@]}"; do
+    if echo "$GH_SECRETS" | grep -q "^$secret$"; then
+      echo "CONFIGURED|$secret|REQUIRED"
+    else
+      echo "MISSING|$secret|REQUIRED"
+    fi
+  done
+  for secret in "${OPTIONAL_SECRETS[@]}"; do
+    if echo "$GH_SECRETS" | grep -q "^$secret$"; then
+      echo "CONFIGURED|$secret|OPTIONAL"
+    else
+      echo "MISSING|$secret|OPTIONAL"
+    fi
+  done
+} | sort -u > "$VALIDATION_FILE"
+
+echo -e "${BLUE}[5/5] Generating report...${NC}"
+
+# Output functions
+output_text_summary() {
+  echo -e "${GREEN}📊 SECRETS SUMMARY${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "Total Secrets Found:        $TOTAL_SECRETS"
+  echo "Workflows Analyzed:         $TOTAL_WORKFLOWS"
+  
+  local configured_count=$(grep "^CONFIGURED" "$VALIDATION_FILE" | wc -l)
+  local missing_count=$(grep "^MISSING" "$VALIDATION_FILE" | wc -l)
+  
+  echo "Secrets Configured:         $configured_count"
+  echo "Secrets Missing:            $missing_count"
+  echo ""
+  
+  # Show required status
+  local required_missing=$(grep "^MISSING.*REQUIRED$" "$VALIDATION_FILE" | wc -l)
+  if [ "$required_missing" -gt 0 ]; then
+    echo -e "${RED}🔴 REQUIRED SECRETS MISSING: $required_missing${NC}"
+  else
+    echo -e "${GREEN}✅ All required secrets configured${NC}"
+  fi
+  echo ""
+  
+  if [ "$MISSING_ONLY" = true ] && [ "$missing_count" -gt 0 ]; then
+    echo -e "${YELLOW}Missing Secrets:${NC}"
+    grep "^MISSING" "$VALIDATION_FILE" | awk -F'|' '{printf "  • %s (scope: %s)\n", $2, $3}'
+  else
+    echo "Top 10 Most-Used Secrets:"
+    sort "$USAGE_FILE" | cut -d'|' -f1 | uniq -c | sort -rn | head -10 | \
+      awk '{printf "  %d. %s (used in %d workflows)\n", NR, $2, $1}'
+  fi
+}
+
+output_text_full() {
+  output_text_summary
+  echo ""
+  echo -e "${GREEN}📋 ALL SECRETS ${NC}"
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  
+  local i=1
+  while IFS= read -r secret; do
+    local status=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f1 || echo "UNKNOWN")
+    local scope=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f3 || echo "")
+    local count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+    
+    case "$status" in
+      CONFIGURED) STATUS_ICON="✅" ;;
+      MISSING) STATUS_ICON="❌" ;;
+      *) STATUS_ICON="❓" ;;
+    esac
+    
+    printf "%2d. %s %-35s [%s] (used in %d workflows)\n" "$i" "$STATUS_ICON" "$secret" "$scope" "$count"
+    
+    # Show workflows using this secret
+    local workflows=$(grep "^$secret|" "$USAGE_FILE" | cut -d'|' -f2 | sed 's/^/      └─ /')
+    if [ -n "$workflows" ]; then
+      echo "$workflows" | head -3
+      local extra=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+      if [ "$extra" -gt 3 ]; then
+        echo "      └─ ... and $((extra - 3)) more"
+      fi
+    fi
+    
+    ((i++))
+  done < "$SECRETS_FILE"
+}
+
+output_json() {
+  local secrets_json="["
+  local first=true
+  
+  while IFS= read -r secret; do
+    local status=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f1 || echo "unknown")
+    local scope=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f3 || echo "")
+    local workflows=$(grep "^$secret|" "$USAGE_FILE" | cut -d'|' -f2 | jq -R . | jq -s .)
+    local count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+    
+    if [ "$first" = true ]; then
+      first=false
+    else
+      secrets_json+=","
+    fi
+    
+    secrets_json+="{
+      \"name\": \"$secret\",
+      \"status\": \"$status\",
+      \"scope\": \"$scope\",
+      \"usage_count\": $count,
+      \"workflows\": $workflows
+    }"
+  done < "$SECRETS_FILE"
+  
+  secrets_json+="]"
+  
+  cat << EOF
+{
+  "metadata": {
+    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+    "total_secrets": $TOTAL_SECRETS,
+    "total_workflows": $TOTAL_WORKFLOWS,
+    "configured_count": $(grep "^CONFIGURED" "$VALIDATION_FILE" | wc -l),
+    "missing_count": $(grep "^MISSING" "$VALIDATION_FILE" | wc -l)
+  },
+  "secrets": $secrets_json
+}
+EOF
+}
+
+output_html() {
+  local html_file="${HTML_OUTPUT:-.}/secret-audit.html"
+  cat > "$html_file" << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Secrets Audit Report</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    .header h1 { color: #667eea; margin-bottom: 10px; }
+    .header p { color: #666; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .stat-box {
+      background: #f5f5f5;
+      padding: 20px;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+    }
+    .stat-box .number { font-size: 2em; font-weight: bold; color: #667eea; }
+    .stat-box .label { color: #666; font-size: 0.9em; margin-top: 5px; }
+    .table-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95em;
+    }
+    th {
+      background: #f5f5f5;
+      padding: 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #ddd;
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    tr:hover { background: #fafafa; }
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      font-weight: 600;
+    }
+    .configured { background: #d4edda; color: #155724; }
+    .missing { background: #f8d7da; color: #721c24; }
+    .required { background: #fff3cd; color: #856404; }
+    .optional { background: #d1ecf1; color: #0c5460; }
+    .timestamp { color: #999; font-size: 0.9em; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 Secrets Audit Report</h1>
+      <p>Comprehensive secrets inventory and configuration status</p>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="number">##TOTAL_SECRETS##</div>
+          <div class="label">Total Secrets</div>
+        </div>
+        <div class="stat-box">
+          <div class="number">##TOTAL_WORKFLOWS##</div>
+          <div class="label">Workflows Analyzed</div>
+        </div>
+        <div class="stat-box">
+          <div class="number">##CONFIGURED##</div>
+          <div class="label">Configured</div>
+        </div>
+        <div class="stat-box">
+          <div class="number">##MISSING##</div>
+          <div class="label">Missing</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <h2 style="margin-bottom: 20px;">📋 Secrets Inventory</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Secret Name</th>
+            <th>Status</th>
+            <th>Scope</th>
+            <th>Usage Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          ##SECRETS_ROWS##
+        </tbody>
+      </table>
+      <div class="timestamp">Generated on ##TIMESTAMP##</div>
+    </div>
+  </div>
+</body>
+</html>
+HTMLEOF
+
+  # Fill in the template
+  local configured=$(grep "^CONFIGURED" "$VALIDATION_FILE" | wc -l)
+  local missing=$(grep "^MISSING" "$VALIDATION_FILE" | wc -l)
+  local rows=""
+  
+  while IFS= read -r secret; do
+    local status=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f1 || echo "unknown")
+    local scope=$(grep "^.*|$secret|" "$VALIDATION_FILE" | cut -d'|' -f3 || echo "")
+    local count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+    local status_class=$([ "$status" = "CONFIGURED" ] && echo "configured" || echo "missing")
+    local scope_class=$([ "$scope" = "REQUIRED" ] && echo "required" || echo "optional")
+    
+    rows+="<tr><td>$secret</td><td><span class=\"status $status_class\">$status</span></td><td><span class=\"status $scope_class\">$scope</span></td><td>$count</td></tr>"
+  done < "$SECRETS_FILE"
+  
+  sed -i "s|##TOTAL_SECRETS##|$TOTAL_SECRETS|g" "$html_file"
+  sed -i "s|##TOTAL_WORKFLOWS##|$TOTAL_WORKFLOWS|g" "$html_file"
+  sed -i "s|##CONFIGURED##|$configured|g" "$html_file"
+  sed -i "s|##MISSING##|$missing|g" "$html_file"
+  sed -i "s|##SECRETS_ROWS##|$rows|g" "$html_file"
+  sed -i "s|##TIMESTAMP##|$(date)|g" "$html_file"
+  
+  echo -e "${GREEN}✅ HTML report generated: $html_file${NC}"
+}
+
+# Main output
+if [ -n "$SEARCH_PATTERN" ]; then
+  echo -e "${BLUE}Searching for secrets matching pattern: ${YELLOW}$SEARCH_PATTERN${NC}"
+  echo ""
+  grep "$SEARCH_PATTERN" "$SECRETS_FILE" | while read -r secret; do
+    local count=$(grep "^$secret|" "$USAGE_FILE" | wc -l)
+    echo "  • $secret (used in $count workflows)"
+  done
+elif [ "$OUTPUT_FORMAT" = "json" ]; then
+  output_json
+elif [ "$OUTPUT_FORMAT" = "html" ]; then
+  output_html
+elif [ "$OUTPUT_FORMAT" = "full" ]; then
+  output_text_full
+else
+  output_text_summary
+fi
+
+echo ""
+echo -e "${GREEN}✅ Audit complete${NC}"
