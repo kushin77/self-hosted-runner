@@ -20,6 +20,15 @@ jobs:
           PAYLOAD=$(jq -n --arg repo "${{ github.repository }}" --arg run_url "${{ github.event.workflow_run.html_url }}" --arg conclusion "${{ github.event.workflow_run.conclusion }}" '{text: ("Workflow failed: " + $repo + "\n" + $run_url + "\nConclusion: " + $conclusion)}')
           curl -sS -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "${{ secrets.SLACK_WEBHOOK_URL }}" || true
 
+      - name: Trigger PagerDuty incident (if integration key present)
+        if: ${{ secrets.PAGERDUTY_INTEGRATION_KEY != '' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          PD_KEY="${{ secrets.PAGERDUTY_INTEGRATION_KEY }}"
+          EVENT=$(jq -n --arg routing_key "$PD_KEY" --arg summary "Automation failure: ${{ github.repository }} - ${{ github.event.workflow_run.name }}" --arg source "github_actions" '{routing_key: $routing_key, event_action: "trigger", payload: {summary: $summary, severity: "error", source: $source}}')
+          curl -sS -X POST -H 'Content-Type: application/json' -d "$EVENT" https://events.pagerduty.com/v2/enqueue || true
+
       - name: Comment tracking issue (#1192)
         uses: actions/github-script@v7
         with:
