@@ -156,6 +156,7 @@ This issue was automatically closed because a successful DR recovery was detecte
         if: steps.check-recovery.outputs.recovery_detected == 'false' && steps.scan-failures.outputs.status == 'failures-detected'
         run: |
           AUTO_EXECUTE="${{ github.event.inputs.auto_execute }}"
+          AUTO_EXECUTE="${AUTO_EXECUTE:-true}"
           if [ "$AUTO_EXECUTE" != "true" ]; then
             echo "reconciliation_status=queued-manual-approval" >> $GITHUB_OUTPUT
             echo "⏳ Reconciliation queued (waiting for manual approval)"

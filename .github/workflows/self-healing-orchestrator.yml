@@ -12,7 +12,6 @@ jobs:
   self-heal:
     name: Detect & Auto-Heal Failures
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - uses: actions/checkout@v4
       - name: Detect latest failures

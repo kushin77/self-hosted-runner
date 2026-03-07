@@ -1,0 +1,45 @@
+Phase 7 — ElastiCache Dry-run Plan (human-readable)
+Generated: 2026-03-07T00:00:00Z
+
+Captured terraform plan output (backend-less dry-run performed locally):
+
+Terraform has been successfully initialized!
+
+The execution plan included the following actions (truncated excerpt):
+
+  + create google_kms_crypto_key_iam_member.vault_kms_unseal
+  + create google_storage_bucket_iam_member.vault_storage_admin
+  + create local_file.vault_provisioner_policy
+  + create module.gcp_vault.google_kms_crypto_key.vault_unseal_key
+  + create module.gcp_vault.google_kms_crypto_key_iam_member.vault_kms_access
+  + create module.gcp_vault.google_kms_key_ring.vault_key_ring
+  + create module.gcp_vault.google_service_account.vault_sa
+  + create module.gcp_vault.google_storage_bucket.vault_storage
+  + create module.gcp_vault.google_storage_bucket_iam_member.vault_storage_access
+
+Plan: 9 to add, 0 to change, 0 to destroy.
+
+Warnings encountered during plan:
+- Several variables provided in `elasticache-params.tfvars` are not declared in the root module (e.g., `auth_token`, `tags`, plus others). Consider declaring or removing unused variables.
+
+Credential error (plan stopped short of full refresh):
+Error: No valid credential sources found
+
+  with provider["registry.terraform.io/hashicorp/aws"],
+  on main.tf line 23, in provider "aws":
+  23: provider "aws" {
+
+Please see https://registry.terraform.io/providers/hashicorp/aws for more information about providing credentials.
+
+Error: failed to refresh cached credentials, no EC2 IMDS role found, operation error ec2imds: GetMetadata, request canceled, context deadline exceeded
+
+Summary:
+- The dry-run produced a plan with resources to be created (9 add actions observed in this run), but provider credential refresh failed for AWS, so a complete plan/apply cannot proceed without valid AWS credentials or OIDC setup.
+- Network-specific resources (ElastiCache VPC/subnets) were not validated here — `terraform/elasticache-params.tfvars` contains placeholders that must be filled with the operator-provided `vpc_id` and `subnet_ids` prior to any real apply.
+
+Recommended next steps:
+1. Provide valid AWS credentials via `AWS_OIDC_ROLE` (preferred) or `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` repository secrets.
+2. Update `terraform/elasticache-params.tfvars` with real `vpc_id` and `subnet_ids`, or merge PR #1314 with those values.
+3. Re-run the safe apply: trigger `.github/workflows/elasticache-apply-safe.yml` with `apply=true` after credentials present.
+
+This file was created by automation for immutable archival under `releases/phase7/22807397570`.
