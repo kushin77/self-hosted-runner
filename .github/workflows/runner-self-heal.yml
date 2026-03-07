@@ -34,39 +34,47 @@ jobs:
           echo "Offline runners: ${{ steps.check.outputs.offline_names }}"
 
       - name: Install Python & Ansible
-        if: steps.check.outputs.offline_count != '0' && secrets.DEPLOY_SSH_KEY != ''
+        if: steps.check.outputs.offline_count != '0'
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install Ansible
-        if: steps.check.outputs.offline_count != '0' && secrets.DEPLOY_SSH_KEY != ''
+      - name: Install Ansible (if SSH key present)
+        if: steps.check.outputs.offline_count != '0'
         run: |
+          if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
+            echo "No DEPLOY_SSH_KEY configured; skipping Ansible install"
+            exit 0
+          fi
           python -m pip install --upgrade pip
           pip install ansible-core ansible
 
-      - name: Prepare SSH key
-        if: steps.check.outputs.offline_count != '0' && secrets.DEPLOY_SSH_KEY != ''
+      - name: Prepare SSH key (if present)
+        if: steps.check.outputs.offline_count != '0'
         run: |
+          if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
+            echo "No DEPLOY_SSH_KEY configured; skipping key preparation"
+            exit 0
+          fi
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Attempt Ansible runner restart
-        if: steps.check.outputs.offline_count != '0' && secrets.DEPLOY_SSH_KEY != ''
+      - name: Attempt Ansible runner restart (if SSH key present)
+        if: steps.check.outputs.offline_count != '0'
         run: |
+          if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
+            echo "No DEPLOY_SSH_KEY configured; skipping automated restart"
+            exit 0
+          fi
           ansible-playbook -i ansible/inventory/staging ansible/playbooks/provision-self-hosted-runner-noninteractive.yml --limit all || true
 
-      - name: Open issue if runners offline and no SSH key
-        if: steps.check.outputs.offline_count != '0' && secrets.DEPLOY_SSH_KEY == ''
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const offline = '${{ steps.check.outputs.offline_names }}'
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: 'Self-hosted runners offline — manual restore required',
-              body: `Detected offline runners: ${offline}\n\nNo DEPLOY_SSH_KEY configured; automated restart skipped. Please start runners on hosts or add secret DEPLOY_SSH_KEY to enable automated self-heal.`,
-              labels: ['runners','ops']
-            })
+      - name: Create issue if runners offline and no SSH key
+        if: steps.check.outputs.offline_count != '0'
+        run: |
+          if [[ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
+            echo "DEPLOY_SSH_KEY present; automated restart attempted or will be attempted"
+            exit 0
+          fi
+          offline_names="${{ steps.check.outputs.offline_names }}"
+          gh issue create --repo "${{ github.repository }}" --title "Self-hosted runners offline — manual restore required" --body "Detected offline runners: ${offline_names}\n\nNo DEPLOY_SSH_KEY configured; automated restart skipped. Please start runners on hosts or add secret DEPLOY_SSH_KEY to enable automated self-heal." --label runners,ops || true
