@@ -23,6 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Authenticate to Google Cloud (OIDC)
         uses: google-github-actions/auth@v2
         with:
@@ -58,6 +63,7 @@ jobs:
           set -euo pipefail
           if [[ -z "${PROJECT_ID:-}" ]]; then
             echo "GCP_PROJECT_ID not configured; cannot store secret" >&2
+            retry_command 5 10 sh -c "gcloud secrets versions add $SECRET_NAME --data-file=/tmp/leaked_secret --project=$PROJECT_ID" || true
             gh issue create --title "Security: leaked Slack app credentials - manual action required" --body "Automated attempt to store leaked credentials failed because GCP_PROJECT_ID is not configured in repo secrets. Please provide project and run the `store-leaked-to-gsm-and-remove` workflow." || true
             exit 1
           fi

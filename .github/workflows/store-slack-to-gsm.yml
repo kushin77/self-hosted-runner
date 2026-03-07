@@ -23,6 +23,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Authenticate to Google Cloud (service account or OIDC)
         uses: google-github-actions/auth@v2
         with:
@@ -51,12 +56,12 @@ jobs:
           set -euo pipefail
           TMPFILE=$(mktemp)
           cat "$FILE_PATH" > "$TMPFILE"
-          if gcloud secrets describe "$GSM_SECRET_NAME" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+          if retry_command 5 10 sh -c "gcloud secrets describe \"$GSM_SECRET_NAME\" --project=\"$GCP_PROJECT_ID\" >/dev/null 2>&1" || true; then
             echo "Secret exists; adding new version"
-            gcloud secrets versions add "$GSM_SECRET_NAME" --data-file="$TMPFILE" --project="$GCP_PROJECT_ID"
+            retry_command 5 10 sh -c "gcloud secrets versions add \"$GSM_SECRET_NAME\" --data-file=\"$TMPFILE\" --project=\"$GCP_PROJECT_ID\"" || true
           else
             echo "Creating secret $GSM_SECRET_NAME"
-            gcloud secrets create "$GSM_SECRET_NAME" --replication-policy="automatic" --data-file="$TMPFILE" --project="$GCP_PROJECT_ID"
+            retry_command 5 10 sh -c "gcloud secrets create \"$GSM_SECRET_NAME\" --replication-policy=\"automatic\" --data-file=\"$TMPFILE\" --project=\"$GCP_PROJECT_ID\"" || true
           fi
           rm -f "$TMPFILE"
 
