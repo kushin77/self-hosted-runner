@@ -3,6 +3,12 @@ name: MinIO Artifact Smoke Test (GitHub-hosted Debug)
 on:
   workflow_dispatch:
 
+  workflow_call: {}
+
+concurrency:
+  group: minio-validate-github-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate-minio:
     name: Validate MinIO upload/download (github-hosted, debug)
