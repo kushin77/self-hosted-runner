@@ -9,6 +9,10 @@ jobs:
   webhook_reminder:
     runs-on: ubuntu-latest
     steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
       - name: Post webhook reminder
         env:
           WEBHOOK_URL: ${{ secrets.MAINTAINER_REMINDER_WEBHOOK }}
