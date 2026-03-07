@@ -15,26 +15,28 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
-      - name: Comment and close orchestration issues
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const issuesToClose = [1286, 1309, 1328, 1293];
-            for (const num of issuesToClose) {
-              try {
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: num,
-                  body: '✅ Terraform apply completed successfully via `' + context.payload.workflow_run.name + '`. Closing orchestration task — reopen if follow-up is required.'
-                });
-                await github.rest.issues.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: num,
-                  state: 'closed'
-                });
-              } catch (e) {
-                console.log(`Issue #${num}: ${e.message}`);
-              }
-            }
+      - name: Idempotently comment and close orchestration issues
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set -euo pipefail
+          TO_CLOSE=(1286 1309 1328 1293)
+          CLOSURE_MSG="✅ Terraform apply completed successfully via \`${WORKFLOW_NAME}\`. Closing orchestration task — reopen if follow-up is required."
+
+          for issue_num in "${TO_CLOSE[@]}"; do
+            # Check if issue exists and is open
+            if gh issue view ${issue_num} --repo ${REPO} >/dev/null 2>&1; then
+              state=$(gh issue view ${issue_num} --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "CLOSED")
+              if [ "$state" = "OPEN" ]; then
+                # Idempotent comment: check if closure comment already posted
+                EXISTING=$(gh api "/repos/${REPO}/issues/${issue_num}/comments" --jq ".[] | select(.body | contains(\"Terraform apply completed successfully\")) | .id" 2>/dev/null | head -1 || true)
+                if [ -z "$EXISTING" ]; then
+                  gh issue comment ${issue_num} --repo ${REPO} --body "$CLOSURE_MSG" || true
+                fi
+                # Close the issue idempotently
+                gh issue update ${issue_num} --repo ${REPO} --state closed --state_reason completed || true
+              fi
+            fi
+          done
