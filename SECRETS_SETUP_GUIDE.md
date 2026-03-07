@@ -7,12 +7,13 @@
 
 ## Overview
 
-The hands-off automation system requires two secrets:
+The hands-off automation system requires core secrets plus optional notification secrets:
 
-| Secret | Type | Scope | Rotation | Purpose |
-|--------|------|-------|----------|---------|
-| `DEPLOY_SSH_KEY` | SSH Private Key | Repo | 90 days | Ansible SSH access to runner hosts |
-| `RUNNER_MGMT_TOKEN` | GitHub PAT | Repo | 90 days | GitHub API access for runner management |
+| Secret | Type | Scope | Rotation | Purpose | Required |
+|--------|------|-------|----------|---------|----------|
+| `DEPLOY_SSH_KEY` | SSH Private Key | Repo | 90 days | Ansible SSH access to runner hosts | ✅ Yes |
+| `RUNNER_MGMT_TOKEN` | GitHub PAT | Repo | 90 days | GitHub API access for runner management | ✅ Yes |
+| `SMTP_RELAY_URL` | SMTP URL | Repo | 6 months | Email notifications (fallback if Slack unavailable) | ⭕ Optional |
 
 ---
 
@@ -188,6 +189,217 @@ gh api /repos/kushin77/self-hosted-runner/actions/runners
 - Creates GitHub issue reminder 30 days before expiry
 - Generate new token before old one expires
 - Test new token before deleting old one
+
+---
+
+## Detailed Setup - SMTP_RELAY_URL (Optional)
+
+### What It Is
+SMTP relay URL for sending email notifications from automation workflows.
+
+### When You Need It
+- Slack webhook is unavailable or rate-limited
+- Email fallback for critical alerts required
+- Compliance requires audit trail via email
+
+### Format
+
+The secret should be an SMTP URL:
+
+```
+smtp://username:password@host:port
+smtps://username:password@host:port    # For TLS
+```
+
+**Example:**
+```
+smtps://noreply%40company.com:AppPassword123@smtp.gmail.com:587
+smtps://relay-user:relay-pass@mail.company.com:465
+```
+
+### Generation Steps
+
+#### Option 1: Gmail App Password (Easiest)
+
+1. **Enable 2FA on Google Account**
+   - Go to: https://myaccount.google.com/security
+   - Enable 2-Step Verification
+
+2. **Create App Password**
+   - Go to: https://myaccount.google.com/apppasswords
+   - Select: Mail → Windows Computer (or your OS)
+   - Copy generated 16-character password
+
+3. **Format URL**
+   ```
+   smtps://your-email%40gmail.com:xxxxxxxxxxxxxxxx@smtp.gmail.com:587
+   ```
+
+4. **Test in GitHub**
+   ```bash
+   gh secret set SMTP_RELAY_URL \
+     --repo kushin77/self-hosted-runner \
+     --body "smtps://your-email%40gmail.com:PASSWORD@smtp.gmail.com:587"
+   ```
+
+#### Option 2: Company SMTP Relay
+
+If your company provides SMTP relay:
+
+1. **Get relay details from IT**
+   - Host: `mail.company.com`
+   - Port: `587` or `465`
+   - Username/Password: Provided by IT
+   - TLS required: Yes/No
+
+2. **Format URL**
+   ```
+   smtps://relay-user:relay-password@mail.company.com:465
+   ```
+
+3. **URL Encode special characters**
+   ```bash
+   # If password has @, %, #, etc:
+   python3 -c "import urllib.parse; print(urllib.parse.quote('my@password', safe=''))"
+   # Output: my%40password
+   ```
+
+4. **Set in GitHub**
+   ```bash
+   gh secret set SMTP_RELAY_URL \
+     --repo kushin77/self-hosted-runner \
+     --body "smtps://user:encoded-password@mail.company.com:465"
+   ```
+
+#### Option 3: GCP Secret Manager (Enterprise)
+
+For enterprise environments:
+
+1. **Store in GCP Secret Manager**
+   ```bash
+   gcloud secrets create smtp-relay-url \
+     --replication-policy="automatic" \
+     --data-file=- << EOF
+   smtps://relay-user:relay-pass@smtp.company.com:465
+   EOF
+   ```
+
+2. **Grant GitHub Actions access**
+   ```bash
+   gcloud secrets add-iam-policy-binding smtp-relay-url \
+     --member="serviceAccount:self-hosted-runner@PROJECT_ID.iam.gserviceaccount.com" \
+     --role="roles/secretmanager.secretAccessor"
+   ```
+
+3. **Use in workflow**
+   ```yaml
+   - name: Get SMTP credentials
+     id: smtp
+     run: |
+       SMTP_URL=$(gcloud secrets versions access latest --secret=smtp-relay-url)
+       echo "::add-mask::$SMTP_URL"
+       echo "URL=$SMTP_URL" >> $GITHUB_OUTPUT
+   
+   - name: Send email notification
+     run: |
+       curl -X POST \
+         --url "smtp://${{ steps.smtp.outputs.URL }}/send" \
+         -d '{"to":"ops@company.com","subject":"Alert"}'
+   ```
+
+### Test SMTP Relay
+
+```bash
+# Option 1: Test with curl
+SMTP_URL="smtps://user:pass@smtp.gmail.com:587"
+
+# Option 2: Test with Python
+python3 << 'EOF'
+import smtplib
+from urllib.parse import urlparse
+
+smtp_url = "smtps://user:pass@host:port"
+parsed = urlparse(smtp_url)
+
+server = smtplib.SMTP(parsed.hostname, parsed.port)
+server.starttls()
+server.login(parsed.username, parsed.password)
+print("✓ SMTP connection successful")
+server.quit()
+EOF
+
+# Option 3: In workflow (add test step)
+name: Test SMTP
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test SMTP connection
+        env:
+          SMTP_URL: ${{ secrets.SMTP_RELAY_URL }}
+        run: |
+          python3 << 'EOF'
+          import smtplib
+          from urllib.parse import urlparse
+          parsed = urlparse("$SMTP_URL")
+          smtp = smtplib.SMTP(parsed.hostname, int(parsed.port or 25))
+          smtp.starttls()
+          smtp.login(parsed.username, parsed.password)
+          print("✓ SMTP relay is working")
+          smtp.quit()
+          EOF
+```
+
+### Usage in Workflows
+
+Workflows that support SMTP_RELAY_URL:
+
+- `security-audit.yml` — Email critical findings if Slack unavailable
+- `secret-rotation-mgmt-token.yml` — Email rotation reminders
+- `disaster-recovery-test.yml` — Email DR test results
+
+Example usage:
+```yaml
+- name: Send email notification
+  if: failure()
+  env:
+    SMTP_URL: ${{ secrets.SMTP_RELAY_URL }}
+  run: |
+    python3 << 'EOF'
+    import smtplib
+    from email.mime.text import MIMEText
+    from urllib.parse import urlparse
+    
+    parsed = urlparse("${SMTP_URL}")
+    smtp = smtplib.SMTP(parsed.hostname, int(parsed.port or 25))
+    smtp.starttls()
+    smtp.login(parsed.username, parsed.password)
+    
+    msg = MIMEText("Workflow failed: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}")
+    msg['Subject'] = 'Automation Alert: Workflow Failed'
+    msg['From'] = parsed.username
+    msg['To'] = 'ops@example.com'
+    
+    smtp.send_message(msg)
+    smtp.quit()
+    print("✓ Email sent successfully")
+    EOF
+```
+
+### Rotation Schedule
+- Gmail App Passwords: Rotate every 6 months
+- Company SMTP: Follow your organization's password policy
+- Test quarterly with: `gh workflow run test-smtp-relay.yml`
+
+### Troubleshooting SMTP
+
+| Issue | Solution |
+|-------|----------|
+| `Authentication failed` | Check username/password are URL-encoded; test with Python script |
+| `Connection refused` | Check host/port correct; ensure TLS port (465/587) not blocking |
+| `starttls() failed` | Some servers require explicit STARTLS; try port 587 with STARTTLS |
+| `Email not received` | Check sender email whitelisted; review spam folder; check recipient valid |
 
 ---
 
