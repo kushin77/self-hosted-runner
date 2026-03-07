@@ -1,0 +1,32 @@
+---
+name: 100X Self-Healing Orchestrator
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  actions: read
+jobs:
+  self-heal:
+    name: Detect & Auto-Heal Failures
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect latest failures
+        id: detect
+        run: |
+          DR_RUN=$(gh run list --workflow=dr-smoke-test.yml --limit=1 --repo ${{ github.repository }} --json databaseId,conclusion --jq '.[0] | "\(.databaseId)|\(.conclusion)"' 2>/dev/null || echo "")
+          [ -z "$DR_RUN" ] && exit 0
+          IFS='|' read -r RUN_ID CONCLUSION <<< "$DR_RUN"
+          [ "$CONCLUSION" = "failure" ] && echo "failure_type=detected" >> $GITHUB_OUTPUT || echo "failure_type=none" >> $GITHUB_OUTPUT
+      - name: Run 100X self-healing
+        if: steps.detect.outputs.failure_type == 'detected'
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+        run: bash .github/scripts/self-healing-orchestrator.sh > /tmp/healing.log 2>&1 || true
+      - name: Post results
+        if: always() && steps.detect.outputs.failure_type == 'detected'
+        run: gh issue comment 1304 --repo ${{ github.repository }} --body "🔧 **Self-Healing Orchestrator** detected and attempted recovery. Check artifacts for diagnostics." || true
