@@ -49,7 +49,13 @@ fi
 
 # generate Alertmanager config; prefer real receivers if provided, otherwise use mock webhook
 if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
-  cat > "$TMPDIR/alertmanager.yml" <<AMCFG
+  echo "Generating Alertmanager config for real receivers..."
+  if [ "${DEBUG_MODE:-false}" = "true" ]; then
+    echo "SLACK_URL length: ${#SLACK_URL}"
+    echo "PAGERDUTY_KEY length: ${#PAGERDUTY_KEY}"
+  fi
+  
+  cat > "$TMPDIR/alertmanager.yml" <<'AMCFG'
 global:
   resolve_timeout: 5m
 route:
@@ -58,17 +64,22 @@ receivers:
   - name: 'default'
     webhook_configs: []
 AMCFG
+
   if [ -n "$SLACK_URL" ]; then
+    echo "✓ Configuring Slack receiver"
     cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
   - name: 'slack'
-    webhook_configs:
-      - url: '$SLACK_URL'
+    slack_configs:
+      - api_url: '$SLACK_URL'
         send_resolved: true
+        channel: '#alerts'
 AMCFG
     # set route to slack
     sed -i "s/receiver: 'default'/receiver: 'slack'/" "$TMPDIR/alertmanager.yml"
   fi
+  
   if [ -n "$PAGERDUTY_KEY" ]; then
+    echo "✓ Configuring PagerDuty receiver"
     cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
   - name: 'pagerduty'
     pagerduty_configs:
@@ -77,6 +88,7 @@ AMCFG
     sed -i "s/receiver: 'default'/receiver: 'pagerduty'/" "$TMPDIR/alertmanager.yml"
   fi
 else
+  echo "Generating Alertmanager config with mock webhook..."
   cat > "$TMPDIR/alertmanager.yml" <<'AMCFG'
 global:
   resolve_timeout: 5m
@@ -88,6 +100,18 @@ receivers:
       - url: 'http://observability-e2e-mock-webhook:8080/hooks/slack'
         send_resolved: true
 AMCFG
+fi
+
+# validate config was written
+if [ ! -f "$TMPDIR/alertmanager.yml" ]; then
+  echo "ERROR: alertmanager.yml was not created" >&2
+  exit 2
+fi
+
+if [ "${DEBUG_MODE:-false}" = "true" ]; then
+  echo "===== Generated Alertmanager Config ====="
+  cat "$TMPDIR/alertmanager.yml"
+  echo "=========================================="
 fi
 
 # create isolated network
