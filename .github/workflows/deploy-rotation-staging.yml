@@ -51,9 +51,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Load resilience helpers
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh || true
+        uses: ./.github/actions/resilience-loader
 
 
       - name: Ensure AppRole credentials (use repo secrets or auto-provision with VAULT_ADMIN_TOKEN)
