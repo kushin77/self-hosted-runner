@@ -30,13 +30,15 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account_email: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
           cleanup_credentials: true
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-      - name: Fetch slack-webhook from GSM (idempotent)
+      - name: Fetch slack-webhook from GSM and export as env (idempotent)
         id: fetch
         run: |
           set -euo pipefail
@@ -44,6 +46,7 @@ jobs:
           if [[ -n "$WEBHOOK" ]]; then
             echo "webhook_present=true" >> $GITHUB_OUTPUT
             echo "webhook=$WEBHOOK" >> $GITHUB_OUTPUT
+            echo "SLACK_WEBHOOK_URL=$WEBHOOK" >> $GITHUB_ENV
           else
             echo "webhook_present=false" >> $GITHUB_OUTPUT
           fi
@@ -53,14 +56,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Set SLACK_WEBHOOK_URL secret (if present)
+      - name: Set SLACK_WEBHOOK_URL repo secret (if present)
         if: steps.fetch.outputs.webhook_present == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           WEBHOOK="${{ steps.fetch.outputs.webhook }}"
           gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" --body "$WEBHOOK"
-          echo "✅ SLACK_WEBHOOK_URL set"
+          echo "✅ SLACK_WEBHOOK_URL repo secret updated"
 
       - name: Ensure scripts are executable
         run: |
