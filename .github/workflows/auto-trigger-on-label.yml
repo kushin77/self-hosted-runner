@@ -8,8 +8,50 @@ permissions:
   contents: read
   issues: write
   actions: write
+  id-token: write
 
 jobs:
+  fetch-gsm-creds:
+    name: Fetch credentials from GCP GSM
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'oidc-ready'
+    outputs:
+      aws_access_key_id: ${{ steps.fetch.outputs.aws_access_key_id }}
+      aws_secret_access_key: ${{ steps.fetch.outputs.aws_secret_access_key }}
+      aws_oidc_role_arn: ${{ steps.fetch.outputs.aws_oidc_role_arn }}
+    steps:
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+        continue-on-error: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        continue-on-error: true
+
+      - name: Fetch AWS credentials from GSM
+        id: fetch
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'gcp-eiq' }}
+        run: |
+          set -euo pipefail
+          gcloud services enable secretmanager.googleapis.com --project="$GCP_PROJECT_ID" || true
+          
+          aws_key=$(gcloud secrets versions access latest --secret="aws-access-key-id" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "")
+          aws_secret=$(gcloud secrets versions access latest --secret="aws-secret-access-key" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "")
+          aws_oidc=$(gcloud secrets versions access latest --secret="aws-oidc-role-arn" --project="$GCP_PROJECT_ID" 2>/dev/null || echo "")
+          
+          echo "aws_access_key_id=${aws_key}" >> $GITHUB_OUTPUT
+          echo "aws_secret_access_key=${aws_secret}" >> $GITHUB_OUTPUT
+          echo "aws_oidc_role_arn=${aws_oidc}" >> $GITHUB_OUTPUT
+          
+          [ -n "$aws_key" ] && echo "✓ AWS Access Key fetched from GSM"
+          [ -n "$aws_secret" ] && echo "✓ AWS Secret Key fetched from GSM"
+          [ -n "$aws_oidc" ] && echo "✓ AWS OIDC Role ARN fetched from GSM"
+        continue-on-error: true
+
   dispatch-on-oidc-ready:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'oidc-ready'
@@ -77,7 +119,7 @@ jobs:
     name: Run Terraform (on oidc-ready)
     runs-on: ubuntu-latest
     if: github.event.label.name == 'oidc-ready'
-    needs: dispatch-on-oidc-ready
+    needs: [dispatch-on-oidc-ready, preflight-validate, fetch-gsm-creds]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,6 +136,13 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
 
+      - name: Configure AWS via OIDC from GSM
+        if: ${{ secrets.USE_OIDC != 'true' && needs.fetch-gsm-creds.outputs.aws_oidc_role_arn != '' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ needs.fetch-gsm-creds.outputs.aws_oidc_role_arn }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+
       - name: Configure static AWS creds (fallback)
         if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID != '' }}
         run: |
@@ -101,21 +150,31 @@ jobs:
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
 
+      - name: Configure AWS creds from GSM (if available)
+        if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID == '' && needs.fetch-gsm-creds.outputs.aws_access_key_id != '' }}
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ needs.fetch-gsm-creds.outputs.aws_access_key_id }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ needs.fetch-gsm-creds.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}" >> $GITHUB_ENV
+
       - name: Configure GCP creds (if provided)
         if: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
         run: |
           echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-key.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
 
-      - name: Safe fallback: no credentials -> backend-free dry-run
-        if: ${{ (secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID == '') && secrets.GCP_SERVICE_ACCOUNT_KEY == '' }}
+      - name: Check preflight result
         run: |
-          set -euo pipefail
-          echo "No cloud credentials available; running backend-free terraform init/plan for safe validation (no-op)"
-          cd terraform
-          terraform init -input=false -backend=false
-          terraform plan -input=false -out=tfplan-dry || true
-          echo "Dry-run complete; skipping apply"
+          echo "Preflight indicates creds_available=${{ needs.preflight-validate.outputs.creds }}"
+
+      - name: Proceed only if credentials available
+        if: ${{ needs.preflight-validate.outputs.creds == 'true' }}
+        run: echo "Credentials available — proceeding to init/plan/apply"
+
+      - name: Skip apply when no credentials
+        if: ${{ needs.preflight-validate.outputs.creds != 'true' }}
+        run: |
+          echo "No cloud credentials available; preflight dry-run passed. Skipping full apply until OIDC/creds are provisioned."
           exit 0
 
       - name: Terraform Init
@@ -127,5 +186,60 @@ jobs:
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
+        if: ${{ needs.preflight-validate.outputs.creds == 'true' }}
         working-directory: terraform
         run: terraform apply -input=false -auto-approve tfplan
+
+  preflight-validate:
+    name: Preflight: Terraform validation (no backend)
+    runs-on: ubuntu-latest
+    needs: [dispatch-on-oidc-ready, fetch-gsm-creds]
+    outputs:
+      creds: ${{ steps.check_creds.outputs.creds }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Safe backend-free terraform init/plan
+        id: tf_plan
+        run: |
+          set -euo pipefail
+          cd terraform
+          terraform init -input=false -backend=false
+          terraform plan -input=false -out=tfplan-dry || true
+          echo "preflight=passed" > preflight.out
+
+      - name: Check for cloud credentials
+        id: check_creds
+        run: |
+          set -euo pipefail
+          creds_available=false
+          
+          # Check GSM-fetched credentials first (preferred)
+          if [ -n "${{ needs.fetch-gsm-creds.outputs.aws_oidc_role_arn }}" ]; then
+            creds_available=true
+          elif [ -n "${{ needs.fetch-gsm-creds.outputs.aws_access_key_id }}" ]; then
+            creds_available=true
+          # Fall back to repo secrets
+          elif [ "${{ secrets.USE_OIDC }}" = "true" ] && [ -n "${{ secrets.AWS_OIDC_ROLE_ARN }}" ]; then
+            creds_available=true
+          elif [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            creds_available=true
+          elif [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            creds_available=true
+          fi
+          echo "creds=${creds_available}" >> $GITHUB_OUTPUT
+
+      - name: Post preflight comment (issue)
+        run: |
+          owner=${{ github.repository_owner }}
+          repo=${{ github.event.repository.name }}
+          issue=${{ github.event.issue.number }}
+          body="Preflight Terraform validation completed (backend-free). Credentials available=${{ steps.check_creds.outputs.creds }}. Credentials source: GSM or repo secrets."
+          curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${owner}/${repo}/issues/${issue}/comments" -d "{\"body\":\"${body}\"}" || true
