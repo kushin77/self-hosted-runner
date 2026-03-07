@@ -7,6 +7,11 @@ on:
         description: 'Enable verbose logging'
         required: false
         default: 'true'
+  workflow_call: {}
+
+concurrency:
+  group: runner-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   diagnostic:
