@@ -25,21 +25,45 @@ jobs:
               body: 'Label `oidc-ready` detected — dispatching preflight and terraform apply workflows now.'
             })
 
-      - name: Dispatch OIDC preflight workflow
+      - name: Dispatch OIDC preflight workflow (with retries)
         run: |
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/oidc-auth-template.yml/dispatches \
-            -d '{"ref":"main"}' || true
+          set -euo pipefail
+          url="https://api.github.com/repos/${{ github.repository }}/actions/workflows/oidc-auth-template.yml/dispatches"
+          data='{"ref":"main"}'
+          attempt=0
+          max=6
+          until [ $attempt -ge $max ]
+          do
+            attempt=$((attempt+1))
+            resp=$(curl -s -o /dev/stderr -w "%{http_code}" -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$url" -d "$data" 2>&1) || true
+            code=$(echo "$resp" | tr -d '\n' | tail -c 3)
+            if [ "$code" = "204" ] || [ "$code" = "201" ] || [ "$code" = "200" ]; then
+              echo "Dispatched OIDC preflight workflow (attempt $attempt): HTTP $code"
+              break
+            fi
+            echo "Dispatch attempt $attempt returned HTTP $code; retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done || true
 
-      - name: Dispatch Terraform Auto-Apply workflow
+      - name: Dispatch Terraform Auto-Apply workflow (with retries)
         run: |
-          curl -X POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-auto-apply.yml/dispatches \
-            -d '{"ref":"main"}' || true
+          set -euo pipefail
+          url="https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-auto-apply.yml/dispatches"
+          data='{"ref":"main"}'
+          attempt=0
+          max=6
+          until [ $attempt -ge $max ]
+          do
+            attempt=$((attempt+1))
+            resp=$(curl -s -o /dev/stderr -w "%{http_code}" -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "$url" -d "$data" 2>&1) || true
+            code=$(echo "$resp" | tr -d '\n' | tail -c 3)
+            if [ "$code" = "204" ] || [ "$code" = "201" ] || [ "$code" = "200" ]; then
+              echo "Dispatched Terraform Auto-Apply workflow (attempt $attempt): HTTP $code"
+              break
+            fi
+            echo "Dispatch attempt $attempt returned HTTP $code; retrying in $((attempt * 5))s..."
+            sleep $((attempt * 5))
+          done || true
 
       - name: Comment completion
         uses: actions/github-script@v6
