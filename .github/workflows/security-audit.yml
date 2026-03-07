@@ -29,11 +29,19 @@ jobs:
           name: gitleaks-report
           path: gitleaks-report.json
 
-      - name: Create issue when findings found
-        if: steps.gitleaks-scan.outcome == 'failure' || (exists('./gitleaks-report.json') && (jq '.leaks | length' < gitleaks-report.json) )
+      - name: Inspect gitleaks report and create issue if findings
         run: |
-          echo "Gitleaks findings detected. Creating issue..."
-          gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Gitleaks findings detected" --body "Automated gitleaks scan found potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials." || true
+          if [ -f gitleaks-report.json ]; then
+            COUNT=$(jq '.leaks | length' gitleaks-report.json || echo 0)
+            if [ "$COUNT" -gt 0 ]; then
+              echo "Gitleaks findings detected ($COUNT). Creating issue..."
+              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Gitleaks findings detected" --body "Automated gitleaks scan found $COUNT potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials." || true
+            else
+              echo "No gitleaks findings."
+            fi
+          else
+            echo "No gitleaks report present; skipping."
+          fi
 
   trivy-scan:
     name: Trivy Container Scan
@@ -57,11 +65,16 @@ jobs:
           name: trivy-report
           path: trivy-report.json
 
-      - name: Create issue when image vulnerabilities found
-        if: always()
+      - name: Inspect trivy report and create issue if findings
         run: |
-          if [ -f trivy-report.json ] && jq '.Results[].Vulnerabilities | length > 0' trivy-report.json >/dev/null 2>&1; then
-            gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Trivy vulnerabilities detected" --body "Automated Trivy scan found high/critical vulnerabilities. See trivy-report.json artifact for details." || true
+          if [ -f trivy-report.json ]; then
+            COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
+            if [ "$COUNT" -gt 0 ]; then
+              echo "Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
+              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Trivy vulnerabilities detected" --body "Automated Trivy scan found $COUNT high/critical vulnerabilities. See trivy-report.json artifact for details." || true
+            else
+              echo "No high/critical vulnerabilities found by Trivy."
+            fi
           else
-            echo "No trivy high/critical vulnerabilities found."
+            echo "No trivy report present; skipping."
           fi
