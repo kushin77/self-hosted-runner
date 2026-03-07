@@ -140,7 +140,7 @@ jobs:
           # Find open automation/urgent runner issues requesting RUNNER_MGMT_TOKEN and close them.
           set -e
           repo="${{ github.repository }}"
-          matches=$(gh issue list --repo "$repo" --label automation,urgent,runners --state open --limit 100 --json number,title | jq -r '.[] | select(.title | test("RUNNER_MGMT_TOKEN")) | .number' || true)
+          matches=$(gh issue list --repo "$repo" --label automation,urgent,runners --state open --sort created --direction asc --limit 100 --json number,title | jq -r '.[] | select(.title | test("RUNNER_MGMT_TOKEN")) | .number' || true)
           if [ -z "$matches" ]; then
             echo "No matching RUNNER_MGMT_TOKEN request issue found"
             exit 0
