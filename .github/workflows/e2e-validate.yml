@@ -48,6 +48,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
       - name: Ensure helper scripts are executable
         run: |
           chmod +x scripts/ci/check-secrets.sh || true
