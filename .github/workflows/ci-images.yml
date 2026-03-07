@@ -36,22 +36,49 @@ jobs:
         run: |
           echo "Registry credentials missing; skipping image push steps (temporary fallback)."
 
-      - name: Build and push provisioner-worker
+      - name: Build and push provisioner-worker (with retry)
         uses: docker/build-push-action@v5
         with:
           context: ./services/provisioner-worker
           push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
           tags: ${{ secrets.REGISTRY_HOST || 'local' }}/provisioner-worker:${{ github.sha }}
+        continue-on-error: true
+      - name: Retry provisioner-worker push if failed
+        if: failure()
+        uses: docker/build-push-action@v5
+        continue-on-error: false
+        with:
+          context: ./services/provisioner-worker
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
+          tags: ${{ secrets.REGISTRY_HOST || 'local' }}/provisioner-worker:${{ github.sha }}
 
-      - name: Build and push managed-auth
+      - name: Build and push managed-auth (with retry)
         uses: docker/build-push-action@v5
         with:
           context: ./services/managed-auth
           push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
           tags: ${{ secrets.REGISTRY_HOST || 'local' }}/managed-auth:${{ github.sha }}
-
-      - name: Build and push vault-shim
+        continue-on-error: true
+      - name: Retry managed-auth push if failed
+        if: failure()
         uses: docker/build-push-action@v5
+        continue-on-error: false
+        with:
+          context: ./services/managed-auth
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
+          tags: ${{ secrets.REGISTRY_HOST || 'local' }}/managed-auth:${{ github.sha }}
+
+      - name: Build and push vault-shim (with retry)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./services/vault-shim
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
+          tags: ${{ secrets.REGISTRY_HOST || 'local' }}/vault-shim:${{ github.sha }}
+        continue-on-error: true
+      - name: Retry vault-shim push if failed
+        if: failure()
+        uses: docker/build-push-action@v5
+        continue-on-error: false
         with:
           context: ./services/vault-shim
           push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
