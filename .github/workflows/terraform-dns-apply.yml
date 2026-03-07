@@ -35,16 +35,20 @@ jobs:
 
       - name: Terraform Init
         working-directory: terraform/modules/dns/gitlab
-        run: terraform init -input=false
+        run: |
+          source .github/scripts/resilience.sh || true
+          retry_command 3 5 terraform init -input=false
 
       - name: Terraform Plan
         if: ${{ github.event.inputs.action == 'plan' }}
         working-directory: terraform/modules/dns/gitlab
         run: |
-          terraform plan -var="zone_id=${{ secrets.ROUTE53_ZONE_ID }}" -var="dns_value=192.168.168.42" -input=false
+          source .github/scripts/resilience.sh || true
+          retry_command 3 10 terraform plan -var="zone_id=${{ secrets.ROUTE53_ZONE_ID }}" -var="dns_value=192.168.168.42" -input=false
 
       - name: Terraform Apply
         if: ${{ github.event.inputs.action == 'apply' }}
         working-directory: terraform/modules/dns/gitlab
         run: |
-          terraform apply -auto-approve -var="zone_id=${{ secrets.ROUTE53_ZONE_ID }}" -var="dns_value=192.168.168.42"
+          source .github/scripts/resilience.sh || true
+          retry_command 3 10 terraform apply -auto-approve -var="zone_id=${{ secrets.ROUTE53_ZONE_ID }}" -var="dns_value=192.168.168.42"
