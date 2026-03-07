@@ -65,16 +65,17 @@ EOF
             chmod +x ci/scripts/upload_to_minio.sh || true
             URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
             echo "Uploaded deployment metrics to: $URL"
+      - name: Prepare metrics for MinIO upload
+        if: ${{ contains(runner.labels, 'self-hosted') }}
+        run: |
+          if [ -f deployment-metrics-merged.json ]; then
+            mkdir -p /tmp/minio-uploads
+            cp deployment-metrics-merged.json /tmp/minio-uploads/
+            URL=$(ci/scripts/upload_to_minio.sh /tmp/minio-uploads/deployment-metrics-merged.json deployment-metrics-${{ github.run_id }}.json) || true
+            echo "Uploaded deployment metrics to: $URL"
           else
             echo "No deployment metrics file to upload"
           fi
-
-      - name: Upload metrics artifact (hosted fallback)
-        if: ${{ !contains(runner.labels, 'self-hosted') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-metrics-${{ github.run_id }}
-          path: deployment-metrics-merged.json
 
       - name: Post summary comment
         run: |

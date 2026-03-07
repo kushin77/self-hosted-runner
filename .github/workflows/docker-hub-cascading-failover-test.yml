@@ -181,8 +181,19 @@ jobs:
           }
           EOF
 
-      - name: Upload Test Report
+      - name: Package test report for MinIO
         if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/cascading-failover-test-report.tar.gz test-reports/ || echo "No test reports to package"
+
+      - name: Upload Test Report to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/cascading-failover-test-report.tar.gz cascading-failover-test-report.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload Test Report (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v3
         with:
           name: cascading-failover-test-report

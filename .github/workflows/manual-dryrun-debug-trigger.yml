@@ -62,7 +62,18 @@ jobs:
           echo "run_url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> diagnostics/metadata.txt
           echo "repository=${{ github.repository }}" >> diagnostics/metadata.txt
 
-      - name: Upload diagnostics artifact
+      - name: Package diagnostics for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/manual-dryrun-debug-${{ github.run_id }}.tar.gz diagnostics/ || echo "No diagnostics to package"
+
+      - name: Upload diagnostics to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/manual-dryrun-debug-${{ github.run_id }}.tar.gz manual-dryrun-debug-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload diagnostics artifact (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: manual-dryrun-debug-${{ github.run_id }}
