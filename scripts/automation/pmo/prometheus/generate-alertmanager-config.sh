@@ -1,21 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Generates `alertmanager.yml` from `alertmanager.yml.tpl` using the values in `.env`.
+# Generates `alertmanager.yml` from `alertmanager.yml.tpl` using the values in `.env` or environment variables.
 # Tries `envsubst` first, falls back to a small perl substitution if available.
 
 cd "$(dirname "$0")" || exit 1
 
 if [ ! -f .env ]; then
-  echo "Error: .env not found in $(pwd). Copy .env.template to .env and populate secrets before running." >&2
-  exit 1
+  # If .env doesn't exist, check if SLACK_WEBHOOK_URL is in environment
+  if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+    echo "Error: .env not found in $(pwd) and SLACK_WEBHOOK_URL not in environment. Copy .env.template to .env and populate secrets before running." >&2
+    exit 1
+  fi
+  echo "Using environment variables for config generation (SLACK_WEBHOOK_URL is set)"
+else
+  # Export variables from .env (ignore comments)
+  set -a
+  # shellcheck disable=SC2046
+  eval $(grep -v '^\s*#' .env | sed -n '/=/p')
+  set +a
 fi
-
-# Export variables from .env (ignore comments)
-set -a
-# shellcheck disable=SC2046
-eval $(grep -v '^\s*#' .env | sed -n '/=/p')
-set +a
 
 TEMPLATE=alertmanager.yml.tpl
 OUT=alertmanager.yml
