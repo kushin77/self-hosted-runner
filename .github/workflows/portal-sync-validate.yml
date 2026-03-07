@@ -36,7 +36,7 @@ jobs:
           chmod +x ci/scripts/setup-python.sh
           ci/scripts/setup-python.sh 3.11
       - name: Set up Python (hosted fallback)
-        if: not(contains(runner.labels, 'self-hosted'))
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
