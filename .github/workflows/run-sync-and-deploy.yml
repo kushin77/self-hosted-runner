@@ -96,16 +96,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set +e  # Don't exit on error
+          set -euo pipefail
+          trap 'exit 0' EXIT  # Always exit 0 despite any errors
+          
           WEBHOOK="${{ steps.fetch.outputs.webhook }}"
-          if [[ -n "$WEBHOOK" ]]; then
-            gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" --body "$WEBHOOK" 2>&1 && {
-              echo "✅ SLACK_WEBHOOK_URL repo secret updated"
-            } || {
-              echo "⚠️  Failed to set repo secret (non-critical; webhook available from environment)"
-            }
+          if [[ -z "$WEBHOOK" ]]; then
+            echo "⚠️  Webhook is empty; skipping repo secret update"
+            exit 0
           fi
-          exit 0  # Always succeed this step
+          
+          # Write webhook to temp file to avoid shell escaping issues
+          TMP_WEBHOOK=$(mktemp)
+          trap "rm -f $TMP_WEBHOOK" EXIT
+          echo -n "$WEBHOOK" > "$TMP_WEBHOOK"
+          
+          # Attempt to set the secret
+          if gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" < "$TMP_WEBHOOK" 2>&1; then
+            echo "✅ SLACK_WEBHOOK_URL repo secret updated successfully"
+          else
+            echo "⚠️  Failed to set repo secret via gh (non-critical; webhook available from environment var)"
+          fi
+          
+          exit 0  # Ensure this step always succeeds
 
       - name: Ensure scripts are executable
         continue-on-error: true
