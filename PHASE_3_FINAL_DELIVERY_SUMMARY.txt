@@ -39,7 +39,7 @@ CURRENT BLOCKERS (Choose 1–3 to unblock):
    ├─ Impact: E2E testing blocked
    ├─ Effort: ~5 minutes
    ├─ Commands:
-   │  • gh secret set MINIO_ENDPOINT --body 'https://minio.your-domain.com'
+   │  • gh secret set MINIO_ENDPOINT --body 'https://mc.elevatediq.ai:9000'
    │  • gh secret set MINIO_ACCESS_KEY --body 'minioadmin'
    │  • gh secret set MINIO_SECRET_KEY --body 'minioadmin-secret'
    │  • gh secret set MINIO_BUCKET --body 'github-actions-artifacts'

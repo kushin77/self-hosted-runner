@@ -26,7 +26,7 @@ This repository now includes end-to-end automation for immutable, sovereign, eph
 Add these 4 secrets to **Settings → Secrets and variables → Actions → Repository secrets**:
 
 ```bash
-gh secret set MINIO_ENDPOINT --body "https://minio.your-domain.com" --repo kushin77/self-hosted-runner
+gh secret set MINIO_ENDPOINT --body "https://mc.elevatediq.ai:9000" --repo kushin77/self-hosted-runner
 gh secret set MINIO_ACCESS_KEY --body "minioadmin" --repo kushin77/self-hosted-runner
 gh secret set MINIO_SECRET_KEY --body "minioadmin-secretkey" --repo kushin77/self-hosted-runner
 gh secret set MINIO_BUCKET --body "github-actions-artifacts" --repo kushin77/self-hosted-runner
@@ -199,7 +199,7 @@ The workflow will pause at the approval gate (if `deploy-approle` has required r
 
 ### Step 1: Add MinIO Secrets
 ```bash
-gh secret set MINIO_ENDPOINT --body "https://minio.your-domain.com" --repo kushin77/self-hosted-runner
+gh secret set MINIO_ENDPOINT --body "https://mc.elevatediq.ai:9000" --repo kushin77/self-hosted-runner
 gh secret set MINIO_ACCESS_KEY --body "..." --repo kushin77/self-hosted-runner
 gh secret set MINIO_SECRET_KEY --body "..." --repo kushin77/self-hosted-runner
 gh secret set MINIO_BUCKET --body "github-actions-artifacts" --repo kushin77/self-hosted-runner
@@ -241,8 +241,8 @@ gh workflow run e2e-validate.yml --repo kushin77/self-hosted-runner --field run_
 ### MinIO Upload Fails
 **Cause**: MinIO endpoint unreachable or credentials invalid.  
 **Fix**: 
-1. Verify endpoint is correct: `curl -k https://minio.your-domain.com`
-2. Verify credentials: `mc alias set minio-ci https://minio.your-domain.com AKIA SECRET`
+1. Verify endpoint is correct: `curl -k https://mc.elevatediq.ai:9000`
+2. Verify credentials: `mc alias set minio-ci https://mc.elevatediq.ai:9000 AKIA SECRET`
 3. Check bucket exists and service account has permissions
 
 ### Approval Gate Hangs
