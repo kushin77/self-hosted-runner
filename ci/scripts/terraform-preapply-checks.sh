@@ -96,8 +96,11 @@ check_terraform_state() {
   if [ ! -f "$TERRAFORM_DIR/terraform.tfstate" ]; then
     log_warning "No local terraform.tfstate found (may use remote backend)"
   else
-    STATE_AGE_DAYS=$(($(date +%s) - $(stat -c%Y "$TERRAFORM_DIR/terraform.tfstate" 2>/dev/null || echo 0)) / 86400))
-    if [ $STATE_AGE_DAYS -gt 7 ]; then
+    # Calculate state file age in days safely
+    STATE_TS=$(stat -c%Y "$TERRAFORM_DIR/terraform.tfstate" 2>/dev/null || echo 0)
+    NOW_TS=$(date +%s)
+    STATE_AGE_DAYS=$(( (NOW_TS - STATE_TS) / 86400 ))
+    if [ "$STATE_AGE_DAYS" -gt 7 ]; then
       log_warning "State file is $STATE_AGE_DAYS days old"
     else
       log_success "State file is current ($STATE_AGE_DAYS days old)"
