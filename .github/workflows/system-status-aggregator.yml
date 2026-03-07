@@ -174,6 +174,51 @@ jobs:
           echo "$REPORT" >> $GITHUB_ENV
           echo "DELIMITER" >> $GITHUB_ENV
 
+      - name: Upload report to MinIO (if configured)
+        id: upload_minio
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -n "${MINIO_ENDPOINT-}" ] && [ -n "${MINIO_ACCESS_KEY-}" ] && [ -n "${MINIO_SECRET_KEY-}" ] && [ -n "${MINIO_BUCKET-}" ]; then
+            echo "MinIO configured — uploading report"
+            URL=$(ci/scripts/upload_to_minio.sh /tmp/status_report.md)
+            echo "minio_url=$URL" >> $GITHUB_OUTPUT
+            # append the URL to the existing report stored in env.report
+            REPORT_EXTENDED=$(cat /tmp/status_report.md; echo; echo "Uploaded report: $URL")
+            echo "report<<DELIMITER" >> $GITHUB_ENV
+            echo "$REPORT_EXTENDED" >> $GITHUB_ENV
+            echo "DELIMITER" >> $GITHUB_ENV
+          else
+            echo "MinIO not configured or secrets missing — skipping upload"
+          fi
+
+      - name: Dispatch self-hosted smoke workflow if `self-hosted-heavy` runner online
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "Checking for online self-hosted-heavy runners"
+          HAS_SELF_HOSTED=0
+          RUNNER_IDS=$(gh api "/repos/${REPO}/actions/runners" --jq '.runners[] | select(.status=="online") | .id' 2>/dev/null || true)
+          for id in $RUNNER_IDS; do
+            if gh api "/repos/${REPO}/actions/runners/${id}/labels" --jq '.labels[].name' 2>/dev/null | grep -qx 'self-hosted-heavy'; then
+              HAS_SELF_HOSTED=1
+              break
+            fi
+          done
+
+          if [ "$HAS_SELF_HOSTED" -eq 1 ]; then
+            echo "Found self-hosted-heavy runner online — dispatching smoke workflow"
+            gh api --method POST /repos/${REPO}/actions/workflows/self-hosted-smoke.yml/dispatches -f ref=main || true
+          else
+            echo "No self-hosted-heavy runner online — skipping smoke dispatch"
+          fi
+
       - name: Post status to tracking issue
         env:
           GH_TOKEN: ${{ github.token }}
