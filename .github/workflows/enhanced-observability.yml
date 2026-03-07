@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        - name: Load resilience utilities
+          run: source .github/scripts/resilience.sh
       - run: echo "Metrics collection initialized"
 
   analyze-bottlenecks:
