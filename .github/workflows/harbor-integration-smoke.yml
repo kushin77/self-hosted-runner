@@ -62,16 +62,22 @@ jobs:
       - name: Run Terraform wrapper (provision Postgres+Redis and create Harbor secrets)
         working-directory: terraform/provision/harbor-integration
         run: |
-          terraform init -input=false
-          terraform apply -auto-approve -input=false -var "kubeconfig_path=$HOME/.kube/config" -var "harbor_namespace=harbor"
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          retry_command 3 10 terraform init -input=false
+          retry_command 3 20 terraform apply -auto-approve -input=false -var "kubeconfig_path=$HOME/.kube/config" -var "harbor_namespace=harbor"
 
       - name: Install Harbor chart
         run: |
-          helm install harbor ./deploy/harbor -n harbor --create-namespace --wait --timeout 600s --values deploy/harbor/values.yaml
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          retry_command 3 10 helm install harbor ./deploy/harbor -n harbor --create-namespace --wait --timeout 600s --values deploy/harbor/values.yaml
 
       - name: Wait for harbor-core rollout
         run: |
-          kubectl rollout status deployment/harbor-core -n harbor --timeout=6m
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          retry_command 3 10 kubectl rollout status deployment/harbor-core -n harbor --timeout=6m
 
       - name: Smoke check - list pods
         run: |
