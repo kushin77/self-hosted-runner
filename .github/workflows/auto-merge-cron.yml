@@ -46,7 +46,19 @@ jobs:
           chmod +x scripts/automation/auto_merge_worker.sh
           scripts/automation/auto_merge_worker.sh
 
-      - name: Upload log
+      - name: Package auto-merge logs for MinIO
+        if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/auto-merge-log.tar.gz /tmp/auto_merge*.log 2>/dev/null || echo "No logs to package"
+
+      - name: Upload auto-merge logs to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/auto-merge-log.tar.gz auto-merge-log.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload log (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: auto-merge-log
