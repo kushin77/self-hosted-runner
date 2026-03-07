@@ -1,0 +1,167 @@
+name: Slack Notifications - Ops Events
+
+on:
+  workflow_run:
+    workflows: 
+      - "Runner Self-Heal"
+      - "Weekly Disaster Recovery Testing"
+      - "Credential Rotation - Monthly"
+      - "Vault AppRole Rotation - Quarterly"
+      - "Sync GSM Secrets to GitHub"
+    types: [completed]
+  issue_comment:
+    types: [created]
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: read
+  actions: read
+  issues: read
+
+jobs:
+  notify:
+    name: Send Slack Notifications
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check if Slack webhook configured
+        id: slack-check
+        run: |
+          if [ -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "webhook_available=false" >> $GITHUB_OUTPUT
+            echo "⚠ SLACK_WEBHOOK_URL not configured; skipping Slack notifications"
+          else
+            echo "webhook_available=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Notify on Runner Self-Heal completion
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Runner Self-Heal'
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"❌\")"
+          
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI Runner Self-Heal $CONCLUSION\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*$EMOJI Runner Self-Heal*\n*Conclusion*: $CONCLUSION\n*Run*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Details>\"
+                  }
+                }
+              ]
+            }" || true
+
+      - name: Notify on DR Test completion
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Weekly Disaster Recovery Testing'
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"🚨\")"
+          
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI DR Test $CONCLUSION\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*$EMOJI Weekly Disaster Recovery Test*\n*Conclusion*: $CONCLUSION\n*Impact*: Recovery and backup validation\n*Run*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Artifacts>\"
+                  }
+                }
+              ]
+            }" || true
+
+      - name: Notify on Credential Rotation
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Credential Rotation - Monthly'
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"🔄 Credential Rotation scheduled\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*🔄 Monthly Credential Rotation*\n*Status*: $CONCLUSION\n*Scope*: RUNNER_MGMT_TOKEN, DEPLOY_SSH_KEY, Vault AppRole\n*Audit*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Audit Log>\"
+                  }
+                }
+              ]
+            }" || true
+
+      - name: Notify on Vault AppRole Rotation
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Vault AppRole Rotation - Quarterly'
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"🔐 Vault AppRole quarterly rotation\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*🔐 Quarterly Vault Rotation*\n*Action*: AppRole Secret ID rotated\n*TTL*: 7 days (audit trail)\n*Compliance*: Quarterly credential rotation policy\n*Audit*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Log>\"
+                  }
+                }
+              ]
+            }" || true
+
+      - name: Notify on GSM Secret Sync
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Sync GSM Secrets to GitHub'
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+          EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"⚠️\")"
+          
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI GSM Secret Sync\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*$EMOJI GCP Secret Manager Sync*\n*Status*: $CONCLUSION\n*Scope*: RUNNER_MGMT_TOKEN, DEPLOY_SSH_KEY\n*Schedule*: Every 6 hours\n*Log*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Details>\"
+                  }
+                }
+              ]
+            }" || true
+
+      - name: Notify on critical issues
+        if: steps.slack-check.outputs.webhook_available == 'true' && github.event.action == 'labeled' && contains(github.event.issue.labels.*.name, 'critical')
+        env:
+          WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST "$WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{
+              \"text\": \"🚨 Critical Issue: ${{ github.event.issue.title }}\",
+              \"blocks\": [
+                {
+                  \"type\": \"section\",
+                  \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*🚨 Critical Issue Opened*\n*Title*: ${{ github.event.issue.title }}\n*Author*: @${{ github.event.issue.user.login }}\n*Link*: <${{ github.event.issue.html_url }}|View Issue>\"
+                  }
+                }
+              ]
+            }" || true
