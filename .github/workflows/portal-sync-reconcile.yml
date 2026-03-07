@@ -34,5 +34,6 @@ jobs:
       - name: Upload portal artifact to MinIO
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
+          retry_command 3 5 scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
