@@ -1,0 +1,95 @@
+name: Cloud: Provision AWS OIDC Role (manual run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      account_id:
+        description: 'AWS Account ID where OIDC provider and role will be created'
+        required: true
+      region:
+        description: 'AWS region for IAM resources'
+        required: false
+        default: 'us-east-1'
+      state_bucket:
+        description: 'Terraform state S3 bucket name (for backend policy)'
+        required: true
+      lock_table:
+        description: 'DynamoDB lock table name (for backend locking)'
+        required: true
+      repo_owner:
+        description: 'GitHub repository owner for which to set secrets'
+        required: false
+        default: 'kushin77'
+      repo_name:
+        description: 'GitHub repository name for which to set secrets'
+        required: false
+        default: 'self-hosted-runner'
+      dry_run:
+        description: 'If true, run the script with --dry-run only (default: false)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloud-provision-oidc-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  provision:
+    name: Provision OIDC Role (run in cloud admin context)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show inputs (sanity)
+        run: |
+          echo "account_id=${{ inputs.account_id }}"
+          echo "region=${{ inputs.region }}"
+          echo "state_bucket=${{ inputs.state_bucket }}"
+          echo "lock_table=${{ inputs.lock_table }}"
+          echo "repo=${{ inputs.repo_owner }}/${{ inputs.repo_name }}"
+
+      - name: Install prerequisites
+        run: |
+          set -euo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y curl unzip jq
+          # Install gh CLI
+          if ! command -v gh >/dev/null 2>&1; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt-get update -y && sudo apt-get install -y gh
+          fi
+
+      - name: Run provisioning script
+        env:
+          AWS_REGION: ${{ inputs.region }}
+        run: |
+          set -euo pipefail
+          mode=""
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            mode="--dry-run"
+          fi
+
+          bash scripts/cloud/aws-oidc-setup.sh \
+            --account-id "${{ inputs.account_id }}" \
+            --region "${{ inputs.region }}" \
+            --state-bucket "${{ inputs.state_bucket }}" \
+            --lock-table "${{ inputs.lock_table }}" \
+            --repo-owner "${{ inputs.repo_owner }}" \
+            --repo-name "${{ inputs.repo_name }}" \
+            $mode
+
+      - name: Output next steps
+        if: always()
+        run: |
+          echo "Provisioning script completed. If run in non-dry-run mode, the script should have created an OIDC provider and IAM role."
+          echo "Retrieve the IAM Role ARN from script output above and set the following repository secrets in the target repository:"
+          echo "  - AWS_OIDC_ROLE_ARN: arn:aws:iam::<ACCOUNT_ID>:role/<ROLE_NAME>"
+          echo "  - USE_OIDC: true"
+          echo "  - AWS_DEFAULT_REGION: ${{ inputs.region }}"
+          echo "After setting the secrets, add the label 'oidc-ready' to issue #1309 to trigger the preflight + terraform workflows."
