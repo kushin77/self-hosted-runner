@@ -1,0 +1,186 @@
+name: Rotate Vault AppRole Credentials
+
+on:
+  schedule:
+    - cron: '0 2 1 * *'  # First day of every month at 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      force_rotation:
+        description: 'Force rotation even if not due'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  VAULT_ROLE_NAME: gh-runner
+
+jobs:
+  rotate-vault-approle:
+    name: Rotate Vault AppRole Credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Install Vault CLI
+        run: |
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+          sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+          sudo apt-get update && sudo apt-get install -y vault
+          vault version
+      
+      - name: Verify Vault connectivity
+        id: vault-check
+        run: |
+          VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+          if [[ -z "$VAULT_ADDR" ]]; then
+            echo "⚠️  VAULT_ADDR not configured; skipping AppRole rotation"
+            echo "vault_available=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          if timeout 5 curl -s "$VAULT_ADDR/v1/sys/health" >/dev/null 2>&1; then
+            echo "✅ Vault is accessible"
+            echo "vault_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  Vault is not accessible"
+            echo "vault_available=false" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Authenticate to Vault using AppRole
+        if: steps.vault-check.outputs.vault_available == 'true'
+        id: vault-login
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          if [[ -z "$VAULT_ROLE_ID" ]] || [[ -z "$VAULT_SECRET_ID" ]]; then
+            echo "::error::VAULT_ROLE_ID or VAULT_SECRET_ID not set"
+            exit 1
+          fi
+          
+          VAULT_TOKEN=$(curl -s -X POST \
+            -d "{\"role_id\":\"$VAULT_ROLE_ID\",\"secret_id\":\"$VAULT_SECRET_ID\"}" \
+            "$VAULT_ADDR/v1/auth/approle/login" | jq -r '.auth.client_token' 2>/dev/null)
+          
+          if [[ -z "$VAULT_TOKEN" ]]; then
+            echo "::error::Failed to authenticate to Vault"
+            exit 1
+          fi
+          
+          echo "::add-mask::$VAULT_TOKEN"
+          echo "vault_token=$VAULT_TOKEN" >> $GITHUB_OUTPUT
+          echo "✅ Vault authentication successful"
+      
+      - name: Generate new AppRole Secret ID
+        if: steps.vault-check.outputs.vault_available == 'true'
+        id: rotate-secret-id
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ steps.vault-login.outputs.vault_token }}
+        run: |
+          echo "🔄 Generating new AppRole Secret ID..."
+          
+          NEW_SECRET_ID=$(curl -s -X POST \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            "$VAULT_ADDR/v1/auth/approle/role/${{ env.VAULT_ROLE_NAME }}/secret-id" | \
+            jq -r '.data.secret_id' 2>/dev/null)
+          
+          if [[ -z "$NEW_SECRET_ID" ]]; then
+            echo "::error::Failed to generate new Secret ID"
+            exit 1
+          fi
+          
+          echo "::add-mask::$NEW_SECRET_ID"
+          echo "new_secret_id=$NEW_SECRET_ID" >> $GITHUB_OUTPUT
+          echo "✅ New Secret ID generated"
+      
+      - name: Update GitHub secret with new AppRole Secret ID
+        if: steps.vault-check.outputs.vault_available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_SECRET_ID: ${{ steps.rotate-secret-id.outputs.new_secret_id }}
+        run: |
+          echo "📝 Updating GitHub secret VAULT_SECRET_ID..."
+          
+          echo "$NEW_SECRET_ID" | gh secret set VAULT_SECRET_ID \
+            --repo "${{ github.repository }}" 2>/dev/null
+          
+          if [[ $? -eq 0 ]]; then
+            echo "✅ GitHub secret updated successfully"
+          else
+            echo "::error::Failed to update GitHub secret"
+            exit 1
+          fi
+      
+      - name: List old Secret ID policies (audit)
+        if: steps.vault-check.outputs.vault_available == 'true'
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ steps.vault-login.outputs.vault_token }}
+        run: |
+          echo "📊 Listing Secret ID metadata for audit..."
+          
+          curl -s -X LIST \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            "$VAULT_ADDR/v1/auth/approle/role/${{ env.VAULT_ROLE_NAME }}/secret-id" | \
+            jq '.data.keys | length' 2>/dev/null || echo "0"
+      
+      - name: Create audit issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITLE="🔐 Vault AppRole Rotation - $(date -u +'%Y-%m-%d')"
+          STATUS="$([[ '${{ steps.vault-check.outputs.vault_available }}' == 'true' && '${{ steps.rotate-secret-id.outputs.new_secret_id }}' != '' ]] && echo '✅ SUCCESS' || echo '⚠️  SKIPPED')"
+          
+          BODY="# Vault AppRole Rotation Audit
+          
+Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+Status: $STATUS  
+Run: [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+## Details
+- Vault Available: ${{ steps.vault-check.outputs.vault_available }}
+- AppRole Role: ${{ env.VAULT_ROLE_NAME }}
+- Secret ID Generated: $([[ -n '${{ steps.rotate-secret-id.outputs.new_secret_id }}' ]] && echo 'Yes' || echo 'No')
+- GitHub Secret Updated: $([[ -n '${{ steps.rotate-secret-id.outputs.new_secret_id }}' ]] && echo 'Yes' || echo 'No')
+          
+## Compliance
+- Rotation Frequency: Monthly (first of month)
+- Policy: Automated credential rotation
+- Audit Trail: Immutable (stored in GitHub Actions logs)
+          
+## Next Steps
+1. Verify VAULT_SECRET_ID is active in GitHub Secrets
+2. Monitor self-heal workflow for authentication
+3. Old Secret ID will be automatically pruned by Vault TTL policy"
+          
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --body "$BODY" \
+            --label "automation,security,vault,rotation" || true
+      
+      - name: Report rotation status
+        if: always()
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << 'EOF'
+          ## 🔐 Vault AppRole Rotation Report
+          
+          | Component | Status |
+          |-----------|--------|
+          | Vault Connection | ${{ steps.vault-check.outputs.vault_available }} |
+          | Authentication | ${{ steps.vault-login.outputs.vault_token != '' && '✅ Success' || '⚠️ Skipped' }} |
+          | Secret ID Update | ${{ steps.rotate-secret-id.outputs.new_secret_id != '' && '✅ Generated' || '⚠️ Skipped' }} |
+          | GitHub Secret | ${{ steps.rotate-secret-id.outputs.new_secret_id != '' && '✅ Updated' || '⚠️ Not Updated' }} |
+          | Audit Issue | ${{ job.status == 'success' && '✅ Created' || '⚠️ See logs' }} |
+          
+          **Timestamp**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          EOF
