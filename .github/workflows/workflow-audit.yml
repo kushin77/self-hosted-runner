@@ -46,8 +46,22 @@ jobs:
             echo "No workflow audit report found"
           fi
 
+      - name: Package audit report for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          if [ -f workflow-audit-report.txt ]; then
+            cp workflow-audit-report.txt /tmp/minio-uploads/
+          else
+            echo "No workflow audit report found"
+          fi
+
+      - name: Upload report to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/workflow-audit-report.txt workflow-audit-report.txt || echo "MinIO upload failed; will use fallback"
+
       - name: Upload report (hosted fallback)
-        if: ${{ !contains(runner.labels, 'self-hosted') }}
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: workflow-audit-report
