@@ -5,6 +5,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'terraform/**'
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
 
 jobs:
   fetch-aws-creds:
@@ -37,19 +44,18 @@ jobs:
         working-directory: terraform
         run: |
           set -euo pipefail
-          # Skip if backend credentials are present (we prefer real backend runs)
-          if [ "${{ secrets.USE_OIDC }}" = "true" ] || [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          if [ -n "$AWS_ACCESS_KEY_ID" ]; then
             echo "Backend credentials present; skipping backend-free dry-run"
             exit 0
           fi
-
           echo "No backend credentials detected — running safe terraform init/plan without S3 backend"
           terraform init -input=false -backend=false
           terraform plan -input=false -out=tfplan-dry || true
 
   terraform-apply:
-    name: Terraform Apply (ElastiCache)
+    name: Terraform Apply
     runs-on: ubuntu-latest
+    needs: [fetch-aws-creds]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,51 +67,67 @@ jobs:
 
       - name: Configure AWS via OIDC (if enabled)
         if: ${{ secrets.USE_OIDC == 'true' && secrets.AWS_OIDC_ROLE_ARN != '' }}
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
 
-      - name: Configure fetched AWS creds
+      - name: Configure fetched AWS creds from GSM
         if: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id != '' }}
         run: |
+          echo "::add-mask::${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}"
+          echo "::add-mask::${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}"
           echo "AWS_ACCESS_KEY_ID=${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=${{ needs.fetch-aws-creds.outputs.aws_region }}" >> $GITHUB_ENV
 
       - name: Configure static AWS creds (fallback)
-        if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID != '' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' }}
+        if: ${{ secrets.USE_OIDC != 'true' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' && secrets.AWS_ACCESS_KEY_ID != '' }}
         run: |
           echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
           echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
 
-      - name: Configure GCP creds (if provided)
-        if: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+      - name: Detect credential availability
+        id: creds
         run: |
-          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-key.json
-          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+            echo "✓ AWS credentials configured"
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠ No AWS credentials — will run backend-free dry-run"
+          fi
 
-      - name: Safe fallback: no credentials -> backend-free dry-run
-        if: ${{ (secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID == '') && secrets.GCP_SERVICE_ACCOUNT_KEY == '' }}
+      - name: Backend-free dry-run (no credentials)
+        if: steps.creds.outputs.available != 'true'
+        working-directory: terraform
         run: |
           set -euo pipefail
-          echo "No cloud credentials available; running backend-free terraform init/plan for safe validation (no-op)"
-          cd terraform
+          echo "Running safe backend-free terraform validation (no-op)"
           terraform init -input=false -backend=false
-          terraform plan -input=false -out=tfplan-dry || true
-          echo "Dry-run complete; skipping apply"
-          exit 0
+          terraform plan -input=false || true
+          echo "✓ Dry-run complete — no changes applied"
 
       - name: Terraform Init
+        if: steps.creds.outputs.available == 'true'
         working-directory: terraform
         run: terraform init -input=false
 
       - name: Terraform Plan
+        if: steps.creds.outputs.available == 'true'
         working-directory: terraform
         run: terraform plan -input=false -out=tfplan
 
       - name: Terraform Apply
-        if: ${{ github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' }}
+        if: steps.creds.outputs.available == 'true'
         working-directory: terraform
         run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Post success to issues
+        if: steps.creds.outputs.available == 'true' && success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment 1286 --body "✅ Terraform auto-apply completed successfully. Infrastructure is live." --repo "${{ github.repository }}" || true
+          gh issue comment 1309 --body "✅ Terraform auto-apply completed successfully." --repo "${{ github.repository }}" || true

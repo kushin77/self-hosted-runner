@@ -32,6 +32,7 @@
 🎯 **Time:** 5 minutes per workflow migration  
 ✅ **Why:** Concrete examples and migration patterns
 
+> **Optional storage credentials:** use the `store-gsm-secrets.yml` workflow to register SBOM/S3/MinIO credentials and they will automatically be fetched by the mirror workflow.
 ---
 
 ## What's Included
