@@ -1,0 +1,240 @@
+name: Incident Response Escalation
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_run:
+    workflows:
+      - 'DR Smoke Test'
+      - 'Docker Hub Weekly DR Testing'
+      - 'Self-Healing Orchestrator'
+    types: [completed]
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+jobs:
+  detect-failures:
+    name: Detect and escalate failures
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'failure'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get failed workflow details
+        id: workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          RUN_ID=${{ github.event.workflow_run.id }}
+          WF_NAME="${{ github.event.workflow_run.name }}"
+
+          # Get workflow run details
+          RUN_INFO=$(gh run view $RUN_ID --repo $REPO --json conclusion,status,createdAt,actor,name)
+          
+          echo "run_name=$(echo $RUN_INFO | jq -r '.name')" >> $GITHUB_OUTPUT
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "conclusion=$(echo $RUN_INFO | jq -r '.conclusion')" >> $GITHUB_OUTPUT
+          
+          # Get logs
+          gh run download $RUN_ID -R $REPO -D /tmp/logs 2>/dev/null || true
+          
+          if [ -f "/tmp/logs/logs.zip" ]; then
+            unzip -q /tmp/logs/logs.zip -d /tmp/logs/extracted 2>/dev/null || true
+          fi
+
+      - name: Extract error details
+        id: errors
+        run: |
+          set -euo pipefail
+
+          ERROR_MSG="Unknown error"
+          ERROR_FILE=""
+
+          # Look for error patterns in logs
+          if find /tmp/logs -name "*.txt" -o -name "*.log" 2>/dev/null | xargs grep -l "ERROR\|FAILED\|Error" 2>/dev/null | head -1 | tee /tmp/error_file; then
+            ERROR_FILE=$(cat /tmp/error_file)
+            if [ -f "$ERROR_FILE" ]; then
+              ERROR_MSG=$(grep -i "ERROR\|FAILED" "$ERROR_FILE" 2>/dev/null | head -3 | tr '\n' ' ' || echo "See logs for details")
+            fi
+          fi
+
+          echo "error_message=${ERROR_MSG:0:500}" >> $GITHUB_OUTPUT
+          echo "error_file=$ERROR_FILE" >> $GITHUB_OUTPUT
+
+      - name: Create incident issue
+        id: incident
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%SZ')
+          
+          ISSUE_BODY=$(cat << 'EOF'
+          ## 🚨 Incident Report: ${{ steps.workflow.outputs.run_name }} Failed
+
+          **Workflow**: ${{ steps.workflow.outputs.run_name }}  
+          **Run ID**: ${{ steps.workflow.outputs.run_id }}  
+          **Time**: $TIMESTAMP  
+          **Status**: ${{ steps.workflow.outputs.conclusion }}
+
+          ### Error Details
+          \`\`\`
+          ${{ steps.errors.outputs.error_message }}
+          \`\`\`
+
+          ### Actions Taken
+          1. ✅ Failure detected and logged
+          2. ⏳ Awaiting incident investigation
+          3. ⏳ Auto-recovery attempt scheduled
+
+          ### Next Steps
+          - [ ] Review logs: [Run Details](https://github.com/$REPO/actions/runs/${{ steps.workflow.outputs.run_id }})
+          - [ ] Diagnose root cause
+          - [ ] Implement fix or escalate to-on-call team
+          - [ ] Verify recovery with manual retry
+
+          ### Related Resources
+          - System Health Issue: #1064
+          - Operator Playbook: HANDS_OFF_OPERATOR_PLAYBOOK.md
+
+          ---
+          _Auto-created by Incident Response Escalation workflow_
+          EOF
+          )
+
+          ISSUE_NUM=$(gh issue create --repo "${REPO}" \
+            --title "🚨 Incident: ${{ steps.workflow.outputs.run_name }} Failed" \
+            --body "$ISSUE_BODY" \
+            --label "incident,auto-escalation,disaster-recovery" \
+            --json number \
+            --jq '.number')
+
+          echo "issue_number=$ISSUE_NUM" >> $GITHUB_OUTPUT
+          echo "✅ Incident issue #$ISSUE_NUM created"
+
+      - name: Attempt auto-recovery
+        id: recovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          WF_NAME="${{ steps.workflow.outputs.run_name }}"
+
+          # Dispatch self-healing orchestrator to investigate
+          gh workflow run self-healing-orchestrator.yml \
+            --repo "${REPO}" \
+            -f incident_issue="${{ steps.incident.outputs.issue_number }}" \
+            -f failed_workflow="${WF_NAME}" \
+            2>/dev/null || echo "⚠️ Could not trigger auto-recovery; manual intervention needed"
+
+          echo "recovery_attempted=true" >> $GITHUB_OUTPUT
+
+      - name: Post incident to tracking
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          TRACKING_ISSUE=1064
+          TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%SZ')
+
+          UPDATE=$(cat << 'EOF'
+          ### 🚨 Incident Detected — $TIMESTAMP
+          - **Workflow**: ${{ steps.workflow.outputs.run_name }}
+          - **Issue**: #${{ steps.incident.outputs.issue_number }}
+          - **Status**: Auto-recovery triggered
+          - **Action**: Review issue and verify resolution
+          EOF
+          )
+
+          gh issue comment ${TRACKING_ISSUE} --repo ${REPO} --body "$UPDATE" 2>/dev/null || true
+
+  escalate-labeled-issues:
+    name: Escalate issues marked with critical labels
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - name: Check if critical
+        id: check
+        run: |
+          LABELS="${{ toJson(github.event.issue.labels) }}"
+          
+          if echo "$LABELS" | grep -q "critical\|incident"; then
+            echo "is_critical=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_critical=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create escalation entry
+        if: steps.check.outputs.is_critical == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          ISSUE_NUMBER=${{ github.event.issue.number }}
+          TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%SZ')
+
+          ESCALATION=$(cat << EOF
+          🚨 **CRITICAL ISSUE**: #${ISSUE_NUMBER}
+          - **Title**: ${{ github.event.issue.title }}
+          - **Created**: $TIMESTAMP
+          - **Action**: Review and remediate immediately
+
+          [View Issue](https://github.com/${REPO}/issues/${ISSUE_NUMBER})
+          EOF
+          )
+
+          # Post to tracking
+          gh issue comment 1064 --repo ${REPO} --body "$ESCALATION" 2>/dev/null || true
+
+          echo "✅ Critical issue #${ISSUE_NUMBER} escalated to tracking"
+
+  check-incident-age:
+    name: Monitor incident resolution time
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Find old open incidents
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+
+          # Find incidents older than 1 hour
+          OLD_INCIDENTS=$(gh issue list \
+            --repo "${REPO}" \
+            --state open \
+            --label incident \
+            --search 'created:<now-1h' \
+            --json number,title,createdAt,updatedAt \
+            --jq '.[]')
+
+          if [ -n "$OLD_INCIDENTS" ]; then
+            echo "⚠️ Found incidents unresolved for >1 hour:"
+            echo "$OLD_INCIDENTS" | jq -r '"\(.number): \(.title)"'
+            
+            # Escalate each one
+            echo "$OLD_INCIDENTS" | jq -r '.number' | while read ISSUE_NUM; do
+              gh issue comment ${ISSUE_NUM} --repo "${REPO}" \
+                --body "⏰ This incident has been open for over 1 hour. Please escalate to on-call team if not resolved." \
+                2>/dev/null || true
+            done
+          fi
