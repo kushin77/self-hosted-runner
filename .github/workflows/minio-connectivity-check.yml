@@ -38,7 +38,7 @@ jobs:
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
         run: |
           echo "## MinIO Secrets Check" >> $GITHUB_STEP_SUMMARY
-          
+
           CONFIGURED=0
           for secret in MINIO_ENDPOINT MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_BUCKET; do
             if [ -n "${!secret}" ]; then
@@ -48,7 +48,7 @@ jobs:
               echo "⚠️ $secret: **NOT CONFIGURED**" >> $GITHUB_STEP_SUMMARY
             fi
           done
-          
+
           if [ $CONFIGURED -eq 4 ]; then
             echo "secrets_configured=true" >> $GITHUB_OUTPUT
           else

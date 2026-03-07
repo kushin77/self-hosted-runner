@@ -43,4 +43,4 @@ jobs:
           ./scripts/check_hardening.sh
 
       - name: Report
-        run: echo "Preflight completed" 
+        run: echo "Preflight completed"

@@ -67,7 +67,7 @@ jobs:
 
           # Store alerts for processing in next job
           echo "$ALERTS" > /tmp/alerts.json
-          
+
       - name: Upload alerts artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -110,7 +110,7 @@ jobs:
           source .github/scripts/resilience.sh || true
 
           ALERTS_FILE="/tmp/alerts.json"
-          
+
           if [[ ! -f "$ALERTS_FILE" ]]; then
             echo "No alerts file found; skipping PR generation"
             exit 0
@@ -124,14 +124,14 @@ jobs:
             PACKAGE=$(echo "$alert" | jq -r '.package.name // empty')
             SEVERITY=$(echo "$alert" | jq -r '.security_advisory.severity // "medium"')
             SUMMARY=$(echo "$alert" | jq -r '.security_advisory.summary // "Dependency update"')
-            
+
             [[ -z "$PACKAGE" ]] && continue
 
             echo "Processing: $PACKAGE ($SEVERITY)"
 
             # Generate unique branch name
             BRANCH_NAME="security/fix-${PACKAGE//\//-}-$(date +%s)"
-            
+
             # Create branch
             git checkout -b "$BRANCH_NAME" origin/main || {
               echo "::warning::Could not create branch $BRANCH_NAME"
@@ -142,7 +142,7 @@ jobs:
             find ./services -name "package.json" -type f | while read pkg; do
               DIR=$(dirname "$pkg")
               echo "Updating dependencies in $DIR..."
-              
+
               cd "$DIR"
               npm audit fix --audit-level=high 2>/dev/null || {
                 npm update "$PACKAGE" 2>/dev/null || true
@@ -153,7 +153,7 @@ jobs:
             # Check if changes were made
             if git status --short | grep -q "package"; then
               echo "Changes detected in $BRANCH_NAME"
-              
+
               git add package*.json
               git commit -m "security: remediate $SEVERITY vulnerability in $PACKAGE
 
@@ -183,8 +183,8 @@ $(echo "$SUMMARY" | head -1)
                 --title "security: remediate $SEVERITY — $PACKAGE" \
                 --body "## Automated Security Remediation
 
-**Package**: $PACKAGE  
-**Severity**: $SEVERITY  
+**Package**: $PACKAGE
+**Severity**: $SEVERITY
 **Summary**: $SUMMARY
 
 ### Automated Actions
@@ -232,8 +232,8 @@ All workflows must pass before merge:
 
 ---
 
-**Status**: ✅ Remediation workflow executed  
-**Auto-Merge**: Enabled  
+**Status**: ✅ Remediation workflow executed
+**Auto-Merge**: Enabled
 **Timeline**: Merge expected 2-5 min after successful checks" >> $GITHUB_STEP_SUMMARY
 
   auto-merge-prs:
@@ -286,7 +286,7 @@ All workflows must pass before merge:
 
             # Verify all checks passed
             STATUS=$(echo "$PR_DATA" | jq -r '.statusCheckRollup[0].state // "UNKNOWN"' 2>/dev/null)
-            
+
             if [[ "$STATUS" != "SUCCESS" ]]; then
               echo "::warning::PR #$pr_num status is $STATUS; skipping merge"
               continue
@@ -380,6 +380,6 @@ All workflows must pass before merge:
 
 ---
 
-**Pipeline Complete**: 🟢 All stages executed  
+**Pipeline Complete**: 🟢 All stages executed
 **Timeline**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 " >> $GITHUB_STEP_SUMMARY

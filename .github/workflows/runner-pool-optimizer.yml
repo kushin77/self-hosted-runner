@@ -36,11 +36,11 @@ jobs:
           HEALTH_SCORE=100
           QUEUE_DEPTH=0
           RECOMMENDATIONS="Pool operating normally"
-          
+
           echo "health=${HEALTH_SCORE}" >> $GITHUB_OUTPUT
           echo "queue_depth=${QUEUE_DEPTH}" >> $GITHUB_OUTPUT
           echo "recommendations=${RECOMMENDATIONS}" >> $GITHUB_OUTPUT
-          
+
           echo "::info::Runner Pool Health: ${HEALTH_SCORE}% | Queued: ${QUEUE_DEPTH}"
 
   optimize:

@@ -28,7 +28,7 @@ jobs:
       contents: read
       id-token: write
       packages: write
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -38,33 +38,33 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
 
-      
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-      
+
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_PAT }}
-      
+
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      
+
       - name: Set GCP Project
         uses: google-github-actions/setup-gcloud@v2
         with:
           project_id: ${{ secrets.GCP_PROJECT_ID }}
-      
+
       - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
@@ -81,7 +81,7 @@ jobs:
             BUILD_COMMIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      
+
       - name: Push to Multi-Registry
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -93,7 +93,7 @@ jobs:
           source .github/scripts/resilience.sh || true
           chmod +x scripts/multi-registry-push.sh
           retry_command 2 10 bash scripts/multi-registry-push.sh "${{ env.BACKUP_TAG }}"
-      
+
       - name: Verify Multi-Registry Push
         run: |
           source .github/scripts/resilience.sh || true
@@ -101,14 +101,14 @@ jobs:
           echo "Verifying Docker Hub..."
           retry_command 2 5 docker pull ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}
           docker inspect ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }} | jq .
-          
+
           echo "✓ Multi-registry push verification complete"
-      
+
       - name: Store Backup Metadata
         if: always()
         run: |
           mkdir -p .backup-metadata
-          
+
           cat > .backup-metadata/latest-backup.json << EOF
           {
             "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
@@ -119,13 +119,13 @@ jobs:
             "build_status": "success"
           }
           EOF
-          
+
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
           git add .backup-metadata/latest-backup.json
           git commit -m "Backup: ${{ env.BACKUP_TAG }}" || true
           git push || echo "Nothing new to push"
-      
+
       - name: Create Release with Backup Artifact
         if: success()
         run: |
@@ -137,7 +137,7 @@ jobs:
             || echo "Release creation skipped (may already exist)"
         env:
           GH_TOKEN: ${{ github.token }}
-      
+
       - name: Notify on Success
         if: success()
         run: |
@@ -145,7 +145,7 @@ jobs:
           echo "  Image: ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}"
           echo "  Registries: Docker Hub, AWS ECR (123456789.dkr.ecr.us-east-1.amazonaws.com)"
           echo "              Google Artifact Registry (us-east1-docker.pkg.dev)"
-      
+
       - name: Notify on Failure
         if: failure()
         run: |

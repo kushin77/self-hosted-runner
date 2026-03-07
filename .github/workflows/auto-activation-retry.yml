@@ -28,7 +28,7 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
             const issue = await github.rest.issues.get({ owner, repo, issue_number: issueNumber });
-            
+
             const isOpen = issue.data.state === 'open';
             if (!isOpen) {
               return { proceed: false, reason: 'issue_closed' };
@@ -61,7 +61,7 @@ jobs:
             // Post gentle reminder to operator with steps
             const reminder = `Automated reminder: verification workflow has not yet passed (latest conclusion: ${conclusion || 'none'}).\n\nPlease ensure the \`GCP_SERVICE_ACCOUNT_KEY\` secret contains valid JSON including \`"type": "service_account"\`.\n\nIf you have updated the secret, this workflow will attempt a safe re-dispatch of verification now.`;
             await github.rest.issues.createComment({ owner, repo, issue_number: issueNumber, body: reminder });
-            
+
             // Attempt safe re-dispatch (best-effort) of verification workflow
             try {
               await github.request('POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches', {
