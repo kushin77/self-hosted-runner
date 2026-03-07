@@ -32,7 +32,7 @@
 🎯 **Time:** 5 minutes per workflow migration  
 ✅ **Why:** Concrete examples and migration patterns
 
-> **Optional storage credentials:** use the `store-gsm-secrets.yml` workflow to register SBOM/S3/MinIO credentials and they will automatically be fetched by the mirror workflow.
+> **Optional storage and registry credentials:** use the `store-gsm-secrets.yml` workflow to register SBOM/S3/MinIO or registry auth data. They will automatically be fetched by the mirror, signing, and other workflows.
 ---
 
 ## What's Included
@@ -62,6 +62,9 @@ GSM_AWS_CREDENTIALS_INDEX.md                 This file
 - `terraform-aws-prod` → AWS Access Key ID
 - `terraform-aws-secret` → AWS Secret Access Key
 - `terraform-aws-region` → AWS Region
+- `registry-host` → Container registry host (eg. `ghcr.io`)
+- `registry-username` → Registry authentication username (if required)
+- `registry-password` → Registry authentication password/token (if required)
 
 **In GitHub (Repository Secrets):**
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` → OIDC provider resource name
