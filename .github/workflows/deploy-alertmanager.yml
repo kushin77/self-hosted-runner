@@ -9,7 +9,6 @@ on:
 permissions:
   contents: read
   issues: write
-  actions: read
   id-token: write
 
 jobs:
@@ -30,17 +29,14 @@ jobs:
 
       - name: Check for SLACK_WEBHOOK_URL secret
         uses: actions/github-script@v7
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
           script: |
-            // Use the secret exposed only to this step to verify presence without logging
             const has = !!process.env.SLACK_WEBHOOK_URL;
             if (!has) {
               const issueNumber = 480;
               const body = `Alertmanager deployment blocked: missing \`SLACK_WEBHOOK_URL\` repo secret. Automated sync may still be running. Please ensure the secret is provisioned in GSM or GitHub Secrets.`;
-              await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
-              throw new Error('Missing SLACK_WEBHOOK_URL');
+              await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
+              core.setFailed('Missing SLACK_WEBHOOK_URL');
             }
 
       - name: Set up Python (for Ansible)
@@ -51,26 +47,14 @@ jobs:
       - name: Install Ansible
         run: |
           python -m pip install --upgrade pip
-          pip install ansible==8.7.0
+          pip install ansible==8.8.0
 
       - name: Start ssh-agent and add deploy key
-        run: |
-          mkdir -p ~/.ssh
-          printf "%s\n" "$DEPLOY_SSH_KEY" > /tmp/deploy_key || true
-          chmod 600 /tmp/deploy_key || true
-          eval "$(ssh-agent -s)"
-          if ssh-add /tmp/deploy_key 2>/tmp/ssh-add.err; then
-            echo 'ssh-add succeeded'
-          else
-            echo 'ssh-add failed, attempting base64 decode'
-            base64 -d /tmp/deploy_key > /tmp/deploy_key_dec || true
-            chmod 600 /tmp/deploy_key_dec || true
-            ssh-add /tmp/deploy_key_dec
-          fi
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
       - name: Generate Alertmanager config
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           ./scripts/automation/pmo/prometheus/generate-alertmanager-config.sh > ${ALERTMANAGER_CONFIG_PATH}
           ls -l ${ALERTMANAGER_CONFIG_PATH}
@@ -80,8 +64,6 @@ jobs:
           ansible-playbook -i ansible/inventory/staging ansible/playbooks/deploy-alertmanager-config.yml --extra-vars "alertmanager_config_path=${ALERTMANAGER_CONFIG_PATH}"
 
       - name: Run synthetic alert test
-        env:
-          TEST_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           ./scripts/automated_test_alert.sh || (echo 'Synthetic alert test failed' && exit 2)
 
@@ -91,5 +73,5 @@ jobs:
         with:
           script: |
             const issueNumber = 480;
-            await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body: 'Automated Alertmanager deployment to staging completed and synthetic alert test passed. Closing this issue.'});
-            await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, state: 'closed'});
+            await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body: 'Automated Alertmanager deployment to staging completed and synthetic alert test passed. Closing this issue.'});
+            await github.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, state: 'closed'});

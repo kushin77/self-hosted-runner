@@ -67,34 +67,16 @@ jobs:
 
       - name: Inspect gitleaks report and create issue if findings
         run: |
-          set -euo pipefail
-          REPO="kushin77/self-hosted-runner"
-          TITLE="[SECURITY] Gitleaks findings detected"
-
           if [ -f gitleaks-report.json ]; then
             COUNT=$(jq '.leaks | length' gitleaks-report.json || echo 0)
-            EXISTING=$(gh issue list --repo "$REPO" --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
-
             if [ "$COUNT" -gt 0 ]; then
-              BODY="Automated gitleaks scan found $COUNT potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials."
-              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-                echo "Updating existing issue #$EXISTING with new findings..."
-                gh issue comment "$EXISTING" --repo "$REPO" --body "Automated re-run found $COUNT leaks. See artifact: gitleaks-report.json." || true
-              else
-                echo "Creating new issue for gitleaks findings..."
-                gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "security,automated-scan" || true
-              fi
+              echo "Gitleaks findings detected ($COUNT). Creating issue..."
+              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Gitleaks findings detected" --body "Automated gitleaks scan found $COUNT potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials." || true
             else
-              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-                echo "No leaks found on re-run; closing issue #$EXISTING..."
-                gh issue comment "$EXISTING" --repo "$REPO" --body "Automated gitleaks re-run found no leaks; closing." || true
-                gh issue edit "$EXISTING" --repo "$REPO" --state closed || true
-              else
-                echo "No gitleaks findings."
-              fi
+              echo "No gitleaks findings."
             fi
           else
-            echo "No gitleaks report present; skipping. See earlier debug steps for workspace listing."
+            echo "No gitleaks report present; skipping."
           fi
 
   trivy-scan:
@@ -138,29 +120,14 @@ jobs:
 
       - name: Inspect trivy report and create issue if findings
         run: |
-          set -euo pipefail
-          REPO="kushin77/self-hosted-runner"
-          TITLE="[SECURITY] Trivy vulnerabilities detected"
-
           if [ -f trivy-report.json ]; then
             COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
-            EXISTING=$(gh issue list --repo "$REPO" --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
-
             if [ "$COUNT" -gt 0 ]; then
-              BODY="Automated Trivy scan found $COUNT high/critical vulnerabilities. See trivy-report.json artifact for details."
-              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-                gh issue comment "$EXISTING" --repo "$REPO" --body "Automated re-run found $COUNT vulnerabilities (high/critical). See artifact: trivy-report.json." || true
-              else
-                gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "security,automated-scan" || true
-              fi
+              echo "Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
+              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Trivy vulnerabilities detected" --body "Automated Trivy scan found $COUNT high/critical vulnerabilities. See trivy-report.json artifact for details." || true
             else
-              if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-                gh issue comment "$EXISTING" --repo "$REPO" --body "Automated Trivy re-run found no high/critical vulnerabilities; closing." || true
-                gh issue edit "$EXISTING" --repo "$REPO" --state closed || true
-              else
-                echo "No high/critical vulnerabilities found by Trivy."
-              fi
+              echo "No high/critical vulnerabilities found by Trivy."
             fi
           else
-            echo "No trivy report present; skipping. See earlier debug steps for workspace listing."
+            echo "No trivy report present; skipping."
           fi
