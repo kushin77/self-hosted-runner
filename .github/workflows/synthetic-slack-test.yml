@@ -1,0 +1,30 @@
+name: Synthetic Slack Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  synthetic-slack:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run synthetic Slack test
+        env:
+          TEST_SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+          echo "Running synthetic Slack test..."
+          if [ -x scripts/automated_test_alert.sh ]; then
+            chmod +x scripts/automated_test_alert.sh || true
+            ./scripts/automated_test_alert.sh
+          else
+            echo "Fallback: sending simple POST to webhook"
+            PAYLOAD='{"text":"Synthetic alert test from CI (synthetic-slack-test workflow)"}'
+            if [ -z "${TEST_SLACK_WEBHOOK:-}" ]; then
+              echo "TEST_SLACK_WEBHOOK not set; failing intentionally to avoid leaking." >&2
+              exit 2
+            fi
+            curl -sS -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "$TEST_SLACK_WEBHOOK" || true
+          fi
