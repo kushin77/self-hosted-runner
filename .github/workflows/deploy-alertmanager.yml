@@ -65,16 +65,41 @@ jobs:
           ./scripts/automation/pmo/prometheus/generate-alertmanager-config.sh > ${ALERTMANAGER_CONFIG_PATH}
           ls -l ${ALERTMANAGER_CONFIG_PATH}
 
+      - name: Check SSH connectivity to staging (retry)
+        id: check-ssh
+        continue-on-error: true
+        run: |
+          chmod +x ./scripts/check_ssh_and_retry.sh || true
+          TARGET_HOST="staging.example.com" TARGET_USER="deploy" KEY_PATH="$HOME/.ssh/deploy_key" ./scripts/check_ssh_and_retry.sh
+
+      - name: Comment on Issue #1136 if SSH not ready
+        if: ${{ steps.check-ssh.conclusion != 'success' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issueNumber = 1136;
+            const body = `Automated deployment attempted but SSH connectivity to staging is not yet available. The workflow will skip Ansible and has generated the Alertmanager config for review.
+
+Please install the public SSH key on staging hosts (see earlier comment). Once the key is installed, re-run this workflow or it will auto-run when ` +
+              `the sync-slack-webhook workflow completes.
+\n\n- Details: attempted SSH connectivity checks from the CI runner but none succeeded within the retry window.`;
+            await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
+
       - name: Deploy Alertmanager via Ansible
+        if: ${{ steps.check-ssh.conclusion == 'success' || (github.event_name == 'workflow_dispatch' && steps.check-ssh.conclusion == 'success') }}
         run: |
           if [ -f ansible/inventory/staging ] && [ -f ansible/playbooks/deploy-alertmanager-config.yml ]; then
             ansible-playbook -i ansible/inventory/staging ansible/playbooks/deploy-alertmanager-config.yml --extra-vars "alertmanager_config_path=${ALERTMANAGER_CONFIG_PATH}"
           else
             echo "Ansible playbook or inventory not configured (expected for testing). Skipping Ansible deployment."
             echo "Generated alertmanager config is at: ${ALERTMANAGER_CONFIG_PATH}"
-            # In production, this would deploy to actual hosts
             echo "Ready for deployment validation"
           fi
+
+      - name: Skip Ansible: note SSH not ready
+        if: ${{ steps.check-ssh.conclusion != 'success' }}
+        run: |
+          echo "SSH connectivity not available; skipped Ansible deployment. Alertmanager config generated at: ${ALERTMANAGER_CONFIG_PATH}"
 
       - name: Test Slack webhook connectivity
         env:
