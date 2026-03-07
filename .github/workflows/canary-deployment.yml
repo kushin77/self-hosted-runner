@@ -1,4 +1,5 @@
 name: Canary Deployment
+# Re-register note: minor whitespace/comment update to force re-evaluation of triggers
 
 on:
   workflow_dispatch:
