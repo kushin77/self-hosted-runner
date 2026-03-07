@@ -7,10 +7,23 @@ on:
       - main
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   terraform-dry-run-no-backend:
     name: Terraform Dry-Run (no backend)
+    needs: [fetch-aws-creds]
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,8 +66,15 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
 
+      - name: Configure fetched AWS creds
+        if: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id != '' }}
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ needs.fetch-aws-creds.outputs.aws_region }}" >> $GITHUB_ENV
+
       - name: Configure static AWS creds (fallback)
-        if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID != '' }}
+        if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID != '' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' }}
         run: |
           echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV

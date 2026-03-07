@@ -7,8 +7,17 @@ on:
     types: [completed]
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   call-apply:
     name: Call reusable Terraform apply
+    needs: [fetch-aws-creds]
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     concurrency:
       group: terraform-apply-${{ github.ref || github.run_id }}
@@ -16,11 +25,11 @@ jobs:
     uses: ./.github/workflows/reusable/terraform-apply-callable.yml
     secrets:
       MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
     with:
       plan-object: terraform-plan
+      aws_access_key_id: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      aws_secret_access_key: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      aws_region: ${{ needs.fetch-aws-creds.outputs.aws_region }}
 
       - name: Load resilience helpers
         run: |
