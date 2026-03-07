@@ -75,7 +75,10 @@ jobs:
           echo "✅ All MinIO secrets configured"
 
       - name: Install mc (MinIO client)
-        run: scripts/minio/install-mc.sh || echo "mc install failed; will skip MinIO tests"
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          retry_command 3 5 scripts/minio/install-mc.sh || echo "mc install failed; will skip MinIO tests"
 
       - name: Upload test object to MinIO
         env:
@@ -84,8 +87,10 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
         run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
           echo "smoke-test-content-${GITHUB_RUN_ID}" > e2e-smoke.txt
-          scripts/minio/upload.sh --file e2e-smoke.txt --bucket ${{ secrets.MINIO_BUCKET }} --object smoke-${GITHUB_RUN_ID}.txt || echo "MinIO upload optional; continuing"
+          retry_command 3 5 scripts/minio/upload.sh --file e2e-smoke.txt --bucket ${{ secrets.MINIO_BUCKET }} --object smoke-${GITHUB_RUN_ID}.txt || echo "MinIO upload optional; continuing"
 
       - name: Download test object from MinIO
         env:
@@ -147,7 +152,9 @@ jobs:
             echo "No MinIO secrets configured; hosted smoke test skipped"
             exit 0
           fi
-          ./scripts/minio/install-mc.sh || true
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          retry_command 3 5 ./scripts/minio/install-mc.sh || true
           echo "smoke-test-content-${GITHUB_RUN_ID}" > e2e-smoke.txt
-          ./scripts/minio/upload.sh --file e2e-smoke.txt --bucket "$MINIO_BUCKET" --object smoke-${GITHUB_RUN_ID}.txt || true
-          ./scripts/minio/download.sh --bucket "$MINIO_BUCKET" --object smoke-${GITHUB_RUN_ID}.txt --out e2e-downloaded.txt || true
+          retry_command 3 5 ./scripts/minio/upload.sh --file e2e-smoke.txt --bucket "$MINIO_BUCKET" --object smoke-${GITHUB_RUN_ID}.txt || true
+          retry_command 3 5 ./scripts/minio/download.sh --bucket "$MINIO_BUCKET" --object smoke-${GITHUB_RUN_ID}.txt --out e2e-downloaded.txt || true
