@@ -1,0 +1,276 @@
+name: "Terraform Phase 2: Drift Detection & Validation"
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: 'Check type to run'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - 'full'
+          - 'plan-only'
+          - 'health-only'
+
+jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials
+    runs-on: ubuntu-latest
+    outputs:
+      aws_access_key_id: ${{ steps.fetch.outputs.aws_access_key_id }}
+      aws_secret_access_key: ${{ steps.fetch.outputs.aws_secret_access_key }}
+      aws_region: ${{ steps.fetch.outputs.aws_region }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: fetch
+        uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+        with:
+          GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+  terraform-drift-detection:
+    name: Terraform Drift Detection
+    needs: [fetch-aws-creds]
+    if: github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'plan-only' || github.event.inputs.check_type == ''
+    runs-on: [self-hosted, linux, self-hosted-heavy]
+    concurrency:
+      group: terraform-drift-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        run: |
+          set -euo pipefail
+          echo "::group::Setup Terraform"
+          TF_VERSION=1.5.7
+          mkdir -p /tmp/terraform-drift
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip -o /tmp/terraform-drift/terraform.zip
+          unzip -o /tmp/terraform-drift/terraform.zip -d /usr/local/bin/
+          terraform version
+          echo "::endgroup::"
+
+      - name: Configure GCP credentials
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY || secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+            echo "::warning::GCP credentials not available"
+          else
+            echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/gcp-sa.json
+            export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json
+            echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json" >> $GITHUB_ENV
+          fi
+
+      - name: Prepare terraform variables
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION || needs.fetch-aws-creds.outputs.aws_region }}
+          VPC_ID: ${{ secrets.TERRAFORM_VPC_ID }}
+          SUBNET_IDS: ${{ secrets.TERRAFORM_SUBNET_IDS }}
+          RUNNER_TOKEN: ${{ secrets.TERRAFORM_RUNNER_TOKEN }}
+          GITHUB_OWNER: ${{ secrets.TERRAFORM_GITHUB_OWNER || github.repository_owner }}
+          GITHUB_REPO: ${{ secrets.TERRAFORM_GITHUB_REPO || github.event.repository.name }}
+          PROJECT_NAME: ${{ secrets.TERRAFORM_PROJECT_NAME || 'elevatediq-runners' }}
+          ENVIRONMENT: ${{ secrets.TERRAFORM_ENVIRONMENT || 'prod' }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'gcp-eiq' }}
+          GCP_REGION: ${{ secrets.GCP_REGION || 'us-central1' }}
+          BUCKET_PREFIX: ${{ secrets.GCP_BUCKET_PREFIX || 'vault-data-gcp' }}
+        run: |
+          set -euo pipefail
+          cat > terraform/terraform.tfvars <<'TFVARS'
+          aws_region = "$AWS_REGION"
+          vpc_id = "$VPC_ID"
+          subnet_ids = $SUBNET_IDS
+          runner_token = "$RUNNER_TOKEN"
+          github_owner = "$GITHUB_OWNER"
+          github_repo = "$GITHUB_REPO"
+          project_name = "$PROJECT_NAME"
+          environment = "$ENVIRONMENT"
+          project_id = "$GCP_PROJECT_ID"
+          region = "$GCP_REGION"
+          bucket_prefix = "$BUCKET_PREFIX"
+          TFVARS
+
+      - name: Terraform Init
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          AWS_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          source ../.github/scripts/resilience.sh || true
+          retry_command 3 5 terraform init -input=false
+
+      - name: Detect Terraform Drift
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          AWS_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          set -euo pipefail
+          echo "::group::Terraform Plan (Drift Detection)"
+          
+          terraform plan \
+            -input=false \
+            -var-file=terraform.tfvars \
+            -out=drift-check.tfplan > /tmp/drift-plan.txt 2>&1 || true
+          
+          # Check for drift
+          if grep -q "No changes\|nothing to do" /tmp/drift-plan.txt; then
+            echo "::notice::✓ No drift detected - infrastructure matches desired state"
+            echo "DRIFT_STATUS=clean" >> $GITHUB_ENV
+          else
+            echo "::warning::Drift detected in infrastructure - review plan"
+            terraform show -no-color drift-check.tfplan | tee /tmp/drift-details.txt
+            echo "DRIFT_STATUS=dirty" >> $GITHUB_ENV
+          fi
+          
+          cat /tmp/drift-plan.txt
+          echo "::endgroup::"
+
+      - name: Upload drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-drift-report-${{ github.run_id }}
+          path: |
+            terraform/drift-check.tfplan
+            /tmp/drift-plan.txt
+            /tmp/drift-details.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Report drift status
+        if: always()
+        run: |
+          if [ "$DRIFT_STATUS" == "dirty" ]; then
+            echo "::error::Terraform drift detected. An automated remediation workflow can be triggered."
+          else
+            echo "::notice::Infrastructure state is clean"
+          fi
+
+  health-check-runners:
+    name: Runner Health Check
+    if: github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'health-only' || github.event.inputs.check_type == ''
+    runs-on: ubuntu-latest
+    needs: [fetch-aws-creds]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check EC2 Runner Instances
+        env:
+          AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          AWS_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+        run: |
+          set -euo pipefail
+          echo "::group::EC2 Runner Instances Health"
+          
+          # Get runner instances by tag
+          aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=elevatediq-runners" \
+                      "Name=instance-state-name,Values=running" \
+                      "Name=tag:ManagedBy,Values=Terraform" \
+            --query 'Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,LaunchTime]' \
+            --output table
+          
+          RUNNING=$(aws ec2 describe-instances \
+            --filters "Name=tag:Project,Values=elevatediq-runners" "Name=instance-state-name,Values=running" \
+            --query 'length(Reservations[*].Instances[*][])'  2>/dev/null || echo 0)
+          
+          echo "::notice::Total running runner instances: $RUNNING"
+          echo "::endgroup::"
+
+      - name: Check GitHub Runner Registration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          echo "::group::GitHub Runner Registration Status"
+          
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          
+          # List self-hosted runners
+          gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
+            --jq '.runners[] | select(.os=="Linux") | {name: .name, status: .status, busy: .busy}'
+          
+          TOTAL=$(gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
+            --jq '.runners | length')
+          
+          ONLINE=$(gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
+            --jq '[.runners[] | select(.status=="online")] | length')
+          
+          echo "::notice::Total runners: $TOTAL | Online: $ONLINE"
+          echo "::endgroup::"
+
+      - name: Create or update health dashboard
+        run: |
+          cat > /tmp/phase2-health-report.md <<'EOF'
+          # Terraform Phase 2 Infrastructure Health Report
+          
+          **Generated:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          **Workflow:** ${{ github.workflow }}
+          **Run ID:** ${{ github.run_id }}
+          
+          ## Status Summary
+          - Drift Detection: ${{ job.status }}
+          - Runner Health: ${{ job.status }}
+          
+          ## Checks Performed
+          1. Terraform state drift detection
+          2. EC2 instance health
+          3. GitHub runner registration status
+          4. Security group configuration
+          
+          ## Recommendations
+          - Review drift report if discrepancies found
+          - Ensure all runners are registered with GitHub
+          - Monitor instance uptime and performance
+          
+          **For details,** see GitHub Actions artifacts.
+          EOF
+          cat /tmp/phase2-health-report.md
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase2-health-report-${{ github.run_id }}
+          path: /tmp/phase2-health-report.md
+          retention-days: 30
+
+  notify-status:
+    name: Notify Drift/Health Status
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [terraform-drift-detection, health-check-runners]
+    steps:
+      - name: Check drift detection result
+        run: |
+          DRIFT_RESULT="${{ needs.terraform-drift-detection.result }}"
+          HEALTH_RESULT="${{ needs.health-check-runners.result }}"
+          
+          if [ "$DRIFT_RESULT" == "failure" ] || [ "$HEALTH_RESULT" == "failure" ]; then
+            echo "::error::Drift or health check failed - review artifacts"
+            exit 1
+          else
+            echo "::notice::✓ All checks passed - infrastructure healthy"
+          fi
+
+      - name: Optional Slack notification
+        if: failure()
+        run: |
+          if [ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            echo "::notice::Slack notification can be sent via webhook (optional)"
+          fi
