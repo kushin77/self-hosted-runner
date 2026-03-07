@@ -22,14 +22,14 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y jq
-          # gh CLI is available in GitHub runners; ensure it's authenticated via GITHUB_TOKEN
+          # gh CLI is available in GitHub runners; ensure it's authenticated via GH_TOKEN
 
       - name: Run auto-merge worker
         env:
           REPO_FULL: ${{ github.repository }}
           OWNER: ${{ github.repository_owner }}
           REPO: ${{ github.event.repository.name || github.repository }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           chmod +x scripts/automation/auto_merge_worker.sh
           scripts/automation/auto_merge_worker.sh
