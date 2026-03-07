@@ -224,6 +224,7 @@ jobs:
             --state open \
             --label incident \
             --search 'created:<now-1h' \
+            --sort created --direction asc \
             --json number,title,createdAt,updatedAt \
             --jq '.[]')
 
