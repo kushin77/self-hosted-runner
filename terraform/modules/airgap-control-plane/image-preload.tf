@@ -1,12 +1,15 @@
 // Image preload automation deployment
 // Deploys the airgap-control-plane Helm chart for container image preloading
 
+
 resource "helm_release" "airgap_control_plane" {
-  name       = var.helm_release_name
-  repository = var.helm_repository
-  chart      = var.helm_chart_name
-  version    = var.helm_chart_version
-  namespace  = kubernetes_namespace_v1.airgap_control_plane.metadata[0].name
+  name      = var.helm_release_name
+  chart     = var.helm_repository == "" ? "${path.module}/../../../deploy/charts/airgap-control-plane" : var.helm_chart_name
+  version   = var.helm_repository != "" ? var.helm_chart_version : null
+  namespace = kubernetes_namespace_v1.airgap_control_plane.metadata[0].name
+
+  # Only set repository if provided (empty repository indicates local chart path)
+  repository = var.helm_repository != "" ? var.helm_repository : null
 
   values = [
     templatefile("${path.module}/helm-values.tpl", {

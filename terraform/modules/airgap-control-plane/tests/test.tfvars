@@ -4,10 +4,5 @@
 # Use default provider configuration from kubeconfig
 # The Kubernetes provider will use the current context
 
-# Registry authentication (for testing with auth enabled)
-# In real deployment, use AWS Secrets Manager, HashiCorp Vault, or similar
-registry_username = "admin"
-registry_password = "test-password" # Should use a secrets manager in production
-
 # Test image sizes (smaller than production for faster testing)
-image_storage_size = "10Gi"
+# test.tf sets module-level image_storage_size; no root-level tfvars required

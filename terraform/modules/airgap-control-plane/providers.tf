@@ -12,13 +12,8 @@ terraform {
   }
 }
 
-# Configure Kubernetes provider
-provider "kubernetes" {
-  # Configuration is inherited from kubeconfig context or
-  # explicitly set via clusters variable
-}
-
-# Configure Helm provider (inherits from Kubernetes provider)
-provider "helm" {
-  # Helm provider automatically inherits Kubernetes configuration
-}
+# Provider blocks removed: provider configuration is expected to be supplied
+# by the root module. Empty provider blocks are deprecated and cause
+# redundant-provider warnings in child modules. Consumers should pass
+# provider configurations when calling this module if custom provider
+# settings are required.
