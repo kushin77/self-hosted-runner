@@ -84,14 +84,16 @@ jobs:
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
           DOCKER_HUB_PAT: ${{ secrets.DOCKER_HUB_PAT }}
         run: |
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/multi-registry-push.sh
-          bash scripts/multi-registry-push.sh "${{ env.BACKUP_TAG }}"
+          retry_command 2 10 bash scripts/multi-registry-push.sh "${{ env.BACKUP_TAG }}"
       
       - name: Verify Multi-Registry Push
         run: |
+          source .github/scripts/resilience.sh || true
           # Verify Docker Hub
           echo "Verifying Docker Hub..."
-          docker pull ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}
+          retry_command 2 5 docker pull ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}
           docker inspect ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }} | jq .
           
           echo "✓ Multi-registry push verification complete"
