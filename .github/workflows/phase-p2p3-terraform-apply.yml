@@ -63,9 +63,8 @@ jobs:
 
       - name: Run pre-apply checks
         id: checks
-        working-directory: terraform
         run: |
-          bash ../ci/scripts/terraform-preapply-checks.sh
+          bash ci/scripts/terraform-preapply-checks.sh
           echo "result=passed" >> $GITHUB_OUTPUT
 
       - name: Log checks summary
@@ -96,19 +95,18 @@ jobs:
 
       - name: Create terraform state backup
         id: backup
-        working-directory: terraform
         run: |
           set -euo pipefail
           echo "Creating state backup..."
-          
-          # Ensure terraform is initialized
-          terraform init -input=false || {
+
+          # Ensure terraform is initialized (use -chdir to operate in terraform/)
+          terraform -chdir=terraform init -input=false || {
             echo "::warning::Terraform init failed; attempting backend-free init"
-            terraform init -input=false -backend=false
+            terraform -chdir=terraform init -input=false -backend=false
           }
-          
-          # Create backup
-          BACKUP_FILE=$(bash ../ci/scripts/terraform-backup.sh)
+
+          # Create backup (script expects terraform/ path relative to repo root)
+          BACKUP_FILE=$(bash ci/scripts/terraform-backup.sh)
           echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
           echo "✓ State backup created: $BACKUP_FILE"
 
