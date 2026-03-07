@@ -1,0 +1,8 @@
+---
+- name: Canary no-op test
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Report canary host
+      ansible.builtin.debug:
+        msg: "Canary no-op executed on {{ inventory_hostname }}"
