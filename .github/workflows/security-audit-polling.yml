@@ -32,14 +32,24 @@ jobs:
         run: |
           set -euo pipefail
           
-          # Find the most recent completed security-audit run
+          # Prefer the dispatchable audit run (temporary); fall back to canonical security-audit.yml
+          RUN_ID=""
           RUN_ID=$(gh run list \
-            --workflow security-audit.yml \
+            --workflow security-audit-dispatchable.yml \
             --repo ${{ github.repository }} \
             --status completed \
             --limit 1 \
             --json databaseId \
             --jq '.[0].databaseId' 2>/dev/null || echo "")
+          if [[ -z "$RUN_ID" ]]; then
+            RUN_ID=$(gh run list \
+              --workflow security-audit.yml \
+              --repo ${{ github.repository }} \
+              --status completed \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId' 2>/dev/null || echo "")
+          fi
           
           if [[ -z "$RUN_ID" ]]; then
             echo "⚠️  No completed security-audit runs found"

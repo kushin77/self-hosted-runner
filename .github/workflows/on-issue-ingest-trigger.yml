@@ -1,0 +1,41 @@
+name: Auto: Run verification and DR after GCP key ingestion confirmation
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  handle-ingest:
+    if: >-
+      github.event.issue.number == 1239 && contains(github.event.comment.body, 'ingested: true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acknowledge ingestion
+        run: |
+          echo "Detected ingestion confirmation on issue #${{ github.event.issue.number }}"
+
+      - name: Dispatch verification workflow
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Dispatching verify-secrets-and-diagnose.yml"
+          API="https://api.github.com/repos/${REPO}/actions/workflows/verify-secrets-and-diagnose.yml/dispatches"
+          curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github.v3+json" "$API" -d '{"ref":"main"}' || true
+
+      - name: Dispatch DR smoke-test workflow
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Dispatching dr-smoke-test.yml"
+          API="https://api.github.com/repos/${REPO}/actions/workflows/dr-smoke-test.yml/dispatches"
+          curl -s -X POST -H "Authorization: token ${TOKEN}" -H "Accept: application/vnd.github.v3+json" "$API" -d '{"ref":"main"}' || true
+
+      - name: Post update to issue
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            Automation: detected `ingested: true` — dispatched `verify-secrets-and-diagnose.yml` and `dr-smoke-test.yml` on `main`. I will follow up with run links when available.

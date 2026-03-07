@@ -1,0 +1,10 @@
+name: Manual Trigger: Security Audit
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    uses: ./.github/workflows/security-audit.yml
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
