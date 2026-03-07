@@ -2,7 +2,7 @@ name: Security Audit (gitleaks + trivy)
 
 on:
   schedule:
-    - cron: '0 2 * * *' # daily @ 02:00 UTC
+    - cron: '0 2 * * *'
   workflow_dispatch: {}
   workflow_call: {}
 
@@ -32,40 +32,37 @@ jobs:
         continue-on-error: true
         uses: zricethezav/gitleaks-action@v1
         with:
-          args: '--path=. --report-format=json --report-path=./gitleaks-report.json || true'
+          args: --path=. --report-format=json --report-path=./gitleaks-report.json
 
-      - name: Fallback: Docker gitleaks (best-effort)
+      - name: Fallback: Docker gitleaks
         if: always()
         run: |
-          set -euo pipefail
           if [ -f gitleaks-report.json ]; then
             echo "gitleaks report exists"
           else
             if command -v docker >/dev/null 2>&1; then
-              docker run --rm -v "$PWD":/workspace zricethezav/gitleaks:v7.4.0 gitleaks detect --path=/workspace --report-format=json --report-path=/workspace/gitleaks-report.json || true
+              docker run --rm -v "$PWD":/workspace zricethezav/gitleaks:v7.4.0 detect --path=/workspace --report-path=/workspace/gitleaks-report.json || true
             else
-              echo "docker not available — creating noop gitleaks report"
               echo '{"leaks": []}' > gitleaks-report.json || true
             fi
           fi
 
-      - name: Attempt Trivy filesystem scan (action)
+      - name: Attempt Trivy scan
         continue-on-error: true
         uses: aquasecurity/trivy-action@v0
         with:
-          scan-type: 'filesystem'
-          format: 'json'
-          output: 'trivy-report.json'
-          severity: 'CRITICAL,HIGH'
+          scan-type: filesystem
+          format: json
+          output: trivy-report.json
+          severity: CRITICAL,HIGH
 
-      - name: Fallback: create noop trivy report
+      - name: Fallback: create trivy report
         if: always()
         run: |
-          set -euo pipefail
           if [ -f trivy-report.json ]; then
             echo "trivy report exists"
           else
-            echo '{"Results": []}' > trivy-report.json || true
+            echo '{"Results": []}' > trivy-report.json
           fi
 
       - name: Upload gitleaks report
@@ -84,33 +81,15 @@ jobs:
           path: trivy-report.json
           if-no-files-found: warn
 
-      - name: Create issues for findings (best-effort)
+      - name: Create issues for findings
         if: always()
         run: |
-          set -euo pipefail
-          if [ -f gitleaks-report.json ]; then
-            GCOUNT=$(jq '.leaks? | length // 0' gitleaks-report.json || echo 0)
-          else
-            GCOUNT=0
-          fi
+          GCOUNT=$(jq '.leaks? | length // 0' gitleaks-report.json || echo 0)
+          TCOUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length // 0' trivy-report.json || echo 0)
+          [ "$GCOUNT" -gt 0 ] && gh issue create --repo ${{ github.repository }} --title "[SECURITY] Gitleaks findings" --body "Findings: $GCOUNT" --label "security,gitleaks" || true
+          [ "$TCOUNT" -gt 0 ] && gh issue create --repo ${{ github.repository }} --title "[SECURITY] Trivy findings" --body "Findings: $TCOUNT" --label "security,trivy" || true
 
-          if [ -f trivy-report.json ]; then
-            TCOUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length // 0' trivy-report.json || echo 0)
-          else
-            TCOUNT=0
-          fi
-
-          if [ "$GCOUNT" -gt 0 ]; then
-            gh issue create --repo ${{ github.repository }} --title "[SECURITY] Gitleaks findings detected" --body "Gitleaks findings: $GCOUNT — see artifact" --label "security,gitleaks" || true
-          fi
-
-          if [ "$TCOUNT" -gt 0 ]; then
-            gh issue create --repo ${{ github.repository }} --title "[SECURITY] Trivy vulnerabilities detected" --body "Trivy high/critical findings: $TCOUNT — see artifact" --label "security,trivy,urgent" || true
-          fi
-
-      - name: Trigger remediation workflow (best-effort)
+      - name: Trigger remediation
         if: always()
         run: |
-          set -euo pipefail
-          # Attempt to trigger remediation; ignore if dispatch unsupported
           gh workflow run security-findings-remediation.yml --repo ${{ github.repository }} --ref main || true
