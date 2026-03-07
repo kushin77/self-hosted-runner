@@ -16,8 +16,8 @@ on:
         required: false
         default: 'false'
   schedule:
-    # Optional: scheduled run with mock receivers on cron
-    - cron: '0 2 * * 1'  # Monday 2 AM UTC (off-peak)
+    # Scheduled run with mock receivers (daily, off-peak)
+    - cron: '0 2 * * *'  # Daily 02:00 UTC (off-peak)
 
 permissions:
   contents: read
