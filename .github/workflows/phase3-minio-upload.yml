@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download release asset
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Downloading ${INPUTS_ASSET_NAME:-${{ inputs.asset_name }}} from release ${{ inputs.tag }}"
           gh release download "${{ inputs.tag }}" --pattern "${{ inputs.asset_name }}" --repo kushin77/self-hosted-runner
