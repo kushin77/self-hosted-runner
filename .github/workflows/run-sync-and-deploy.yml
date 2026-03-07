@@ -262,15 +262,23 @@ jobs:
         run: |
           ci/scripts/upload_to_minio.sh /tmp/minio-uploads/alertmanager-config.tar.gz alertmanager-config.tar.gz || echo "MinIO upload failed; will use fallback"
 
-      - name: Upload generated Alertmanager config as artifact (hosted fallback)
+      - name: Package post-deploy logs for MinIO
+        if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/post-deploy-logs-${{ github.run_id }}.tar.gz /tmp/post-deploy-logs/ 2>/dev/null || echo "No logs to package"
+
+      - name: Upload post-deploy logs to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/post-deploy-logs-${{ github.run_id }}.tar.gz post-deploy-logs-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload post-deploy logs (hosted fallback)
         if: always() && !contains(runner.labels, 'self-hosted')
-        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
-          name: alertmanager-config
-          path: ${ALERTMANAGER_CONFIG_PATH}
-
-      - name: Automation Summary
+          name: post-deploy-logs-${{ github.run_id }}
+          path: /tmp/post-deploy-logs/
         if: always()
         run: |
           echo "════════════════════════════════════════════════════════════════════"
