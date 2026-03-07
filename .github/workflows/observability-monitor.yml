@@ -6,32 +6,80 @@ on:
     types: [completed]
 
 jobs:
-  create-alert:
-    name: Create/Update Observability E2E Alert
+  handle-run:
+    name: Handle Observability E2E Run
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion != 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create or update alert issue
+      - name: Set variables
+        id: vars
+        run: |
+          echo "CONCLUSION=${{ github.event.workflow_run.conclusion || 'unknown' }}" >> $GITHUB_OUTPUT
+          echo "RUN_URL=${{ github.event.workflow_run.html_url || '' }}" >> $GITHUB_OUTPUT
+
+      - name: Create/update alert on failure and notify Slack (optional)
+        if: ${{ startsWith(ne(github.event.workflow_run.conclusion, 'success'), true) }}
         uses: actions/github-script@v6
         with:
           script: |
-            const run = context.payload.workflow_run;
-            const conclusion = run.conclusion || 'unknown';
-            const runUrl = run.html_url || '';
+            const conclusion = process.env.CONCLUSION || context.payload.workflow_run.conclusion || 'unknown';
+            const runUrl = process.env.RUN_URL || context.payload.workflow_run.html_url || '';
             const title = 'Alert: Observability E2E failed';
             const body = `The "Observability E2E Test" workflow completed with conclusion: **${conclusion}**\n\nRun URL: ${runUrl}\n\nThis alert was created automatically by the observability monitor workflow. Please investigate failures and attach logs.`;
 
-            // Search for an existing open issue with the same title
-            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open' });
-            const existing = issues.data.find(i => i.title === title);
+            // find existing open issue
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open' });
+            const existing = issues.find(i => i.title === title);
 
+            let issueNumber;
             if (existing) {
-              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
-              core.info(`Appended comment to existing issue #${existing.number}`);
+              issueNumber = existing.number;
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body });
+              await github.rest.issues.addLabels({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, labels: ['observability', 'e2e-failure'] }).catch(()=>{});
+              core.info(`Appended comment to existing issue #${issueNumber}`);
             } else {
-              const created = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
-              core.info(`Created alert issue #${created.data.number}`);
+              const created = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['observability','e2e-failure'] });
+              issueNumber = created.data.number;
+              core.info(`Created alert issue #${issueNumber}`);
             }
+
+            // Optionally notify Slack if secret available (non-fatal)
+            const slackUrl = process.env.SLACK_WEBHOOK_URL || '';
+            if (slackUrl) {
+              try {
+                await require('node-fetch')(slackUrl, {
+                  method: 'POST',
+                  body: JSON.stringify({ text: `Observability E2E failure: ${runUrl} (issue #${issueNumber})` }),
+                  headers: { 'Content-Type': 'application/json' }
+                });
+                core.info('Posted notification to Slack');
+              } catch (e) {
+                core.warning('Failed to post to Slack: ' + e.message);
+              }
+            }
+
+      - name: Close alert on success
+        if: ${{ github.event.workflow_run.conclusion == 'success' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = 'Alert: Observability E2E failed';
+            // find existing open issue
+            const { data: issues } = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open' });
+            const existing = issues.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body: 'Observability E2E succeeded on a subsequent run — closing alert automatically.' });
+              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, state: 'closed' });
+              core.info(`Closed alert issue #${existing.number}`);
+            } else {
+              core.info('No open alert issue to close');
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Export Slack secret for js step
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        run: |
+          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> $GITHUB_ENV
