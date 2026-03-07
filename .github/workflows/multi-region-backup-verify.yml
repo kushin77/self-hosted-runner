@@ -1,0 +1,52 @@
+name: Multi-Region Backup Verification
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # daily @ 07:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+
+jobs:
+  verify-backups:
+    name: Verify Multi-Region Backups
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify AWS S3 primary (requires AWS creds)
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "No AWS creds configured; skipping S3 verification"
+            exit 0
+          fi
+          aws s3 ls s3://my-backup-bucket --region us-east-1 || (echo "S3 primary check failed" && exit 2)
+
+      - name: Verify AWS S3 replica (us-west-2)
+        run: |
+          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+            echo "No AWS creds configured; skipping S3 verification"
+            exit 0
+          fi
+          aws s3 ls s3://my-backup-bucket --region us-west-2 || (echo "S3 replica check failed" && exit 2)
+
+      - name: Verify GCS bucket (requires GCP creds)
+        run: |
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "No GCP creds configured; skipping GCS verification"
+            exit 0
+          fi
+          echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp.json
+          gcloud auth activate-service-account --key-file=/tmp/gcp.json || (echo "GCP auth failed" && exit 2)
+          gsutil ls gs://my-gcs-backup-bucket || (echo "GCS bucket check failed" && exit 2)
+
+      - name: Report failures as issue
+        if: failure()
+        run: |
+          gh issue create --repo kushin77/self-hosted-runner --title "[DR] Backup verification failed" --body "Automated multi-region backup verification failed. Please investigate. See workflow run artifacts and logs." || true
