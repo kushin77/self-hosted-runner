@@ -220,3 +220,26 @@ jobs:
           echo ""
           echo "Status: Automation is FULLY HANDS-OFF and IDEMPOTENT"
           echo "════════════════════════════════════════════════════════════════════"
+
+      - name: Record run metrics
+        if: always()
+        run: |
+          set -euo pipefail
+          METRIC_FILE="run-metrics-${{ github.run_id }}.json"
+          jq -n \
+            --arg run_id "${{ github.run_id }}" \
+            --arg run_number "${{ github.run_number }}" \
+            --arg workflow "${{ github.workflow }}" \
+            --arg ref "${{ github.ref }}" \
+            --arg sha "${{ github.sha }}" \
+            --arg status "${{ job.status }}" \
+            --arg ts "$(date -u +%FT%TZ)" \
+            '{run_id:$run_id,run_number:$run_number,workflow:$workflow,ref:$ref,sha:$sha,status:$status,timestamp:$ts}' > "$METRIC_FILE"
+          echo "Created $METRIC_FILE"
+
+      - name: Upload run metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-metrics
+          path: run-metrics-${{ github.run_id }}.json
