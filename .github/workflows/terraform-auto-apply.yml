@@ -171,8 +171,19 @@ jobs:
           cp tfplan ../workflow_artifacts/ || true
           cp tfplan.json ../workflow_artifacts/ || true
 
-      - name: Upload plan for review
+      - name: Package terraform plan for MinIO
         if: steps.creds.outputs.available == 'true'
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/terraform-plan-${{ github.run_id }}.tar.gz terraform/workflow_artifacts/ || echo "No artifacts to package"
+
+      - name: Upload terraform plan to MinIO
+        if: steps.creds.outputs.available == 'true' && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/terraform-plan-${{ github.run_id }}.tar.gz terraform-plan-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload plan for review (hosted fallback)
+        if: steps.creds.outputs.available == 'true' && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-${{ github.run_id }}
