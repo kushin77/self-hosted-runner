@@ -197,7 +197,7 @@ jobs:
     name: Sign Images with Cosign
     runs-on: ubuntu-latest
     needs: [generate-provenance]
-    if: inputs.skip_signature != 'true'
+    if: ${{ inputs.skip_signature != 'true' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -216,14 +216,14 @@ jobs:
           curl -fsSL -o "$HOME/.cosign/cosign" "https://github.com/sigstore/cosign/releases/download/v2.5.2/cosign-linux-amd64"
           chmod +x "$HOME/.cosign/cosign"
           echo "$HOME/.cosign" >> "$GITHUB_PATH"
-          
+
           # Verify installation
           export PATH="$HOME/.cosign:$PATH"
           cosign_path=$(which cosign)
           cosign_version=$("$cosign_path" version 2>&1 || echo "unknown")
           echo "✅ cosign installed at: $cosign_path"
           echo "   version: $cosign_version"
-          
+
           # Check --keyless flag is available (informational, not blocking)
           if "$cosign_path" sign --help 2>&1 | grep -q "keyless"; then
             echo "✅ --keyless flag is available"
@@ -388,7 +388,7 @@ jobs:
     name: Verify Artifact Signatures
     runs-on: ubuntu-latest
     needs: [generate-provenance, sign-artifacts]
-    if: inputs.skip_signature != 'true'
+    if: ${{ inputs.skip_signature != 'true' }}
     continue-on-error: true
     steps:
       - name: Checkout
@@ -408,14 +408,14 @@ jobs:
           curl -fsSL -o "$HOME/.cosign/cosign" "https://github.com/sigstore/cosign/releases/download/v2.5.2/cosign-linux-amd64"
           chmod +x "$HOME/.cosign/cosign"
           echo "$HOME/.cosign" >> "$GITHUB_PATH"
-          
+
           # Verify installation
           export PATH="$HOME/.cosign:$PATH"
           cosign_path=$(which cosign)
           cosign_version=$("$cosign_path" version 2>&1 || echo "unknown")
           echo "✅ cosign installed at: $cosign_path"
           echo "   version: $cosign_version"
-          
+
           # Check --keyless flag is available (informational, not blocking)
           if "$cosign_path" sign --help 2>&1 | grep -q "keyless"; then
             echo "✅ --keyless flag is available"
@@ -613,7 +613,7 @@ jobs:
           set -euo pipefail
 
           echo "🔍 Indexing SBOMs for compliance system..."
-          
+
           # Create SBOM index for compliance tracking
           sbom_index="artifacts/SBOM_INDEX.json"
           sbom_list="[]"
@@ -673,10 +673,10 @@ jobs:
         run: |
           set -euo pipefail
           echo "📦 Uploading artifacts to secure storage..."
-          
+
           # Option 1: GitHub Artifacts (default, always enabled)
           echo "✅ Artifacts stored in GitHub Artifacts (90-day retention)"
-          
+
           # Option 2: Extended storage to GCS (if configured)
           if [ -n "${SBOM_STORAGE_BUCKET:-}" ]; then
             echo "📤 Attempting upload to GCS: gs://${SBOM_STORAGE_BUCKET}/${{ github.run_id }}/"
@@ -684,7 +684,7 @@ jobs:
             #   echo "⚠️ GCS upload failed; GitHub Artifacts will be used"
             # }
           fi
-          
+
           # Option 3: Extended storage to S3 (if configured)
           if [ -n "${ARTIFACT_STORAGE_S3_BUCKET:-}" ]; then
             echo "📤 Attempting upload to S3: s3://${ARTIFACT_STORAGE_S3_BUCKET}/${{ github.run_id }}/"
@@ -692,7 +692,7 @@ jobs:
             #   echo "⚠️ S3 upload failed; GitHub Artifacts will be used"
             # }
           fi
-          
+
           echo "✅ Phase 3: Artifact storage complete"
 
       - name: Attach signatures to release (if release event)
@@ -702,19 +702,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          
+
           if [ -z "${{ github.event.release.assets[0] }}" ]; then
             echo "🎉 Release detected; attaching provenance attestations..."
-            
+
             # List artifacts available to attach
             echo "Artifacts available for attachment:"
             find artifacts -type f -name "*.json" | sed 's|^|  - |'
-            
+
             # In production, use GitHub API to upload release assets
             # for file in artifacts/provenance/*-provenance.json; do
             #   gh release upload "${{ github.event.release.tag_name }}" "$file" --repo "${{ github.repository }}"
             # done
-            
+
             echo "✅ Release artifacts staged for upload"
           fi
 
@@ -993,17 +993,17 @@ jobs:
           ════════════════════════════════════════════════════════════════
 
           Phase 1: ✅ SLSA Validation Robustness
-          Phase 2: ✅ Multi-Signature Support  
+          Phase 2: ✅ Multi-Signature Support
           Phase 3: ✅ Artifact Storage Automation
           Phase 4: ✅ Release Gate Enforcement
 
           Builder:             ${{ needs.generate-provenance.outputs.builder-id }}
           Provenance:          ${{ needs.generate-provenance.outputs.provenance-count }} files
-          
+
           Signatures:          ✅ MULTI-SIGNATURE VERIFIED
             ├─ OIDC Keyless:   ✅ (GitHub OIDC via Sigstore)
             └─ Key-Based:      ✅ (ED25519/RSA if configured)
-          
+
           Validation:          ✅ SLSA v1.0 compliant
           Storage:             ✅ (Multi-destination capable)
           Attestation:         ✅ (cosign v2.5.2)
