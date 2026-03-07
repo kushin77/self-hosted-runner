@@ -44,10 +44,14 @@ fi
 if [[ -n "${TEST_SLACK_WEBHOOK:-}" ]]; then
   echo "Falling back to direct Slack POST using TEST_SLACK_WEBHOOK (env)."
   slack_payload='{"text":"[ALERT TEST] This is a direct test message from automated_test_alert.sh"}'
-  # Use "--" to stop curl option parsing so a webhook that begins with '-'
-  # won't be interpreted as an option. Use --data-raw to avoid curl processing.
-  curl -sS -X POST -H 'Content-type: application/json' --data-raw "$slack_payload" -- "${TEST_SLACK_WEBHOOK}" && echo "Direct Slack POST sent." || echo "Direct Slack POST failed." >&2
-  exit 0
+  # Use --data to send JSON payload directly to Slack webhook.
+  if curl -sS -X POST -H 'Content-type: application/json' --data "$slack_payload" "$TEST_SLACK_WEBHOOK"; then
+    echo "Direct Slack POST sent successfully."
+    exit 0
+  else
+    echo "Direct Slack POST failed. Network or webhook URL issue." >&2
+    exit 1
+  fi
 fi
 
 echo "Neither Alertmanager v2 accepted the alert nor TEST_SLACK_WEBHOOK is set. Please ensure Alertmanager is reachable and your Slack webhook is stored in Vault (see Issue #812)."
