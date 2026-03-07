@@ -223,8 +223,7 @@ jobs:
             --repo "${REPO}" \
             --state open \
             --label incident \
-            --search 'created:<now-1h' \
-            --sort created --direction asc \
+            --search 'created:<now-1h sort:created-asc' \
             --json number,title,createdAt,updatedAt \
             --jq '.[]')
 

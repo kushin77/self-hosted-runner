@@ -37,12 +37,12 @@ jobs:
       - name: Find open security issues
         id: find-issues
         run: |
-          # Find all open [SECURITY] issues
+          # Find all open [SECURITY] issues (oldest first)
           ISSUES=$(gh issue list \
             --repo ${{ github.repository }} \
             --state open \
             --label "security" \
-            --sort created --direction asc \
+            --search "sort:created-asc" \
             --json number,title \
             --jq '.[] | "\(.number):\(.title)"')
 
