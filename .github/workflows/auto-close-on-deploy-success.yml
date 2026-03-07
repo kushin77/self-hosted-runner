@@ -12,6 +12,14 @@ jobs:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: [self-hosted, linux]
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Close dependent issues and post run links
         uses: actions/github-script@v6
         with:

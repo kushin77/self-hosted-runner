@@ -37,6 +37,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
       
       - name: Setup Node.js (for npm audit fix)
         uses: actions/setup-node@v4
@@ -48,14 +53,7 @@ jobs:
         run: |
           source .github/scripts/resilience.sh || true
           # Get the most recent completed security-audit workflow run
-          RUN_ID=$(retry_command 2 3 gh run list \
-            --workflow security-audit.yml \
-            --repo ${{ github.repository }} \
-            --status completed \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-          
+          RUN_ID=$(retry_command 5 10 sh -c "gh run list --workflow security-audit.yml --repo ${{ github.repository }} --status completed --limit 1 --json databaseId --jq '.[0].databaseId'" || true)
           if [[ -z "$RUN_ID" ]]; then
             echo "⚠️  No completed security-audit runs found"
             echo "run_id=" >> $GITHUB_OUTPUT
@@ -71,12 +69,8 @@ jobs:
         continue-on-error: true
         run: |
           RUN_ID="${{ steps.get-run.outputs.run_id }}"
-          
           echo "Downloading artifacts from run $RUN_ID..."
-          gh run download "$RUN_ID" \
-            --repo ${{ github.repository }} \
-            --pattern "trivy-report" \
-            --dir /tmp/artifacts || true
+          retry_command 5 10 sh -c "gh run download \"$RUN_ID\" --repo ${{ github.repository }} --pattern \"trivy-report\" --dir /tmp/artifacts" || true
           
           if [ -f "/tmp/artifacts/trivy-report/trivy-report.json" ]; then
             echo "✅ Trivy report found"
@@ -93,11 +87,7 @@ jobs:
         continue-on-error: true
         run: |
           RUN_ID="${{ steps.get-run.outputs.run_id }}"
-          
-          gh run download "$RUN_ID" \
-            --repo ${{ github.repository }} \
-            --pattern "gitleaks-report" \
-            --dir /tmp/artifacts || true
+          retry_command 5 10 sh -c "gh run download \"$RUN_ID\" --repo ${{ github.repository }} --pattern \"gitleaks-report\" --dir /tmp/artifacts" || true
           
           if [ -f "/tmp/artifacts/gitleaks-report/gitleaks-report.json" ]; then
             echo "✅ Gitleaks report found"

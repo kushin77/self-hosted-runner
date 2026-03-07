@@ -25,6 +25,11 @@ jobs:
     timeout-minutes: 5
     
     steps:
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Check if Slack webhook configured
         id: check-webhook
         run: |
