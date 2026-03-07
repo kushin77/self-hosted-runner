@@ -7,3 +7,5 @@ jobs:
   call-audit:
     uses: ./.github/workflows/security-audit.yml
     secrets: inherit
+    # re-register wrapper: noop update to refresh called-workflow parsing
+    # timestamp: 2026-03-07T16:00:00Z
