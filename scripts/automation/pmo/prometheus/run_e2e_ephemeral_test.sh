@@ -55,9 +55,8 @@ if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
     echo "PAGERDUTY_KEY length: ${#PAGERDUTY_KEY}"
   fi
   
-  # For Slack webhooks, we use the direct webhook format (not slack_configs)
-  # Slack webhook URLs can be passed directly as webhook_configs URLs
-  cat > "$TMPDIR/alertmanager.yml" <<'AMCFG'
+  # Start with base config
+  cat > "$TMPDIR/alertmanager.yml" << 'EOF'
 global:
   resolve_timeout: 5m
 route:
@@ -65,31 +64,35 @@ route:
 receivers:
   - name: 'default'
     webhook_configs: []
-AMCFG
+EOF
 
+  # Add Slack if configured
   if [ -n "$SLACK_URL" ]; then
     echo "✓ Configuring Slack webhook receiver"
-    cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
+    cat >> "$TMPDIR/alertmanager.yml" << EOF
   - name: 'slack'
     webhook_configs:
-      - url: $SLACK_URL
+      - url: '${SLACK_URL}'
         send_resolved: true
-AMCFG
+EOF
+    # Update route to use slack receiver
     sed -i "s/receiver: 'default'/receiver: 'slack'/" "$TMPDIR/alertmanager.yml"
   fi
   
+  # Add PagerDuty if configured
   if [ -n "$PAGERDUTY_KEY" ]; then
     echo "✓ Configuring PagerDuty receiver"
-    cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
+    cat >> "$TMPDIR/alertmanager.yml" << EOF
   - name: 'pagerduty'
     pagerduty_configs:
-      - service_key: $PAGERDUTY_KEY
-AMCFG
+      - service_key: '${PAGERDUTY_KEY}'
+EOF
+    # Update route to use pagerduty receiver  
     sed -i "s/receiver: 'default'/receiver: 'pagerduty'/" "$TMPDIR/alertmanager.yml"
   fi
 else
   echo "Generating Alertmanager config with mock webhook..."
-  cat > "$TMPDIR/alertmanager.yml" <<'AMCFG'
+  cat > "$TMPDIR/alertmanager.yml" << 'EOF'
 global:
   resolve_timeout: 5m
 route:
@@ -99,7 +102,7 @@ receivers:
     webhook_configs:
       - url: 'http://observability-e2e-mock-webhook:8080/hooks/slack'
         send_resolved: true
-AMCFG
+EOF
 fi
 
 # validate config was written
