@@ -8,9 +8,7 @@ on:
 jobs:
   on-ingest-confirmation:
     name: Trigger verification and DR tests
-    if: >
-      ${{ github.event.issue.number == 1239 &&
-         contains(github.event.comment.body, 'ingested: true') }}
+    if: "${{ github.event.issue.number == 1239 && contains(github.event.comment.body, 'ingested: true') }}"
     runs-on: ubuntu-latest
     permissions:
       issues: write

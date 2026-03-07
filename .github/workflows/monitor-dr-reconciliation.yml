@@ -63,13 +63,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "✓ DR master reconciliation succeeded. Auto-closing dependent DR failure issues."
-          
+
           # Close the dependent issues
           for issue_num in 1046 1021 1005 1002 980 973 972; do
             echo "Closing issue #$issue_num..."
             gh issue close "$issue_num" --repo $REPO --comment "Closed by DR master reconciliation run #${{ steps.get-run.outputs.run_id }} (SUCCESS). All checks passed." || echo "Issue #$issue_num not found or already closed."
           done
-          
+
           # Also close the investigation/triage issue (1064)
           echo "Closing triage issue #1064..."
           gh issue close 1064 --repo $REPO --comment "Master reconciliation run #${{ steps.get-run.outputs.run_id }} completed successfully. All dependent DR issues have been closed. See run logs for details: https://github.com/$REPO/actions/runs/${{ steps.get-run.outputs.run_id }}" || true

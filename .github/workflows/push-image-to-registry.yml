@@ -1,3 +1,4 @@
+---
 name: Push Image to Registry (Automated)
 
 on:
@@ -45,9 +46,9 @@ jobs:
         id: validate
         run: |
           set -euo pipefail
-          
+
           image="${{ inputs.image_name }}"
-          
+
           # Check if image exists
           if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image}"; then
             echo "valid=true" >> "$GITHUB_OUTPUT"
@@ -77,7 +78,7 @@ jobs:
               Cmd: .Config.Cmd
             }
           })'
-          
+
           # Security scan with trivy
           if command -v trivy >/dev/null 2>&1; then
             echo "🔍 Running security scan..."
@@ -97,9 +98,9 @@ jobs:
         id: config
         run: |
           set -euo pipefail
-          
+
           registry="${{ inputs.registry_type }}"
-          
+
           case "$registry" in
             docker-hub)
               if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
@@ -160,7 +161,7 @@ jobs:
           REGISTRY_HOST: ${{ needs.setup-registry.outputs.registry-host }}
         run: |
           set -euo pipefail
-          
+
           case "$REGISTRY_TYPE" in
             docker-hub)
               docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" \
@@ -200,15 +201,15 @@ jobs:
         id: tag
         run: |
           set -euo pipefail
-          
+
           source_image="${{ inputs.image_name }}"
           registry_host="${{ needs.setup-registry.outputs.registry-host }}"
           registry_org="${{ needs.setup-registry.outputs.registry-org }}"
           tags_input="${{ inputs.image_tags }}"
-          
+
           # Convert comma-separated tags to array
           IFS=',' read -ra TAGS <<< "$tags_input"
-          
+
           tagged_images=()
           for tag in "${TAGS[@]}"; do
             tag=$(echo "$tag" | xargs) # trim whitespace
@@ -217,7 +218,7 @@ jobs:
             tagged_images+=("$full_image")
             echo "🏷️ Tagged: $full_image"
           done
-          
+
           # Output as JSON array
           printf '%s\n' "${tagged_images[@]}" | jq -R . | jq -s . > /tmp/tagged_images.json
           images=$(cat /tmp/tagged_images.json)
@@ -239,21 +240,21 @@ jobs:
           IMAGES: ${{ needs.tag-image.outputs.tagged-images }}
         run: |
           set -euo pipefail
-          
+
           images=$(echo "$IMAGES" | jq -r '.[]')
-          
+
           max_retries=3
           retry_count=0
           success=false
-          
+
           while [ $retry_count -lt $max_retries ] && [ "$success" = "false" ]; do
             retry_count=$((retry_count + 1))
-            
+
             if [ $retry_count -gt 1 ]; then
               echo "🔄 Retry $retry_count/$max_retries..."
               sleep 5
             fi
-            
+
             push_success=true
             for img in $images; do
               if docker push "$img"; then
@@ -263,13 +264,13 @@ jobs:
                 push_success=false
               fi
             done
-            
+
             if [ "$push_success" = "true" ]; then
               success=true
               break
             fi
           done
-          
+
           if [ "$success" = "true" ]; then
             echo "success=true" >> "$GITHUB_OUTPUT"
             # Get digest of last image
@@ -293,9 +294,9 @@ jobs:
       - name: Pull and verify
         run: |
           set -euo pipefail
-          
+
           images=$(echo "${{ needs.tag-image.outputs.tagged-images }}" | jq -r '.[]')
-          
+
           for img in $images; do
             echo "🔍 Verifying: $img"
             if docker pull "$img"; then
@@ -315,17 +316,17 @@ jobs:
       - name: Print summary
         run: |
           cat << SUMMARY
-          
+
           📊 IMAGE PUSH SUMMARY
           ════════════════════════════════════════
-          
+
           Image:          ${{ inputs.image_name }}
           Tags:           ${{ inputs.image_tags }}
           Registry:       ${{ inputs.registry_type }}
           Host:           ${{ needs.setup-registry.outputs.registry-host }}
           Status:         ${{ needs.push-image.outputs.push-success == 'true' && '✅ SUCCESS' || '❌ FAILED' }}
           Digest:         ${{ needs.push-image.outputs.digest }}
-          
+
           SUMMARY
 
       - name: Fail if push failed

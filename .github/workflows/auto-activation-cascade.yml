@@ -2,11 +2,11 @@ name: Auto-Activation Cascade (Hands-Off)
 
 on:
   workflow_dispatch:
-  
+
   schedule:
     # Check every 5 minutes if secrets are ready and trigger cascade
     - cron: "*/5 * * * *"
-  
+
   workflow_call: {}
 
 permissions:
@@ -24,32 +24,32 @@ jobs:
     name: Auto-Detect Ready State & Cascade
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Load Resilience Helpers
         run: source .github/scripts/resilience.sh 2>/dev/null || true
-      
+
       - name: Check Required Secrets Status
         id: secrets-check
         run: |
           set -euo pipefail
-          
+
           echo "=== Checking Required Secrets ==="
-          
+
           # Array of critical secrets
           declare -A SECRETS=(
             [GCP_SERVICE_ACCOUNT_KEY]="GCP"
             [DEPLOY_SSH_KEY]="SSH Deploy"
             [RUNNER_MGMT_TOKEN]="Runner Management"
           )
-          
+
           ALL_READY=true
           READY_COUNT=0
           TOTAL=${#SECRETS[@]}
-          
+
           for SECRET in "${!SECRETS[@]}"; do
             if gh secret list --repo ${{ github.repository }} \
               --json name --jq ".[] | select(.name == \"$SECRET\") | .name" &>/dev/null | grep -q "$SECRET"; then
@@ -60,10 +60,10 @@ jobs:
               ALL_READY=false
             fi
           done
-          
+
           echo ""
           echo "Status: $READY_COUNT/$TOTAL secrets ready"
-          
+
           if [ "$ALL_READY" = true ]; then
             echo "✅ ALL CRITICAL SECRETS READY - CASCADE ENABLED"
             echo "cascade_ready=true" >> $GITHUB_OUTPUT
@@ -73,7 +73,7 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Execute Verification Workflow
         if: steps.secrets-check.outputs.cascade_ready == 'true'
         run: |
@@ -84,7 +84,7 @@ jobs:
             || echo "⚠️  Dispatch queued (may be rate-limited)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Execute DR Smoke Tests
         if: steps.secrets-check.outputs.cascade_ready == 'true'
         run: |
@@ -96,25 +96,25 @@ jobs:
             || echo "⚠️  Dispatch queued (may be rate-limited)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Post Cascade Status to Issue #1239
         if: steps.secrets-check.outputs.cascade_ready == 'true'
         uses: actions/github-script@v7
         with:
           script: |
             const readyStatus = "${{ steps.secrets-check.outputs.cascade_ready }}" === "true";
-            
-            const body = readyStatus 
+
+            const body = readyStatus
               ? `🎯 **AUTO-CASCADE TRIGGERED**\n\n✅ All critical secrets detected\n✅ Auto-verification cascade in progress\n\n**Timeline:**\n- T+0: Cascade detection ✓\n- T+1m: Verification workflows dispatched\n- T+5m: DR tests dispatched\n- T+10m: Results available\n\nNo further action required - system is fully automated.`
               : `⏳ **CASCADE WAITING**\n\nCritical secrets status:\n- Still awaiting deployment\n- Auto-check will retry in 5 minutes\n- System is self-healing\n\nNo action required.`;
-            
+
             github.rest.issues.createComment({
               issue_number: 1239,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: body
             });
-      
+
       - name: Auto-Close Issue #1239 on Success
         if: steps.secrets-check.outputs.cascade_ready == 'true'
         uses: actions/github-script@v7
@@ -127,14 +127,14 @@ jobs:
               state: 'closed',
               state_reason: 'completed'
             });
-            
+
             github.rest.issues.createComment({
               issue_number: 1239,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body: `🎉 **ISSUE RESOLVED**\n\n✅ Cascade completed\n✅ System is operational\n✅ All automation hands-off\n\nTimestamp: ${new Date().toISOString()}`
             });
-      
+
       - name: Summary Report
         if: always()
         run: |
