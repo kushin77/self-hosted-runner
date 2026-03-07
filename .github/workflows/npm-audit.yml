@@ -46,8 +46,19 @@ jobs:
           npm audit --json > npm-audit.json || true
           cat npm-audit.json
 
-      - name: Upload npm audit artifact
+      - name: Package npm audit report for MinIO
         if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          cp npm-audit.json /tmp/minio-uploads/
+
+      - name: Upload npm audit to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/npm-audit.json npm-audit.json || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload npm audit artifact (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: npm-audit
