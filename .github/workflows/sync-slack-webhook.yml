@@ -19,6 +19,10 @@ jobs:
   sync-slack:
     runs-on: ubuntu-latest
     steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
       - name: Checkout
         uses: actions/checkout@v4
 

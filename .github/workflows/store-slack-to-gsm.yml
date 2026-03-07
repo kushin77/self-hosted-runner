@@ -20,6 +20,10 @@ jobs:
       FILE_PATH: .github/workflows/tmp
       GSM_SECRET_NAME: slack-app-credentials
     steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
       - name: Checkout
         uses: actions/checkout@v4
 

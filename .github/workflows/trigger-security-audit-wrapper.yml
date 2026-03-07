@@ -9,3 +9,7 @@ jobs:
     secrets: inherit
     # re-register wrapper: noop update to refresh called-workflow parsing
     # timestamp: 2026-03-07T16:00:00Z
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
