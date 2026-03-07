@@ -109,6 +109,23 @@ jobs:
             PAGER_STATUS="✅ Provided"
           fi
 
+          # detect core repo secrets
+          required=("VAULT_ROLE_ID" "VAULT_SECRET_ID" "MINIO_ACCESS_KEY" "MINIO_SECRET_KEY" "TF_VAR_SERVICE_ACCOUNT_KEY" "PAGERDUTY_INTEGRATION_KEY" "SLACK_WEBHOOK_URL")
+          missing=()
+          for s in "${required[@]}"; do
+            if ! gh secret list --repo ${REPO} --json name --jq ".[].name" | grep -q "^$s$"; then
+              missing+=("$s")
+            fi
+          done
+
+          # close any 'Missing required GitHub Secrets' issues if none are missing
+          if [ ${#missing[@]} -eq 0 ]; then
+            for issue in 1343 1345 1347; do
+              gh issue list --repo ${REPO} --state open --json number,title --jq ".[] | select(.number==${issue}) | .number" | grep -q . && \
+                gh issue update ${issue} --repo ${REPO} --state closed --state_reason completed || true
+            done
+          fi
+
           # Count open issues by label
           TOTAL_OPEN=$(gh issue list --repo ${REPO} --state open --json number --jq 'length' 2>/dev/null || echo "?")
 
