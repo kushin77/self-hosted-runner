@@ -1,0 +1,25 @@
+name: Auto-close Harbor smoke issue
+
+# closes issue 620 once the harbor-integration-smoke workflow passes
+on:
+  workflow_run:
+    workflows: ["Harbor Integration Smoke (kind)"]
+    types: [completed]
+
+jobs:
+  close-issue:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close issue #620
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 620,
+              state: 'closed',
+              state_reason: 'completed'
+            });
