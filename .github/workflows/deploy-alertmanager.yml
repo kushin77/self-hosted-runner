@@ -31,8 +31,10 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const has = !!process.env.SLACK_WEBHOOK_URL;
-            if (!has) {
+            // Check repository secrets via REST API to avoid exposing secret value
+            const secrets = await github.rest.actions.listRepoSecrets({owner: context.repo.owner, repo: context.repo.repo});
+            const names = (secrets.data.secrets || []).map(s => s.name);
+            if (!names.includes('SLACK_WEBHOOK_URL')) {
               const issueNumber = 480;
               const body = `Alertmanager deployment blocked: missing \`SLACK_WEBHOOK_URL\` repo secret. Automated sync may still be running. Please ensure the secret is provisioned in GSM or GitHub Secrets.`;
               await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
