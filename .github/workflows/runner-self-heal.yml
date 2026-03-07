@@ -26,9 +26,9 @@ jobs:
           GH_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
         run: |
           set +e
-          # Detect if we are using the fallback token
+          # Detect if we are using fallback
           if [[ -z "${{ secrets.RUNNER_MGMT_TOKEN }}" ]]; then
-            echo "::warning ::RUNNER_MGMT_TOKEN not found. Using github.token fallback (may result in 403 Forbidden for runner management)."
+            echo "::warning ::RUNNER_MGMT_TOKEN not found. Using GITHUB_TOKEN fallback (may result in 403 Forbidden for runner management)."
           fi
 
           # Use PAT if available for administration access, otherwise fallback to GITHUB_TOKEN
@@ -139,5 +139,5 @@ jobs:
           fi
           for n in $matches; do
             echo "Closing issue #$n"
-            gh issue close "$n" --repo "$repo" || true
+            gh issue close "$n" --repo "$repo" --comment "✅ Automation Success: Runners are healthy. RUNNER_MGMT_TOKEN is now properly configured and remediation is proceeding automatically." || true
           done

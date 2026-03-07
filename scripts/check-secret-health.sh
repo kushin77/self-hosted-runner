@@ -1,3 +1,52 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Verify at least 2 tiers healthy (GCP, AWS, GitHub, Local backup)
+
+HEALTHY=0
+log(){ echo "[health] $(date -u +'%Y-%m-%dT%H:%M:%SZ') $*"; }
+warn(){ echo "[health] WARN: $*"; }
+
+# Tier 1: GCP
+if gcloud secrets versions list runner-mgmt-token --limit=1 >/dev/null 2>&1; then
+  log "GCP Secret Manager accessible"
+  HEALTHY=$((HEALTHY+1))
+else
+  warn "GCP Secret Manager unavailable"
+fi
+
+# Tier 2: AWS
+if aws secretsmanager describe-secret --secret-id runner-mgmt-token >/dev/null 2>&1; then
+  log "AWS Secrets Manager accessible"
+  HEALTHY=$((HEALTHY+1))
+else
+  warn "AWS Secrets Manager unavailable or credentials missing"
+fi
+
+# Tier 3: GitHub
+if gh secret list --repo kushin77/self-hosted-runner | grep -q RUNNER_MGMT_TOKEN; then
+  log "GitHub Actions secret RUNNER_MGMT_TOKEN present"
+  HEALTHY=$((HEALTHY+1))
+else
+  warn "GitHub secret RUNNER_MGMT_TOKEN missing"
+fi
+
+# Tier 4: Local backup
+if [ -f ~/.vault/encrypted-runner-mgmt-token ]; then
+  log "Local encrypted backup present"
+  HEALTHY=$((HEALTHY+1))
+else
+  warn "Local backup not present"
+fi
+
+log "Healthy tiers: $HEALTHY/4"
+if [ $HEALTHY -lt 2 ]; then
+  echo "CRITICAL: less than 2 tiers healthy" >&2
+  exit 2
+fi
+
+log "Health check passed"
+exit 0
 #!/bin/bash
 
 # Check health and availability of all secret storage tiers
