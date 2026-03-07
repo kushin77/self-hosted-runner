@@ -70,11 +70,16 @@ jobs:
           DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
         run: |
           set -euo pipefail
-          echo "DEBUG: SLACK_WEBHOOK_URL length: ${#SLACK_WEBHOOK_URL}"
-          [ -z "$SLACK_WEBHOOK_URL" ] && { echo "ERROR: SLACK_WEBHOOK_URL is empty!"; exit 1; }
+          # Write secret to temp file to avoid shell variable expansion issues
+          SLACK_FILE=$(mktemp)
+          echo -n "$SLACK_WEBHOOK_URL" > "$SLACK_FILE"
+          SLACK_URL=$(cat "$SLACK_FILE")
+          rm "$SLACK_FILE"
+          echo "DEBUG: SLACK_URL from file, length: ${#SLACK_URL}"
+          [ -z "$SLACK_URL" ] && { echo "ERROR: SLACK_URL is empty after file read"; exit 1; }
           cd scripts/automation/pmo/prometheus
           chmod +x run_e2e_ephemeral_test.sh
-          ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_WEBHOOK_URL"
+          ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_URL"
 
       - name: Run real endpoint test (PagerDuty)
         if: needs.secret-check.outputs.pagerduty_available == 'true' && (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
