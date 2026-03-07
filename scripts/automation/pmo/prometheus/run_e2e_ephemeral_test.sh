@@ -38,6 +38,15 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+# debug output
+if [ "${DEBUG_MODE:-false}" = "true" ]; then
+  echo "=== EPHEMERAL E2E TEST - DEBUG MODE ==="
+  echo "SLACK_URL configured: $([ -n "$SLACK_URL" ] && echo 'yes (length: '${#SLACK_URL}')' || echo 'no')"
+  echo "PAGERDUTY_KEY configured: $([ -n "$PAGERDUTY_KEY" ] && echo 'yes (length: '${#PAGERDUTY_KEY}')' || echo 'no')"
+  echo "Temp directory: $TMPDIR"
+  echo "========================================"
+fi
+
 # generate Alertmanager config; prefer real receivers if provided, otherwise use mock webhook
 if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
   cat > "$TMPDIR/alertmanager.yml" <<AMCFG
@@ -108,18 +117,32 @@ docker run -d --name observability-e2e-alertmanager --network "$NETWORK" \
 
 echo "Started Alertmanager"
 
-# wait for alertmanager API
-for i in $(seq 1 30); do
-  if docker run --rm --network "$NETWORK" curlimages/curl:7.88.1 -sS http://observability-e2e-alertmanager:9093/- >/dev/null 2>&1; then
-    echo "Alertmanager ready"
+# wait for alertmanager API with improved timeout logic
+ALERTMANAGER_READY=0
+for i in $(seq 1 60); do
+  # First check: container is still running
+  if ! docker ps --filter name=observability-e2e-alertmanager --format '{{.Names}}' | grep -q observability-e2e-alertmanager; then
+    echo "ERROR: Alertmanager container is not running" >&2
+    docker logs observability-e2e-alertmanager 2>&1 | tail -20
+    exit 3
+  fi
+  
+  # Second check: Alertmanager API responds
+  if docker run --rm --network "$NETWORK" curlimages/curl:7.88.1 -sS -m 5 http://observability-e2e-alertmanager:9093/api/v1/alerts >/dev/null 2>&1; then
+    echo "✓ Alertmanager ready after $((i*2)) seconds"
+    ALERTMANAGER_READY=1
     break
   fi
-  echo "Waiting for Alertmanager... ($i)"
+  echo "Waiting for Alertmanager... ($i/60, $((i*2))s elapsed)"
   sleep 2
 done
 
-if ! docker ps --filter name=observability-e2e-alertmanager --format '{{.Names}}' | grep -q observability-e2e-alertmanager; then
-  echo "Alertmanager failed to start" >&2
+if [ $ALERTMANAGER_READY -ne 1 ]; then
+  echo "ERROR: Alertmanager did not become ready after 120 seconds" >&2
+  echo "Container logs (last 30 lines):" >&2
+  docker logs --tail 30 observability-e2e-alertmanager 2>&1
+  echo "Network diagnostics:" >&2
+  docker exec observability-e2e-alertmanager ps aux 2>&1 || true
   exit 3
 fi
 
@@ -133,13 +156,30 @@ cat > "$TMPDIR/alert.json" <<'ALERT'
 ALERT
 
 echo "Posting synthetic alert to Alertmanager"
-docker run --rm --network "$NETWORK" -v "$TMPDIR/alert.json":/alert.json curlimages/curl:7.88.1 -sS -XPOST -H "Content-Type: application/json" --data-binary @/alert.json http://observability-e2e-alertmanager:9093/api/v1/alerts || true
+ALERT_RESPONSE=$(docker run --rm --network "$NETWORK" -v "$TMPDIR/alert.json":/alert.json curlimages/curl:7.88.1 -sS -XPOST -H "Content-Type: application/json" --data-binary @/alert.json http://observability-e2e-alertmanager:9093/api/v1/alerts 2>&1)
+ALERT_EXIT=$?
+if [ $ALERT_EXIT -eq 0 ]; then
+  echo "✓ Alert posted successfully"
+  [ -n "$ALERT_RESPONSE" ] && echo "Response: $ALERT_RESPONSE"
+else
+  echo "⚠ Alert post returned exit code $ALERT_EXIT"
+  echo "$ALERT_RESPONSE"
+fi
 
-echo "Sleeping briefly to allow delivery"
+echo "Sleeping briefly to allow delivery..."
 sleep 3
 
-echo "Mock webhook logs (last 200 lines):"
-docker logs --tail 200 observability-e2e-mock-webhook || true
+echo "Alertmanager logs (last 50 lines):"
+docker logs --tail 50 observability-e2e-alertmanager | tail -20
+
+echo "Mock webhook logs (last 100 lines):"
+WEBHOOK_LOGS=$(docker logs --tail 100 observability-e2e-mock-webhook 2>&1)
+echo "$WEBHOOK_LOGS" | tail -30
+if echo "$WEBHOOK_LOGS" | grep -q "TestAlert"; then
+  echo "✓ Test alert payload found in webhook logs"
+else
+  echo "⚠ Test alert payload NOT found in webhook logs - delivery may have failed"
+fi
 
 echo "E2E run complete"
 
