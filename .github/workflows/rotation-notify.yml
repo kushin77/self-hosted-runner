@@ -1,0 +1,47 @@
+name: Rotation Notification
+
+on:
+  workflow_run:
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Notify Slack on rotation workflows
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          RUNNER: ${{ github.run_id }}
+        run: |
+          WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
+          CONCL="${{ github.event.workflow_run.conclusion }}"
+          URL="${{ github.event.workflow_run.html_url }}"
+
+          # Only notify for rotation-related workflow names
+          if [[ "$WORKFLOW_NAME" != *"Rotate"* && "$WORKFLOW_NAME" != *"Rotation"* && "$WORKFLOW_NAME" != *"rotate"* ]]; then
+            echo "Not a rotation workflow ($WORKFLOW_NAME); skipping notification"
+            exit 0
+          fi
+
+          MSG="Secret rotation workflow *${WORKFLOW_NAME}* completed with status *${CONCL}*. <${URL}|View run>"
+
+          # Prefer using the reusable script if available
+          if [[ -x ./.github/scripts/send-slack-notification.sh ]]; then
+            ./.github/scripts/send-slack-notification.sh "$SLACK_WEBHOOK" "$MSG"
+          elif [[ -x ci/scripts/send-slack-notification.sh ]]; then
+            ci/scripts/send-slack-notification.sh "$SLACK_WEBHOOK" "$MSG"
+          else
+            # Fallback to inline curl
+            if [[ -z "${SLACK_WEBHOOK:-}" ]]; then
+              echo "No SLACK_WEBHOOK secret set; skipping"
+              exit 0
+            fi
+            payload=$(jq -n --arg text "$MSG" '{text: $text}')
+            curl -sS -X POST -H 'Content-type: application/json' --data "$payload" "$SLACK_WEBHOOK"
+          fi

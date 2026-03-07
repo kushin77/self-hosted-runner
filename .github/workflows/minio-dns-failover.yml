@@ -38,7 +38,7 @@ jobs:
         id: test-primary
         continue-on-error: true
         run: |
-          PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.bioenergystrategies.com' }}"
+          PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.elevatediq.ai' }}"
           PRIMARY_PORT="${{ secrets.MINIO_PORT || '9000' }}"
           
           echo "Testing primary MinIO host: $PRIMARY_HOST:$PRIMARY_PORT"
@@ -85,7 +85,7 @@ jobs:
         id: detect-failure
         if: failure()
         run: |
-          PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.bioenergystrategies.com' }}"
+          PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.elevatediq.ai' }}"
           
           # Determine failure type
           if [ "${{ steps.test-primary.outputs.dns_reachable }}" = "false" ]; then

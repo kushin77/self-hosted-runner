@@ -1,0 +1,196 @@
+name: Validate GitLab+MinIO Integration (Issue #519)
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # Every 6 hours
+  workflow_dispatch:
+  issues:
+    types: [opened, labeled]
+
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
+jobs:
+  validate-integration:
+    name: Validate GitLab MinIO Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check if this is issue #519
+        id: check-issue
+        run: |
+          if [ "${{ github.event_name }}" = "issues" ]; then
+            issue_num="${{ github.event.issue.number }}"
+            if [ "$issue_num" = "519" ]; then
+              echo "matching=true" >> $GITHUB_OUTPUT
+            else
+              echo "matching=false" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          else
+            echo "matching=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install MinIO client
+        run: |
+          curl -fsSL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+          chmod +x /usr/local/bin/mc
+          mc --version
+
+      - name: Test MinIO connectivity
+        id: test-minio
+        continue-on-error: true
+        run: |
+          set +e
+          
+          # Test connectivity
+          if timeout 10 bash -c "echo >/dev/tcp/${MINIO_ENDPOINT%:*}/9000" 2>/dev/null; then
+            echo "status=accessible" >> $GITHUB_OUTPUT
+          else
+            echo "status=unreachable" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Validate MinIO buckets
+        id: validate-buckets
+        if: steps.test-minio.outputs.status == 'accessible'
+        continue-on-error: true
+        run: |
+          set +e
+          
+          MINIO_ENDPOINT="${{ secrets.MINIO_ENDPOINT || 'mc.elevatediq.ai:9000' }}"
+          MINIO_ACCESS_KEY="${{ secrets.MINIO_ACCESS_KEY }}"
+          MINIO_SECRET_KEY="${{ secrets.MINIO_SECRET_KEY }}"
+          
+          if [ -z "$MINIO_ACCESS_KEY" ] || [ -z "$MINIO_SECRET_KEY" ]; then
+            echo "status=missing-credentials"
+            echo "details=MinIO credentials not configured in repository secrets"
+            exit 0
+          fi
+          
+          # Configure MinIO alias
+          mc alias set minio http://${MINIO_ENDPOINT} ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
+          
+          echo "::group::MinIO Health Check"
+          mc admin info minio --json 2>&1 | head -50
+          echo "::endgroup::"
+          
+          # Check required buckets
+          REQUIRED_BUCKETS=("gitlab-lfs" "gitlab-artifacts" "gitlab-packages" "gitlab-uploads")
+          MISSING_BUCKETS=()
+          
+          for bucket in "${REQUIRED_BUCKETS[@]}"; do
+            if mc ls minio/${bucket} >/dev/null 2>&1; then
+              echo "✓ Bucket exists: $bucket"
+            else
+              MISSING_BUCKETS+=("$bucket")
+              echo "✗ Bucket missing: $bucket"
+            fi
+          done
+          
+          if [ ${#MISSING_BUCKETS[@]} -gt 0 ]; then
+            echo "status=buckets-missing"
+            echo "details=Missing buckets: $(IFS=,; echo "${MISSING_BUCKETS[*]}")"
+          else
+            echo "status=healthy"
+            echo "details=All required buckets exist and are accessible"
+          fi
+
+      - name: Generate integration report
+        id: report
+        run: |
+          cat > integration-report.md <<'EOF'
+          # GitLab + MinIO Integration Validation Report
+          
+          **Date**: $(date -u -Iseconds)
+          **Status**: ${{ steps.validate-buckets.outputs.status || steps.test-minio.outputs.status || 'unknown' }}
+          
+          ## Connectivity Test
+          - MinIO Endpoint: ${{ secrets.MINIO_ENDPOINT || 'mc.elevatediq.ai:9000' }}
+          - TCP Reachable: ${{ steps.test-minio.outputs.status == 'accessible' && '✅ Yes' || '❌ No' }}
+          
+          ## Bucket Validation
+          ${{ steps.validate-buckets.outputs.details || 'Unable to validate (missing credentials or unreachable)' }}
+          
+          ## Required Buckets
+          - `gitlab-lfs` (Large File Storage)
+          - `gitlab-artifacts` (CI/CD artifacts)
+          - `gitlab-packages` (Package registry)
+          - `gitlab-uploads` (Avatars, exports)
+          
+          ## Documentation
+          See [GITLAB_MINIO_INTEGRATION.md](docs/GITLAB_MINIO_INTEGRATION.md) for:
+          - Configuration templates (gitlab.rb, Helm values)
+          - Integration validation steps
+          - Troubleshooting guide
+          
+          ## Demo Pipeline
+          Example GitLab CI pipeline: [.gitlab-ci-demo-minio.yml](examples/.gitlab-ci-demo-minio.yml)
+          
+          ## Next Steps
+          1. Ensure MinIO secrets are configured: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`
+          2. Create buckets if missing (see documentation)
+          3. Apply GitLab configuration (gitlab.rb or Helm values)
+          4. Test with demo pipeline
+          5. Verify artifacts appear in MinIO dashboard
+          
+          ---
+          *Automated validation by GitHub Actions*
+          EOF
+          
+          cat integration-report.md
+
+      - name: Post validation comment (if issue)
+        if: github.event_name == 'issues' && github.event.issue.number == 519
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('integration-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 519,
+              body: `## Validation Report\n\n${report}`
+            });
+
+      - name: Close issue if validation successful
+        if: github.event_name == 'issues' && github.event.issue.number == 519 && steps.validate-buckets.outputs.status == 'healthy'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 519,
+              state: 'closed',
+              state_reason: 'completed'
+            });
+            
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 519,
+              body: `✅ **ISSUE RESOLVED** — GitLab + MinIO integration validated and documented.
+
+All required buckets are accessible and configuration templates are ready for deployment:
+- \`docs/GITLAB_MINIO_INTEGRATION.md\` — Complete deployment guide
+- \`examples/.gitlab-ci-demo-minio.yml\` — Demo CI pipeline for validation
+
+Next: Deploy to GitLab using the configuration templates provided.`
+            });
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitlab-minio-validation-${{ github.run_id }}
+          path: integration-report.md
+          retention-days: 90

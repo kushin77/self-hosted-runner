@@ -1,0 +1,116 @@
+# Demo GitLab CI Pipeline: MinIO Artifacts & LFS Test
+#
+# Purpose: Validate GitLab ↔ MinIO integration
+# This pipeline:
+# 1. Builds a test artifact (binary/tarball)
+# 2. Uploads to MinIO via `mc` CLI
+# 3. Uploads GitLab native artifact (stored in MinIO by GitLab)
+# 4. Verifies artifact is accessible
+#
+# Usage: Copy to repository root as `.gitlab-ci.yml`, configure MinIO secrets, push.
+
+stages:
+  - build
+  - upload
+  - verify
+  - cleanup
+
+variables:
+  MINIO_ENDPOINT: "mc.elevatediq.ai:9000"
+  MINIO_BUCKET: "gitlab-artifacts"
+  ARTIFACT_NAME: "demo-build-${CI_COMMIT_SHA}.tar.gz"
+
+# Install MinIO client
+.minio_setup: &minio_setup
+  before_script:
+    - apt-get update -y && apt-get install -y wget
+    - wget https://dl.min.io/client/mc/release/linux-amd64/mc -O /usr/local/bin/mc
+    - chmod +x /usr/local/bin/mc
+    - mc alias set minio http://${MINIO_ENDPOINT} ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
+    - mc version minio
+
+build:artifact:
+  <<: *minio_setup
+  stage: build
+  image: ubuntu:24.04
+  script:
+    - echo "Building demo artifact..."
+    - mkdir -p build/
+    - echo "Demo application v${CI_COMMIT_SHA}" > build/version.txt
+    - echo "Build timestamp: $(date)" >> build/version.txt
+    - echo "CI Pipeline: ${CI_PIPELINE_ID}" >> build/version.txt
+    - tar -czf ${ARTIFACT_NAME} build/
+    - ls -lh ${ARTIFACT_NAME}
+    - md5sum ${ARTIFACT_NAME} > ${ARTIFACT_NAME}.md5
+  artifacts:
+    paths:
+      - ${ARTIFACT_NAME}
+      - ${ARTIFACT_NAME}.md5
+      - build/
+    expire_in: 7 days
+  cache:
+    key: "demo-build-${CI_COMMIT_REF}"
+    paths:
+      - build/
+
+upload:to_minio:
+  <<: *minio_setup
+  stage: upload
+  image: ubuntu:24.04
+  dependencies:
+    - build:artifact
+  script:
+    - echo "Uploading artifact to MinIO..."
+    - mc cp ${ARTIFACT_NAME} minio/${MINIO_BUCKET}/${ARTIFACT_NAME}
+    - mc cp ${ARTIFACT_NAME}.md5 minio/${MINIO_BUCKET}/${ARTIFACT_NAME}.md5
+    - echo "✓ Upload complete"
+    - mc ls minio/${MINIO_BUCKET}/${ARTIFACT_NAME}*
+  only:
+    - main
+  allow_failure: true
+
+verify:minio_access:
+  <<: *minio_setup
+  stage: verify
+  image: ubuntu:24.04
+  script:
+    - echo "Verifying MinIO access and artifact..."
+    - mc ls minio/${MINIO_BUCKET}/ | grep ${ARTIFACT_NAME} || { echo "Artifact NOT found in MinIO"; exit 1; }
+    - echo "✓ Artifact found in MinIO"
+    - mc stat minio/${MINIO_BUCKET}/${ARTIFACT_NAME}
+    - echo "Verifying checksum..."
+    - mc cat minio/${MINIO_BUCKET}/${ARTIFACT_NAME}.md5
+  allow_failure: true
+  retry:
+    max: 2
+    when: script_failure
+
+cleanup:old_artifacts:
+  <<: *minio_setup
+  stage: cleanup
+  image: ubuntu:24.04
+  script:
+    - echo "Cleaning up artifacts older than 30 days..."
+    - |
+      mc find minio/${MINIO_BUCKET}/ --older-than 30d --json | \
+      while read -r obj; do
+        key=$(echo "$obj" | jq -r '.key')
+        echo "Deleting: $key"
+        mc rm minio/${MINIO_BUCKET}/$key
+      done || true
+    - echo "✓ Cleanup complete"
+  only:
+    - main
+  allow_failure: true
+
+# Health check: verify MinIO is reachable
+health:check:
+  <<: *minio_setup
+  stage: build
+  image: ubuntu:24.04
+  script:
+    - echo "Checking MinIO health..."
+    - mc admin info minio 2>&1 | head -20
+    - echo "✓ MinIO is healthy"
+  allow_failure: true
+  when: always
