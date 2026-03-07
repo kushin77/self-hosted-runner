@@ -1,0 +1,13 @@
+name: Dispatch: Auto-Remediate Security Findings (Temporary)
+
+on:
+  workflow_dispatch: {}
+
+# Temporary wrapper to call the existing `security-findings-remediation.yml` via workflow_call.
+# This allows manual/automated dispatching even if registration issues affect the original workflow.
+
+jobs:
+  call-remediation:
+    uses: ./.github/workflows/security-findings-remediation.yml
+    with: {}
+    secrets: inherit

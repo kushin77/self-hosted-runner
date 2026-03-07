@@ -52,14 +52,19 @@ jobs:
         id: get-run
         run: |
           source .github/scripts/resilience.sh || true
-          # Get the most recent completed security-audit workflow run
-          RUN_ID=$(retry_command 5 10 sh -c "gh run list --workflow security-audit.yml --repo ${{ github.repository }} --status completed --limit 1 --json databaseId --jq '.[0].databaseId'" || true)
+          # Prefer the dispatchable audit run (temporary); fall back to the canonical security-audit.yml
+          RUN_ID=""
+          RUN_ID=$(retry_command 5 10 sh -c "gh run list --workflow security-audit-dispatchable.yml --repo ${{ github.repository }} --status completed --limit 1 --json databaseId --jq '.[0].databaseId'" || true)
+          if [[ -z "$RUN_ID" ]]; then
+            RUN_ID=$(retry_command 5 10 sh -c "gh run list --workflow security-audit.yml --repo ${{ github.repository }} --status completed --limit 1 --json databaseId --jq '.[0].databaseId'" || true)
+          fi
+
           if [[ -z "$RUN_ID" ]]; then
             echo "⚠️  No completed security-audit runs found"
             echo "run_id=" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "✅ Found security-audit run: $RUN_ID"
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
       
