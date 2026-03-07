@@ -8,7 +8,10 @@ on:
 jobs:
   check-and-heal:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      actions: read
+      contents: read
+      issues: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,8 +19,9 @@ jobs:
       - name: Check repository runners
         id: check
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
         run: |
+          # Use PAT if available for administration access, otherwise fallback to GITHUB_TOKEN
           runners_json=$(gh api /repos/${{ github.repository }}/actions/runners)
           offline_count=$(echo "$runners_json" | jq '.runners | map(select(.status != "online")) | length')
           offline_names=$(echo "$runners_json" | jq -r '.runners | map(select(.status != "online")) | map(.name) | join(",")')
@@ -67,6 +71,8 @@ jobs:
 
       - name: Create issue if runners offline and no SSH key
         if: steps.check.outputs.offline_count != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
             echo "DEPLOY_SSH_KEY present; automated restart attempted or will be attempted"
