@@ -31,7 +31,7 @@ jobs:
       group: dr-reconciliation-auto-remediate-${{ github.ref || github.run_id }}
       cancel-in-progress: false
     timeout-minutes: 30
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -41,13 +41,13 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
 
-      
+
       - name: Scan for failed DR tests (last 24h)
         id: scan-failures
         run: |
           source .github/scripts/resilience.sh || true
           echo "Scanning for failed DR tests in last 24 hours..."
-          
+
           FAILED_ISSUES=$(retry_command 2 3 gh issue list \
             --repo kushin77/self-hosted-runner \
             --label "disaster-recovery,critical" \
@@ -55,19 +55,19 @@ jobs:
             --created ">$(date -u -d '24 hours ago' +'%Y-%m-%dT%H:%M:%SZ')" \
             --json number,title \
             --jq '.[].number')
-          
+
           if [ -z "$FAILED_ISSUES" ]; then
             echo "status=no-failures" >> $GITHUB_OUTPUT
             echo "✓ No open DR failure issues in last 24 hours"
             exit 0
           fi
-          
+
           ISSUE_COUNT=$(echo "$FAILED_ISSUES" | wc -l)
           echo "status=failures-detected" >> $GITHUB_OUTPUT
           echo "failed_issues=$FAILED_ISSUES" >> $GITHUB_OUTPUT
           echo "issue_count=$ISSUE_COUNT" >> $GITHUB_OUTPUT
           echo "⚠ Found $ISSUE_COUNT failed DR test issues: $FAILED_ISSUES"
-      
+
       - name: Extract affected run IDs from failure issues
         id: extract-run-ids
         if: steps.scan-failures.outputs.status == 'failures-detected'
@@ -75,21 +75,21 @@ jobs:
           source .github/scripts/resilience.sh || true
           FAILED_ISSUES="${{ steps.scan-failures.outputs.failed_issues }}"
           FAILED_ISSUES="${FAILED_ISSUES//$'\n'/,}"
-          
+
           # Extract run IDs from issue body
           RUN_IDS=$(retry_command 2 3 gh issue view $FAILED_ISSUES --repo kushin77/self-hosted-runner \
             --json body --jq '.body' | \
             grep -oE "Run ID[^:]*: ([0-9]+)" | cut -d: -f2 | tr -d ' ')
-          
+
           if [ -z "$RUN_IDS" ]; then
             echo "run_ids=" >> $GITHUB_OUTPUT
             echo "⚠ Could not extract run IDs from issues"
             exit 0
           fi
-          
+
           echo "run_ids=$RUN_IDS" >> $GITHUB_OUTPUT
           echo "Found run IDs: $RUN_IDS"
-      
+
       - name: Check if latest DR test succeeded since failures
         id: check-recovery
         run: |
@@ -101,7 +101,7 @@ jobs:
             --limit 1 \
             --json createdAt,databaseId \
             --jq '.[0] | "\(.databaseId) \(.createdAt)"')
-          
+
           if [ -n "$LATEST_SUCCESS" ]; then
             echo "latest_success=$LATEST_SUCCESS" >> $GITHUB_OUTPUT
             echo "recovery_detected=true" >> $GITHUB_OUTPUT
@@ -110,7 +110,7 @@ jobs:
             echo "recovery_detected=false" >> $GITHUB_OUTPUT
             echo "⚠ No successful DR run found since failures"
           fi
-      
+
       - name: Auto-close resolved DR failure issues
         id: auto-close
         if: steps.check-recovery.outputs.recovery_detected == 'true'
@@ -119,12 +119,12 @@ jobs:
           FAILED_ISSUES="${FAILED_ISSUES//$'\n'/,}"
           LATEST_SUCCESS="${{ steps.check-recovery.outputs.latest_success }}"
           RUN_ID=$(echo "$LATEST_SUCCESS" | cut -d' ' -f1)
-          
+
           echo "Auto-closing resolved DR failure issues with recovery run: $RUN_ID"
-          
+
           IFS=',' read -ra ISSUES <<< "$FAILED_ISSUES"
           CLOSED_COUNT=0
-          
+
           for issue in "${ISSUES[@]}"; do
             gh issue close "$issue" \
               --repo kushin77/self-hosted-runner \
@@ -144,13 +144,13 @@ This issue was automatically closed because a successful DR recovery was detecte
 - Weekly DR tests will continue on schedule (every Tuesday @ 03:00 UTC)
 - Monitoring dashboard: Issue #1056
 - Incident archive: GitHub Actions logs"
-            
+
             echo "Closed issue #$issue"
             ((CLOSED_COUNT++))
           done
-          
+
           echo "closed_count=$CLOSED_COUNT" >> $GITHUB_OUTPUT
-      
+
       - name: If recovery not detected, trigger master reconciliation run
         id: trigger-reconciliation
         if: steps.check-recovery.outputs.recovery_detected == 'false' && steps.scan-failures.outputs.status == 'failures-detected'
@@ -161,16 +161,16 @@ This issue was automatically closed because a successful DR recovery was detecte
             echo "⏳ Reconciliation queued (waiting for manual approval)"
             exit 0
           fi
-          
+
           echo "Triggering master reconciliation run..."
-          
+
           gh workflow run docker-hub-weekly-dr-testing.yml \
             --repo kushin77/self-hosted-runner \
             -f verbose=true \
             -f dry_run=false
-          
+
           echo "reconciliation_status=triggered" >> $GITHUB_OUTPUT
-          
+
           # Wait for the run to start and get its ID
           sleep 5
           RECON_RUN=$(gh run list \
@@ -179,13 +179,13 @@ This issue was automatically closed because a successful DR recovery was detecte
             --repo kushin77/self-hosted-runner \
             --json databaseId,status \
             --jq '.[0]')
-          
+
           RUN_ID=$(echo "$RECON_RUN" | jq -r '.databaseId')
           STATUS=$(echo "$RECON_RUN" | jq -r '.status')
-          
+
           echo "reconciliation_run_id=$RUN_ID" >> $GITHUB_OUTPUT
           echo "✓ Reconciliation run triggered: $RUN_ID (status: $STATUS)"
-      
+
       - name: Post reconciliation status to investigation issue
         if: steps.scan-failures.outputs.status == 'failures-detected'
         run: |
@@ -193,7 +193,7 @@ This issue was automatically closed because a successful DR recovery was detecte
           CLOSED_COUNT="${{ steps.auto-close.outputs.closed_count || 0 }}"
           RECON_STATUS="${{ steps.trigger-reconciliation.outputs.reconciliation_status }}"
           RECON_RUN_ID="${{ steps.trigger-reconciliation.outputs.reconciliation_run_id }}"
-          
+
           BODY="## 🔄 DR Reconciliation Report - $(date -u +'%Y-%m-%d %H:%M:%S UTC')
 
 ### Summary
@@ -210,7 +210,7 @@ This issue was automatically closed because a successful DR recovery was detecte
 
 ### System Status
 - DR testing infrastructure: **OPERATIONAL**
-- Automatic remediation: **ACTIVE**  
+- Automatic remediation: **ACTIVE**
 - Next reconciliation: 30 minutes
 - Monitoring: Continuous
 
@@ -219,13 +219,13 @@ This issue was automatically closed because a successful DR recovery was detecte
 - If reconciliation fails: Escalate to on-call with diagnostics
 - Weekly DR tests: Continue on schedule (Tuesdays @ 03:00 UTC)
 "
-          
+
           gh issue comment 1064 \
             --repo kushin77/self-hosted-runner \
             --body "$BODY"
-          
+
           echo "✓ Posted reconciliation report to issue #1064"
-      
+
       - name: Store reconciliation metrics
         if: always()
         run: |
@@ -239,7 +239,7 @@ This issue was automatically closed because a successful DR recovery was detecte
             "reconciliation_triggered": "${{ steps.trigger-reconciliation.outputs.reconciliation_status }}"
           }
           EOF
-      
+
       - name: Upload metrics as artifact
         if: always()
         uses: actions/upload-artifact@v4

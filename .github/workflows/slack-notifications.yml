@@ -2,7 +2,7 @@ name: Slack Notifications - Ops Events
 
 on:
   workflow_run:
-    workflows: 
+    workflows:
       - "Runner Self-Heal"
       - "Weekly Disaster Recovery Testing"
       - "Credential Rotation - Monthly"
@@ -57,7 +57,7 @@ jobs:
         run: |
           CONCLUSION="${{ github.event.workflow_run.conclusion }}"
           EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"🚨\")"
-          
+
           curl -X POST "$WEBHOOK_URL" \
             -H 'Content-Type: application/json' \
             -d "{
@@ -79,7 +79,7 @@ jobs:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-          
+
           curl -X POST "$WEBHOOK_URL" \
             -H 'Content-Type: application/json' \
             -d "{
@@ -122,7 +122,7 @@ jobs:
         run: |
           CONCLUSION="${{ github.event.workflow_run.conclusion }}"
           EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"⚠️\")"
-          
+
           curl -X POST "$WEBHOOK_URL" \
             -H 'Content-Type: application/json' \
             -d "{

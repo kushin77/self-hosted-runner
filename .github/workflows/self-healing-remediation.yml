@@ -4,9 +4,9 @@ on:
   schedule:
     # Every 10 minutes, check for common failures and auto-fix
     - cron: "*/10 * * * *"
-  
+
   workflow_call: {}
-  
+
   workflow_dispatch:
 
 permissions:
@@ -24,28 +24,28 @@ jobs:
     name: Detect & Self-Heal Issues
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Load Resilience Helpers
         run: source .github/scripts/resilience.sh 2>/dev/null || true
-      
+
       - name: Detect Missing Critical Secrets
         id: missing-secrets
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking for missing critical secrets..."
-          
+
           MISSING=()
           CRITICAL_SECRETS=(
             "GCP_SERVICE_ACCOUNT_KEY"
             "DEPLOY_SSH_KEY"
             "RUNNER_MGMT_TOKEN"
           )
-          
+
           for secret in "${CRITICAL_SECRETS[@]}"; do
             if ! gh secret list --repo ${{ github.repository }} \
               --json name --jq ".[] | select(.name == \"$secret\") | .name" 2>/dev/null | grep -q "$secret"; then
@@ -55,7 +55,7 @@ jobs:
               echo "✅ Found: $secret"
             fi
           done
-          
+
           if [ ${#MISSING[@]} -gt 0 ]; then
             echo "missing_count=${#MISSING[@]}" >> $GITHUB_OUTPUT
             echo "missing_secrets=$(IFS=,; echo "${MISSING[*]}")" >> $GITHUB_OUTPUT
@@ -66,16 +66,16 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Auto-Provision Missing Secrets
         if: steps.missing-secrets.outputs.has_missing == 'true'
         run: |
           set -euo pipefail
-          
+
           echo "🔧 Auto-provisioning missing secrets..."
-          
+
           MISSING="${{ steps.missing-secrets.outputs.missing_secrets }}"
-          
+
           # Generate fallback secrets if not in environment
           for secret in $(echo "$MISSING" | tr ',' '\n'); do
             case "$secret" in
@@ -102,30 +102,30 @@ jobs:
                 ;;
             esac
           done
-          
+
           echo "✅ Fallback secrets provisioned"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Detect Failed Workflows
         id: failed-workflows
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking for failed workflows..."
-          
+
           # Check last 3 runs of critical workflows
           WORKFLOWS=(
             "verify-secrets-and-diagnose.yml"
             "dr-smoke-test.yml"
           )
-          
+
           FAILED_COUNT=0
-          
+
           for workflow in "${WORKFLOWS[@]}"; do
             LAST_RUN=$(gh run list --workflow "$workflow" --repo ${{ github.repository }} \
               --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
-            
+
             if [ "$LAST_RUN" = "failure" ]; then
               echo "⚠️  Last run of $workflow failed"
               ((FAILED_COUNT++))
@@ -133,7 +133,7 @@ jobs:
               echo "✅ $workflow successful"
             fi
           done
-          
+
           echo "failed_count=$FAILED_COUNT" >> $GITHUB_OUTPUT
           if [ $FAILED_COUNT -gt 0 ]; then
             echo "has_failures=true" >> $GITHUB_OUTPUT
@@ -142,29 +142,29 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Retry Failed Workflows
         if: steps.failed-workflows.outputs.has_failures == 'true'
         run: |
           set -euo pipefail
-          
+
           echo "🔄 Retrying failed workflows..."
-          
+
           for workflow in "verify-secrets-and-diagnose.yml" "dr-smoke-test.yml"; do
             LAST_CONCLUSION=$(gh run list --workflow "$workflow" --repo ${{ github.repository }} \
               --limit 1 --json conclusion --jq '.[0].conclusion' 2>/dev/null || echo "unknown")
-            
+
             if [ "$LAST_CONCLUSION" = "failure" ]; then
               echo "↻ Retrying $workflow..."
               gh workflow run "$workflow" --repo ${{ github.repository }} --ref main || true
               sleep 2
             fi
           done
-          
+
           echo "✅ Retry cascade initiated"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Remediation Summary
         if: always()
         run: |

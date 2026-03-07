@@ -32,7 +32,7 @@ jobs:
   setup-minio-observability:
     name: Setup MinIO Observability
     runs-on: ubuntu-latest
-    
+
     steps:
             - name: Load resilience helpers
               run: |
@@ -40,7 +40,7 @@ jobs:
                 source .github/scripts/resilience.sh || true
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Generate Prometheus & Grafana Configs
         if: ${{ github.event.inputs.action == 'generate-configs' || github.event.inputs.action == '' }}
         run: |
@@ -105,30 +105,30 @@ jobs:
           echo "| TLS certificate error | MinIO TLS config | Add \`insecure_skip_verify: true\` (temporary) |" >> $GITHUB_STEP_SUMMARY
           echo "| 401 Unauthorized | MinIO auth | Add basic_auth credentials to scrape_config |" >> $GITHUB_STEP_SUMMARY
           echo "| Grafana dashboard empty | Datasource | Verify Prometheus is selected as datasource |" >> $GITHUB_STEP_SUMMARY
-      
+
       - name: Validate Prometheus Setup
         if: ${{ github.event.inputs.action == 'validate-setup' }}
         run: |
           PROMETHEUS_URL="${{ github.event.inputs.prometheus_endpoint }}"
-          
+
           echo "Validating Prometheus connectivity..."
-          
+
           if curl -s "${PROMETHEUS_URL}/api/v1/query?query=up" > /dev/null; then
             echo "✓ Prometheus is accessible"
           else
             echo "✗ Cannot reach Prometheus at ${PROMETHEUS_URL}"
             exit 1
           fi
-          
+
           echo "Checking for MinIO metrics..."
           METRICS=$(curl -s "${PROMETHEUS_URL}/api/v1/query?query=minio_bucket_usage_bytes" | jq -r '.data.result | length')
-          
+
           if [ "$METRICS" -gt 0 ]; then
             echo "✓ Found ${METRICS} MinIO metrics in Prometheus"
           else
             echo "⚠ MinIO metrics not yet available (may take 1-2 scrape cycles)"
           fi
-      
+
       - name: Generate Grafana Dashboard JSON
         if: ${{ github.event.inputs.action == 'generate-dashboard-json' }}
         run: |
@@ -253,10 +253,10 @@ jobs:
             "version": 1
           }
           EOF
-          
+
           cat /tmp/grafana-minio-dashboard.json
           cp /tmp/grafana-minio-dashboard.json artifacts/grafana-minio-dashboard.json
-      
+
       - name: Upload Dashboard JSON
         if: ${{ github.event.inputs.action == 'generate-dashboard-json' }}
         uses: actions/upload-artifact@v4
@@ -264,58 +264,58 @@ jobs:
           name: minio-observability-dashboard
           path: artifacts/grafana-minio-dashboard.json
           retention-days: 90
-      
+
       - name: Post Setup Instructions
         uses: actions/github-script@v7
         with:
           script: |
             const fs = require('fs');
             const summary = `## ✅ MinIO Observability Setup
-            
+
             ### Configuration Files Generated
-            
+
             ✓ **Prometheus Config**: \`artifacts/prometheus-minio-config.md\`
             ✓ **Grafana Dashboard**: \`artifacts/grafana-minio-dashboard.json\`
-            
+
             ### Next Steps
-            
+
             1. **Configure Prometheus**
                - Edit your Prometheus config
                - Add scrape config from \`artifacts/prometheus-minio-config.md\`
                - Reload Prometheus (systemctl reload prometheus)
-            
+
             2. **Import Grafana Dashboard**
                - Go to Grafana home page
                - Click \"+\" → Dashboard → Import
                - Upload \`artifacts/grafana-minio-dashboard.json\`
                - Select Prometheus as datasource
                - Click Import
-            
+
             3. **Verify Setup**
                - Check Prometheus targets: ${{ github.event.inputs.prometheus_endpoint }}/targets
                - Look for job_name: 'minio' with UP status
                - Verify Grafana dashboard shows metrics
-            
+
             ### Troubleshooting
-            
+
             **No metrics in Prometheus?**
             - Verify MinIO is reachable at \`mc.elevatediq.ai:9000\`
             - Check TLS configuration if HTTPS
             - Review Prometheus logs for scrape errors
-            
+
             **Dashboard empty?**
             - Ensure Prometheus datasource is selected
             - Verify metrics exist: Query \`minio_bucket_usage_bytes\` in Prometheus UI
             - Dashboard may take 1-2 scrape cycles to populate
-            
+
             ### Related Issues
             - #1084 (MinIO observability request)
             - #538 (Quota metrics & replication)
-            
+
             ---
-            
+
             **Setup Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
             **Action**: ${{ github.event.inputs.action || 'generate-configs' }}
             `;
-            
+
             console.log(summary);

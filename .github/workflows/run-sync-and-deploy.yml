@@ -41,7 +41,7 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          
+
           # Retry gcloud setup up to 3 times
           for attempt in {1..3}; do
             echo "Attempt $attempt/3: Setting up gcloud..."
@@ -51,7 +51,7 @@ jobs:
             fi
             [ $attempt -lt 3 ] && sleep 5
           done
-          
+
           echo "⚠️  gcloud setup failed after 3 attempts. Will proceed with GitHub Actions secrets fallback."
           exit 0
 
@@ -61,7 +61,7 @@ jobs:
           set -euo pipefail
           WEBHOOK=""
           GSM_SUCCESS=false
-          
+
           # Try GSM first
           if command -v gcloud &> /dev/null; then
             WEBHOOK=$(gcloud secrets versions access latest --secret="slack-webhook" --project="${{ secrets.GCP_PROJECT_ID }}" 2>/dev/null || true)
@@ -70,13 +70,13 @@ jobs:
               echo "✅ Fetched SLACK_WEBHOOK_URL from GCP Secret Manager"
             fi
           fi
-          
+
           # Fallback to GitHub Actions secret if GSM unavailable
           if [[ -z "$WEBHOOK" ]] && [[ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]]; then
             WEBHOOK="${{ secrets.SLACK_WEBHOOK_URL }}"
             echo "✅ Using SLACK_WEBHOOK_URL from GitHub Actions secrets (GSM unavailable)"
           fi
-          
+
           # Export to env and set outputs
           if [[ -n "$WEBHOOK" ]]; then
             echo "webhook_present=true" >> $GITHUB_OUTPUT
@@ -100,25 +100,25 @@ jobs:
         run: |
           set -euo pipefail
           trap 'exit 0' EXIT  # Always exit 0 despite any errors
-          
+
           WEBHOOK="${{ steps.fetch.outputs.webhook }}"
           if [[ -z "$WEBHOOK" ]]; then
             echo "⚠️  Webhook is empty; skipping repo secret update"
             exit 0
           fi
-          
+
           # Write webhook to temp file to avoid shell escaping issues
           TMP_WEBHOOK=$(mktemp)
           trap "rm -f $TMP_WEBHOOK" EXIT
           echo -n "$WEBHOOK" > "$TMP_WEBHOOK"
-          
+
           # Attempt to set the secret
           if gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" < "$TMP_WEBHOOK" 2>&1; then
             echo "✅ SLACK_WEBHOOK_URL repo secret updated successfully"
           else
             echo "⚠️  Failed to set repo secret via gh (non-critical; webhook available from environment var)"
           fi
-          
+
           exit 0  # Ensure this step always succeeds
 
       - name: Ensure scripts are executable

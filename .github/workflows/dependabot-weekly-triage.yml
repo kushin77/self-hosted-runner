@@ -33,7 +33,7 @@ jobs:
   dependabot-triage:
     name: Triage Dependabot PRs
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
 
-      
+
       - name: List All Open Dependabot PRs
         id: dependabot-list
         uses: actions/github-script@v7
@@ -55,11 +55,11 @@ jobs:
               state: 'open',
               per_page: 100
             });
-            
-            const dependabotPRs = prList.data.filter(pr => 
+
+            const dependabotPRs = prList.data.filter(pr =>
               pr.user.login === 'dependabot[bot]' || pr.title.includes('Dependabot')
             );
-            
+
             let summary = {
               total: dependabotPRs.length,
               patch: [],
@@ -68,10 +68,10 @@ jobs:
               security: [],
               other: []
             };
-            
+
             for (const pr of dependabotPRs) {
               const title = pr.title.toLowerCase();
-              
+
               // Classify by update type
               if (title.includes('security')) {
                 summary.security.push(pr);
@@ -85,7 +85,7 @@ jobs:
                 summary.other.push(pr);
               }
             }
-            
+
             console.log('Dependabot PR Summary:', summary);
             core.setOutput('total', summary.total);
             core.setOutput('patch_count', summary.patch.length);
@@ -93,7 +93,7 @@ jobs:
             core.setOutput('major_count', summary.major.length);
             core.setOutput('security_count', summary.security.length);
             core.setOutput('prs_json', JSON.stringify(summary));
-      
+
       - name: Auto-Merge Low-Risk PRs (Patch/Minor)
         if: ${{ github.event.inputs.auto_merge_enabled != 'false' }}
         uses: actions/github-script@v7
@@ -101,21 +101,21 @@ jobs:
           script: |
             const riskLevel = '${{ github.event.inputs.risk_level || "patch" }}';
             const prSummary = JSON.parse('${{ steps.dependabot-list.outputs.prs_json }}');
-            
+
             let autoMergedCount = 0;
             let skippedCount = 0;
             let failedCount = 0;
-            
+
             // Determine which categories to auto-merge
             const categoriesToMerge = ['security'];
             if (riskLevel === 'patch') categoriesToMerge.push('patch');
             if (riskLevel === 'minor') categoriesToMerge.push('patch', 'minor');
             if (riskLevel === 'major') categoriesToMerge.push('patch', 'minor', 'major');
-            
+
             // Process each category
             for (const category of categoriesToMerge) {
               if (!prSummary[category]) continue;
-              
+
               for (const pr of prSummary[category]) {
                 try {
                   // Check PR status
@@ -124,11 +124,11 @@ jobs:
                     repo: context.repo.repo,
                     ref: pr.head.sha
                   });
-                  
+
                   const allChecksPassed = checks.data.check_runs.every(check =>
                     check.status === 'completed' && check.conclusion === 'success'
                   );
-                  
+
                   if (allChecksPassed && pr.mergeable_state === 'clean') {
                     // Check if auto-merge is already enabled
                     const prDetails = await github.rest.pulls.get({
@@ -136,7 +136,7 @@ jobs:
                       repo: context.repo.repo,
                       pull_number: pr.number
                     });
-                    
+
                     if (prDetails.data.auto_merge) {
                       console.log(`✓ PR #${pr.number} already has auto-merge enabled`);
                       autoMergedCount++;
@@ -148,7 +148,7 @@ jobs:
                         pull_number: pr.number,
                         merge_method: 'squash'
                       });
-                      
+
                       console.log(`✓ Enabled auto-merge for PR #${pr.number} (${category})`);
                       autoMergedCount++;
                     }
@@ -162,72 +162,72 @@ jobs:
                 }
               }
             }
-            
+
             core.setOutput('auto_merged', autoMergedCount);
             core.setOutput('skipped', skippedCount);
             core.setOutput('failed', failedCount);
-      
+
       - name: Create Weekly Triage Report Issue
         uses: actions/github-script@v7
         with:
           script: |
             const timestamp = new Date().toISOString().split('T')[0];
             const reportBody = `## 📋 Weekly Dependabot Triage Report
-            
+
             **Week of**: ${timestamp}
             **Generated**: ${new Date().toISOString()}
-            
+
             ### Summary
             - **Total PRs**: ${{ steps.dependabot-list.outputs.total }}
             - **Security**: ${{ steps.dependabot-list.outputs.security_count }}
             - **Patches**: ${{ steps.dependabot-list.outputs.patch_count }}
             - **Minor Updates**: ${{ steps.dependabot-list.outputs.minor_count }}
             - **Major Updates**: ${{ steps.dependabot-list.outputs.major_count }}
-            
+
             ### Auto-Merge Status
             ${{ github.event.inputs.auto_merge_enabled != 'false' && format('- ✅ Auto-merged: {0}', steps.auto-merge-low-risk.outputs.auto_merged) || '- ⊘ Auto-merge disabled' }}
             - Skipped (failing CI): ${{ steps.auto-merge-low-risk.outputs.skipped || '0' }}
             - Failed to process: ${{ steps.auto-merge-low-risk.outputs.failed || '0' }}
-            
+
             ### Action Items
-            
+
             ${{ steps.dependabot-list.outputs.security_count > 0 && '- [ ] Review & merge security PRs' || '' }}
             ${{ steps.dependabot-list.outputs.major_count > 0 && '- [ ] Test & review major version updates' || '' }}
             ${{ steps.dependabot-list.outputs.patch_count > 0 && '- [ ] Verify patch updates are applied' || '' }}
-            
+
             ### Next Steps
-            
+
             1. **Security Updates** (priority: critical)
                - Review any security patch PRs
                - Merge immediately after verification
-            
+
             2. **Patch Updates** (priority: high)
                - Usually safe to merge if CI passes
                - Check CHANGELOG for breaking changes
-            
+
             3. **Minor Updates** (priority: medium)
                - Test for compatibility
                - Merge if no issues detected
-            
+
             4. **Major Updates** (priority: low)
                - Require thorough testing
                - Schedule for dedicated review
                - Consider timing with release cycles
-            
+
             ### Configuration
             - **Dependabot**: \`.github/dependabot.yml\`
             - **Auto-merge**: Enabled for ${github.event.inputs.risk_level || 'patch'} + security
             - **Schedule**: Weekly (Mondays @ 9 AM UTC)
-            
+
             ### Related
             - Issue #1157 (Weekly Dependabot review)
             - [Dependabot Documentation](https://docs.github.com/en/code-security/dependabot)
-            
+
             ---
-            
+
             **Note**: This is an automated report. Manual action required for major version updates.
             `;
-            
+
             // Check if issue already exists for this week
             const existingIssues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -235,11 +235,11 @@ jobs:
               labels: ['dependabot', 'weekly-triage'],
               state: 'open'
             });
-            
+
             const thisWeekIssue = existingIssues.data.find(issue =>
               issue.title.includes(timestamp)
             );
-            
+
             if (!thisWeekIssue) {
               const newIssue = await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -249,7 +249,7 @@ jobs:
                 labels: ['dependabot', 'weekly-triage', 'automation'],
                 assignees: []
               });
-              
+
               console.log(`Created triage issue #${newIssue.data.number}`);
             } else {
               // Update existing issue
@@ -259,30 +259,30 @@ jobs:
                 issue_number: thisWeekIssue.number,
                 body: `## ✅ Updated Report (${new Date().toISOString()})\n\n${reportBody}`
               });
-              
+
               console.log(`Updated triage issue #${thisWeekIssue.number}`);
             }
-      
+
       - name: Generate Workflow Summary
         run: |
           cat >> $GITHUB_STEP_SUMMARY << 'EOF'
           ## 📊 Weekly Dependabot Triage Complete
-          
+
           ### Results
           - **Total PRs**: ${{ steps.dependabot-list.outputs.total }}
           - **Security**: ${{ steps.dependabot-list.outputs.security_count }}
           - **Patches**: ${{ steps.dependabot-list.outputs.patch_count }}
           - **Minor**: ${{ steps.dependabot-list.outputs.minor_count }}
           - **Major**: ${{ steps.dependabot-list.outputs.major_count }}
-          
+
           ### Auto-Merge Actions
           ${{ github.event.inputs.auto_merge_enabled != 'false' && format('- ✅ Enabled auto-merge: {0} PRs', steps.auto-merge-low-risk.outputs.auto_merged) || '- ⊘ Auto-merge disabled' }}
-          
+
           ### Next Steps
           1. Check weekly triage issue for detailed report
           2. Review any manually-flagged PRs
           3. Test and merge major version updates
-          
+
           ---
           **Report Generated**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
           EOF

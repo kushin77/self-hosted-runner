@@ -51,15 +51,15 @@ jobs:
         run: |
           set +e
           KEY_CONTENT='${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
-          
+
           # Validate JSON
           if echo "$KEY_CONTENT" | jq . > /dev/null 2>&1; then
             echo "✅ GCP key is valid JSON"
-            
+
             # Check for required fields
             TYPE=$(echo "$KEY_CONTENT" | jq -r '.type // empty')
             PROJECT=$(echo "$KEY_CONTENT" | jq -r '.project_id // empty')
-            
+
             if [ "$TYPE" = "service_account" ] && [ -n "$PROJECT" ]; then
               echo "✅ GCP key has required fields: type=service_account, project_id=$PROJECT"
               echo "status=valid" >> $GITHUB_OUTPUT
@@ -92,7 +92,7 @@ jobs:
         run: |
           GCP_STATUS="${{ steps.gcp-validate.outputs.status }}"
           DOCKER_STATUS="${{ steps.docker-check.outputs.status }}"
-          
+
           if [ "$GCP_STATUS" = "valid" ] && [ -n "$DOCKER_STATUS" ]; then
             echo "status=ready" >> $GITHUB_OUTPUT
             echo "✅ DR Readiness: READY"
@@ -115,5 +115,5 @@ jobs:
           script: |
             const drStatus = "${{ needs.dr-readiness-check.outputs.dr_status }}";
             const emoji = drStatus === 'ready' ? '✅' : '⚠️';
-            
+
             console.log(`DR Smoke Test Result: ${emoji} ${drStatus.toUpperCase()}`);

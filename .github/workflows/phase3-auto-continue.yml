@@ -151,7 +151,7 @@ jobs:
           echo "🎯 Phase 3 continuation: All blockers resolved!"
           echo "Next: Download E2E artifacts, execute branch cleanup, close issues"
           echo ""
-          
+
           # Placeholder for continuation logic
           # In a real scenario, this would:
           # 1. Download MinIO E2E artifacts

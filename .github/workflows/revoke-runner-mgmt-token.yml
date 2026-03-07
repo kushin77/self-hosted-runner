@@ -22,7 +22,7 @@ jobs:
     name: Revoke RUNNER_MGMT_TOKEN
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
             - name: Load resilience helpers
               run: |
@@ -30,7 +30,7 @@ jobs:
                 source .github/scripts/resilience.sh || true
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Verify token validity
         id: check-token
         env:
@@ -41,7 +41,7 @@ jobs:
             echo "token_valid=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           # Test token validity
           if echo "$RUNNER_MGMT_TOKEN" | gh auth status 2>/dev/null; then
             echo "✅ Token is currently valid"
@@ -50,7 +50,7 @@ jobs:
             echo "⚠️  Token already invalid or revoked"
             echo "token_valid=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Gracefully stop all workflows
         if: steps.check-token.outputs.token_valid == 'true'
         id: stop-workflows
@@ -58,12 +58,12 @@ jobs:
           RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
         run: |
           echo "🛑 Stopping all active workflows..."
-          
+
           # Get all in-progress runs
           RUNS=$(gh api repos/${{ github.repository }}/actions/runs \
             --jq '.workflow_runs[] | select(.status == "in_progress" or .status == "queued") | .id' \
             2>/dev/null || echo "")
-          
+
           STOPPED_COUNT=0
           if [[ -n "$RUNS" ]]; then
             while IFS= read -r RUN_ID; do
@@ -73,10 +73,10 @@ jobs:
               fi
             done <<< "$RUNS"
           fi
-          
+
           echo "Stopped: $STOPPED_COUNT workflows"
           echo "stopped_count=$STOPPED_COUNT" >> $GITHUB_OUTPUT
-      
+
       - name: Archive token to GSM audit log
         if: steps.check-token.outputs.token_valid == 'true'
         continue-on-error: true
@@ -85,12 +85,12 @@ jobs:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           echo "📦 Archiving revocation record to GCP..."
-          
+
           # Authenticate if possible
           if [[ -n "$GCP_SERVICE_ACCOUNT_KEY" ]]; then
             echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
             gcloud auth activate-service-account --key-file=/tmp/gcp-key.json 2>/dev/null || true
-            
+
             # Create audit log entry
             AUDIT_ENTRY="{
               \"timestamp\": \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\",
@@ -101,24 +101,24 @@ jobs:
               \"workflow_run\": \"${{ github.run_id }}\",
               \"repository\": \"${{ github.repository }}\"
             }"
-            
+
             echo "$AUDIT_ENTRY" | gcloud secrets versions add runner-mgmt-token-audit-log \
               --data-file=- 2>/dev/null || echo "Note: Could not append to audit log"
-            
+
             rm -f /tmp/gcp-key.json
           fi
-      
+
       - name: Clear token from GitHub Secrets
         id: clear-secret
         env:
           RUNNER_MGMT_TOKEN_PLACEHOLDER: "REVOKED_${{ github.run_id }}_$(date +%s)"
         run: |
           echo "⛔ Clearing RUNNER_MGMT_TOKEN from GitHub Secrets..."
-          
+
           # Replace with placeholder (cannot fully delete in GitHub UI)
           echo "$RUNNER_MGMT_TOKEN_PLACEHOLDER" | \
             gh secret set RUNNER_MGMT_TOKEN --repo "${{ github.repository }}" 2>/dev/null
-          
+
           if [[ $? -eq 0 ]]; then
             echo "✅ Token cleared from GitHub Secrets"
             echo "cleared=true" >> $GITHUB_OUTPUT
@@ -126,7 +126,7 @@ jobs:
             echo "⚠️  Could not clear token (may already be cleared)"
             echo "cleared=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Disable all runners (emergency)
         id: disable-runners
         continue-on-error: true
@@ -134,10 +134,10 @@ jobs:
           RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
         run: |
           echo "⛔ Disabling all runners as precaution..."
-          
+
           RUNNERS=$(gh api repos/${{ github.repository }}/actions/runners \
             --jq '.runners[].id' 2>/dev/null || echo "")
-          
+
           DISABLED_COUNT=0
           if [[ -n "$RUNNERS" ]]; then
             while IFS= read -r RUNNER_ID; do
@@ -147,29 +147,29 @@ jobs:
               ((DISABLED_COUNT++))
             done <<< "$RUNNERS"
           fi
-          
+
           echo "disabled_count=$DISABLED_COUNT" >> $GITHUB_OUTPUT
-      
+
       - name: Create incident tracking issue
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           TITLE="🚨 INCIDENT: RUNNER_MGMT_TOKEN Revoked - $(date -u +'%Y-%m-%d %H:%M:%S')"
-          
+
           BODY="# Token Revocation Incident Report
-          
-**Revocation Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
-**Reason**: ${{ github.event.inputs.reason }}  
-**Revoked By**: ${{ github.actor }}  
+
+**Revocation Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+**Reason**: ${{ github.event.inputs.reason }}
+**Revoked By**: ${{ github.actor }}
 **Run ID**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          
+
 ## Actions Taken
 - ✅ Workflows stopped: ${{ steps.stop-workflows.outputs.stopped_count }} runs
 - ✅ Token cleared from GitHub Secrets: ${{ steps.clear-secret.outputs.cleared }}
 - ✅ Runners reviewed: ${{ steps.disable-runners.outputs.disabled_count }} runners
 - ✅ Audit log updated (GSM)
-          
+
 ## Next Steps
 1. **URGENT**: Create new RUNNER_MGMT_TOKEN (GitHub PAT with \`administration:read\` scope)
 2. Add new token to GCP Secret Manager: \`runner-mgmt-token\`
@@ -177,13 +177,13 @@ jobs:
 4. Verify all workflows passing
 5. Monitor for 24 hours
 6. Complete incident review (see EMERGENCY_CREDENTIAL_RECOVERY.md)
-          
+
 ## Security Notes
 - Old token is now invalid and cannot be used to authenticate
 - All in-progress workflows were gracefully cancelled
 - Audit trail preserved in GitHub Actions logs
 - GCP audit logs contain timestamp and reason
-          
+
 ## Compliance
 - Revocation Type: Emergency (${{ github.event.inputs.reason }})
 - Audit Trail: Immutable (GitHub/GCP)
@@ -195,26 +195,26 @@ jobs:
             --body "$BODY" \
             --label "critical,security,incident,token-revocation" \
             --assignee "${{ github.actor }}" || true
-      
+
       - name: Notify operations team
         if: github.event.inputs.notify_team == 'true'
         run: |
           cat >> $GITHUB_STEP_SUMMARY << 'EOF'
           ## 🚨 RUNNER_MGMT_TOKEN Revocation Complete
-          
+
           **Revocation Status**: ✅ COMPLETE
-          
+
           ### Summary
           - Workflows Stopped: ${{ steps.stop-workflows.outputs.stopped_count }}
           - Token Cleared: ${{ steps.clear-secret.outputs.cleared }}
           - Audit Log Updated: ✅
           - Incident Issue Created: ✅
-          
+
           ### Required Actions (URGENT)
           1. Create new GitHub PAT (administration:read scope)
           2. Add to GCP Secret Manager
           3. Trigger GSM sync workflow
           4. Monitor system for 1 hour
-          
+
           **Incident Issue**: See open issues labeled 'token-revocation'
           EOF

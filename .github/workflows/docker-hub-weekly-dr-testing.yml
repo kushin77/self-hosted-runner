@@ -38,7 +38,7 @@ jobs:
     # Added strategy for job-level retries if setup fails intermittently
     strategy:
       fail-fast: false
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
 
-      
+
       - name: Debug — dump event inputs and key env
         run: |
           echo "--- DEBUG: github.event.inputs ---"
@@ -56,7 +56,7 @@ jobs:
           echo "--- DEBUG: ENV GCP_PROJECT_ID ---"
           echo "${GCP_PROJECT_ID}"
           echo "--- END DEBUG ---"
-      
+
       - name: Preflight — verify required secrets
         run: |
           # Allow explicit dry-run to skip secret checks for safe testing
@@ -69,17 +69,17 @@ jobs:
               exit 1
             fi
           fi
-      
+
       - name: Authenticate to Google Cloud
         if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      
+
       - name: Set up Google Cloud SDK
         if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: google-github-actions/setup-gcloud@v2
-      
+
       - name: Fetch Docker Hub PAT from Secret Manager
         id: docker-secret
         run: |
@@ -94,33 +94,33 @@ jobs:
                 --project="${GCP_PROJECT_ID}") && break || sleep 10
             done
           fi
-          
+
           if [ -z "$DOCKER_HUB_PAT" ]; then
             echo "::error::Failed to fetch secret after 3 attempts"
             exit 1
           fi
-          
+
           echo "::add-mask::$DOCKER_HUB_PAT"
           echo "docker_hub_pat=$DOCKER_HUB_PAT" >> $GITHUB_OUTPUT
-      
+
       - name: Authenticate to Docker Hub
         if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ steps.docker-secret.outputs.docker_hub_pat }}
-      
+
       - name: Make recovery scripts executable
         run: |
           chmod +x scripts/recover-from-nuke.sh scripts/verify-recovery.sh
-      
+
       - name: Run disaster recovery procedure
         id: dr-recovery
         timeout-minutes: 20
         continue-on-error: true
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "Dry-run: skipping actual recovery" 
+            echo "Dry-run: skipping actual recovery"
             echo "recovery_status=skipped" >> $GITHUB_OUTPUT
             echo "recovery_exit_code=0" >> $GITHUB_OUTPUT
             exit 0
@@ -128,20 +128,20 @@ jobs:
 
           BACKUP_TAG="${{ github.event.inputs.backup_tag || 'latest-backup' }}"
           echo "🚀 Starting DR test with backup tag: ${BACKUP_TAG}"
-          
+
           # Run recovery script with timeout
           timeout ${TEST_TIMEOUT_SECONDS} \
             ./scripts/recover-from-nuke.sh "${BACKUP_TAG}" || DR_EXIT=$?
-          
+
           DR_EXIT=${DR_EXIT:-0}
-          
+
           if [[ $DR_EXIT -eq 0 ]]; then
             echo "recovery_status=success" >> $GITHUB_OUTPUT
           else
             echo "recovery_status=failed" >> $GITHUB_OUTPUT
           fi
           echo "recovery_exit_code=$DR_EXIT" >> $GITHUB_OUTPUT
-      
+
       - name: Verify recovery
         id: verify
         continue-on-error: true
@@ -154,19 +154,19 @@ jobs:
           fi
 
           echo "🔍 Running recovery verification..."
-          
+
           timeout 300 ./scripts/verify-recovery.sh \
             "docker.io/${{ env.DOCKER_HUB_NAMESPACE }}/${{ env.DOCKER_HUB_REPO_BACKUP }}:${{ github.event.inputs.backup_tag || 'latest-backup' }}" || VERIFY_EXIT=$?
-          
+
           VERIFY_EXIT=${VERIFY_EXIT:-0}
-          
+
           if [[ $VERIFY_EXIT -eq 0 ]]; then
             echo "verify_status=success" >> $GITHUB_OUTPUT
           else
             echo "verify_status=failed" >> $GITHUB_OUTPUT
           fi
           echo "verify_exit_code=$VERIFY_EXIT" >> $GITHUB_OUTPUT
-      
+
       - name: Check RTO compliance
         id: rto-check
         run: |
@@ -178,7 +178,7 @@ jobs:
 
           if [[ -f "${RESTORE_BASE_DIR}/recovery-report.txt" ]]; then
             ELAPSED_SECONDS=$(grep "Recovery completed in" "${RESTORE_BASE_DIR}/recovery-report.txt" | awk '{print $4}' || echo "unknown")
-            
+
             if [[ "${ELAPSED_SECONDS}" =~ ^[0-9]+$ ]]; then
               if [[ $ELAPSED_SECONDS -le $TEST_TIMEOUT_SECONDS ]]; then
                 echo "rto_status=pass" >> $GITHUB_OUTPUT
@@ -196,7 +196,7 @@ jobs:
             echo "rto_status=unknown" >> $GITHUB_OUTPUT
             echo "⚠ Recovery report not found"
           fi
-      
+
       - name: Upload DR test artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -204,7 +204,7 @@ jobs:
           name: dr-test-artifacts
           path: ${{ env.RESTORE_BASE_DIR }}
           retention-days: 30
-      
+
       - name: Generate DR test summary
         id: summary
         if: always()
@@ -214,46 +214,46 @@ jobs:
           Weekly Disaster Recovery Test Summary
           ================================================================================
           Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          
+
           Test Configuration:
           ===================
           Backup Tag: ${{ github.event.inputs.backup_tag || 'latest-backup' }}
           RTO Target: ${TEST_TIMEOUT_SECONDS} seconds (15 minutes)
           Test Duration: $(date +%s) seconds
-          
+
           Recovery Results:
           =================
           Status: ${{ steps.dr-recovery.outputs.recovery_status }}
           Exit Code: ${{ steps.dr-recovery.outputs.recovery_exit_code }}
           Elapsed: ${{ steps.rto-check.outputs.elapsed_seconds }} seconds
-          
+
           Verification Results:
           ====================
           Status: ${{ steps.verify.outputs.verify_status }}
           Exit Code: ${{ steps.verify.outputs.verify_exit_code }}
-          
+
           RTO Compliance:
           ================
           Status: ${{ steps.rto-check.outputs.rto_status }}
           Target: ${TEST_TIMEOUT_SECONDS} seconds
-          
+
           Artifacts:
           ===========
           Recovery Report: ${RESTORE_BASE_DIR}/recovery-report.txt
           Verification Report: ${RESTORE_BASE_DIR}/verification-report.txt
-          
+
           Next Steps:
           ===========
           1. Review recovery report for any warnings or errors
           2. Check verification results for health check status
           3. If RTO failed, review optimization recommendations
           4. Update backup strategy if needed
-          
+
           ================================================================================
           EOF
-          
+
           cat dr-test-summary.txt
-          
+
           # If this run was a dry-run, mark overall as PASS
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
             echo "overall_status=PASS" >> $GITHUB_OUTPUT
@@ -268,39 +268,39 @@ jobs:
           else
             echo "overall_status=FAIL" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Upload DR test summary
         uses: actions/upload-artifact@v4
         with:
           name: dr-test-summary
           path: dr-test-summary.txt
           retention-days: 90
-      
+
       - name: Post test results to job summary
         if: always()
         run: |
           cat >> $GITHUB_STEP_SUMMARY << EOF
           ## 🧪 Weekly Disaster Recovery Test
-          
+
           **Overall Status**: ${{ steps.summary.outputs.overall_status }}
-          
+
           ### Recovery Results
           - **Status**: ${{ steps.dr-recovery.outputs.recovery_status }}
           - **Elapsed Time**: ${{ steps.rto-check.outputs.recovery_exit_code }} seconds
           - **RTO Target**: ${TEST_TIMEOUT_SECONDS} seconds
-          
+
           ### Verification Results
           - **Status**: ${{ steps.verify.outputs.verify_status }}
-          
+
           ### RTO Compliance
           - **Status**: ${{ steps.rto-check.outputs.rto_status }}
-          
+
           ### Artifacts
           - [Recovery Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           - [Test Summary](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-          
+
           EOF
-      
+
       - name: Clean up test containers
         if: always()
         run: |
@@ -312,7 +312,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: dr-test
     if: always()
-    
+
     steps:
       - name: Check DR test status
         run: |
@@ -323,7 +323,7 @@ jobs:
             echo "✗ DR test failed or had warnings"
             exit 1
           fi
-      
+
       - name: Create issue if DR test failed
         if: failure()
         uses: actions/github-script@v7
@@ -335,20 +335,20 @@ jobs:
               title: `🚨 Weekly DR Test Failed - ${new Date().toISOString().split('T')[0]}`,
               body: `
                 ## Disaster Recovery Test Failure
-                
+
                 The weekly DR test did not complete successfully.
-                
+
                 **Test Date**: ${new Date().toISOString()}
                 **Run ID**: ${{ github.run_id }}
                 **Backup Tag**: ${{ github.event.inputs.backup_tag || 'latest-backup' }}
-                
+
                 ### Action Required
                 1. Review [test artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
                 2. Check recovery logs for errors
                 3. Verify backup image integrity
                 4. Test manual recovery procedure
                 5. Document any issues found
-                
+
                 ### Related Links
                 - [DR Test Workflow](${{ github.server_url }}/${{ github.repository }}/actions/workflows/docker-hub-weekly-dr-testing.yml)
                 - [Recovery Script](scripts/recover-from-nuke.sh)

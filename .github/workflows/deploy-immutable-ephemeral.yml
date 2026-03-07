@@ -141,38 +141,38 @@ jobs:
         run: |
           set -e
           echo "✓ Authenticating to Vault at ${{ secrets.VAULT_ADDR }}"
-          
+
           # Authenticate using AppRole
           VAULT_TOKEN=$(curl -s -X POST \
             "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" \
             -H "Content-Type: application/json" \
             -d "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_SECRET_ID }}\"}" \
             | jq -r '.auth.client_token')
-          
+
           if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
             echo "❌ Failed to authenticate to Vault"
             exit 1
           fi
-          
+
           echo "✓ Vault authentication successful"
-          
+
           # Fetch SSH key from Vault secret
           SSH_KEY=$(curl -s -X GET \
             "${{ secrets.VAULT_ADDR }}/v1/${{ github.event.inputs.vault_secret_path }}" \
             -H "X-Vault-Token: $VAULT_TOKEN" \
             | jq -r '.data.data.private_key')
-          
+
           if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
             echo "❌ Failed to fetch SSH key from Vault at path: ${{ github.event.inputs.vault_secret_path }}"
             exit 1
           fi
-          
+
           # Write SSH key to file with restricted permissions
           mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
           echo "$SSH_KEY" > "$ANSIBLE_SSH_KEY_PATH"
           chmod 600 "$ANSIBLE_SSH_KEY_PATH"
           echo "✓ SSH key written to $ANSIBLE_SSH_KEY_PATH with mode 0600"
-          
+
           # Wipe token from memory
           unset VAULT_TOKEN
 
@@ -209,7 +209,7 @@ jobs:
             ${{ github.event.inputs.tags && format('--tags {0}', github.event.inputs.tags) || '' }} \
             --extra-vars="deploy_timestamp=$(date -Iseconds)" \
             ansible/playbooks/deploy-rotation.yml | tee /tmp/idempotence_check.log
-          
+
           # Verify no changes reported
           if grep -q "changed=" /tmp/idempotence_check.log; then
             CHANGES=$(grep "changed=" /tmp/idempotence_check.log | grep -o "changed=[1-9][0-9]*" || true)
@@ -239,31 +239,31 @@ jobs:
         run: |
           cat > deployment-report.txt <<'EOF'
           # Deployment Report
-          
+
           **Timestamp**: $(date -Iseconds)
           **Workflow**: deploy-rotation-staging (Immutable, Ephemeral, Idempotent)
           **Inventory**: ${{ github.event.inputs.inventory_file }}
           **Dry-run Mode**: ${{ github.event.inputs.dry_run }}
           **Idempotence Verified**: ${{ github.event.inputs.verify_idempotence }}
           **Ansible Tags**: ${{ github.event.inputs.tags || 'all' }}
-          
+
           ## Status
           ✅ DEPLOYMENT COMPLETED
-          
+
           ## Principles Applied
           - **Immutable**: Install to read-only paths (/usr/libexec), no in-place edits
           - **Ephemeral**: Runtime state under /run, cleaned on restart
           - **Idempotent**: Second run produces no changes (verified)
           - **Automated**: Vault AppRole auth, no user input required
           - **Hands-off**: Workflow handles entire deploy lifecycle
-          
+
           ## Next Steps
           1. Monitor Prometheus metrics:
              - runner_rotation_failures (should be 0)
              - vault_rotation_success_total (should increment)
           2. Observe logs for any rotation errors
           3. Confirm service health: systemctl status vault-integration.service
-          
+
           EOF
           cat deployment-report.txt
 

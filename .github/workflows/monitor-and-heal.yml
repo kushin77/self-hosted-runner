@@ -60,32 +60,32 @@ jobs:
           set +e
           echo "Waiting for runner-self-heal workflow to complete..."
           sleep 30
-          
+
           # Get latest run of runner-self-heal workflow
           latest_run=$(gh run list \
             --workflow=runner-self-heal.yml \
             --repo kushin77/self-hosted-runner \
             --json databaseId,status,conclusion \
             --jq '.[0]')
-          
+
           conclusion=$(echo "$latest_run" | jq -r '.conclusion // "in_progress"')
           run_id=$(echo "$latest_run" | jq -r '.databaseId')
-          
+
           if [[ "$conclusion" == "success" ]]; then
             echo "✓ Self-heal workflow succeeded (Run #$run_id)"
-            
+
             # Check if runners are now online
             online_count=$(gh api /repos/kushin77/self-hosted-runner/actions/runners \
               --jq '.runners | map(select(.status == "online")) | length')
-            
+
             echo "Online runners count: $online_count"
-            
+
             if [[ "$online_count" -gt 0 ]]; then
               echo "✓ Runners recovered to online status"
               gh issue close 939 \
                 --repo kushin77/self-hosted-runner \
                 --comment "Phase 4 Complete: Self-hosted runners recovered to online status. Self-heal automation is now active and responsive. Issue #969 (credentials) has been resolved."
-              
+
               gh issue comment 969 \
                 --repo kushin77/self-hosted-runner \
                 --body "✓ RUNNER_MGMT_TOKEN provisioned and validated. Auto self-heal triggered successfully. All offline runners recovered to online status. Phase 4 automation finalized and Issue #939 closed."
