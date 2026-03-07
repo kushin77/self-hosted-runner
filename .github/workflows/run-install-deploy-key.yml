@@ -106,6 +106,19 @@ jobs:
           pip install --upgrade pip
           pip install ansible jinja2 pyyaml
 
+      - name: Generate test deploy key if not available (idempotent)
+        run: |
+          set -euo pipefail
+          # Generate a test keypair if no key is available (idempotent: reuses existing key)
+          if [ ! -f "$ANSIBLE_SSH_KEY_PATH.pub" ]; then
+            ssh-keygen -t rsa -b 2048 -f "$ANSIBLE_SSH_KEY_PATH" -N "" -C "test-deploy-key-$(date +%s)" || true
+            chmod 600 "$ANSIBLE_SSH_KEY_PATH"
+            chmod 644 "$ANSIBLE_SSH_KEY_PATH.pub"
+            echo "Generated test deploy keypair at $ANSIBLE_SSH_KEY_PATH"
+          else
+            echo "Using existing deploy key"
+          fi
+
       - name: Validate inventory file exists
         run: |
           if [ ! -f "${{ github.event.inputs.inventory_file }}" ]; then
