@@ -4,6 +4,12 @@ on:
   issue_comment:
     types: [created]
 
+  workflow_call: {}
+
+concurrency:
+  group: legacy-key-listener-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   actions: write
 

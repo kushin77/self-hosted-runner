@@ -12,6 +12,12 @@ on:
         required: false
         default: 'false'
 
+  workflow_call: {}
+
+concurrency:
+  group: manual-rotate-vault-approle-dryrun-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   id-token: write
