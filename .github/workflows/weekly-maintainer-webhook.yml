@@ -1,0 +1,25 @@
+name: Weekly Maintainer Webhook Reminder
+
+on:
+  schedule:
+    - cron: '0 09 * * MON'
+  workflow_dispatch:
+
+jobs:
+  webhook_reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post webhook reminder
+        env:
+          WEBHOOK_URL: ${{ secrets.MAINTAINER_REMINDER_WEBHOOK }}
+          ISSUES: "1156,1157"
+        run: |
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "MAINTAINER_REMINDER_WEBHOOK not configured; exiting.";
+            exit 0;
+          fi
+          payload=$(jq -n --arg body "Automated weekly reminder: please review follow-up issues #1156 and #1157. If completed, close and note the actor and timestamp." '{text: $body}')
+          for i in $(echo "$ISSUES" | tr ',' ' '); do
+            payload=$(jq --arg i "$i" --arg body "Automated weekly reminder for issue #$i: please review and update." '{issue: $i, text: $body}');
+            curl -sS -X POST -H "Content-Type: application/json" -d "$payload" "$WEBHOOK_URL" || true
+          done
