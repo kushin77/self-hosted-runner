@@ -1,0 +1,28 @@
+name: Report Sync+Deploy Result
+
+on:
+  workflow_run:
+    workflows: ["Sync Slack Secret and Deploy Alertmanager"]
+    types: [completed]
+
+permissions:
+  issues: write
+  actions: read
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post result to Issue #1192
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = github.event.workflow_run;
+            const conclusion = run.conclusion || 'unknown';
+            const url = run.html_url || run.url || '';
+            const runId = run.id;
+            // list artifacts for the run
+            const arts = await github.rest.actions.listWorkflowRunArtifacts({ owner: context.repo.owner, repo: context.repo.repo, run_id: runId });
+            const artifacts = (arts.data.artifacts || []).map(a => `- [${a.name}](${a.archive_download_url})`).join('\n') || 'None';
+            const body = `Automated result: **${run.name}** completed with **${conclusion}**.\n\nRun URL: ${url}\n\nArtifacts:\n${artifacts}\n\nIf Ansible was skipped due to SSH connectivity, install the deploy public key on staging hosts (see earlier comments) and either re-run this workflow or comment '/run-deploy' on Issue #1192.`;
+            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: 1192, body });
