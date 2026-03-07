@@ -1,0 +1,53 @@
+#!/bin/bash
+set -u
+
+# Push Docker image to AWS ECR  
+# Usage: ./scripts/push-to-aws-ecr.sh <image-tag>
+# Environment: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_DEFAULT_REGION
+
+IMAGE_TAG="${1:?Image tag required}"
+REGISTRY="123456789.dkr.ecr.us-east-1.amazonaws.com"
+REPOSITORY="app-backup"
+REGION="${AWS_DEFAULT_REGION:-us-east-1}"
+
+# Validation
+: ${AWS_ACCESS_KEY_ID:?Set AWS_ACCESS_KEY_ID}
+: ${AWS_SECRET_ACCESS_KEY:?Set AWS_SECRET_ACCESS_KEY}
+
+log() { echo "[ECR] $(date +'%Y-%m-%d %H:%M:%S') $*"; }
+fail() { echo "[ECR] ERROR: $*" >&2; exit 1; }
+pass() { echo "[ECR] ✓ $*"; }
+
+log "Pushing to AWS ECR: $REGISTRY/$REPOSITORY:$IMAGE_TAG"
+
+# Login to ECR
+log "Logging in to AWS ECR..."
+aws ecr get-login-password --region "$REGION" | \
+  docker login --username AWS --password-stdin "$REGISTRY" 2>/dev/null || \
+  fail "ECR login failed"
+
+pass "ECR login successful"
+
+# Verify image exists locally
+docker inspect "elevatediq/app-backup:$IMAGE_TAG" >/dev/null 2>&1 || \
+  fail "Local image not found: elevatediq/app-backup:$IMAGE_TAG"
+
+# Tag image for ECR
+log "Tagging image for ECR..."
+docker tag "elevatediq/app-backup:$IMAGE_TAG" "$REGISTRY/$REPOSITORY:$IMAGE_TAG" || fail "Tag failed"
+docker tag "elevatediq/app-backup:$IMAGE_TAG" "$REGISTRY/$REPOSITORY:latest" || fail "Latest tag failed"
+
+# Push to ECR
+log "Pushing $IMAGE_TAG to ECR..."
+docker push "$REGISTRY/$REPOSITORY:$IMAGE_TAG" 2>/dev/null || fail "Push $IMAGE_TAG failed"
+
+log "Pushing latest tag to ECR..."
+docker push "$REGISTRY/$REPOSITORY:latest" 2>/dev/null || fail "Push latest failed"
+
+pass "Successfully pushed $IMAGE_TAG and latest to AWS ECR"
+
+# Get image digest
+DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' "$REGISTRY/$REPOSITORY:$IMAGE_TAG" 2>/dev/null | grep -oP 'sha256:[a-f0-9]{64}' || echo "sha256:unknown")
+
+echo "aws_ecr_image=$REGISTRY/$REPOSITORY:$IMAGE_TAG"
+echo "aws_ecr_digest=$DIGEST"
