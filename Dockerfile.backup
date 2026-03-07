@@ -39,11 +39,11 @@ WORKDIR /recovery
 # Copy recovery scripts and documentation
 COPY scripts/recover-from-nuke.sh scripts/verify-recovery.sh ./
 COPY scripts/get-secret-with-fallback.sh scripts/check-secret-health.sh ./
-COPY DOCKER_HUB_BACKUP_AND_DR_STRATEGY.md ./docs/ || true
+# COPY DOCKER_HUB_BACKUP_AND_DR_STRATEGY.md ./docs/ || true
 
 # Copy backup metadata and git information
-COPY .backup-metadata/ ./metadata/ || true
-COPY .git/ ./git/ || true
+# COPY .backup-metadata/ ./metadata/ || true
+# COPY .git/ ./git/ || true
 
 # Ensure scripts are executable
 RUN chmod +x *.sh
