@@ -22,7 +22,12 @@ init_state() {
 # Detect failure type
 detect_failure() {
   local run_id="$1"
-  local logs=$(gh run view "$run_id" --repo "$REPO" --log 2>/dev/null || echo "")
+  # If SIMULATE_LOG_FILE is set, read logs from it for dry-run/testing
+  if [ -n "${SIMULATE_LOG_FILE:-}" ]; then
+    local logs=$(cat "$SIMULATE_LOG_FILE" 2>/dev/null || echo "")
+  else
+    local logs=$(gh run view "$run_id" --repo "$REPO" --log 2>/dev/null || echo "")
+  fi
   
   if echo "$logs" | grep -q "GCP key missing required fields"; then
     echo "gcp_key_missing"
@@ -39,10 +44,21 @@ detect_failure() {
 health_check() {
   echo "[HEALTH-CHECK] Running checks..." | tee -a "$RECOVERY_LOG"
   local passed=0
-  
-  [ -n "${GCP_SERVICE_ACCOUNT_KEY:-}" ] && passed=$((passed+1)) && echo "[✅] GCP secret present" || echo "[❌] GCP secret missing"
-  echo "$GCP_SERVICE_ACCOUNT_KEY" | jq empty 2>/dev/null && passed=$((passed+1)) && echo "[✅] Valid JSON" || echo "[❌] Invalid JSON"
-  
+
+  if [ -n "${GCP_SERVICE_ACCOUNT_KEY:-}" ]; then
+    passed=$((passed+1))
+    echo "[✅] GCP secret present"
+    if echo "$GCP_SERVICE_ACCOUNT_KEY" | jq empty >/dev/null 2>&1; then
+      passed=$((passed+1))
+      echo "[✅] Valid JSON"
+    else
+      echo "[❌] Invalid JSON"
+    fi
+  else
+    echo "[❌] GCP secret missing"
+    echo "[❌] Invalid JSON"
+  fi
+
   echo "$passed/4 checks passed"
   [ "$passed" -ge 3 ] && return 0 || return 1
 }
@@ -50,9 +66,14 @@ health_check() {
 main() {
   init_state
   
-  # Get latest DR run
-  local dr_run=$(gh run list --workflow=dr-smoke-test.yml --limit=1 --repo "$REPO" --json databaseId --jq '.[0].databaseId 2>/dev/null || echo ""')
-  
+  # Get latest DR run (use simulation file if provided)
+  if [ -n "${SIMULATE_LOG_FILE:-}" ]; then
+    # Running in simulation mode
+    local dr_run="SIMULATED"
+  else
+    local dr_run=$(gh run list --workflow=dr-smoke-test.yml --limit=1 --repo "$REPO" --json databaseId --jq '.[0].databaseId 2>/dev/null || echo ""')
+  fi
+
   if [ -z "$dr_run" ]; then
     echo "[INFO] No DR runs found" | tee -a "$RECOVERY_LOG"
     return 0
