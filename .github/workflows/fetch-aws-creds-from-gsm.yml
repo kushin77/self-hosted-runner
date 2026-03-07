@@ -2,16 +2,23 @@ name: Fetch AWS Credentials from GSM (OIDC)
 
 on:
   workflow_call:
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_SERVICE_ACCOUNT_EMAIL:
+        required: true
+      GCP_PROJECT_ID:
+        required: true
     outputs:
       aws_access_key_id:
         description: AWS Access Key ID
-        value: ${{ steps.fetch.outputs.aws_access_key_id }}
+        value: ${{ jobs.fetch-credentials.outputs.aws_access_key_id }}
       aws_secret_access_key:
         description: AWS Secret Access Key
-        value: ${{ steps.fetch.outputs.aws_secret_access_key }}
+        value: ${{ jobs.fetch-credentials.outputs.aws_secret_access_key }}
       aws_region:
         description: AWS Region
-        value: ${{ steps.fetch.outputs.aws_region }}
+        value: ${{ jobs.fetch-credentials.outputs.aws_region }}
 
 jobs:
   fetch-credentials:
@@ -24,6 +31,11 @@ jobs:
       aws_access_key_id: ${{ steps.fetch.outputs.aws_access_key_id }}
       aws_secret_access_key: ${{ steps.fetch.outputs.aws_secret_access_key }}
       aws_region: ${{ steps.fetch.outputs.aws_region }}
+      sbom_storage_bucket: ${{ steps.fetch.outputs.sbom_storage_bucket }}
+      artifact_s3_bucket: ${{ steps.fetch.outputs.artifact_s3_bucket }}
+      minio_endpoint: ${{ steps.fetch.outputs.minio_endpoint }}
+      minio_access_key_id: ${{ steps.fetch.outputs.minio_access_key_id }}
+      minio_secret_access_key: ${{ steps.fetch.outputs.minio_secret_access_key }}
     steps:
       - name: Authenticate to Google Cloud (OIDC)
         id: auth
@@ -61,6 +73,11 @@ jobs:
           AWS_ACCESS_KEY=$(fetch_secret "terraform-aws-prod" "")
           AWS_SECRET=$(fetch_secret "terraform-aws-secret" "")
           AWS_REGION=$(fetch_secret "terraform-aws-region" "us-east-1")
+          SBOM_BUCKET=$(fetch_secret "sbom-storage-bucket" "")
+          ARTIFACT_S3=$(fetch_secret "artifact-storage-s3-bucket" "")
+          MINIO_ENDPOINT=$(fetch_secret "minio-endpoint" "")
+          MINIO_KEY=$(fetch_secret "minio-access-key-id" "")
+          MINIO_SECRET=$(fetch_secret "minio-secret-access-key" "")
           
           # Validate credentials exist
           if [ -z "$AWS_ACCESS_KEY" ]; then
@@ -81,6 +98,11 @@ jobs:
           echo "aws_access_key_id=$AWS_ACCESS_KEY" >> "$GITHUB_OUTPUT"
           echo "aws_secret_access_key=$AWS_SECRET" >> "$GITHUB_OUTPUT"
           echo "aws_region=$AWS_REGION" >> "$GITHUB_OUTPUT"
+          echo "sbom_storage_bucket=$SBOM_BUCKET" >> "$GITHUB_OUTPUT"
+          echo "artifact_s3_bucket=$ARTIFACT_S3" >> "$GITHUB_OUTPUT"
+          echo "minio_endpoint=$MINIO_ENDPOINT" >> "$GITHUB_OUTPUT"
+          echo "minio_access_key_id=$MINIO_KEY" >> "$GITHUB_OUTPUT"
+          echo "minio_secret_access_key=$MINIO_SECRET" >> "$GITHUB_OUTPUT"
           
           echo "✅ Successfully fetched AWS credentials from GSM"
           echo "   Region: $AWS_REGION"
