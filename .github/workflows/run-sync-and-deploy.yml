@@ -92,12 +92,21 @@ jobs:
 
       - name: Set SLACK_WEBHOOK_URL repo secret (if present)
         if: steps.fetch.outputs.webhook_present == 'true'
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           WEBHOOK="${{ steps.fetch.outputs.webhook }}"
-          gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" --body "$WEBHOOK"
-          echo "✅ SLACK_WEBHOOK_URL repo secret updated"
+          if [[ -n "$WEBHOOK" ]]; then
+            gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" --body "$WEBHOOK" 2>&1 || {
+              echo "⚠️  Failed to set repo secret via gh CLI (may be permission issue). SLACK_WEBHOOK_URL will be used from environment."
+              exit 0
+            }
+            echo "✅ SLACK_WEBHOOK_URL repo secret updated"
+          else
+            echo "⚠️  WEBHOOK is empty, skipping repo secret update"
+          fi
 
       - name: Ensure scripts are executable
         run: |
@@ -167,6 +176,7 @@ jobs:
           ./scripts/automated_test_alert.sh || true
 
       - name: Upload generated Alertmanager config as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: alertmanager-config
