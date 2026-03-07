@@ -31,8 +31,9 @@ jobs:
       - name: Check current auto-merge setting
         id: check-setting
         run: |
+          source .github/scripts/resilience.sh || true
           # Query GitHub API for repository settings
-          AUTO_MERGE=$(gh api repos/kushin77/self-hosted-runner \
+          AUTO_MERGE=$(retry_command 2 3 gh api repos/kushin77/self-hosted-runner \
             --jq '.allow_auto_merge // false')
           
           echo "current_setting=$AUTO_MERGE" >> $GITHUB_OUTPUT
@@ -49,6 +50,7 @@ jobs:
         id: enable-auto-merge
         if: steps.check-setting.outputs.status == 'needs-enabling'
         run: |
+          source .github/scripts/resilience.sh || true
           FORCE_ENABLE="${{ github.event.inputs.force_enable }}"
           
           if [ "$FORCE_ENABLE" != "true" ]; then
@@ -60,7 +62,7 @@ jobs:
           echo "Enabling auto-merge for repository..."
           
           # Use GitHub API to enable auto-merge
-          RESPONSE=$(curl -s -X PATCH \
+          RESPONSE=$(retry_command 2 3 curl -s -X PATCH \
             -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/kushin77/self-hosted-runner \
@@ -82,10 +84,11 @@ jobs:
         id: configure-branch-protection
         if: steps.check-setting.outputs.status == 'needs-enabling' || steps.check-setting.outputs.current_setting == 'true'
         run: |
+          source .github/scripts/resilience.sh || true
           echo "Configuring branch protection rules for auto-merge..."
           
           # Verify 'main' branch protection allows dismissals
-          BRANCH_PROTECTION=$(gh api repos/kushin77/self-hosted-runner/branches/main/protection \
+          BRANCH_PROTECTION=$(retry_command 2 3 gh api repos/kushin77/self-hosted-runner/branches/main/protection \
             --jq '.' 2>/dev/null || echo '{}')
           
           # Check if required status checks are configured
