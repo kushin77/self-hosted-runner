@@ -55,40 +55,39 @@ if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
     echo "PAGERDUTY_KEY length: ${#PAGERDUTY_KEY}"
   fi
   
-  # Start with base config
-  cat > "$TMPDIR/alertmanager.yml" << 'EOF'
-global:
-  resolve_timeout: 5m
-route:
-  receiver: 'default'
-receivers:
-  - name: 'default'
-    webhook_configs: []
-EOF
-
-  # Add Slack if configured
-  if [ -n "$SLACK_URL" ]; then
-    echo "✓ Configuring Slack webhook receiver"
-    cat >> "$TMPDIR/alertmanager.yml" << EOF
-  - name: 'slack'
-    webhook_configs:
-      - url: '${SLACK_URL}'
-        send_resolved: true
-EOF
-    # Update route to use slack receiver
-    sed -i "s/receiver: 'default'/receiver: 'slack'/" "$TMPDIR/alertmanager.yml"
-  fi
+  # Build config by concatenating pieces to avoid variable expansion issues
+  {
+    echo "global:"
+    echo "  resolve_timeout: 5m"
+    echo "route:"
+    echo "  receiver: 'default'"
+    echo "receivers:"
+    echo "  - name: 'default'"
+    echo "    webhook_configs: []"
+    
+    if [ -n "$SLACK_URL" ]; then
+      echo "✓ Configuring Slack webhook receiver"
+      echo "  - name: 'slack'"
+      echo "    webhook_configs:"
+      echo "      - url: '$SLACK_URL'"
+      echo "        send_resolved: true"
+      # Update route to use slack receiver
+      RECEIVER_LINE="  receiver: 'slack'"
+    fi
+    
+    if [ -n "$PAGERDUTY_KEY" ]; then
+      echo "✓ Configuring PagerDuty receiver"
+      echo "  - name: 'pagerduty'"
+      echo "    pagerduty_configs:"
+      echo "      - service_key: '$PAGERDUTY_KEY'"
+      # Update route to use pagerduty receiver
+      RECEIVER_LINE="  receiver: 'pagerduty'"
+    fi
+  } > "$TMPDIR/alertmanager.yml"
   
-  # Add PagerDuty if configured
-  if [ -n "$PAGERDUTY_KEY" ]; then
-    echo "✓ Configuring PagerDuty receiver"
-    cat >> "$TMPDIR/alertmanager.yml" << EOF
-  - name: 'pagerduty'
-    pagerduty_configs:
-      - service_key: '${PAGERDUTY_KEY}'
-EOF
-    # Update route to use pagerduty receiver  
-    sed -i "s/receiver: 'default'/receiver: 'pagerduty'/" "$TMPDIR/alertmanager.yml"
+  # Update receiver line if needed
+  if [ -n "${RECEIVER_LINE:-}" ]; then
+    sed -i "s/  receiver: 'default'/$RECEIVER_LINE/" "$TMPDIR/alertmanager.yml"
   fi
 else
   echo "Generating Alertmanager config with mock webhook..."
