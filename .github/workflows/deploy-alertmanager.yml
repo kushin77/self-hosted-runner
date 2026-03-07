@@ -50,9 +50,12 @@ jobs:
           pip install ansible==8.8.0
 
       - name: Start ssh-agent and add deploy key
-        uses: webfactory/ssh-agent@v0.8.1
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "${DEPLOY_SSH_KEY}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          eval "$(ssh-agent -s)"
+          ssh-add /tmp/deploy_key
 
       - name: Generate Alertmanager config
         run: |
