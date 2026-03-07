@@ -35,9 +35,10 @@ jobs:
         if: contains(runner.labels, 'self-hosted')
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x ci/scripts/upload_to_minio.sh
           tar -czf kubeconform-report.tar.gz .
-          URL=$(./ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz)
+          URL=$(retry_command 3 5 ./ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz)
           echo "Kubeconform report uploaded to: $URL"
 
       - name: Upload report (hosted fallback)
