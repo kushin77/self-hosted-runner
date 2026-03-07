@@ -1,0 +1,114 @@
+---
+name: DR Smoke Test
+
+on:
+  schedule:
+    - cron: '0 14 * * 1'
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: dr-smoke-test-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: write
+
+jobs:
+  dr-readiness-check:
+    name: Verify DR Readiness
+    runs-on: ubuntu-latest
+    environment: production
+    outputs:
+      dr_status: ${{ steps.check.outputs.status }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check GCP secret availability
+        id: gcp-check
+        continue-on-error: true
+        run: |
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "status=missing_gcp_key" >> $GITHUB_OUTPUT
+            echo "❌ GCP_SERVICE_ACCOUNT_KEY not found"
+            exit 1
+          else
+            echo "status=gcp_key_present" >> $GITHUB_OUTPUT
+            echo "✅ GCP_SERVICE_ACCOUNT_KEY present"
+          fi
+
+      - name: Validate GCP key structure
+        id: gcp-validate
+        continue-on-error: true
+        run: |
+          set +e
+          KEY_CONTENT='${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
+          
+          # Validate JSON
+          if echo "$KEY_CONTENT" | jq . > /dev/null 2>&1; then
+            echo "✅ GCP key is valid JSON"
+            
+            # Check for required fields
+            TYPE=$(echo "$KEY_CONTENT" | jq -r '.type // empty')
+            PROJECT=$(echo "$KEY_CONTENT" | jq -r '.project_id // empty')
+            
+            if [ "$TYPE" = "service_account" ] && [ -n "$PROJECT" ]; then
+              echo "✅ GCP key has required fields: type=service_account, project_id=$PROJECT"
+              echo "status=valid" >> $GITHUB_OUTPUT
+            else
+              echo "❌ GCP key missing required fields"
+              echo "status=invalid_structure" >> $GITHUB_OUTPUT
+              exit 1
+            fi
+          else
+            echo "❌ GCP key is not valid JSON"
+            echo "status=invalid_json" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+      - name: Check docker image access
+        id: docker-check
+        continue-on-error: true
+        run: |
+          # Attempt to pull a test image
+          if docker pull alpine:latest > /dev/null 2>&1; then
+            echo "✅ Docker registry access working"
+            echo "status=docker_ok" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Docker registry access limited"
+            echo "status=docker_limited" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Compile DR readiness summary
+        id: check
+        run: |
+          GCP_STATUS="${{ steps.gcp-validate.outputs.status }}"
+          DOCKER_STATUS="${{ steps.docker-check.outputs.status }}"
+          
+          if [ "$GCP_STATUS" = "valid" ] && [ -n "$DOCKER_STATUS" ]; then
+            echo "status=ready" >> $GITHUB_OUTPUT
+            echo "✅ DR Readiness: READY"
+            exit 0
+          else
+            echo "status=not_ready" >> $GITHUB_OUTPUT
+            echo "⚠️ DR Readiness: CHECKS NEEDED"
+            exit 1
+          fi
+
+  post-results:
+    name: Post Results to Issue
+    runs-on: ubuntu-latest
+    needs: dr-readiness-check
+    if: always()
+    steps:
+      - name: Post results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const drStatus = "${{ needs.dr-readiness-check.outputs.dr_status }}";
+            const emoji = drStatus === 'ready' ? '✅' : '⚠️';
+            
+            console.log(`DR Smoke Test Result: ${emoji} ${drStatus.toUpperCase()}`);
