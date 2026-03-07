@@ -25,6 +25,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Check if Slack webhook configured
         id: slack-check
         run: |
@@ -40,23 +45,10 @@ jobs:
         env:
           WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
+          set -euo pipefail
           CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-          EMOJI="$([[ \"$CONCLUSION\" == \"success\" ]] && echo \"✅\" || echo \"❌\")"
-          
-          curl -X POST "$WEBHOOK_URL" \
-            -H 'Content-Type: application/json' \
-            -d "{
-              \"text\": \"$EMOJI Runner Self-Heal $CONCLUSION\",
-              \"blocks\": [
-                {
-                  \"type\": \"section\",
-                  \"text\": {
-                    \"type\": \"mrkdwn\",
-                    \"text\": \"*$EMOJI Runner Self-Heal*\n*Conclusion*: $CONCLUSION\n*Run*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Details>\"
-                  }
-                }
-              ]
-            }" || true
+          EMOJI="$([ "$CONCLUSION" = "success" ] && echo "✅" || echo "❌")"
+          retry_command 5 10 sh -c "curl -X POST \"$WEBHOOK_URL\" -H 'Content-Type: application/json' -d '{\"text\": \"$EMOJI Runner Self-Heal $CONCLUSION\", \"blocks\": [{\"type\": \"section\", \"text\": {\"type\": \"mrkdwn\", \"text\": \"*$EMOJI Runner Self-Heal*\\n*Conclusion*: $CONCLUSION\\n*Run*: <https://github.com/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}|View Details>\"}}]}' || true"
 
       - name: Notify on DR Test completion
         if: steps.slack-check.outputs.webhook_available == 'true' && github.event.workflow_run.name == 'Weekly Disaster Recovery Testing'
