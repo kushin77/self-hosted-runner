@@ -31,8 +31,9 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
-          scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.ami-tfvars-object }}" --out terraform/packer-ami/ami.tfvars
+          retry_command 3 5 scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.ami-tfvars-object }}" --out terraform/packer-ami/ami.tfvars
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -48,7 +49,8 @@ jobs:
       - name: Terraform init
         working-directory: terraform
         run: |
-          terraform init -backend=false
+          source ../.github/scripts/resilience.sh || true
+          retry_command 3 5 terraform init -backend=false
 
       - name: Terraform plan (ci-runners)
         working-directory: terraform
@@ -68,8 +70,9 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}"
+          retry_command 3 5 scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}"
 
       - name: Prepare and upload plan checksum
         env:
@@ -78,8 +81,9 @@ jobs:
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           mkdir -p /tmp
           cp terraform/ci-runners-plan.out ./ci-runners-plan.out || true
           sha256sum ci-runners-plan.out > ci-runners-plan.out.sha
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file ci-runners-plan.out.sha --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}.sha"
+          retry_command 3 5 scripts/minio/upload.sh --file ci-runners-plan.out.sha --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}.sha"
