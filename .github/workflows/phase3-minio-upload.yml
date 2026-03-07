@@ -13,6 +13,12 @@ on:
         description: 'Object path to write into MinIO (bucket prefix/object)'
         required: true
 
+  workflow_call: {}
+
+concurrency:
+  group: phase3-minio-upload-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   upload:
     runs-on: ubuntu-latest
