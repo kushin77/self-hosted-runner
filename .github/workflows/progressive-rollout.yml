@@ -1,0 +1,123 @@
+name: Progressive Rollout
+
+on:
+  workflow_dispatch:
+    inputs:
+      strategy:
+        description: 'Rollout strategy: staged|all-at-once|blue-green'
+        required: true
+        default: 'staged'
+      playbook:
+        description: 'Ansible playbook for deployment'
+        required: true
+        default: 'ansible/playbooks/deploy-rotation.yml'
+      inventory:
+        description: 'Ansible inventory path (production)'
+        required: true
+        default: 'ansible/inventory/production'
+      batches:
+        description: 'Comma-separated batch sizes or host groups for staged rollout (e.g. batch1,batch2,batch3)'
+        required: false
+        default: 'batch1,batch2,batch3'
+      wait_seconds:
+        description: 'Wait seconds between batches'
+        required: false
+        default: '60'
+      health_endpoint:
+        description: 'Health check endpoint to validate per-batch'
+        required: false
+        default: 'http://localhost:9093/-/healthy'
+      rollback_playbook:
+        description: 'Rollback playbook path (optional)'
+        required: false
+        default: 'ansible/playbooks/rollback.yml'
+
+concurrency:
+  group: progressive-rollout
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rollout:
+    name: Progressive rollout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python and Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Parse inputs
+        id: vars
+        run: |
+          echo "STRATEGY=${{ github.event.inputs.strategy }}" >> $GITHUB_OUTPUT
+          echo "PLAYBOOK=${{ github.event.inputs.playbook }}" >> $GITHUB_OUTPUT
+          echo "INVENTORY=${{ github.event.inputs.inventory }}" >> $GITHUB_OUTPUT
+          echo "BATCHES=${{ github.event.inputs.batches }}" >> $GITHUB_OUTPUT
+          echo "WAIT=${{ github.event.inputs.wait_seconds }}" >> $GITHUB_OUTPUT
+          echo "HEALTH=${{ github.event.inputs.health_endpoint }}" >> $GITHUB_OUTPUT
+
+      - name: Blue-Green: prepare green environment
+        if: steps.vars.outputs.STRATEGY == 'blue-green'
+        run: |
+          echo "Preparing blue-green environment (user must ensure green infra exists)"
+
+      - name: Execute rollout (staged/all-at-once)
+        run: |
+          set -euo pipefail
+          STRATEGY=${{ steps.vars.outputs.STRATEGY }}
+          PLAYBOOK=${{ steps.vars.outputs.PLAYBOOK }}
+          INVENTORY=${{ steps.vars.outputs.INVENTORY }}
+          BATCHES=${{ steps.vars.outputs.BATCHES }}
+          WAIT=${{ steps.vars.outputs.WAIT }}
+          HEALTH=${{ steps.vars.outputs.HEALTH }}
+
+          if [ "$STRATEGY" = "all-at-once" ]; then
+            echo "Deploying all-at-once to production"
+            ansible-playbook -i "$INVENTORY" "$PLAYBOOK" || { echo "Deployment failed"; exit 30; }
+          elif [ "$STRATEGY" = "staged" ]; then
+            IFS=',' read -ra GROUPS <<< "$BATCHES"
+            for grp in "${GROUPS[@]}"; do
+              echo "Deploying batch: $grp"
+              ansible-playbook -i "$INVENTORY" "$PLAYBOOK" --limit "$grp" || { echo "Batch deploy failed"; exit 31; }
+              echo "Waiting $WAIT seconds for stabilization"
+              sleep "$WAIT"
+              if ! curl -fsS "$HEALTH" | grep -qi 'ok\|true\|"healthy"\|200'; then
+                echo "Health check failed after batch $grp"
+                exit 32
+              fi
+            done
+          elif [ "$STRATEGY" = "blue-green" ]; then
+            echo "Blue-green strategy: switch traffic to green (operator must configure)"
+            # Placeholder: user-defined traffic switch
+          else
+            echo "Unknown strategy: $STRATEGY"
+            exit 2
+          fi
+
+      - name: On failure, rollback and create P1
+        if: failure()
+        run: |
+          echo "Rollout failed; attempting rollback"
+          ROLLBACK=${{ github.event.inputs.rollback_playbook }}
+          INVENTORY=${{ steps.vars.outputs.INVENTORY }}
+          if [ -f "$ROLLBACK" ]; then
+            ansible-playbook -i "$INVENTORY" "$ROLLBACK" || true
+          fi
+          gh issue create --title "P1: Progressive rollout failed" --body "Progressive rollout failed in ${GITHUB_REPOSITORY} run ${GITHUB_RUN_ID}. Rollback attempted." --label P1 --repo $GITHUB_REPOSITORY || true
+          exit 1
+
+      - name: Success report
+        run: |
+          echo "Rollout completed successfully for run $GITHUB_RUN_ID"
+          gh issue comment --repo $GITHUB_REPOSITORY --issue 1313 --body "Progressive rollout completed (run: $GITHUB_RUN_ID)." || true
