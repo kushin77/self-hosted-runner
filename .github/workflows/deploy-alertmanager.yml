@@ -35,8 +35,8 @@ jobs:
             if (!has) {
               const issueNumber = 480;
               const body = `Alertmanager deployment blocked: missing \`SLACK_WEBHOOK_URL\` repo secret. Automated sync may still be running. Please ensure the secret is provisioned in GSM or GitHub Secrets.`;
-              await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
-              core.setFailed('Missing SLACK_WEBHOOK_URL');
+              await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body});
+              throw new Error('Missing SLACK_WEBHOOK_URL');
             }
 
       - name: Set up Python (for Ansible)
@@ -76,5 +76,5 @@ jobs:
         with:
           script: |
             const issueNumber = 480;
-            await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body: 'Automated Alertmanager deployment to staging completed and synthetic alert test passed. Closing this issue.'});
-            await github.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, state: 'closed'});
+            await github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, body: 'Automated Alertmanager deployment to staging completed and synthetic alert test passed. Closing this issue.'});
+            await github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: issueNumber, state: 'closed'});
