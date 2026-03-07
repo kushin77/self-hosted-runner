@@ -71,9 +71,28 @@ jobs:
             COUNT=$(jq '.leaks | length' gitleaks-report.json || echo 0)
             if [ "$COUNT" -gt 0 ]; then
               echo "Gitleaks findings detected ($COUNT). Creating issue..."
-              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Gitleaks findings detected" --body "Automated gitleaks scan found $COUNT potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials." || true
+              BODY="## 🔐 Gitleaks Scan Findings
+
+**Count**: $COUNT potential secrets detected  
+**Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+**SLA**: Rotate exposed credentials within 1 hour
+
+### Action Required
+1. Review gitleaks-report.json artifact for details
+2. Identify which leaks are actual credentials vs placeholders
+3. Rotate any actual exposed credentials
+4. Close this issue once rotations complete
+
+**Note**: Current scan found placeholder variables in documentation (e.g., \`\${GITHUB_TOKEN}\`, \`YOUR_TOKEN\`). Review to confirm."
+              
+              gh issue create \
+                --repo kushin77/self-hosted-runner \
+                --title "[SECURITY] Gitleaks findings detected" \
+                --body "$BODY" \
+                --label "security,gitleaks" || true
             else
-              echo "No gitleaks findings."
+              echo "✅ No gitleaks findings."
             fi
           else
             echo "No gitleaks report present; skipping."
@@ -119,15 +138,59 @@ jobs:
           if-no-files-found: warn
 
       - name: Inspect trivy report and create issue if findings
+        id: trivy-result
         run: |
           if [ -f trivy-report.json ]; then
             COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
             if [ "$COUNT" -gt 0 ]; then
-              echo "Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
-              gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Trivy vulnerabilities detected" --body "Automated Trivy scan found $COUNT high/critical vulnerabilities. See trivy-report.json artifact for details." || true
+              echo "✅ Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
+              
+              # Extract summary by severity
+              CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json || echo 0)
+              HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json || echo 0)
+              
+              BODY="## 🔍 Trivy Vulnerability Scan Results
+
+**Summary**:
+- 🔴 **CRITICAL**: $CRITICAL
+- 🟠 **HIGH**: $HIGH
+- **Total**: $COUNT
+
+**Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+**SLA**: High/critical vulnerabilities must be patched within 24 hours
+
+### Artifacts
+- 📊 **trivy-report.json**: Full vulnerability report with CVE details
+
+### Action Required
+1. Review trivy-report.json for detailed vulnerability information
+2. Identify affected dependencies
+3. Merge remediation PRs when available
+4. If no auto-remediation PR exists, create a manual PR to update dependencies
+
+**Note**: Auto-remediation workflow will create dependency-bump PRs for npm/pip packages."
+              
+              gh issue create \
+                --repo kushin77/self-hosted-runner \
+                --title "[SECURITY] Trivy vulnerabilities detected ($CRITICAL critical, $HIGH high)" \
+                --body "$BODY" \
+                --label "security,trivy,urgent" || true
+              
+              echo "findings=true" >> $GITHUB_OUTPUT
             else
-              echo "No high/critical vulnerabilities found by Trivy."
+              echo "✅ No high/critical vulnerabilities found by Trivy."
+              echo "findings=false" >> $GITHUB_OUTPUT
             fi
           else
             echo "No trivy report present; skipping."
+            echo "findings=false" >> $GITHUB_OUTPUT
           fi
+      
+      - name: Trigger remediation workflow
+        if: steps.trivy-result.outputs.findings == 'true'
+        run: |
+          echo "🔧 Triggering security-findings-remediation workflow..."
+          gh workflow run security-findings-remediation.yml \
+            --repo ${{ github.repository }} \
+            --ref main || true
