@@ -11,6 +11,19 @@ concurrency:
   group: security-audit-${{ github.ref }}
   cancel-in-progress: false
 
+name: Security Audit (gitleaks + trivy)
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily @ 02:00 UTC
+  workflow_dispatch: {}
+  # re-register trigger: 2026-03-07T00:00:00Z (no-op comment to refresh registration)
+  workflow_call: {}
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write
@@ -90,7 +103,7 @@ jobs:
 3. Rotate any actual exposed credentials
 4. Close this issue once rotations complete
 
-**Note**: Current scan found placeholder variables in documentation (e.g., \`\${GITHUB_TOKEN}\`, \`YOUR_TOKEN\`). Review to confirm."
+**Note**: Current scan found placeholder variables in documentation (e.g., \`${GITHUB_TOKEN}\`, `YOUR_TOKEN`). Review to confirm."
 
               gh issue create \
                 --repo kushin77/self-hosted-runner \
@@ -198,5 +211,3 @@ jobs:
           gh workflow run security-findings-remediation.yml \
             --repo ${{ github.repository }} \
             --ref main || true
-
-# Force re-register timestamp: Sat Mar  7 07:03:38 AM UTC 2026
