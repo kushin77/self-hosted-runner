@@ -10,8 +10,6 @@ jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions: write-all
-    env:
-      DOCKER_PUSH_ALLOWED: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,7 +21,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Login to registry
-        if: ${{ env.DOCKER_PUSH_ALLOWED }}
+        if: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
         uses: docker/login-action@v2
         with:
           registry: ${{ secrets.REGISTRY_HOST }}
@@ -31,7 +29,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Skip push notice
-        if: ${{ !env.DOCKER_PUSH_ALLOWED }}
+        if: ${{ !(secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '') }}
         run: |
           echo "Registry credentials missing; skipping image push steps (temporary fallback)."
 
@@ -39,21 +37,21 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./services/provisioner-worker
-          push: ${{ env.DOCKER_PUSH_ALLOWED }}
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
           tags: ${{ secrets.REGISTRY_HOST }}/provisioner-worker:${{ github.sha }}
 
       - name: Build and push managed-auth
         uses: docker/build-push-action@v4
         with:
           context: ./services/managed-auth
-          push: ${{ env.DOCKER_PUSH_ALLOWED }}
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
           tags: ${{ secrets.REGISTRY_HOST }}/managed-auth:${{ github.sha }}
 
       - name: Build and push vault-shim
         uses: docker/build-push-action@v4
         with:
           context: ./services/vault-shim
-          push: ${{ env.DOCKER_PUSH_ALLOWED }}
+          push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
           tags: ${{ secrets.REGISTRY_HOST }}/vault-shim:${{ github.sha }}
 
       - name: Generate SBOMs (cycloneDX)
