@@ -18,6 +18,12 @@ on:
           - daily
           - comprehensive
 
+  workflow_call: {}
+
+concurrency:
+  group: operational-health-dashboard-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: read

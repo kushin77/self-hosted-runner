@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '*/5 * * * *' # every 5 minutes
   workflow_dispatch:
+  workflow_call: {}
+
+concurrency:
+  group: self-heal-retry-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   retry-dispatch:
