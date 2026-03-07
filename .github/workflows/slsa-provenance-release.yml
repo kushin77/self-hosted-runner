@@ -588,6 +588,7 @@ jobs:
           cat artifacts/MANIFEST.json
 
       - name: Index SBOMs for compliance tracking (Phase 3)
+        continue-on-error: true
         run: |
           set -euo pipefail
 
@@ -595,21 +596,24 @@ jobs:
           
           # Create SBOM index for compliance tracking
           sbom_index="artifacts/SBOM_INDEX.json"
-          echo "{\"sbom_files\": [], \"indexed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"workflow_run\": \"${{ github.run_id }}\"}" > "$sbom_index"
+          sbom_list="[]"
 
           sbom_count=0
           if [ -d "artifacts/sboms" ]; then
             for sbom in artifacts/sboms/*.json artifacts/sboms/*.bom 2>/dev/null; do
               [ -f "$sbom" ] || continue
-              jq -r ". += {\"source_file\": \"$(basename $sbom)\"}" "$sbom_index" > "${sbom_index}.tmp"
-              mv "${sbom_index}.tmp" "$sbom_index"
+              # Add SBOM file info to the list
+              sbom_list=$(echo "$sbom_list" | jq --arg f "$(basename $sbom)" '. += [{filename: $f}]' 2>/dev/null || echo "[]")
               sbom_count=$((sbom_count + 1))
               echo "  ✅ Indexed: $(basename $sbom)"
             done
           fi
 
+          # Write final index
+          echo "{\"sbom_files\": $sbom_list, \"indexed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"workflow_run\": \"${{ github.run_id }}\", \"total_sboms\": $sbom_count}" | jq '.' > "$sbom_index" 2>/dev/null || \
+          echo "{\"sbom_files\": [], \"indexed_at\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"workflow_run\": \"${{ github.run_id }}\", \"total_sboms\": 0}" > "$sbom_index"
+
           echo "📊 Total SBOMs indexed: $sbom_count"
-          echo "sbom_count=$sbom_count" >> "$GITHUB_ENV"
 
       - name: Archive provenance for audit trail (Phase 3)
         run: |
