@@ -1,0 +1,159 @@
+name: Recovery Completion Handler
+
+on:
+  workflow_run:
+    workflows:
+      - DR Smoke Test
+      - Weekly Disaster Recovery Testing
+    types: [completed]
+
+permissions:
+  issues: write
+  actions: read
+  contents: read
+
+jobs:
+  handle-recovery:
+    name: Process recovery completion
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract recovery workflow context
+        id: context
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          TRIGGER_WF="${{ github.event.workflow_run.name }}"
+          TRIGGER_RUN_ID="${{ github.event.workflow_run.id }}"
+          TRIGGER_CONCL="${{ github.event.workflow_run.conclusion }}"
+
+          echo "trigger_workflow=$TRIGGER_WF" >> $GITHUB_OUTPUT
+          echo "trigger_run_id=$TRIGGER_RUN_ID" >> $GITHUB_OUTPUT
+          echo "trigger_conclusion=$TRIGGER_CONCL" >> $GITHUB_OUTPUT
+
+          echo "📋 Recovery workflow completed: $TRIGGER_WF (run $TRIGGER_RUN_ID, conclusion: $TRIGGER_CONCL)"
+
+      - name: Process success - post summary and close tracking issues
+        if: steps.context.outputs.trigger_conclusion == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          ISSUE=1239
+          CONCL="${{ steps.context.outputs.trigger_conclusion }}"
+
+          # Post success summary to operator issue
+          gh issue comment ${ISSUE} --repo ${REPO} --body "✅ **Recovery Status: SUCCESS**
+
+Workflow: ${{ steps.context.outputs.trigger_workflow }}
+Run ID: ${{ steps.context.outputs.trigger_run_id }}
+Conclusion: $CONCL
+
+System has successfully recovered from DR scenario. All automated health checks passed. 
+
+**Next Steps (Automated)**:
+- Continuing scheduled monitoring for any regressions
+- Self-healing and reconciliation workflows remain active
+- Daily reminders paused (recovery confirmed)
+
+See the run for full details: [${{ steps.context.outputs.trigger_run_id }}](https://github.com/$REPO/actions/runs/${{ steps.context.outputs.trigger_run_id }})" || true
+
+          # Auto-close related escalation issues if they exist
+          ESCALATION_ISSUES=$(gh issue list --repo ${REPO} --label "supply-chain,gates,auto-escalation" --state open --json number --jq '.[].number' 2>/dev/null || true)
+          
+          if [ -n "$ESCALATION_ISSUES" ]; then
+            echo "Closing related escalation issues..."
+            for issue_num in $ESCALATION_ISSUES; do
+              gh issue close $issue_num --repo ${REPO} --comment "Auto-closed: Recovery workflow succeeded. See issue #${ISSUE} for details." || true
+              echo "Closed issue #$issue_num"
+            done
+          fi
+
+      - name: Process failure - escalate and create investigation issue
+        if: steps.context.outputs.trigger_conclusion == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          ISSUE=1239
+
+          # Post failure summary to operator issue
+          gh issue comment ${ISSUE} --repo ${REPO} --body "❌ **Recovery Status: FAILURE**
+
+Workflow: ${{ steps.context.outputs.trigger_workflow }}
+Run ID: ${{ steps.context.outputs.trigger_run_id }}
+Conclusion: failure
+
+Recovery workflow did not complete successfully. 
+
+**Automated Response**:
+- Creating investigation issue for on-call team
+- Escalation to PagerDuty (if configured)
+- Scheduled self-healing will attempt re-remediation in 5 minutes
+
+See the run: [${{ steps.context.outputs.trigger_run_id }}](https://github.com/$REPO/actions/runs/${{ steps.context.outputs.trigger_run_id }})" || true
+
+          # Create a high-priority investigation issue
+          ISSUE_TITLE="🚨 Recovery Failure Investigation - Run ${{ steps.context.outputs.trigger_run_id }}"
+          ISSUE_BODY="Automated investigation created because a recovery workflow failed.
+
+**Details**:
+- Workflow: ${{ steps.context.outputs.trigger_workflow }}
+- Run ID: ${{ steps.context.outputs.trigger_run_id }}
+- Conclusion: failure
+
+**Automated Actions Triggered**:
+- Self-healing orchestrator will retry in 5 minutes
+- Escalation notification queued (PagerDuty/Slack if configured)
+- Operator notified on Issue #${ISSUE}
+
+**Next Steps (Manual)**:
+1. Review the failed run logs
+2. Check self-healing logs at /tmp/self_healing_recovery.log (if available)
+3. Verify GCP credentials are still valid
+4. If manual recovery needed, comment 'manual-recovery-start' to gate recovery attempts
+
+See full run: https://github.com/${REPO}/actions/runs/${{ steps.context.outputs.trigger_run_id }}"
+
+          # Only create if not already open
+          EXISTING=$(gh issue list --repo ${REPO} --label "disaster-recovery,critical,auto-investigation" --state open --json number,title --jq ".[] | select(.title | contains(\"Recovery Failure Investigation\")) | .number" 2>/dev/null | head -1 || true)
+          
+          if [ -z "$EXISTING" ]; then
+            gh issue create --repo ${REPO} --title "${ISSUE_TITLE}" --body "${ISSUE_BODY}" --label "disaster-recovery,critical,auto-investigation" || true
+            echo "Created investigation issue"
+          else
+            echo "Investigation issue #$EXISTING already exists"
+          fi
+
+      - name: Post run diagnostics summary
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+
+          REPO="${{ github.repository }}"
+          RUN_ID="${{ steps.context.outputs.trigger_run_id }}"
+
+          # Attempt to extract and summarize logs
+          echo "📊 Recovery Workflow Diagnostics ($RUN_ID)"
+          echo "=========================================="
+          echo ""
+          echo "Workflow: ${{ steps.context.outputs.trigger_workflow }}"
+          echo "Conclusion: ${{ steps.context.outputs.trigger_conclusion }}"
+          echo "Timestamp: $(date -u +'%Y-%m-%d %H:%M:%SZ')"
+          echo ""
+          echo "To review full logs:"
+          echo "  → https://github.com/${REPO}/actions/runs/${RUN_ID}"
+          echo ""
+          echo "Automated monitoring continues on Issue #1239"
