@@ -45,27 +45,68 @@ jobs:
       - name: Exit if already notified
         if: steps.already.outputs.already == 'true'
         run: echo "Notification already sent for this issue."
-      - name: Notify PagerDuty (Events v2)
+      - name: Checkout (for GSM helper script)
+        if: steps.already.outputs.already == 'false'
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (OIDC)
+        if: steps.already.outputs.already == 'false'
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Fetch PagerDuty key from GSM
+        id: pd_key
         if: steps.already.outputs.already == 'false'
         env:
-          PAGERDUTY_KEY: ${{ secrets.PAGERDUTY_INTEGRATION_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set +e
+          PD_KEY=$(bash .github/scripts/fetch-gcp-secret.sh pagerduty-integration-key "$GCP_PROJECT_ID" 2>/dev/null)
+          if [ -z "$PD_KEY" ]; then
+            echo "⚠️  PagerDuty key not available in GSM; skipping notification"
+            echo "available=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "::add-mask::$PD_KEY"
+          echo "key=$PD_KEY" >> $GITHUB_OUTPUT
+          echo "available=true" >> $GITHUB_OUTPUT
+
+      - name: Notify PagerDuty (Events v2)
+        if: steps.already.outputs.already == 'false' && steps.pd_key.outputs.available == 'true'
         run: |
           issue_number=${{ steps.check_label.outputs.issue_number }}
           issue_title=$(echo "${{ steps.check_label.outputs.issue_title }}" | sed 's/"/\\"/g')
           payload=$(cat <<EOF
-{"routing_key":"$PAGERDUTY_KEY","event_action":"trigger","payload":{"summary":"Critical escalation: Issue #${issue_number} - ${issue_title}","severity":"critical","source":"self-healing-orchestrator"}}
+{"routing_key":"${{ steps.pd_key.outputs.key }}","event_action":"trigger","payload":{"summary":"Critical escalation: Issue #${issue_number} - ${issue_title}","severity":"critical","source":"self-healing-orchestrator"}}
 EOF
 )
           curl -s -X POST -H "Content-Type: application/json" -d "$payload" https://events.pagerduty.com/v2/enqueue | jq -c . || true
-      - name: Notify Slack
+      - name: Fetch Slack webhook from GSM
+        id: slack_webhook
         if: steps.already.outputs.already == 'false'
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set +e
+          SLACK=$(bash .github/scripts/fetch-gcp-secret.sh slack-webhook-url "$GCP_PROJECT_ID" 2>/dev/null)
+          if [ -z "$SLACK" ]; then
+            echo "⚠️  Slack webhook not available in GSM; skipping notification"
+            echo "available=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          echo "::add-mask::$SLACK"
+          echo "url=$SLACK" >> $GITHUB_OUTPUT
+          echo "available=true" >> $GITHUB_OUTPUT
+
+      - name: Notify Slack
+        if: steps.already.outputs.already == 'false' && steps.slack_webhook.outputs.available == 'true'
         run: |
           issue_number=${{ steps.check_label.outputs.issue_number }}
           issue_title=${{ steps.check_label.outputs.issue_title }}
           text=$(jq -n --arg num "$issue_number" --arg title "$issue_title" '{text: ("🚨 Critical escalation: Issue #" + $num + ": " + $title + " — PagerDuty alerted.") }')
-          curl -s -X POST -H 'Content-Type: application/json' -d "$text" "$SLACK_WEBHOOK" || true
+          curl -s -X POST -H 'Content-Type: application/json' -d "$text" "${{ steps.slack_webhook.outputs.url }}" || true
       - name: Comment on Issue with notification record
         if: steps.already.outputs.already == 'false'
         uses: actions/github-script@v6
