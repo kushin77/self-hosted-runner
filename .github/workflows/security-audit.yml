@@ -30,11 +30,10 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
 
-
       - name: Run gitleaks (repository secrets scan)
         uses: zricethezav/gitleaks-action@v1
         with:
-          args: --path=. --report-format=json --report-path=./gitleaks-report.json || true
+          args: "--path=. --report-format=json --report-path=./gitleaks-report.json || true"
 
       - name: Fallback: ensure gitleaks report exists
         if: always()
@@ -92,7 +91,7 @@ jobs:
 4. Close this issue once rotations complete
 
 **Note**: Current scan found placeholder variables in documentation (e.g., \`\${GITHUB_TOKEN}\`, \`YOUR_TOKEN\`). Review to confirm."
-              
+
               gh issue create \
                 --repo kushin77/self-hosted-runner \
                 --title "[SECURITY] Gitleaks findings detected" \
@@ -151,11 +150,9 @@ jobs:
             COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
             if [ "$COUNT" -gt 0 ]; then
               echo "✅ Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
-              
-              # Extract summary by severity
               CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json || echo 0)
               HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json || echo 0)
-              
+
               BODY="## 🔍 Trivy Vulnerability Scan Results
 
 **Summary**:
@@ -177,13 +174,13 @@ jobs:
 4. If no auto-remediation PR exists, create a manual PR to update dependencies
 
 **Note**: Auto-remediation workflow will create dependency-bump PRs for npm/pip packages."
-              
+
               gh issue create \
                 --repo kushin77/self-hosted-runner \
                 --title "[SECURITY] Trivy vulnerabilities detected ($CRITICAL critical, $HIGH high)" \
                 --body "$BODY" \
                 --label "security,trivy,urgent" || true
-              
+
               echo "findings=true" >> $GITHUB_OUTPUT
             else
               echo "✅ No high/critical vulnerabilities found by Trivy."
@@ -193,7 +190,7 @@ jobs:
             echo "No trivy report present; skipping."
             echo "findings=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Trigger remediation workflow
         if: steps.trivy-result.outputs.findings == 'true'
         run: |
@@ -201,4 +198,5 @@ jobs:
           gh workflow run security-findings-remediation.yml \
             --repo ${{ github.repository }} \
             --ref main || true
+
 # Force re-register timestamp: Sat Mar  7 07:03:38 AM UTC 2026
