@@ -53,18 +53,7 @@ jobs:
         run: |
           source .github/scripts/resilience.sh || true
           # Get the most recent completed security-audit workflow run
-<<<<<<< HEAD
-          RUN_ID=$(retry_command 2 3 gh run list \
-            --workflow security-audit.yml \
-            --repo ${{ github.repository }} \
-            --status completed \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-=======
           RUN_ID=$(retry_command 5 10 sh -c "gh run list --workflow security-audit.yml --repo ${{ github.repository }} --status completed --limit 1 --json databaseId --jq '.[0].databaseId'" || true)
->>>>>>> ed064ad1a (chore(resilience): insert resilience loader and wrap network ops with retry_command (batch 8))
-          
           if [[ -z "$RUN_ID" ]]; then
             echo "⚠️  No completed security-audit runs found"
             echo "run_id=" >> $GITHUB_OUTPUT

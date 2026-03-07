@@ -41,11 +41,7 @@ jobs:
           source .github/scripts/resilience.sh || true
           chmod +x ci/scripts/upload_to_minio.sh
           tar -czf kubeconform-report.tar.gz .
-<<<<<<< HEAD
-          URL=$(retry_command 3 5 ./ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz)
-=======
           URL=$(retry_command 5 10 sh -c './ci/scripts/upload_to_minio.sh kubeconform-report.tar.gz')
->>>>>>> ed064ad1a (chore(resilience): insert resilience loader and wrap network ops with retry_command (batch 8))
           echo "Kubeconform report uploaded to: $URL"
 
       - name: Upload report (hosted fallback)
