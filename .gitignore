@@ -23,3 +23,7 @@ actions-runner/
 services/*/.venv*
 artifacts/test-logs/
 actions-runner/_work/
+
+# Terraform test artifacts
+.terraform.lock.hcl
+tfplan
