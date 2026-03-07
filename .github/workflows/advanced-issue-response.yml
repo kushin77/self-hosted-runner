@@ -9,6 +9,12 @@ on:
     # Daily triage run - 06:00 UTC
     - cron: "0 6 * * *"
 
+  workflow_call: {}
+
+concurrency:
+  group: advanced-issue-response-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   issues: write
