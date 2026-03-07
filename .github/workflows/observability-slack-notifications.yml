@@ -53,11 +53,11 @@ jobs:
           status=$(echo "$e2e_run" | jq -r '.status // "unknown"')
           conclusion=$(echo "$e2e_run" | jq -r '.conclusion // "unknown"')
           run_num=$(echo "$e2e_run" | jq -r '.number // "unknown"')
-          
+
           echo "e2e_status=$status" >> $GITHUB_OUTPUT
           echo "e2e_conclusion=$conclusion" >> $GITHUB_OUTPUT
           echo "e2e_run=$run_num" >> $GITHUB_OUTPUT
-          
+
           echo "📊 Last E2E Run #$run_num: status=$status, conclusion=$conclusion"
 
       - name: Get last Deploy run
@@ -69,11 +69,11 @@ jobs:
           status=$(echo "$deploy_run" | jq -r '.status // "unknown"')
           conclusion=$(echo "$deploy_run" | jq -r '.conclusion // "unknown"')
           run_num=$(echo "$deploy_run" | jq -r '.number // "unknown"')
-          
+
           echo "deploy_status=$status" >> $GITHUB_OUTPUT
           echo "deploy_conclusion=$conclusion" >> $GITHUB_OUTPUT
           echo "deploy_run=$run_num" >> $GITHUB_OUTPUT
-          
+
           echo "📊 Last Deploy Run #$run_num: status=$status, conclusion=$conclusion"
 
       - name: Get failed workflow runs (last 24h)
@@ -84,10 +84,10 @@ jobs:
           # Get failed runs in last 24h
           failed_runs=$(retry_command 5 10 sh -c "gh run list --status=failed --created=\">$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')\" --limit 10 --json name,number,conclusion --jq '.'" || echo '[]')
           failed_count=$(echo "$failed_runs" | jq 'length')
-          
+
           echo "failed_runs=$failed_runs" >> $GITHUB_OUTPUT
           echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
-          
+
           echo "⚠️ Failed runs (24h): $failed_count"
           echo "$failed_runs" | jq '.'
 
@@ -101,21 +101,21 @@ jobs:
           critical_issues=0
           incident_summary=""
           health_status="healthy"
-          
+
           # Check E2E health
           if [ "$E2E_CONCLUSION" != "success" ] && [ "$E2E_CONCLUSION" != "skipped" ]; then
             critical_issues=$((critical_issues + 1))
             incident_summary="$incident_summary\n❌ E2E Validation failing ($E2E_CONCLUSION)"
             health_status="degraded"
           fi
-          
+
           # Check Deploy health
           if [ "$DEPLOY_CONCLUSION" != "success" ] && [ "$DEPLOY_CONCLUSION" != "skipped" ]; then
             critical_issues=$((critical_issues + 1))
             incident_summary="$incident_summary\n❌ Deploy failing ($DEPLOY_CONCLUSION)"
             health_status="degraded"
           fi
-          
+
           # Check recent failures
           failed_count=${FAILED_COUNT:-0}
           if [ "$failed_count" -gt 3 ]; then
@@ -123,16 +123,16 @@ jobs:
             incident_summary="$incident_summary\n⚠️ High failure rate: $failed_count failed runs in 24h"
             health_status="degraded"
           fi
-          
+
           if [ "$critical_issues" -eq 0 ]; then
             health_status="healthy"
             incident_summary="✅ All systems nominal"
           fi
-          
+
           echo "health_status=$health_status" >> $GITHUB_OUTPUT
           echo "critical_issues=$critical_issues" >> $GITHUB_OUTPUT
           echo "incident_summary=$incident_summary" >> $GITHUB_OUTPUT
-          
+
           echo "🏥 Health Assessment:"
           echo "  Status: $health_status"
           echo "  Critical issues: $critical_issues"
@@ -144,7 +144,7 @@ jobs:
     needs: health-assessment
     runs-on: ubuntu-latest
     if: |
-      always() && 
+      always() &&
       needs.health-assessment.result == 'success' &&
       needs.health-assessment.outputs.health_status == 'degraded'
     continue-on-error: true
@@ -158,7 +158,7 @@ jobs:
           recent_fail=$(gh run list --status=failed --limit 1 --json number,name,conclusion,updatedAt --jq '.[0]')
           fail_num=$(echo "$recent_fail" | jq -r '.number // "unknown"')
           fail_name=$(echo "$recent_fail" | jq -r '.name // "unknown"')
-          
+
           echo "fail_num=$fail_num" >> $GITHUB_OUTPUT
           echo "fail_name=$fail_name" >> $GITHUB_OUTPUT
 
@@ -208,7 +208,7 @@ jobs:
           }
           EOF
 )
-          
+
           curl -X POST -H 'Content-type: application/json' \
             --data "$payload" \
             "$SLACK_WEBHOOK_URL"
@@ -232,17 +232,17 @@ jobs:
         run: |
           # Get stats for last 30 days
           thirty_days_ago=$(date -u -d '30 days ago' '+%Y-%m-%dT%H:%M:%SZ')
-          
+
           total_runs=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq 'length')
           successful=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq "[.[] | select(.conclusion==\"success\")] | length")
           failed=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq "[.[] | select(.conclusion==\"failure\")] | length")
-          
+
           if [ "$total_runs" -gt 0 ]; then
             success_pct=$((successful * 100 / total_runs))
           else
             success_pct=0
           fi
-          
+
           echo "total_runs=$total_runs" >> $GITHUB_OUTPUT
           echo "successful=$successful" >> $GITHUB_OUTPUT
           echo "failed=$failed" >> $GITHUB_OUTPUT
@@ -259,7 +259,7 @@ jobs:
           SUCCESS_PCT: ${{ steps.stats.outputs.success_pct }}
         run: |
           report_body="## 📊 Daily CI/CD Health Report — $(date -u +'%Y-%m-%d')
-          
+
 ### Overall Status: \`$HEALTH\`
 - Critical Issues: $ISSUES
 - Workflow Success Rate (30d): $SUCCESS_PCT%
@@ -280,10 +280,10 @@ jobs:
 ---
 **Generated:** $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 **Workflow Run:** [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
-          
+
           # Find or create health tracking issue
           health_issue=$(gh issue list --label hands-off-health-report --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
-          
+
           if [ -z "$health_issue" ]; then
             health_issue=$(gh issue create \
               --title "🏥 CI/CD Health: Daily Reports" \
@@ -310,7 +310,7 @@ jobs:
         run: |
           color=$( [ "$HEALTH" == "healthy" ] && echo "good" || echo "warning" )
           status_emoji=$( [ "$HEALTH" == "healthy" ] && echo "✅" || echo "⚠️" )
-          
+
           payload=$(cat <<EOF
           {
             "attachments": [
@@ -328,7 +328,7 @@ jobs:
           }
           EOF
 )
-          
+
           curl -X POST -H 'Content-type: application/json' \
             --data "$payload" \
             "$SLACK_WEBHOOK_URL"

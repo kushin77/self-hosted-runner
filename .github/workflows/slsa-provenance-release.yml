@@ -33,7 +33,7 @@ jobs:
     name: Generate SBOMs (CycloneDX)
     runs-on: ubuntu-latest
     if: |
-      github.event_name != 'workflow_run' || 
+      github.event_name != 'workflow_run' ||
       github.event.workflow_run.conclusion == 'success'
     outputs:
       sbom-matrix: ${{ steps.discover.outputs.matrix }}
@@ -48,15 +48,15 @@ jobs:
         id: discover
         run: |
           set -euo pipefail
-          
+
           # Find all service directories with Dockerfiles
           images=$(find services -name Dockerfile -type f | \
             sed 's|/Dockerfile||' | \
             jq -R -s -c 'split("\n") | map(select(length > 0))')
-          
+
           count=$(echo "$images" | jq 'length')
           matrix=$(echo "$images" | jq -c '{service: .}')
-          
+
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "🔍 Discovered $count service(s) for SBOM generation"
@@ -69,7 +69,7 @@ jobs:
         run: |
           echo "No services found; creating marker file"
           touch build/sboms/.placeholder
-          
+
       - name: Upload sboms artifact
         uses: actions/upload-artifact@v4
         with:
@@ -109,21 +109,21 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          
+
           mkdir -p build/provenance
-          
+
           # Discover all images built in this workflow
           images=$(find services -name Dockerfile -type f | \
             sed 's|/Dockerfile||' | \
             sed "s|^|${{ secrets.REGISTRY_HOST || 'ghcr.io' }}/${{ github.repository }}/|" | \
             sed "s|$|:${{ github.sha }}|")
-          
+
           count=0
           for img in $images; do
             count=$((count + 1))
             safe=$(echo "$img" | sed -E 's/[^a-zA-Z0-9._-]/-/g')
             prov_file="build/provenance/${safe}-provenance.json"
-            
+
             cat > "$prov_file" << 'PROVEOF'
           {
             "_type": "https://in-toto.io/Statement/v1",
@@ -166,7 +166,7 @@ jobs:
             }
           }
           PROVEOF
-            
+
             # Replace placeholders
             sed -i "s|IMAGE|$img|g" "$prov_file"
             sed -i "s|DIGEST|${{ github.sha }}|g" "$prov_file"
@@ -176,10 +176,10 @@ jobs:
             sed -i "s|GITHUB_RUN_ID|${{ github.run_id }}|g" "$prov_file"
             sed -i "s|STARTED_ON|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" "$prov_file"
             sed -i "s|FINISHED_ON|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" "$prov_file"
-            
+
             echo "✅ Generated provenance for image #$count"
           done
-          
+
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "📋 Total provenance files: $count"
 
@@ -195,7 +195,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [generate-provenance]
     if: |
-      secrets.COSIGN_PRIVATE_KEY != '' && 
+      secrets.COSIGN_PRIVATE_KEY != '' &&
       inputs.skip_signature != 'true'
     steps:
       - name: Checkout
@@ -220,25 +220,25 @@ jobs:
           chmod 600 /tmp/cosign.key
           echo "COSIGN_KEY_FILE=/tmp/cosign.key" >> "$GITHUB_ENV"
 
-      - name: Sign images (no-op if registry offline)  
+      - name: Sign images (no-op if registry offline)
         env:
           REGISTRY_HOST: ${{ secrets.REGISTRY_HOST || 'ghcr.io' }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
         continue-on-error: true
         run: |
           set -euo pipefail
-          
+
           if [ -z "$REGISTRY_USERNAME" ]; then
             echo "⏭️ Registry credentials unavailable; skipping image signing (no-op safe)"
             exit 0
           fi
-          
+
           # Find all images built in this run
           images=$(find services -name Dockerfile -type f | \
             sed 's|/Dockerfile||' | \
             sed "s|^|$REGISTRY_HOST/${{ github.repository }}/|" | \
             sed "s|$|:${{ github.sha }}|")
-          
+
           for img in $images; do
             echo "🔐 Signing $img"
             cosign sign --key "$COSIGN_KEY_FILE" "$img" || {
@@ -253,14 +253,14 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          
+
           for prov in build/provenance/*-provenance.json; do
             [ -f "$prov" ] || continue
-            
+
             # Extract image name from provenance
             img=$(jq -r '.subject[0].name' "$prov" 2>/dev/null || echo "")
             [ -n "$img" ] || continue
-            
+
             echo "📝 Attesting provenance for $img"
             cosign attest --key "$COSIGN_KEY_FILE" --predicate "$prov" "$img" || {
               echo "⚠️ Attestation failed for $img; continuing"
@@ -274,7 +274,7 @@ jobs:
 
   # Stage 4: Store provenance and SBOM artifacts
   store-artifacts:
-    name: Store Provenance & SBOM Artifacts  
+    name: Store Provenance & SBOM Artifacts
     runs-on: ubuntu-latest
     needs: [generate-provenance, sign-artifacts]
     if: always()
@@ -290,7 +290,7 @@ jobs:
       - name: Create artifact manifest
         run: |
           set -euo pipefail
-          
+
           cat > artifacts/MANIFEST.json << JSON
           {
             "workflow": "${{ github.workflow }}",
@@ -307,7 +307,7 @@ jobs:
             }
           }
           JSON
-          
+
           cat artifacts/MANIFEST.json
 
       - name: Upload to artifact storage
@@ -349,13 +349,13 @@ jobs:
       - name: Validate SLSA structure
         run: |
           set -euo pipefail
-          
+
           valid=0
           invalid=0
-          
+
           for prov in build/provenance/*-provenance.json; do
             [ -f "$prov" ] || continue
-            
+
             # Check required SLSA fields
             if jq -e '._type and .predicateType and .predicate.buildDefinition and .predicate.runDetails' "$prov" > /dev/null 2>&1; then
               echo "✅ Valid SLSA v1.0 structure: $(basename $prov)"
@@ -365,31 +365,31 @@ jobs:
               invalid=$((invalid + 1))
             fi
           done
-          
+
           echo "📊 Provenance validation: $valid valid, $invalid invalid"
           [ $invalid -eq 0 ] || exit 1
 
       - name: Generate provenance verification report
         run: |
           set -euo pipefail
-          
+
           cat > build/provenance/VERIFICATION_REPORT.md << 'REPORT'
           # SLSA Provenance Verification Report
-          
+
           Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
           Workflow Run: ${{ github.run_id }}
           Builder: ${{ needs.generate-provenance.outputs.builder-id }}
-          
+
           ## Verification Results
           - All SLSA v1.0 predicates validated ✅
           - All subjects correctly identified ✅
           - Builder identity verified ✅
           - Metadata timestamps recorded ✅
-          
+
           ## Artifacts
           - Provenance files: ${{ needs.generate-provenance.outputs.provenance-count }}
           - SBOMs: ${{ needs.generate-sboms.outputs.sbom-count }}
-          
+
           ## Recommendations
           1. Store original provenance alongside release artifacts
           2. Verify signatures with cosign before deployment
@@ -414,35 +414,35 @@ jobs:
         if: success()
         run: |
           cat << 'SUMMARY'
-          
+
           ✅ SLSA PROVENANCE PIPELINE COMPLETE
           ════════════════════════════════════════
-          
+
           Builder:        ${{ needs.generate-provenance.outputs.builder-id }}
           Provenance:     ${{ needs.generate-provenance.outputs.provenance-count }} files
           Signed:         ✅ (cosign v2.2.0)
           Verified:       ✅ (SLSA v1.0 compliant)
           Stored:         ✅ (GitHub Artifacts)
-          
+
           Release gates PASS. Ready for promotion.
-          
+
           SUMMARY
 
       - name: Publish failure summary
         if: failure()
         run: |
           cat << 'SUMMARY'
-          
+
           ⚠️ SLSA PROVENANCE PIPELINE FAILURE
           ════════════════════════════════════════
-          
+
           Check logs for details. This may be non-fatal if:
           - Registry is offline (no-op safe)
           - Cosign is unavailable (signatures optional at this stage)
           - SBOM generation skipped (SBOM generation is independent)
-          
+
           Proceeding with deployment review.
-          
+
           SUMMARY
 
       - name: Create deployment gate issue if needed

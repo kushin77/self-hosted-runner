@@ -26,14 +26,14 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issues' && 
+      (github.event_name == 'issues' &&
        (contains(github.event.issue.title, '[SECURITY]') &&
-        (contains(github.event.issue.title, 'Trivy') || 
+        (contains(github.event.issue.title, 'Trivy') ||
          contains(github.event.issue.title, 'Gitleaks'))))
-    
+
     outputs:
       remediation_count: ${{ steps.remediate.outputs.pr_count }}
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,12 +42,12 @@ jobs:
         run: |
           set -euo pipefail
           source .github/scripts/resilience.sh || true
-      
+
       - name: Setup Node.js (for npm audit fix)
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-      
+
       - name: Get latest security audit run
         id: get-run
         run: |
@@ -59,10 +59,10 @@ jobs:
             echo "run_id=" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "✅ Found security-audit run: $RUN_ID"
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-      
+
       - name: Download trivy report
         id: download-trivy
         if: steps.get-run.outputs.run_id != ''
@@ -71,7 +71,7 @@ jobs:
           RUN_ID="${{ steps.get-run.outputs.run_id }}"
           echo "Downloading artifacts from run $RUN_ID..."
           retry_command 5 10 sh -c "gh run download \"$RUN_ID\" --repo ${{ github.repository }} --pattern \"trivy-report\" --dir /tmp/artifacts" || true
-          
+
           if [ -f "/tmp/artifacts/trivy-report/trivy-report.json" ]; then
             echo "✅ Trivy report found"
             cat /tmp/artifacts/trivy-report/trivy-report.json > /tmp/trivy-report.json
@@ -80,7 +80,7 @@ jobs:
             echo "⚠️  Trivy report not found"
             echo "report_found=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Download gitleaks report
         id: download-gitleaks
         if: steps.get-run.outputs.run_id != ''
@@ -88,7 +88,7 @@ jobs:
         run: |
           RUN_ID="${{ steps.get-run.outputs.run_id }}"
           retry_command 5 10 sh -c "gh run download \"$RUN_ID\" --repo ${{ github.repository }} --pattern \"gitleaks-report\" --dir /tmp/artifacts" || true
-          
+
           if [ -f "/tmp/artifacts/gitleaks-report/gitleaks-report.json" ]; then
             echo "✅ Gitleaks report found"
             cat /tmp/artifacts/gitleaks-report/gitleaks-report.json > /tmp/gitleaks-report.json
@@ -97,40 +97,40 @@ jobs:
             echo "⚠️  Gitleaks report not found"
             echo "report_found=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Parse Trivy findings and create remediation branch
         id: remediate
         if: steps.download-trivy.outputs.report_found == 'true'
         run: |
           set -euo pipefail
-          
+
           echo "📦 Parsing Trivy findings..."
-          
+
           # Extract vulnerable packages
           if [ -f /tmp/trivy-report.json ]; then
-            VULNS=$(jq -r '.Results[]? | select(.Vulnerabilities) | 
+            VULNS=$(jq -r '.Results[]? | select(.Vulnerabilities) |
               .Vulnerabilities[] | select(.Severity == "CRITICAL" or .Severity == "HIGH") |
               [.Type, .Title, .VulnerabilityID, .Severity] | @csv' /tmp/trivy-report.json)
-            
+
             VULN_COUNT=$(echo "$VULNS" | grep -c "^" || echo 0)
             echo "Found $VULN_COUNT high/critical vulnerabilities"
-            
+
             if [ "$VULN_COUNT" -eq 0 ]; then
               echo "No vulnerabilities to remediate"
               echo "pr_count=0" >> $GITHUB_OUTPUT
               exit 0
             fi
-            
+
             # Check for npm vulnerabilities (most common)
-            NPM_VULNS=$(jq -r '.Results[]? | select(.Type == "npm") | 
+            NPM_VULNS=$(jq -r '.Results[]? | select(.Type == "npm") |
               .Vulnerabilities[]? | select(.Severity == "CRITICAL" or .Severity == "HIGH") |
               .Title' /tmp/trivy-report.json | sort | uniq || echo "")
-            
+
             if [ -n "$NPM_VULNS" ]; then
               echo "🔧 Running npm audit fix..."
-              
+
               cd package.json && npm audit fix --production --audit-level=high || true
-              
+
               # Check if there were changes
               if git diff --quiet package*.json; then
                 echo "No npm changes needed"
@@ -138,13 +138,13 @@ jobs:
                 echo "✅ npm dependencies updated"
                 git config user.name "copilot-automation"
                 git config user.email "copilot@github.com"
-                
+
                 BRANCH_NAME="automation/security-remediation-npm-$(date +%s)"
                 git checkout -b "$BRANCH_NAME"
                 git add package*.json
                 git commit -m "chore(security): remediate high/critical npm vulnerabilities"
                 git push origin "$BRANCH_NAME"
-                
+
                 # Create PR
                 gh pr create \
                   --title "🔒 Security: Remediate high/critical npm vulnerabilities" \
@@ -158,7 +158,7 @@ $(npm audit --json 2>/dev/null | jq -r '.vulnerabilities[]? | .name' | sort | un
                   --label "security,remediation-auto" \
                   --base main \
                   --head "$BRANCH_NAME" || true
-                
+
                 echo "pr_count=1" >> $GITHUB_OUTPUT
               fi
             fi
@@ -166,7 +166,7 @@ $(npm audit --json 2>/dev/null | jq -r '.vulnerabilities[]? | .name' | sort | un
             echo "Trivy report not readable"
             echo "pr_count=0" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Enable auto-merge on remediation PRs
         if: steps.remediate.outputs.pr_count != ''
         continue-on-error: true
@@ -179,7 +179,7 @@ $(npm audit --json 2>/dev/null | jq -r '.vulnerabilities[]? | .name' | sort | un
             --limit 1 \
             --json number \
             --jq '.[0].number' || echo "")
-          
+
           if [ -n "$PR_NUMBER" ]; then
             echo "🔄 Enabling auto-merge for PR #$PR_NUMBER..."
             gh pr merge "$PR_NUMBER" \
@@ -187,7 +187,7 @@ $(npm audit --json 2>/dev/null | jq -r '.vulnerabilities[]? | .name' | sort | un
               --squash \
               --repo ${{ github.repository }} || true
           fi
-      
+
       - name: Report status to GitHub Issue
         if: always()
         continue-on-error: true
@@ -201,18 +201,18 @@ $(npm audit --json 2>/dev/null | jq -r '.vulnerabilities[]? | .name' | sort | un
             --limit 1 \
             --json number \
             --jq '.[0].number')
-          
+
           if [ -z "$ISSUE_NUMBER" ]; then
             exit 0
           fi
-          
+
           PR_COUNT="${{ steps.remediate.outputs.pr_count || '0' }}"
-          
+
           gh issue comment "$ISSUE_NUMBER" \
             --body "## 🤖 Auto-Remediation Status
 
-**Run**: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+**Run**: [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
 **Remediation PRs Created**: $PR_COUNT
 
 $(if [ "$PR_COUNT" -gt 0 ]; then echo "✅ Dependency-bump PRs created and auto-merge enabled"; else echo "ℹ️  No new remediations needed (existing PRs still pending)"; fi)" || true

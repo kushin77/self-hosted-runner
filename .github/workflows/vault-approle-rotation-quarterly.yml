@@ -63,13 +63,13 @@ jobs:
           VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE || 'admin' }}
         run: |
           set +e
-          
+
           # Attempt OIDC authentication
           export VAULT_TOKEN=$(vault write -field=token auth/jwt/login \
             role=gh-runner \
             jwt=${{ secrets.GITHUB_TOKEN }} \
             2>/dev/null)
-          
+
           if [ $? -eq 0 ] && [ -n "$VAULT_TOKEN" ]; then
             echo "::add-mask::${VAULT_TOKEN:0:10}..."
             echo "token_obtained=true" >> $GITHUB_OUTPUT
@@ -88,10 +88,10 @@ jobs:
           VAULT_TOKEN: ${{ steps.vault-auth.outputs.token }}
         run: |
           set +e
-          
+
           ROLE_ID=$(vault read -field=role_id auth/approle/role/gh-runner/role-id \
             2>/dev/null)
-          
+
           if [ $? -eq 0 ]; then
             echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
             echo "✓ Current AppRole ID: ${ROLE_ID:0:10}..."
@@ -109,12 +109,12 @@ jobs:
           VAULT_TOKEN: ${{ steps.vault-auth.outputs.token }}
         run: |
           set +e
-          
+
           # Generate new secret ID with 7-day TTL for audit trail
           NEW_SECRET=$(vault write -field=secret_id auth/approle/role/gh-runner/secret-id \
             ttl=7d \
             2>/dev/null)
-          
+
           if [ $? -eq 0 ]; then
             echo "::add-mask::${NEW_SECRET:0:10}..."
             echo "secret_id=$NEW_SECRET" >> $GITHUB_OUTPUT
@@ -150,13 +150,13 @@ jobs:
           VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE || 'admin' }}
         run: |
           set +e
-          
+
           # Test new credentials
           VAULT_TOKEN=$(vault write -field=client_token auth/approle/login \
             role_id="${{ steps.current-role.outputs.role_id }}" \
             secret_id="${{ steps.new-secret.outputs.secret_id }}" \
             2>/dev/null)
-          
+
           if [ $? -eq 0 ]; then
             echo "✓ New AppRole credentials verified successfully"
             echo "✓ AppRole rotation completed successfully"
@@ -172,16 +172,16 @@ jobs:
         run: |
           TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           TITLE="🔐 Vault AppRole Rotation - $TIMESTAMP"
-          
+
           STATUS="${{ steps.vault-check.outputs.vault_available }}"
           if [ "$STATUS" == "true" ]; then
             STATUS="${{ steps.new-secret.outputs.secret_id != '' && 'Completed' || 'Attempted' }}"
           else
             STATUS="Skipped (Vault not configured)"
           fi
-          
+
           BODY="# Vault AppRole Rotation Audit
-          
+
 **Date**: $TIMESTAMP
 **Status**: $STATUS
 **Dry Run**: ${{ github.event.inputs.dry_run == 'true' && 'Yes' || 'No' }}

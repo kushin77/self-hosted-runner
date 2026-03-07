@@ -34,19 +34,19 @@ jobs:
     name: Health Dashboard & Metrics
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Load resilience utilities
         run: source .github/scripts/resilience.sh
-      
+
       - name: Collect Workflow Health Metrics
         id: workflow-health
         run: |
           echo "Collecting health metrics for all remediation workflows..."
-          
+
           # Track the four critical workflows
           WORKFLOWS=(
             "dr-reconciliation-auto-remediate.yml"
@@ -54,14 +54,14 @@ jobs:
             "enable-auto-merge.yml"
             "minio-dns-failover.yml"
           )
-          
+
           OVERALL_SUCCESS=0
           OVERALL_TOTAL=0
-          
+
           for workflow in "${WORKFLOWS[@]}"; do
             echo ""
             echo "📊 Workflow: $workflow"
-            
+
             # Get last 5 runs
             RUNS=$(gh_safe 3 30 run list \
               --workflow "$workflow" \
@@ -69,32 +69,32 @@ jobs:
               --limit 5 \
               --json status,conclusion,createdAt,databaseId \
               --jq '.' || echo "")
-            
+
             if [ -z "$RUNS" ]; then
               echo "⚠ No runs found for $workflow"
               continue
             fi
-            
+
             # Count successes
             SUCCESS_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
             TOTAL_COUNT=$(echo "$RUNS" | jq 'length')
             FAILURE_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
-            
+
             SUCCESS_RATE=$((SUCCESS_COUNT * 100 / TOTAL_COUNT))
-            
+
             echo "  Last 5 runs: $SUCCESS_COUNT/$TOTAL_COUNT successful ($SUCCESS_RATE%)"
             echo "  Failures: $FAILURE_COUNT"
-            
+
             # Get latest run details
             LATEST=$(echo "$RUNS" | jq '.[0]')
             LATEST_STATUS=$(echo "$LATEST" | jq -r '.status')
             LATEST_CONCLUSION=$(echo "$LATEST" | jq -r '.conclusion')
             LATEST_CREATED=$(echo "$LATEST" | jq -r '.createdAt')
             LATEST_RUN_ID=$(echo "$LATEST" | jq -r '.databaseId')
-            
+
             echo "  Latest: Status=$LATEST_STATUS, Conclusion=$LATEST_CONCLUSION"
             echo "  Latest run: $LATEST_RUN_ID (started: $LATEST_CREATED)"
-            
+
             # Append to metrics
             WORKFLOW_NAME=$(echo "$workflow" | sed 's/.yml//')
             {
@@ -109,23 +109,23 @@ jobs:
               echo "  \"timestamp\": \"$LATEST_CREATED\""
               echo "},"
             } >> /tmp/workflow_metrics.txt
-            
+
             OVERALL_SUCCESS=$((OVERALL_SUCCESS + SUCCESS_COUNT))
             OVERALL_TOTAL=$((OVERALL_TOTAL + TOTAL_COUNT))
           done
-          
+
           OVERALL_SUCCESS_RATE=$((OVERALL_SUCCESS * 100 / OVERALL_TOTAL))
           echo "overall_success_rate=$OVERALL_SUCCESS_RATE" >> $GITHUB_OUTPUT
           echo "overall_successes=$OVERALL_SUCCESS" >> $GITHUB_OUTPUT
           echo "overall_total=$OVERALL_TOTAL" >> $GITHUB_OUTPUT
-          
+
           echo "✓ Overall success rate: $OVERALL_SUCCESS_RATE% ($OVERALL_SUCCESS/$OVERALL_TOTAL)"
-      
+
       - name: Collect Issue Closure Metrics
         id: issue-metrics
         run: |
           echo "Collecting issue closure metrics..."
-          
+
           # Track issues that should auto-close
           TRACKED_ISSUES=(
             "1046"  # DR failure
@@ -140,22 +140,22 @@ jobs:
             "965"   # Admin action (auto-merge)
             "988"   # DNS failure
           )
-          
+
           CLOSED_COUNT=0
           OPEN_COUNT=0
           UPDATED_COUNT=0
           ISSUE_DETAILS=""
-          
+
           for issue_num in "${TRACKED_ISSUES[@]}"; do
             ISSUE=$(gh_safe 3 20 issue view "$issue_num" \
               --repo kushin77/self-hosted-runner \
               --json state,title,updatedAt \
               --jq '.' || echo "{}")
-            
+
             STATE=$(echo "$ISSUE" | jq -r '.state')
             TITLE=$(echo "$ISSUE" | jq -r '.title')
             UPDATED=$(echo "$ISSUE" | jq -r '.updatedAt')
-            
+
             if [ "$STATE" = "CLOSED" ]; then
               ((CLOSED_COUNT++))
               ICON="✅"
@@ -163,64 +163,64 @@ jobs:
               ((OPEN_COUNT++))
               ICON="🔴"
             fi
-            
+
             ISSUE_DETAILS="$ISSUE_DETAILS
 $ICON #$issue_num: $TITLE (updated: $UPDATED)"
-            
+
             # Check if recently updated (last 2 hours)
             UPDATED_EPOCH=$(date -d "$UPDATED" +%s)
             NOW_EPOCH=$(date +%s)
             DIFF=$((NOW_EPOCH - UPDATED_EPOCH))
-            
+
             if [ $DIFF -lt 7200 ]; then
               ((UPDATED_COUNT++))
             fi
           done
-          
+
           echo "closed_count=$CLOSED_COUNT" >> $GITHUB_OUTPUT
           echo "open_count=$OPEN_COUNT" >> $GITHUB_OUTPUT
           echo "updated_count=$UPDATED_COUNT" >> $GITHUB_OUTPUT
           echo "issue_details<<EOF" >> $GITHUB_OUTPUT
           echo "$ISSUE_DETAILS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-          
+
           echo "✓ Issues: $CLOSED_COUNT closed, $OPEN_COUNT open, $UPDATED_COUNT updated (last 2h)"
-      
+
       - name: Analyze Secret Provisioning Status
         id: secrets-status
         run: |
           echo "Checking secret provisioning status..."
-          
+
           # Check if RUNNER_MGMT_TOKEN and DEPLOY_SSH_KEY are set
           RUNNER_TOKEN_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
             --jq '.secrets | map(select(.name == "RUNNER_MGMT_TOKEN")) | length' || echo 0)
-          
+
           DEPLOY_KEY_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
             --jq '.secrets | map(select(.name == "DEPLOY_SSH_KEY")) | length' || echo 0)
-          
+
           if [ "$RUNNER_TOKEN_SET" -gt 0 ]; then
             echo "runner_token_status=✅ SET" >> $GITHUB_OUTPUT
           else
             echo "runner_token_status=❌ MISSING" >> $GITHUB_OUTPUT
           fi
-          
+
           if [ "$DEPLOY_KEY_SET" -gt 0 ]; then
             echo "deploy_key_status=✅ SET" >> $GITHUB_OUTPUT
           else
             echo "deploy_key_status=❌ MISSING" >> $GITHUB_OUTPUT
           fi
-          
+
           SECRETS_HEALTHY=$([ "$RUNNER_TOKEN_SET" -gt 0 ] && [ "$DEPLOY_KEY_SET" -gt 0 ] && echo "true" || echo "false")
           echo "secrets_healthy=$SECRETS_HEALTHY" >> $GITHUB_OUTPUT
-      
+
       - name: Check MinIO Connectivity Status
         id: minio-status
         continue-on-error: true
         run: |
           echo "Checking MinIO connectivity..."
-          
+
           PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.bioenergystrategies.com' }}"
-          
+
           # Quick health check
           if timeout 5 bash -c "echo >/dev/tcp/$PRIMARY_HOST/9000" 2>/dev/null; then
             echo "minio_status=✅ HEALTHY" >> $GITHUB_OUTPUT
@@ -229,7 +229,7 @@ $ICON #$issue_num: $TITLE (updated: $UPDATED)"
             echo "minio_status=⚠ UNREACHABLE" >> $GITHUB_OUTPUT
             echo "minio_response_code=000" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Generate Daily Health Report
         id: daily-report
         run: |
@@ -241,9 +241,9 @@ $ICON #$issue_num: $TITLE (updated: $UPDATED)"
           RUNNER_TOKEN="${{ steps.secrets-status.outputs.runner_token_status }}"
           DEPLOY_KEY="${{ steps.secrets-status.outputs.deploy_key_status }}"
           MINIO_STATUS="${{ steps.minio-status.outputs.minio_status }}"
-          
+
           REPORT="## 📊 Health Dashboard Report - $TIMESTAMP
-          
+
 ### ✅ System Health Summary
 
 | Metric | Value | Status |
@@ -268,16 +268,16 @@ ${{ steps.issue-metrics.outputs.issue_details }}
 
 ### 📈 Key Metrics (Last 5 Runs Each)
 
-**Success Rate**: $SUCCESS_RATE% overall  
-**Failures**: ${{ steps.workflow-health.outputs.overall_total - steps.workflow-health.outputs.overall_successes }} of ${{ steps.workflow-health.outputs.overall_total }} runs  
-**Auto-Closes**: $CLOSED_ISSUES issues resolved  
+**Success Rate**: $SUCCESS_RATE% overall
+**Failures**: ${{ steps.workflow-health.outputs.overall_total - steps.workflow-health.outputs.overall_successes }} of ${{ steps.workflow-health.outputs.overall_total }} runs
+**Auto-Closes**: $CLOSED_ISSUES issues resolved
 
 ### 🎯 System Properties
 
-✅ **Immutable**: All actions logged to GitHub issues  
-✅ **Ephemeral**: Secrets rotated; failover auto-reverts  
-✅ **Idempotent**: Workflows safe to re-run  
-✅ **Hands-Off**: 100% automated, zero manual ops  
+✅ **Immutable**: All actions logged to GitHub issues
+✅ **Ephemeral**: Secrets rotated; failover auto-reverts
+✅ **Idempotent**: Workflows safe to re-run
+✅ **Hands-Off**: 100% automated, zero manual ops
 
 ### 🔗 Links
 
@@ -288,20 +288,20 @@ ${{ steps.issue-metrics.outputs.issue_details }}
 
 ---
 
-**Report Generated**: $TIMESTAMP  
-**Next Report**: $(date -u -d '+24 hours' +'%Y-%m-%d %H:%M:%S UTC')  
+**Report Generated**: $TIMESTAMP
+**Next Report**: $(date -u -d '+24 hours' +'%Y-%m-%d %H:%M:%S UTC')
 **Status**: 🟢 SYSTEM OPERATIONAL"
-          
+
           echo "report<<EOF" >> $GITHUB_OUTPUT
           echo "$REPORT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      
+
       - name: Post or Update Dashboard Issue
         id: dashboard-issue
         run: |
           DASHBOARD_ISSUE="1056"  # Continuous Monitoring issue
           REPORT="${{ steps.daily-report.outputs.report }}"
-          
+
           # Check if we should post comment or just update
           if [ "$(date +'%H')" -eq "04" ]; then
             # Daily report (04:00 UTC)
@@ -314,13 +314,13 @@ ${{ steps.issue-metrics.outputs.issue_details }}
             # Hourly metrics (just update description)
             echo "dashboard_action=metrics-collected" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Send Summary to Actions Annotations
         run: |
           SUCCESS_RATE="${{ steps.workflow-health.outputs.overall_success_rate }}"
           CLOSED="${{ steps.issue-metrics.outputs.closed_count }}"
           OPEN="${{ steps.issue-metrics.outputs.open_count }}"
-          
+
           if [ $SUCCESS_RATE -ge 95 ]; then
             echo "::notice::✅ System Healthy - Success rate: $SUCCESS_RATE%, Issues closed: $CLOSED/11"
           elif [ $SUCCESS_RATE -ge 80 ]; then
@@ -328,11 +328,11 @@ ${{ steps.issue-metrics.outputs.issue_details }}
           else
             echo "::error::❌ System Issues - Success rate: $SUCCESS_RATE%, Open: $OPEN issues"
           fi
-      
+
       - name: Store metrics for trending
         run: |
           mkdir -p .metrics
-          
+
           cat > .metrics/health-$(date +%Y%m%d-%H%M%S).json <<EOF
           {
             "timestamp": "$(date -u -Iseconds)",
@@ -346,7 +346,7 @@ ${{ steps.issue-metrics.outputs.issue_details }}
             "minio_healthy": "${{ contains(steps.minio-status.outputs.minio_status, 'HEALTHY') }}"
           }
           EOF
-      
+
       - name: Upload metrics artifact
         uses: actions/upload-artifact@v4
         with:

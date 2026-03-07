@@ -112,7 +112,7 @@ jobs:
           SECRET_ID="${VAULT_SECRET_ID:-$SECRET_ID_SECRET}"
 
           if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
-            echo "❌ AppRole credentials not available." 
+            echo "❌ AppRole credentials not available."
             exit 1
           fi
 
@@ -122,31 +122,31 @@ jobs:
             -H "Content-Type: application/json" \
             -d "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}" \
             | jq -r '.auth.client_token')
-          
+
           if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
             echo "❌ Failed to authenticate to Vault"
             exit 1
           fi
-          
+
           echo "✓ Vault authentication successful"
-          
+
           # Fetch SSH key from Vault secret
           SSH_KEY=$(curl -s -X GET \
             "${{ secrets.VAULT_ADDR }}/v1/${{ github.event.inputs.vault_secret_path }}" \
             -H "X-Vault-Token: $VAULT_TOKEN" \
             | jq -r '.data.data.private_key')
-          
+
           if [ -z "$SSH_KEY" ] || [ "$SSH_KEY" = "null" ]; then
             echo "❌ Failed to fetch SSH key from Vault at path: ${{ github.event.inputs.vault_secret_path }}"
             exit 1
           fi
-          
+
           # Write SSH key to file with restricted permissions
           mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
           echo "$SSH_KEY" > "$ANSIBLE_SSH_KEY_PATH"
           chmod 600 "$ANSIBLE_SSH_KEY_PATH"
           echo "✓ SSH key written to $ANSIBLE_SSH_KEY_PATH with mode 0600"
-          
+
           # Wipe token from memory
           unset VAULT_TOKEN
 
@@ -226,9 +226,9 @@ jobs:
           Inventory: ${{ github.event.inputs.inventory_file }}
           Dry-run: ${{ github.event.inputs.dry_run }}
           Tags: ${{ github.event.inputs.tags || 'all' }}
-          
+
           Status: ✅ COMPLETED (check logs above for details)
-          
+
           Next steps:
           1. Verify Prometheus metrics for runner_rotation_failures (should be 0)
           2. Monitor vault_rotation_success_total (should increment every hour)

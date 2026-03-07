@@ -23,7 +23,7 @@ jobs:
     name: Alert on Critical Issues
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    
+
     steps:
       - name: Load resilience helpers
         run: |
@@ -39,7 +39,7 @@ jobs:
             exit 0
           fi
           echo "status=configured" >> $GITHUB_OUTPUT
-      
+
       - name: Build notification message (Issue Event)
         id: build-message-issue
         if: github.event_name == 'issues'
@@ -48,7 +48,7 @@ jobs:
           ISSUE_NUM="${{ github.event.issue.number }}"
           ISSUE_TITLE="${{ github.event.issue.title }}"
           ISSUE_LABELS="${{ join(github.event.issue.labels.*.name, ', ') }}"
-          
+
           case "$ACTION" in
             opened)
               ICON="🆕"
@@ -63,10 +63,10 @@ jobs:
               ICON="📝"
               ;;
           esac
-          
+
           # Only notify on automation/critical issues
           if [[ "$ISSUE_LABELS" == *"automation"* ]] || [[ "$ISSUE_LABELS" == *"critical"* ]]; then
-            
+
             MESSAGE="{
               \"text\": \"$ICON Issue #$ISSUE_NUM $ACTION\",
               \"blocks\": [
@@ -114,28 +114,28 @@ jobs:
                 }
               ]
             }"
-            
+
             echo "message=$MESSAGE" >> $GITHUB_OUTPUT
             echo "should_notify=true" >> $GITHUB_OUTPUT
           else
             echo "should_notify=false" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Send Slack notification
         id: notify
         if: steps.check-webhook.outputs.status == 'configured' && steps.build-message-issue.outputs.should_notify == 'true'
         run: |
           WEBHOOK="${{ secrets.SLACK_WEBHOOK_URL }}"
           MESSAGE='${{ steps.build-message-issue.outputs.message }}'
-          
+
           curl -X POST "$WEBHOOK" \
             -H 'Content-Type: application/json' \
             -d "$MESSAGE" \
             --silent --show-error \
             -w "\n%{http_code}" | tail -1 > /tmp/slack_response_code.txt
-          
+
           RESPONSE_CODE=$(cat /tmp/slack_response_code.txt)
-          
+
           if [ "$RESPONSE_CODE" = "200" ]; then
             echo "status=sent" >> $GITHUB_OUTPUT
             echo "✓ Notification sent to Slack"
@@ -149,7 +149,7 @@ jobs:
     runs-on: ubuntu-latest
     if: failure()
     timeout-minutes: 5
-    
+
     steps:
       - name: Check webhook and build failure message
         run: |
@@ -157,11 +157,11 @@ jobs:
             echo "Slack not configured (optional)"
             exit 0
           fi
-          
+
           WORKFLOW="${{ github.workflow }}"
           RUN_ID="${{ github.run_id }}"
           CONCLUSION="${{ job.status }}"
-          
+
           MESSAGE="{
             \"text\": \"⚠️ Workflow Failed: $WORKFLOW\",
             \"blocks\": [
@@ -174,7 +174,7 @@ jobs:
               }
             ]
           }"
-          
+
           curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
             -H 'Content-Type: application/json' \
             -d "$MESSAGE" \

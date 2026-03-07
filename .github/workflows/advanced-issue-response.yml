@@ -31,21 +31,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'issues' || github.event_name == 'pull_request'
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Load resilience helpers
         run: |
           set -euo pipefail
           source .github/scripts/resilience.sh || true
-      
+
       - name: Classify issue type
         id: classify
         run: |
           echo "Classifying issue/PR type and urgency..."
-          
+
           if [ "${{ github.event_name }}" = "issues" ]; then
             TITLE="${{ github.event.issue.title }}"
             LABELS="${{ github.event.issue.labels[*].name }}"
@@ -57,7 +57,7 @@ jobs:
             BODY="${{ github.event.pull_request.body }}"
             PR_NUM="${{ github.event.pull_request.number }}"
           fi
-          
+
           # Determine issue type and urgency
           if echo "$LABELS" | grep -q "disaster-recovery\|critical\|production-down"; then
             URGENCY="critical"
@@ -72,7 +72,7 @@ jobs:
             URGENCY="low"
             ICON="🟢"
           fi
-          
+
           # Detect issue category
           if echo "$TITLE$BODY" | grep -qi "secret\|credential\|password\|token"; then
             CATEGORY="security"
@@ -85,23 +85,23 @@ jobs:
           else
             CATEGORY="general"
           fi
-          
+
           echo "urgency=$URGENCY" >> $GITHUB_OUTPUT
           echo "category=$CATEGORY" >> $GITHUB_OUTPUT
           echo "icon=$ICON" >> $GITHUB_OUTPUT
-      
+
       - name: Generate auto-response
         id: response
         run: |
           URGENCY="${{ steps.classify.outputs.urgency }}"
           CATEGORY="${{ steps.classify.outputs.category }}"
           ICON="${{ steps.classify.outputs.icon }}"
-          
+
           # Build response message based on category
           case "$CATEGORY" in
             "security")
               RESPONSE="$ICON **Security Alert Acknowledged**
-              
+
 This appears to be a security-related issue. Our automated systems are:
 - ✅ Scanning Vault for related secrets
 - ✅ Checking ephemeral-secret-provisioning status
@@ -116,10 +116,10 @@ If this is urgent, please comment with priority flag."
               ;;
             "disaster-recovery")
               RESPONSE="$ICON **Disaster Recovery Issue Detected**
-              
+
 Our automated DR monitoring system is active:
 - ✅ Scanning recent test failures
-- ✅ Checking recovery detection status  
+- ✅ Checking recovery detection status
 - ✅ Running auto-remediation workflows
 
 **Active Workflows**:
@@ -130,7 +130,7 @@ Issues will auto-close when recovery is confirmed."
               ;;
             "automation")
               RESPONSE="$ICON **Automation Issue Detected**
-              
+
 We have automated handlers for this:
 - ✅ enable-auto-merge verification (daily)
 - ✅ Branch protection auto-configuration
@@ -153,21 +153,21 @@ Our infrastructure monitoring is active:
 
 Your issue has been received and classified. Our systems are:
 - ✅ Analyzing the problem
-- ✅ Checking for auto-remediation applicability  
+- ✅ Checking for auto-remediation applicability
 - ✅ Queuing for team review if needed
 
 **Next Steps**: Automation will respond with status within 30 minutes."
               ;;
           esac
-          
+
           echo "response<<EOF" >> $GITHUB_OUTPUT
           echo "$RESPONSE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      
+
       - name: Post auto-response
         run: |
           RESPONSE='${{ steps.response.outputs.response }}'
-          
+
           if [ "${{ github.event_name }}" = "issues" ]; then
             gh issue comment ${{ github.event.issue.number }} \
               --repo ${{ github.repository }} \
@@ -177,18 +177,18 @@ Your issue has been received and classified. Our systems are:
               --repo ${{ github.repository }} \
               --body "$RESPONSE"
           fi
-      
+
       - name: Auto-apply labels
         if: github.event_name == 'issues' && github.event.action == 'opened'
         run: |
           CATEGORY="${{ steps.classify.outputs.category }}"
           URGENCY="${{ steps.classify.outputs.urgency }}"
-          
+
           # Add category label
           gh issue edit ${{ github.event.issue.number }} \
             --repo ${{ github.repository }} \
             --add-label "$CATEGORY" 2>/dev/null || true
-          
+
           # Add urgency label
           case "$URGENCY" in
             "critical")
@@ -208,16 +208,16 @@ Your issue has been received and classified. Our systems are:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: github.event_name == 'schedule'
-    
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
-      
+
       - name: Scan for stale issues
         id: stale
         run: |
           echo "Scanning for stale/stuck issues..."
-          
+
           # Find issues open for >7 days without activity
           STALE_ISSUES=$(gh issue list \
             --repo ${{ github.repository }} \
@@ -225,23 +225,23 @@ Your issue has been received and classified. Our systems are:
             --search "updated:<$(date -d '7 days ago' +%Y-%m-%d)" \
             --json number,title,updatedAt \
             --jq '.[]')
-          
+
           STALE_COUNT=$(echo "$STALE_ISSUES" | jq -s 'length')
           echo "stale_count=$STALE_COUNT" >> $GITHUB_OUTPUT
-          
+
           if [ "$STALE_COUNT" -gt 0 ]; then
             echo "stale_list<<EOF" >> $GITHUB_OUTPUT
             echo "$STALE_ISSUES" | jq -r '.number' >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
-      
+
       - name: Check automation coverage
         id: coverage
         run: |
           echo "Checking automation coverage..."
-          
+
           echo "Automation Workflows Status:"
-          
+
           # Check each workflow status
           workflows=(
             "dr-reconciliation-auto-remediate.yml:dr-tests"
@@ -252,7 +252,7 @@ Your issue has been received and classified. Our systems are:
             "slack-alerts-automation.yml:notifications"
             "comprehensive-metrics-report.yml:analytics"
           )
-          
+
           COVERAGE_REPORT=""
           for workflow_info in "${workflows[@]}"; do
             IFS=':' read -r workflow category <<< "$workflow_info"
@@ -262,7 +262,7 @@ Your issue has been received and classified. Our systems are:
               --limit 1 \
               --json status,conclusion \
               --jq '.[0] | .status + ":" + .conclusion' 2>/dev/null)
-            
+
             if [ -n "$STATUS" ]; then
               COVERAGE_REPORT="$COVERAGE_REPORT
 ✅ **$category**: $STATUS"
@@ -271,18 +271,18 @@ Your issue has been received and classified. Our systems are:
 ⚠️ **$category**: Not yet executed"
             fi
           done
-          
+
           echo "coverage_report<<EOF" >> $GITHUB_OUTPUT
           echo "$COVERAGE_REPORT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      
+
       - name: Generate triage report
         id: triage
         run: |
           TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
-          
+
           REPORT="## 📋 Daily Triage & Issue Routing Report
-          
+
 **Report Date**: $TIMESTAMP
 
 ### 🔄 Stale Issues Status
@@ -307,15 +307,15 @@ ${{ steps.coverage.outputs.coverage_report }}
 ---
 
 *Triage report generated automatically*"
-          
+
           echo "report<<EOF" >> $GITHUB_OUTPUT
           echo "$REPORT" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
-      
+
       - name: Post triage summary
         run: |
           REPORT='${{ steps.triage.outputs.report }}'
-          
+
           gh issue comment 1077 \
             --repo ${{ github.repository }} \
             --body "$REPORT" 2>/dev/null || echo "⚠ Could not post triage report"
