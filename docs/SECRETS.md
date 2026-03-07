@@ -9,6 +9,7 @@ Required repository secrets for automated image pushes and runner self-heal:
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`: AWS credentials for ECR pushes.
 - `GCP_PROJECT_ID` and `GCP_SERVICE_ACCOUNT_KEY`: Service account key JSON (base64 or raw) for Google Artifact Registry pushes.
 - `DEPLOY_SSH_KEY`: SSH private key used by the self-heal workflow to run Ansible against runner hosts.
+- `RUNNER_MGMT_TOKEN` (optional): Personal Access Token (PAT) with `administration:read` scope. If configured, this token is used by the `Runner Self-Heal` workflow to bypass potential `403` errors from `GITHUB_TOKEN` when listing runners. Fallback is `github.token`.
 
 Guidance:
 
