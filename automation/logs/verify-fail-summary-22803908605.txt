@@ -1,0 +1,11 @@
+verify run id: 22803908605
+conclusion: failure
+recent runs:
+- 22803908605 (failure)
+- 22803905107 (failure)
+- 22803900188 (failure)
+
+Suggested next steps:
+- Ensure `GCP_SERVICE_ACCOUNT_KEY` secret contains valid JSON with `"type":"service_account"` and `project_id`.
+- Validate locally with `./scripts/ingest-gcp-key-safe.sh`.
+- Re-comment `ingested: true` on Issue #1239 to re-trigger automation.
