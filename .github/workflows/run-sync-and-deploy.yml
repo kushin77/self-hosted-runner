@@ -214,6 +214,33 @@ jobs:
             echo "⚠️  No backup config available for rollback. Manual intervention may be required."
           fi
 
+      - name: Post-rollback smoke test
+        id: rollback-smoke
+        if: ${{ steps.deploy.conclusion == 'failure' && steps.check-ssh.conclusion == 'success' }}
+        run: |
+          set -euo pipefail
+          echo "Running post-rollback synthetic Slack test (verifies Alertmanager and webhook end-to-end)..."
+          if ./scripts/automated_test_alert.sh; then
+            echo "smoke_ok=true" >> $GITHUB_OUTPUT
+            echo "✅ Post-rollback smoke test passed"
+          else
+            echo "smoke_ok=false" >> $GITHUB_OUTPUT
+            echo "❌ Post-rollback smoke test failed"
+          fi
+
+      - name: Create P1 if post-rollback smoke test failed
+        if: ${{ steps.rollback-smoke.outputs.smoke_ok == 'false' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `[P1] Post-rollback smoke test failed (run #${{ github.run_number }})`;
+            const body = `Automated run (${process.env.GITHUB_RUN_ID}) performed an automatic rollback but the post-rollback smoke test failed. Immediate attention is required to verify Alertmanager and Slack webhook delivery. Run URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`;
+            const repo = context.repo;
+            const issue = await github.rest.issues.create({owner: repo.owner, repo: repo.repo, title, body});
+            await github.rest.issues.addLabels({owner: repo.owner, repo: repo.repo, issue_number: issue.data.number, labels: ['P1','automation']});
+            // Also post a comment to the existing tracking issue (#1192)
+            await github.rest.issues.createComment({owner: repo.owner, repo: repo.repo, issue_number: 1192, body: `Post-rollback smoke test failed in run ${{ github.run_id }}. Created ${issue.data.html_url} for immediate investigation.`});
+
       - name: Run synthetic Slack test (best-effort)
         if: always()
         env:
