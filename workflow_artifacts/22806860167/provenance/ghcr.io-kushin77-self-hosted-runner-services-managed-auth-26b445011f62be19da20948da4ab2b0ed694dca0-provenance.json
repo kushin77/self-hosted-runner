@@ -1,0 +1,40 @@
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    {
+      "name": "ghcr.io/kushin77/self-hosted-runner/services/managed-auth:26b445011f62be19da20948da4ab2b0ed694dca0",
+      "digest": {
+        "sha256": "26b445011f62be19da20948da4ab2b0ed694dca0"
+      }
+    }
+  ],
+  "predicateType": "https://slsa.dev/provenance/v1.0",
+  "predicate": {
+    "buildDefinition": {
+      "buildType": "https://github.com/slsa-framework/slsa-github-generator/workflows/builder/v0",
+      "externalParameters": {
+        "workflow": {
+          "path": ".github/workflows/slsa-provenance-release.yml",
+          "ref": "refs/heads/main",
+          "repository": "kushin77/self-hosted-runner"
+        },
+        "inputs": {}
+      },
+      "internalParameters": {
+        "builderId": "github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance BUILDER_ID Release Gates@refs/heads/main"
+      },
+      "resolvedDependencies": []
+    },
+    "runDetails": {
+      "builder": {
+        "id": "github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance BUILDER_ID Release Gates@refs/heads/main"
+      },
+      "metadata": {
+        "invocationId": "22806860167",
+        "startedOn": "2026-03-07T20:42:53Z",
+        "finishedOn": "2026-03-07T20:42:53Z"
+      },
+      "byproducts": []
+    }
+  }
+}
