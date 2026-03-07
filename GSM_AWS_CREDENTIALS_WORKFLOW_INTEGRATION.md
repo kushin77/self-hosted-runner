@@ -135,6 +135,8 @@ After verifying the new workflow works, you can delete the old GitHub secrets:
 
 **File:** `.github/workflows/mirror-artifacts-gsm.yml`
 
+> 📝 *Note:* Several other AWS‑dependent workflows (`terraform-auto-apply`, `terraform-dns-apply`, `ansible-runbooks`, `docker-hub-weekly-backup`, `docker-hub-auto-secret-rotation`, `multi-region-*`, `mirror-release-artifacts`, `docker-hub-cascading-failover-test`, etc.) have already been patched to fetch credentials automatically. Use the pattern below for any additional jobs.*
+
 ```yaml
 name: Mirror Artifacts (GSM Credentials)
 
@@ -377,6 +379,8 @@ steps:
 ---
 
 ## Testing Your Integration
+
+> 🧠 *Since most known AWS workflows have been auto-migrated, you can focus on running them to validate. If you create new AWS‑using jobs, apply the same fetch pattern.*
 
 ### Test 1: Verify Fetch Works
 
