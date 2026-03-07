@@ -52,8 +52,7 @@ jobs:
             --repo kushin77/self-hosted-runner \
             --label "disaster-recovery,critical" \
             --state open \
-            --created ">$(date -u -d '24 hours ago' +'%Y-%m-%dT%H:%M:%SZ')" \
-            --sort created --direction asc \
+            --search "created:>$(date -u -d '24 hours ago' +'%Y-%m-%dT%H:%M:%SZ') sort:created-asc" \
             --json number,title \
             --jq '.[].number')
 

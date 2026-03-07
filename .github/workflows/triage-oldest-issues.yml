@@ -25,11 +25,11 @@ jobs:
           REPO=${{ github.repository }}
           echo "## 🔍 Oldest open issues for $REPO (created first)"
           gh issue list --repo "$REPO" \
-            --state open --sort created --direction asc --json number,title,createdAt \
+            --state open --search "sort:created-asc" --json number,title,createdAt \
             --limit 50 --jq '.[] | "- #\(.number) \(.title) (\(.createdAt|split("T")[0]))"' || true
 
           # optionally post a comment on the very oldest issue to prompt triage
-          OLDEST=$(gh issue list --repo "$REPO" --state open --sort created --direction asc --limit 1 --json number --jq '.[0].number')
+          OLDEST=$(gh issue list --repo "$REPO" --state open --search "sort:created-asc" --limit 1 --json number --jq '.[0].number')
           if [ -n "$OLDEST" ]; then
             echo "📝 Adding triage reminder to oldest issue #$OLDEST"
             gh issue comment "$OLDEST" --repo "$REPO" --body "🔁 This is currently the oldest open issue; please review and triage (automated ping)." || true
