@@ -1,0 +1,39 @@
+name: Auto-label when Cloud Provisioning Completes
+
+on:
+  workflow_run:
+    workflows:
+      - "Provision AWS OIDC Role for Terraform S3 Backend"
+    types: [completed]
+
+permissions:
+  issues: write
+  contents: read
+  actions: read
+
+jobs:
+  label-oidc-ready:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add comment and label issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueNumber = 1309;
+            github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: 'Cloud provisioning succeeded — adding label `oidc-ready` to trigger downstream automation.'
+            });
+            try {
+              github.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                labels: ['oidc-ready']
+              });
+            } catch (e) {
+              core.warning('Failed to add label (may already exist): ' + e.message);
+            }
