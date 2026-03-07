@@ -49,13 +49,13 @@ jobs:
         timeout-minutes: 1
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking Alertmanager endpoint..."
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 10 \
             --connect-timeout 5 \
             http://192.168.168.42:9093/-/healthy 2>/dev/null || echo "000")
-          
+
           if [ "$response" = "200" ] || [ "$response" = "302" ]; then
             echo "✅ Alertmanager healthy (HTTP $response)"
             echo "status=healthy" >> "$GITHUB_OUTPUT"
@@ -72,13 +72,13 @@ jobs:
         timeout-minutes: 1
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking Prometheus endpoint..."
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 10 \
             --connect-timeout 5 \
             http://192.168.168.42:9090/-/healthy 2>/dev/null || echo "000")
-          
+
           if [ "$response" = "200" ] || [ "$response" = "302" ]; then
             echo "✅ Prometheus healthy (HTTP $response)"
             echo "status=healthy" >> "$GITHUB_OUTPUT"
@@ -95,7 +95,7 @@ jobs:
         timeout-minutes: 1
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking MinIO port..."
           if timeout 5 bash -c "cat < /dev/null > /dev/tcp/192.168.168.42/9000" 2>/dev/null; then
             echo "✅ MinIO accessible (TCP 9000)"
@@ -113,13 +113,13 @@ jobs:
         timeout-minutes: 1
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Checking Vault endpoint..."
           response=$(curl -s -o /dev/null -w "%{http_code}" \
             --max-time 10 \
             --connect-timeout 5 \
             http://192.168.168.42:8200/v1/sys/health 2>/dev/null || echo "000")
-          
+
           if [ "$response" = "200" ] || [ "$response" = "473" ]; then
             echo "✅ Vault responsive (HTTP $response)"
             echo "status=healthy" >> "$GITHUB_OUTPUT"
@@ -134,18 +134,18 @@ jobs:
         id: check
         run: |
           set -euo pipefail
-          
+
           alertmanager_status="${{ steps.alertmanager.outputs.status }}"
           prometheus_status="${{ steps.prometheus.outputs.status }}"
           minio_status="${{ steps.minio.outputs.status }}"
           vault_status="${{ steps.vault.outputs.status }}"
-          
+
           # Determine if incident occurred
           incident="false"
           service=""
           severity="normal"
           details=""
-          
+
           if [ "$alertmanager_status" != "healthy" ]; then
             incident="true"
             service="alertmanager"
@@ -167,12 +167,12 @@ jobs:
             severity="high"
             details="Vault secrets backend is unresponsive"
           fi
-          
+
           echo "incident_detected=$incident" >> "$GITHUB_OUTPUT"
           echo "service=$service" >> "$GITHUB_OUTPUT"
           echo "severity=$severity" >> "$GITHUB_OUTPUT"
           echo "details=$details" >> "$GITHUB_OUTPUT"
-          
+
           if [ "$incident" = "true" ]; then
             echo "🚨 INCIDENT DETECTED: $service ($severity)"
             exit 1
@@ -197,63 +197,63 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          
+
           service="${{ needs.health-check.outputs.incident_service }}"
           severity="${{ needs.health-check.outputs.incident_severity }}"
           details="${{ needs.health-check.outputs.incident_details }}"
-          
+
           body=$(cat << 'EOF'
           ## 🚨 Incident Alert
-          
+
           **Service**: ${{ needs.health-check.outputs.incident_service }}
           **Severity**: ${{ needs.health-check.outputs.incident_severity | upper }}
           **Detected**: ${{ github.event.repository.updated_at }}
           **Worker Node**: 192.168.168.42
-          
+
           ### Details
-          
+
           ${{ needs.health-check.outputs.incident_details }}
-          
+
           ### Immediate Actions
-          
+
           1. Check worker node connectivity:
              \`\`\`bash
              ssh -o ConnectTimeout=5 akushnir@192.168.168.42 "systemctl status $(basename ${{ needs.health-check.outputs.incident_service }})"
              \`\`\`
-          
+
           2. View service logs:
              \`\`\`bash
              ssh akushnir@192.168.168.42 "journalctl -u ${{ needs.health-check.outputs.incident_service }} -n 50"
              \`\`\`
-          
+
           3. Attempt service restart (if applicable):
              \`\`\`bash
              ssh akushnir@192.168.168.42 "sudo systemctl restart ${{ needs.health-check.outputs.incident_service }}"
              \`\`\`
-          
+
           ### Automation Status
-          
+
           - [x] Incident detected automatically
           - [x] Health check confirmed
           - [x] P1 issue created
           - [ ] PagerDuty escalation (optional, if secret configured)
           - [ ] Slack notification posted
           - [ ] Auto-recovery initiated
-          
+
           ### Recovery Expected
-          
+
           - Alertmanager: < 2 minutes
           - Prometheus: < 1 minute
           - MinIO: < 3 minutes
           - Vault: < 2 minutes
-          
+
           ---
-          
+
           **Run**: [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           **Detection Time**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
           EOF
           )
-          
+
           issue_url=$(gh issue create \
             --title "P1: Incident - ${{ needs.health-check.outputs.incident_service }} unhealthy" \
             --body "$body" \
@@ -262,7 +262,7 @@ jobs:
             --repo "${{ github.repository }}" \
             --json url \
             --jq '.url')
-          
+
           echo "issue_url=$issue_url" >> "$GITHUB_OUTPUT"
           echo "✅ P1 incident issue created: $issue_url"
 
@@ -272,17 +272,17 @@ jobs:
         continue-on-error: true
         run: |
           set -euo pipefail
-          
+
           if [ -z "${SLACK_WEBHOOK:-}" ]; then
             echo "⏭️ Slack webhook not configured; skipping notification"
             exit 0
           fi
-          
+
           service="${{ needs.health-check.outputs.incident_service }}"
           severity="${{ needs.health-check.outputs.incident_severity }}"
-          
+
           color=$([ "$severity" = "critical" ] && echo "danger" || echo "warning")
-          
+
           payload=$(cat << EOF
           {
             "attachments": [
@@ -319,7 +319,7 @@ jobs:
           }
           EOF
           )
-          
+
           curl -X POST "$SLACK_WEBHOOK" \
             -H "Content-Type: application/json" \
             -d "$payload" \
@@ -351,19 +351,19 @@ jobs:
           PAGERDUTY_SERVICE_ID: ${{ secrets.PAGERDUTY_SERVICE_ID }}
         run: |
           set -euo pipefail
-          
+
           if [ -z "${PAGERDUTY_SERVICE_ID:-}" ]; then
             echo "⚠️ PagerDuty service ID not configured"
             exit 0
           fi
-          
+
           service="${{ needs.health-check.outputs.incident_service }}"
           severity="${{ needs.health-check.outputs.incident_severity }}"
-          
+
           # Convert to PagerDuty severity
           pd_severity="error"
           [ "$severity" = "critical" ] && pd_severity="critical"
-          
+
           payload=$(cat << EOF
           {
             "routing_key": "$PAGERDUTY_TOKEN",
@@ -383,11 +383,11 @@ jobs:
           }
           EOF
           )
-          
+
           response=$(curl -s -X POST https://events.pagerduty.com/v2/enqueue \
             -H "Content-Type: application/json" \
             -d "$payload")
-          
+
           echo "✅ PagerDuty incident created"
           echo "$response" | jq . 2>/dev/null || echo "$response"
 
@@ -401,22 +401,22 @@ jobs:
       - name: Report status
         run: |
           cat << 'SUMMARY'
-          
+
           ✅ INCIDENT DETECTION CYCLE COMPLETE
           ════════════════════════════════════════════════════════════════
-          
+
           Detected: ${{ needs.health-check.outputs.incident_detected }}
           Service: ${{ needs.health-check.outputs.incident_service || 'N/A' }}
           Severity: ${{ needs.health-check.outputs.incident_severity || 'N/A' }}
-          
+
           Actions Taken:
           - Health checks executed (all services)
           - ${{ needs.health-check.outputs.incident_detected == 'true' && 'P1 incident issue created' || 'No incidents detected' }}
           - ${{ needs.health-check.outputs.incident_detected == 'true' && 'Slack notification attempted' || 'N/A' }}
           - ${{ needs.health-check.outputs.incident_detected == 'true' && 'PagerDuty escalation attempted' || 'N/A' }}
-          
+
           Next: Manual investigation and service restart if needed
-          
+
           SUMMARY
 
       - name: Publish incident metrics
@@ -431,5 +431,5 @@ jobs:
             "severity": "${{ needs.health-check.outputs.incident_severity || 'normal' }}"
           }
           JSON
-          
+
           cat /tmp/incident-metrics.json
