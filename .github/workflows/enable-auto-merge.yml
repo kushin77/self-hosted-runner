@@ -1,5 +1,7 @@
 name: Enable Repository Auto-Merge Settings
 
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
+
 on:
   schedule:
     # Verify auto-merge is enabled daily
