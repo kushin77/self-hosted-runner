@@ -44,6 +44,8 @@ jobs:
           PROG_SIM=$(get_status "progressive-rollout-simulate.yml")
           SLSA=$(get_status "slsa-provenance-release.yml")
           CANARY_DEPLOY=$(get_status "canary-deployment.yml")
+          ELASTICACHE=$(get_status "elasticache-apply-safe.yml")
+          STAGING_HEAL=$(get_status "staging-cluster-heal.yml")
 
           echo "dr_smoke=$DR_SMOKE" >> $GITHUB_OUTPUT
           echo "dr_weekly=$DR_WEEKLY" >> $GITHUB_OUTPUT
@@ -55,6 +57,8 @@ jobs:
           echo "prog_sim=$PROG_SIM" >> $GITHUB_OUTPUT
           echo "slsa=$SLSA" >> $GITHUB_OUTPUT
           echo "canary_deploy=$CANARY_DEPLOY" >> $GITHUB_OUTPUT
+          echo "elasticache=$ELASTICACHE" >> $GITHUB_OUTPUT
+          echo "staging_heal=$STAGING_HEAL" >> $GITHUB_OUTPUT
 
       - name: Check critical issue status
         id: issues
@@ -123,6 +127,7 @@ jobs:
           | ElastiCache Apply | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.elasticache }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Secret Verifier | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Canary Simulator | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Staging Heal | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.staging_heal }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Prog. Rollout Sim | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | SLSA Release | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Canary Deploy | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
