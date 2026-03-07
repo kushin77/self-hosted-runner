@@ -42,6 +42,8 @@ jobs:
           VERIFY=$(get_status "verify-required-secrets.yml")
           CANARY_SIM=$(get_status "canary-simulate-dispatch.yml")
           PROG_SIM=$(get_status "progressive-rollout-simulate.yml")
+          SLSA=$(get_status "slsa-provenance-release.yml")
+          CANARY_DEPLOY=$(get_status "canary-deployment.yml")
 
           echo "dr_smoke=$DR_SMOKE" >> $GITHUB_OUTPUT
           echo "dr_weekly=$DR_WEEKLY" >> $GITHUB_OUTPUT
@@ -51,6 +53,8 @@ jobs:
           echo "verify=$VERIFY" >> $GITHUB_OUTPUT
           echo "canary_sim=$CANARY_SIM" >> $GITHUB_OUTPUT
           echo "prog_sim=$PROG_SIM" >> $GITHUB_OUTPUT
+          echo "slsa=$SLSA" >> $GITHUB_OUTPUT
+          echo "canary_deploy=$CANARY_DEPLOY" >> $GITHUB_OUTPUT
 
       - name: Check critical issue status
         id: issues
@@ -128,6 +132,8 @@ jobs:
           | Secret Verifier | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.verify }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Canary Simulator | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
           | Prog. Rollout Sim | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.prog_sim }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | SLSA Release | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.slsa }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
+          | Canary Deploy | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f1) | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f2) | $(echo "${{ steps.collect.outputs.canary_deploy }}" | cut -d'|' -f3 | sed 's/T.*//' || echo '—') |
 
           ### 📋 Issue Summary
 
@@ -156,6 +162,8 @@ jobs:
           | Secret Rotation | Daily 02:00 UTC |
           | Security Audit | Daily 02:00 UTC |
           | Operator Reminder | Daily 09:00 UTC |
+          | SLSA Release | Manual / on-tag |
+          | Canary Deployment | Manual dispatch or automated via progressive-rollout workflows |
 
           ### 🎯 Automation Status: ✅ FULLY HANDS-OFF
 
