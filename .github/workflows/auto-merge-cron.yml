@@ -1,0 +1,41 @@
+name: Auto Merge & CI Rerun
+
+on:
+  schedule:
+    - cron: '*/30 * * * *' # every 30 minutes
+  workflow_dispatch: {}
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+      issues: write
+      pull-requests: write
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+          # gh CLI is available in GitHub runners; ensure it's authenticated via GITHUB_TOKEN
+
+      - name: Run auto-merge worker
+        env:
+          REPO_FULL: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name || github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/automation/auto_merge_worker.sh
+          scripts/automation/auto_merge_worker.sh
+
+      - name: Upload log
+        uses: actions/upload-artifact@v4
+        with:
+          name: auto-merge-log
+          path: /tmp/auto_merge*.log
