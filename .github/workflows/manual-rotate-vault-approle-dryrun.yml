@@ -34,6 +34,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
       - name: Debug diagnostics (optional)
         if: ${{ github.event.inputs.debug == 'true' }}
         run: |
