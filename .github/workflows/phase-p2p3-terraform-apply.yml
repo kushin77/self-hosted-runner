@@ -380,12 +380,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [terraform-apply]
     if: ${{ inputs.notify_slack && always() }}
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Notify Slack
         uses: slackapi/slack-github-action@v1.24.0
-        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        if: ${{ env.SLACK_WEBHOOK_URL != '' }}
         with:
-          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-url: ${{ env.SLACK_WEBHOOK_URL }}
           payload: |
             {
               "text": "Phase P2/P3 Terraform Apply",
