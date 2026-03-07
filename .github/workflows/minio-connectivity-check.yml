@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: '0 */6 * * *'  # Run every 6 hours
 
+  workflow_call: {}
+
+concurrency:
+  group: minio-connectivity-check-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   diagnose-minio:
     name: MinIO Endpoint Diagnostics
