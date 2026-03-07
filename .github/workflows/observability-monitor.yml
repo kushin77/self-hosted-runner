@@ -1,0 +1,37 @@
+name: Observability E2E Monitor
+
+on:
+  workflow_run:
+    workflows: ["Observability E2E Test"]
+    types: [completed]
+
+jobs:
+  create-alert:
+    name: Create/Update Observability E2E Alert
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create or update alert issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const conclusion = run.conclusion || 'unknown';
+            const runUrl = run.html_url || '';
+            const title = 'Alert: Observability E2E failed';
+            const body = `The "Observability E2E Test" workflow completed with conclusion: **${conclusion}**\n\nRun URL: ${runUrl}\n\nThis alert was created automatically by the observability monitor workflow. Please investigate failures and attach logs.`;
+
+            // Search for an existing open issue with the same title
+            const issues = await github.rest.issues.listForRepo({ owner: context.repo.owner, repo: context.repo.repo, state: 'open' });
+            const existing = issues.data.find(i => i.title === title);
+
+            if (existing) {
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body });
+              core.info(`Appended comment to existing issue #${existing.number}`);
+            } else {
+              const created = await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body });
+              core.info(`Created alert issue #${created.data.number}`);
+            }
