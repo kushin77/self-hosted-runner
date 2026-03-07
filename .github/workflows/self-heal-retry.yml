@@ -17,6 +17,14 @@ jobs:
       actions: write
       contents: read
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Check for required secrets and dispatch self-heal
         uses: actions/github-script@v6
         env:
