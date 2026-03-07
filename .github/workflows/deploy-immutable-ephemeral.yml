@@ -72,6 +72,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        uses: ./.github/actions/resilience-loader
+
       - name: Set up Python for Ansible
         uses: actions/setup-python@v4
         with:
