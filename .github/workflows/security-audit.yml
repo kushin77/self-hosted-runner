@@ -1,0 +1,67 @@
+name: Security Audit (gitleaks + trivy)
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily @ 02:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  gitleaks-scan:
+    name: Gitleaks Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks (repository secrets scan)
+        uses: zricethezav/gitleaks-action@v1
+        with:
+          args: --path=. --report-format=json --report-path=./gitleaks-report.json || true
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+
+      - name: Create issue when findings found
+        if: steps.gitleaks-scan.outcome == 'failure' || (exists('./gitleaks-report.json') && (jq '.leaks | length' < gitleaks-report.json) )
+        run: |
+          echo "Gitleaks findings detected. Creating issue..."
+          gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Gitleaks findings detected" --body "Automated gitleaks scan found potential secrets. See artifact: gitleaks-report.json. Please review and rotate any exposed credentials." || true
+
+  trivy-scan:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run trivy filesystem scan
+        uses: aquasecurity/trivy-action@v0.10.0
+        with:
+          scan-type: 'filesystem'
+          format: 'json'
+          output: 'trivy-report.json'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.json
+
+      - name: Create issue when image vulnerabilities found
+        if: always()
+        run: |
+          if [ -f trivy-report.json ] && jq '.Results[].Vulnerabilities | length > 0' trivy-report.json >/dev/null 2>&1; then
+            gh issue create --repo kushin77/self-hosted-runner --title "[SECURITY] Trivy vulnerabilities detected" --body "Automated Trivy scan found high/critical vulnerabilities. See trivy-report.json artifact for details." || true
+          else
+            echo "No trivy high/critical vulnerabilities found."
+          fi
