@@ -1,15 +1,15 @@
 name: auto-dependency-remediation
 
 on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily 2 AM UTC
   workflow_dispatch:
     inputs:
       severity_filter:
         type: choice
         description: Minimum severity to remediate (high, moderate, low)
         default: high
-        required: true
-  schedule:
-    - cron: '0 2 * * *'  # Daily 2 AM UTC
+        required: false
 
 concurrency:
   group: auto-remediation-${{ github.ref }}
