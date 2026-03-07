@@ -1,0 +1,228 @@
+---
+# HA Provisioner Worker Deployment with Graceful Shutdown & Failover
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: provisioner-worker-ha
+  namespace: provisioner-system
+  labels:
+    app: provisioner-worker
+    tier: worker
+    ha: "true"
+spec:
+  replicas: 3  # HA: 3 replicas for quorum
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1           # Never lose quorum (one pod at a time)
+      maxUnavailable: 0     # Zero-downtime
+  selector:
+    matchLabels:
+      app: provisioner-worker
+      ha: "true"
+  template:
+    metadata:
+      labels:
+        app: provisioner-worker
+        ha: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+        # Pod Disruption Budget aware
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "false"
+    spec:
+      serviceAccountName: provisioner-worker-ha
+      affinity:
+        # Spread pods across nodes for HA
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - provisioner-worker
+              topologyKey: kubernetes.io/hostname
+      terminationGracePeriodSeconds: 60  # Allow 60s for graceful shutdown
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: IfNotPresent
+        
+        # Signals for graceful shutdown
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 30 && /app/scripts/graceful-shutdown.sh"]
+        
+        ports:
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+        
+        envFrom:
+        - configMapRef:
+            name: provisioner-worker-config
+        - secretRef:
+            name: provisioner-vault-credentials
+        
+        env:
+        - name: VAULT_ADDR
+          value: "https://vault.default.svc.cluster.local:8200"
+        - name: PROVISIONER_REDIS_URL
+          value: "redis://redis.default.svc.cluster.local:6379"
+        - name: WORKER_SHUTDOWN_TIMEOUT
+          value: "60"
+        - name: GRACEFUL_SHUTDOWN_ENABLED
+          value: "true"
+        
+        volumeMounts:
+        - name: jobstore
+          mountPath: /var/lib/provisioner-worker
+        - name: scripts
+          mountPath: /app/scripts
+        
+        # Liveness: restart if not responding for 2 minutes
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          timeoutSeconds: 5
+          failureThreshold: 4  # 4 * 15 = 60 seconds of failure to trigger restart
+        
+        # Readiness: stop receiving traffic if unhealthy
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        
+        # Startup: allow 2 minutes to become ready
+        startupProbe:
+          httpGet:
+            path: /ready
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 12  # 12 * 10 = 120 seconds
+        
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+      
+      volumes:
+      - name: jobstore
+        persistentVolumeClaim:
+          claimName: provisioner-worker-jobstore-ha
+      - name: scripts
+        configMap:
+          name: provisioner-graceful-shutdown
+          defaultMode: 0755
+
+---
+# PersistentVolumeClaim for HA (shared jobstore)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: provisioner-worker-jobstore-ha
+  namespace: provisioner-system
+spec:
+  accessModes:
+    - ReadWriteMany  # RWX for multiple concurrent pods
+  storageClassName: fast-ssd  # Use fast storage for Redis-backed coordination
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Service for load balancing provisioner-worker
+apiVersion: v1
+kind: Service
+metadata:
+  name: provisioner-worker-ha
+  namespace: provisioner-system
+spec:
+  selector:
+    app: provisioner-worker
+    ha: "true"
+  ports:
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+  - name: health
+    port: 8081
+    targetPort: 8081
+  type: ClusterIP
+  sessionAffinity: None  # No sticky sessions (stateless)
+
+---
+# ServiceAccount for HA deployment
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: provisioner-worker-ha
+  namespace: provisioner-system
+
+---
+# ClusterRole for pod coordination (leader election, job requeue)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: provisioner-worker-ha
+rules:
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: provisioner-worker-ha
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: provisioner-worker-ha
+subjects:
+- kind: ServiceAccount
+  name: provisioner-worker-ha
+  namespace: provisioner-system
+
+---
+# Pod Disruption Budget to ensure quorum during cluster upgrades
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: provisioner-worker-ha-pdb
+  namespace: provisioner-system
+spec:
+  minAvailable: 2  # At least 2 pods must always be running
+  selector:
+    matchLabels:
+      app: provisioner-worker
+      ha: "true"
