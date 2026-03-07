@@ -13,15 +13,15 @@ mkdir -p "$LOGDIR"
 
 echo "[watcher] starting: polling every ${SLEEP}s"
 while true; do
-  item=$(gh run list --workflow=runner-self-heal.yml --limit 1 --json databaseId,status,conclusion --jq '.[0]' 2>/dev/null || true)
+  item=$(gh run list --workflow=runner-self-heal.yml --limit 1 --json databaseId,status,conclusion 2>/dev/null | jq -r '.[0] // empty' 2>/dev/null || true)
   if [ -z "$item" ] || [ "$item" = "null" ]; then
     sleep $SLEEP
     continue
   fi
 
-  status=$(echo "$item" | jq -r .status // empty)
-  id=$(echo "$item" | jq -r .databaseId // empty)
-  conc=$(echo "$item" | jq -r .conclusion // empty)
+  status=$(echo "$item" | jq -r '.status // empty')
+  id=$(echo "$item" | jq -r '.databaseId // empty')
+  conc=$(echo "$item" | jq -r '.conclusion // empty')
 
   if [ "$status" = "completed" ]; then
     logfile="$LOGDIR/runner-self-heal-$id.log"
