@@ -1,0 +1,53 @@
+name: Auto-run when OIDC Ready Label Applied
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: read
+  actions: write
+
+jobs:
+  dispatch-on-oidc-ready:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'oidc-ready'
+    steps:
+      - name: Notify start
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Label `oidc-ready` detected — dispatching preflight and terraform apply workflows now.'
+            })
+
+      - name: Dispatch OIDC preflight workflow
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/oidc-auth-template.yml/dispatches \
+            -d '{"ref":"main"}' || true
+
+      - name: Dispatch Terraform Auto-Apply workflow
+        run: |
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-auto-apply.yml/dispatches \
+            -d '{"ref":"main"}' || true
+
+      - name: Comment completion
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Workflows dispatched. Monitor actions/runs and report back here if any failures occur.'
+            })
