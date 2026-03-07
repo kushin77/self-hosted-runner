@@ -1,0 +1,34 @@
+name: Self-Heal Retry
+
+on:
+  schedule:
+    - cron: '*/15 * * * *' # every 15 minutes
+  workflow_dispatch:
+
+jobs:
+  retry-dispatch:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - name: Check for required secrets and dispatch self-heal
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const missing = [];
+            if (!process.env.RUNNER_MGMT_TOKEN) missing.push('RUNNER_MGMT_TOKEN');
+            if (!process.env.DEPLOY_SSH_KEY) missing.push('DEPLOY_SSH_KEY');
+
+            if (missing.length === 0) {
+              core.info('Secrets present — dispatching runner-self-heal workflow');
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'runner-self-heal.yml',
+                ref: 'main'
+              });
+              return;
+            }
+
+            core.info(`Secrets missing: ${missing.join(', ')} — will retry next scheduled run.`);
