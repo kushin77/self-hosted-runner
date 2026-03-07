@@ -13,6 +13,8 @@ jobs:
   gitleaks-scan:
     name: Gitleaks Scan
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_STEP_DEBUG: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -22,12 +24,30 @@ jobs:
         with:
           args: --path=. --report-format=json --report-path=./gitleaks-report.json || true
 
+      - name: Debug gitleaks workspace
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "DEBUG: PWD=$(pwd)"
+          echo "DEBUG: listing workspace root"
+          ls -la
+          echo "DEBUG: checking for gitleaks-report.json"
+          if [ -f gitleaks-report.json ]; then
+            echo "gitleaks-report.json exists — showing summary"
+            jq '. | {leaks: (.leaks | length), rules: (.rules | length) }' gitleaks-report.json || true
+          else
+            echo "gitleaks-report.json missing"
+            echo "Printing container logs for troubleshooting (if available)"
+            true
+          fi
+
       - name: Upload gitleaks report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
           path: gitleaks-report.json
+          if-no-files-found: warn
 
       - name: Inspect gitleaks report and create issue if findings
         run: |
@@ -58,12 +78,14 @@ jobs:
               fi
             fi
           else
-            echo "No gitleaks report present; skipping."
+            echo "No gitleaks report present; skipping. See earlier debug steps for workspace listing."
           fi
 
   trivy-scan:
     name: Trivy Container Scan
     runs-on: ubuntu-latest
+    env:
+      ACTIONS_STEP_DEBUG: 'true'
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -76,12 +98,27 @@ jobs:
           output: 'trivy-report.json'
           severity: 'CRITICAL,HIGH'
 
+      - name: Debug trivy workspace
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "DEBUG: PWD=$(pwd)"
+          echo "DEBUG: listing workspace root"
+          ls -la
+          if [ -f trivy-report.json ]; then
+            echo "trivy-report.json exists — showing summary"
+            jq '{results: (.Results | length), vulnerabilities: ([.Results[]?.Vulnerabilities[]?] | length)}' trivy-report.json || true
+          else
+            echo "trivy-report.json missing"
+          fi
+
       - name: Upload trivy report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
           path: trivy-report.json
+          if-no-files-found: warn
 
       - name: Inspect trivy report and create issue if findings
         run: |
@@ -109,5 +146,5 @@ jobs:
               fi
             fi
           else
-            echo "No trivy report present; skipping."
+            echo "No trivy report present; skipping. See earlier debug steps for workspace listing."
           fi
