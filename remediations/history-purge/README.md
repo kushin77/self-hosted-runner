@@ -1,3 +1,25 @@
+Self-contained history purge bundle
+
+Usage
+
+- Run this bundle on a stable machine with network access and an account that can force-push the repository.
+- Example (dry-run, does not push):
+
+  REPO_URL=https://github.com/owner/repo.git ./run_purge_bundle.sh
+
+- To perform the actual push after validating results locally, set `DO_PUSH=1`:
+
+  REPO_URL=https://github.com/owner/repo.git DO_PUSH=1 ./run_purge_bundle.sh
+
+Files
+
+- `run_purge_bundle.sh`: wrapper that downloads a standalone `git-filter-repo` script and runs it against a mirror clone.
+- `replace.txt`: replacement rules for `--replace-text`. Edit carefully to match only confirmed secrets.
+
+Notes
+
+- This bundle is designed so maintainers can run it off-runner where environment restrictions (PEP 668) won't block installs.
+- Always validate results locally before enabling `DO_PUSH=1`.
 History purge plan — automated remediation (draft)
 
 Purpose
