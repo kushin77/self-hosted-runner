@@ -5,6 +5,12 @@ on:
     - cron: '*/30 * * * *' # every 30 minutes
   workflow_dispatch: {}
 
+  workflow_call: {}
+
+concurrency:
+  group: auto-merge-cron-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   auto-merge:
     runs-on: ubuntu-latest
