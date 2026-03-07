@@ -29,5 +29,6 @@ Rotation guidance
 
 Validation
 - Use the `verify-required-secrets` workflow (already included) to validate presence and basic formatting. See `.github/workflows/verify-required-secrets.yml`.
+- The **System Status Aggregator** (issue #1064) displays the current credential state every 15 minutes, so you can verify at a glance whether the repository has the required values. When credentials are missing the aggregator reports ❌ and the secret-verifier workflow will open/close issue #1343 automatically.
 
 If you need me to provision a temporary deploy key or rotate keys automatically via automation, comment on issue #1318 and I will coordinate the automated steps.
