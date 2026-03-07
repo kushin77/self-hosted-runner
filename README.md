@@ -14,6 +14,11 @@ Production-grade infrastructure and automation for self-hosted GitHub Actions ru
 
 **Status:** ✅ Production Ready — Using Self-Hosted Runner | **Last Updated:** 2026-03-05
 
+## CI Status
+
+[![Observability E2E](https://github.com/kushin77/self-hosted-runner/actions/workflows/observability-e2e.yml/badge.svg)](https://github.com/kushin77/self-hosted-runner/actions/workflows/observability-e2e.yml)
+
+
 ---
 
 ## Overview
