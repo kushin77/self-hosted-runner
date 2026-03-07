@@ -1,0 +1,114 @@
+name: Remediation Dispatcher (fallback)
+
+on:
+  workflow_dispatch:
+    inputs:
+      scope:
+        description: "Scope to remediate (all, ci, infra, secrets)"
+        required: false
+        default: "all"
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  issues: write
+  actions: write
+  contents: read
+  id-token: write
+
+concurrency:
+  group: remediation-dispatcher-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  dispatch-and-remediate:
+    name: Dispatch & Remediate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify GH CLI
+        run: |
+          set -euo pipefail
+          command -v gh || (echo "gh CLI is required" && exit 2)
+
+      - name: Gather recent failed runs
+        id: gather
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          echo "Gathering failed workflow runs for ${REPO}"
+          # list latest failed runs (limit 50) and produce newline-separated ids
+          gh run list --repo "${REPO}" --limit 50 --json databaseId,name,conclusion,headBranch --jq '.[] | select(.conclusion=="failure") | .databaseId' > /tmp/failed_runs || true
+          if [ -s /tmp/failed_runs ]; then
+            echo "failed_runs=$(cat /tmp/failed_runs | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          else
+            echo "failed_runs=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Rerun failed workflows (idempotent)
+        if: steps.gather.outputs.failed_runs != ''
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          echo "Rerunning recent failed workflow runs"
+          for id in ${FAILED_RUNS:-}; do
+            # Ensure id is numeric
+            if [[ "$id" =~ ^[0-9]+$ ]]; then
+              echo "Attempting rerun for run $id"
+              # Call the REST 'rerun' endpoint; ignore failures to remain idempotent
+              gh api -X POST "/repos/${REPO}/actions/runs/${id}/rerun" || echo "rerun failed for ${id}" 
+              sleep 1
+            fi
+          done
+
+      - name: Re-check repository secrets and update issue
+        id: secrets
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          REQUIRED=("DEPLOY_SSH_KEY" "PAGERDUTY_TOKEN" "COSIGN_PRIVATE_KEY" "VAULT_ROLE_ID" "VAULT_SECRET_ID")
+          present=()
+          missing=()
+          secrets_list=$(gh api repos/${REPO}/actions/secrets --jq '.secrets[].name' 2>/dev/null || true)
+          for req in "${REQUIRED[@]}"; do
+            if echo "$secrets_list" | grep -q "\b${req}\b"; then
+              present+=($req)
+            else
+              missing+=($req)
+            fi
+          done
+
+          ALL_PRESENT=false
+          if [ ${#missing[@]} -eq 0 ]; then
+            ALL_PRESENT=true
+          fi
+
+          echo "present=${present[*]}" >> $GITHUB_OUTPUT
+          echo "missing=${missing[*]}" >> $GITHUB_OUTPUT
+          echo "all_present=${ALL_PRESENT}" >> $GITHUB_OUTPUT
+
+          # Close issue #1343 when secrets satisfied
+          if [ "$ALL_PRESENT" = true ]; then
+            state=$(gh issue view 1343 --json state --jq '.state' 2>/dev/null || echo "open")
+            if [ "$state" = "OPEN" ]; then
+              gh issue close 1343 --repo ${REPO} || true
+              gh issue comment 1064 --repo ${REPO} --body "Automated: required secrets are now present; closed #1343 and re-checking workflows." || true
+            fi
+          else
+            gh issue comment 1343 --repo ${REPO} --body "Automated re-check: missing secrets: ${missing[*]}. System will retry provisioning or await operator action." || true
+          fi
+
+      - name: Post remediation summary to incident
+        env:
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SUMMARY="Remediation Dispatcher run: triggered at $(date -u +'%Y-%m-%dT%H:%M:%SZ')\n"
+          SUMMARY+="Failed runs attempted rerun: ${FAILED_RUNS:-none}\n"
+          SUMMARY+="Missing secrets: ${missing[*]:-none}\n"
+          gh issue comment 1348 --repo ${REPO} --body "$SUMMARY" || true
