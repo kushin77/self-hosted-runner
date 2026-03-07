@@ -31,8 +31,23 @@ jobs:
         run: |
           python3 .github/scripts/check_workflow_sequencing.py
 
-      - name: Upload report
-        if: always()
+      - name: Upload report (self-hosted)
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          FILE=workflow-audit-report.txt
+          if [ -f "$FILE" ]; then
+            TAR=workflow-audit-report-${{ github.run_id }}.tgz
+            tar -czf "$TAR" "$FILE" || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded workflow audit report to: $URL"
+          else
+            echo "No workflow audit report found"
+          fi
+
+      - name: Upload report (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: workflow-audit-report
