@@ -83,7 +83,19 @@ jobs:
           echo "No services found; creating marker file"
           touch build/sboms/.placeholder
 
-      - name: Upload sboms artifact
+      - name: Package sboms for MinIO
+        if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/sboms.tar.gz build/sboms/ || echo "No SBOMs to package"
+
+      - name: Upload sboms to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/sboms.tar.gz sboms.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload sboms artifact (hosted fallback)
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: sboms
@@ -199,7 +211,18 @@ jobs:
           echo "count=$count" >> "$GITHUB_OUTPUT"
           echo "📋 Total provenance files: $count"
 
-      - name: Upload provenance artifacts
+      - name: Package provenance for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/provenance.tar.gz build/provenance/ || echo "No provenance to package"
+
+      - name: Upload provenance to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/provenance.tar.gz provenance.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload provenance artifacts (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: provenance
