@@ -21,26 +21,39 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN || github.token }}
         run: |
+          # Detect if we are using the fallback token
+          if [[ "${{ secrets.RUNNER_MGMT_TOKEN }}" == "" ]]; then
+            echo "::warning ::RUNNER_MGMT_TOKEN not found. Using GITHUB_TOKEN fallback (may result in 403 Forbidden for runner management)."
+          fi
+
           # Use PAT if available for administration access, otherwise fallback to GITHUB_TOKEN
-          runners_json=$(gh api /repos/${{ github.repository }}/actions/runners)
+          runners_json=$(gh api /repos/${{ github.repository }}/actions/runners || echo "FAILED")
+          
+          if [[ "$runners_json" == "FAILED" ]]; then
+            echo "::error ::Failed to retrieve runners list via API. Ensure RUNNER_MGMT_TOKEN is configured with 'administration:read' scope."
+            echo "offline_count=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           offline_count=$(echo "$runners_json" | jq '.runners | map(select(.status != "online")) | length')
           offline_names=$(echo "$runners_json" | jq -r '.runners | map(select(.status != "online")) | map(.name) | join(",")')
+          
           echo "offline_count=$offline_count" >> $GITHUB_OUTPUT
           echo "offline_names=$offline_names" >> $GITHUB_OUTPUT
 
       - name: Report offline runners
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         run: |
           echo "Offline runners: ${{ steps.check.outputs.offline_names }}"
 
       - name: Install Python & Ansible
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install Ansible (if SSH key present)
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         run: |
           if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
             echo "No DEPLOY_SSH_KEY configured; skipping Ansible install"
@@ -50,7 +63,7 @@ jobs:
           pip install ansible-core ansible
 
       - name: Prepare SSH key (if present)
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         run: |
           if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
             echo "No DEPLOY_SSH_KEY configured; skipping key preparation"
@@ -61,7 +74,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Attempt Ansible runner restart (if SSH key present)
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         run: |
           if [[ -z "${{ secrets.DEPLOY_SSH_KEY }}" ]]; then
             echo "No DEPLOY_SSH_KEY configured; skipping automated restart"
@@ -70,7 +83,7 @@ jobs:
           ansible-playbook -i ansible/inventory/staging ansible/playbooks/provision-self-hosted-runner-noninteractive.yml --limit all || true
 
       - name: Create issue if runners offline and no SSH key
-        if: steps.check.outputs.offline_count != '0'
+        if: steps.check.outputs.offline_count != '0' && steps.check.outputs.offline_count != ''
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
