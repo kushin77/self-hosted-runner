@@ -262,8 +262,9 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
+          retry_command 3 5 scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
 
   metrics-verification:
     runs-on: ubuntu-latest
@@ -290,7 +291,8 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file ./deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
+          retry_command 3 5 scripts/minio/upload.sh --file ./deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
           if [ -f ./metrics-checklist.txt ]; then
-            scripts/minio/upload.sh --file ./metrics-checklist.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "metrics-checklist-${{ github.run_id }}.txt"
+            retry_command 3 5 scripts/minio/upload.sh --file ./metrics-checklist.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "metrics-checklist-${{ github.run_id }}.txt"
