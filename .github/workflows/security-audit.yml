@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: '0 2 * * *' # daily @ 02:00 UTC
   workflow_dispatch: {}
+  workflow_call: {}
+
+concurrency:
+  group: security-audit-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read

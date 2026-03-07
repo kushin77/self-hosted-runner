@@ -13,6 +13,11 @@ on:
         description: 'Perform dry-run (no rotation)'
         required: false
         default: 'false'
+  workflow_call: {}
+
+concurrency:
+  group: vault-approle-rotation-quarterly-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
