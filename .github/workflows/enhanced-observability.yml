@@ -4,6 +4,12 @@ on:
     - cron: "*/5 * * * *"
   workflow_dispatch:
 
+  workflow_call: {}
+
+concurrency:
+  group: enhanced-observability-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   collect-metrics:
     name: Collect Performance Metrics

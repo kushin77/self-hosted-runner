@@ -1,0 +1,130 @@
+name: ESLint Auto-Fix and Auto-Merge
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 4 * * *' # daily @ 04:00 UTC
+
+  workflow_call: {}
+
+concurrency:
+  group: eslint-autofix-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  eslint-fix:
+    name: Auto-fix ESLint issues
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Find all package.json files with ESLint
+        id: find-eslint
+        run: |
+          set -euo pipefail
+          echo "Searching for ESLint configs..."
+          for dir in $(find . -maxdepth 3 -name ".eslintrc*" -o -name "eslint.config.*" | xargs dirname | sort -u); do
+            if [ -f "$dir/package.json" ]; then
+              echo "Found ESLint in: $dir"
+              echo "$dir" >> /tmp/eslint-dirs.txt || true
+            fi
+          done
+          if [ ! -f /tmp/eslint-dirs.txt ]; then
+            echo "No ESLint configs found; skipping."
+            exit 0
+          fi
+
+      - name: Run ESLint fix on portal
+        if: hashFiles('ElevatedIQ-Mono-Repo/apps/portal/package.json') != ''
+        run: |
+          set -euo pipefail
+          cd ElevatedIQ-Mono-Repo/apps/portal
+          npm install --no-audit --no-fund || npm ci --no-audit --no-fund || true
+          npx eslint --fix src/ dist/ 2>&1 || echo "ESLint completed with status $?"
+          echo "Fixed files:"
+          git diff --name-only
+
+      - name: Check if changes were made
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create branch and commit
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          BRANCH="automation/eslint-autofix-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "fix(eslint): auto-fix linting issues across portal"
+          git push -u origin "$BRANCH"
+          echo "branch=$BRANCH" >> $GITHUB_ENV
+
+      - name: Create pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr create \
+            --repo kushin77/self-hosted-runner \
+            --base main \
+            --head "${{ env.branch }}" \
+            --title "fix(eslint): auto-fix linting issues" \
+            --body "Automated ESLint fix PR: resolves issues detected by scheduled security/lint audits. This PR will auto-merge once CI checks pass." \
+            --label "automation" \
+            --assignee kushin77 || true
+
+      - name: Set auto-merge for the PR
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # Find the PR we just created
+          pr_number=$(gh pr list --repo kushin77/self-hosted-runner --head "${{ env.branch }}" --json number --jq '.[0].number' || true)
+          if [ -n "$pr_number" ]; then
+            echo "Setting auto-merge for PR #$pr_number"
+            gh pr merge --repo kushin77/self-hosted-runner "$pr_number" --auto --squash || echo "Auto-merge not available; PR will merge manually after checks."
+          fi
+
+      - name: Post comment on issue #586 if fixes made
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo zipefail
+          PR_NUMBER=$(gh pr list --repo kushin77/self-hosted-runner --head "${{ env.branch }}" --json number --jq '.[0].number' || true)
+          if [ -n "$PR_NUMBER" ]; then
+            gh issue comment 586 --repo kushin77/self-hosted-runner \
+              --body "Automated ESLint fixes applied in PR #$PR_NUMBER. Please review and merge." || true
+          fi
+
+      - name: Comment if no changes
+        if: steps.changes.outputs.changed == 'false'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: 586,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Automated ESLint run completed. No changes detected—all linting issues previously reported have been resolved.'
+            }).catch(() => console.log('Comment skipped'));

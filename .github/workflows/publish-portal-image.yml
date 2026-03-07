@@ -6,6 +6,12 @@ on:
     paths:
       - 'apps/portal/**'
 
+  workflow_call: {}
+
+concurrency:
+  group: publish-portal-image-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   packages: write
