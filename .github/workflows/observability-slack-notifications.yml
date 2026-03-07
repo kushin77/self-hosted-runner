@@ -39,12 +39,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Get last E2E run
         id: e2e_run
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          e2e_run=$(gh run list --workflow="E2E Validate & Hands-off Deploy" --limit 1 --json status,conclusion,number --jq '.[0]')
+          e2e_run=$(retry_command 5 10 sh -c "gh run list --workflow=\"E2E Validate & Hands-off Deploy\" --limit 1 --json status,conclusion,number --jq '.[0]'" || echo '{}')
           status=$(echo "$e2e_run" | jq -r '.status // "unknown"')
           conclusion=$(echo "$e2e_run" | jq -r '.conclusion // "unknown"')
           run_num=$(echo "$e2e_run" | jq -r '.number // "unknown"')
@@ -60,7 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          deploy_run=$(gh run list --workflow="deploy-rotation-staging" --limit 1 --json status,conclusion,number --jq '.[0]')
+          deploy_run=$(retry_command 5 10 sh -c "gh run list --workflow=\"deploy-rotation-staging\" --limit 1 --json status,conclusion,number --jq '.[0]'" || echo '{}')
           status=$(echo "$deploy_run" | jq -r '.status // "unknown"')
           conclusion=$(echo "$deploy_run" | jq -r '.conclusion // "unknown"')
           run_num=$(echo "$deploy_run" | jq -r '.number // "unknown"')
@@ -77,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Get failed runs in last 24h
-          failed_runs=$(gh run list --status=failed --created=">$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')" --limit 10 --json name,number,conclusion --jq '.')
+          failed_runs=$(retry_command 5 10 sh -c "gh run list --status=failed --created=\">$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')\" --limit 10 --json name,number,conclusion --jq '.'" || echo '[]')
           failed_count=$(echo "$failed_runs" | jq 'length')
           
           echo "failed_runs=$failed_runs" >> $GITHUB_OUTPUT

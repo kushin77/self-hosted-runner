@@ -17,6 +17,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -68,14 +73,12 @@ jobs:
           body="Automated npm audit found $count vulnerabilities. See artifact 'npm-audit' for details. This issue was opened by an automated triage workflow."
 
           # Search for an existing open issue with the same title
-          issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$REPO/issues?state=open&per_page=100")
+          issues=$(retry_command 5 10 sh -c "curl -s -H 'Authorization: token $GITHUB_TOKEN' -H 'Accept: application/vnd.github.v3+json' 'https://api.github.com/repos/$REPO/issues?state=open&per_page=100'" || true)
           existing=$(echo "$issues" | jq -r ".[] | select(.title==\"$TITLE\") | .number" | head -n1 || true)
           if [ -n "$existing" ]; then
             echo "Updating existing issue #$existing"
-            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
-              -d "{\"body\": \"$body\"}" "https://api.github.com/repos/$REPO/issues/$existing/comments" >/dev/null || true
+            retry_command 5 10 sh -c "curl -s -X POST -H 'Authorization: token $GITHUB_TOKEN' -H 'Accept: application/vnd.github.v3+json' -d '{\"body\": \"$body\"}' 'https://api.github.com/repos/$REPO/issues/$existing/comments'" >/dev/null || true
           else
             echo "Creating new issue titled: $TITLE"
-            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
-              -d "{\"title\": \"$TITLE\", \"body\": \"$body\"}" "https://api.github.com/repos/$REPO/issues" >/dev/null || true
+            retry_command 5 10 sh -c "curl -s -X POST -H 'Authorization: token $GITHUB_TOKEN' -H 'Accept: application/vnd.github.v3+json' -d '{\"title\": \"$TITLE\", \"body\": \"$body\"}' 'https://api.github.com/repos/$REPO/issues'" >/dev/null || true
           fi
