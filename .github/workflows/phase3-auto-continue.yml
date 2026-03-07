@@ -14,6 +14,12 @@ on:
         required: false
         default: 'false'
 
+  workflow_call: {}
+
+concurrency:
+  group: phase3-auto-continue-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   monitor-and-continue:
     runs-on: ubuntu-latest
