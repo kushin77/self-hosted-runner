@@ -110,8 +110,19 @@ jobs:
             echo "No diagnostic output to upload"
           fi
 
+      - name: Package diagnostics for MinIO
+        if: always()
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/dr-diagnostics-${{ github.run_id }}.tar.gz /tmp/gcp_validation_output.txt 2>/dev/null || echo "Packaged"
+
+      - name: Upload diagnostics to MinIO
+        if: always() && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/dr-diagnostics-${{ github.run_id }}.tar.gz dr-diagnostics-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
       - name: Upload diagnostic artifacts (hosted fallback)
-        if: always() && ${{ !contains(runner.labels, 'self-hosted') }}
+        if: always() && !contains(runner.labels, 'self-hosted')
         uses: actions/upload-artifact@v4
         with:
           name: dr-diagnostics-${{ github.run_id }}
