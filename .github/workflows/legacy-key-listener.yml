@@ -41,13 +41,17 @@ jobs:
               inputs: { confirm: 'CLEANUP_LEGACY_NODE' }
             });
 
-      - name: Comment that dispatch was requested
-        uses: actions/github-script@v6
-        with:
-          script: |
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.payload.issue.number,
-              body: 'Detected `key-installed` confirmation — requested dispatch of legacy-node-cleanup and will monitor progress.'
-            });
+      - name: Comment that dispatch was requested (idempotent)
+        env:
+          REPO: ${{ github.repository }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          RESPONSE='Detected `key-installed` confirmation — requested dispatch of legacy-node-cleanup and will monitor progress.'
+
+          # Check if we already posted this response to this issue
+          EXISTING=$(gh api "/repos/${REPO}/issues/${ISSUE_NUM}/comments" --jq ".[] | select(.body | contains(\"key-installed confirmation\")) | .id" 2>/dev/null | head -1 || true)
+          if [ -z "$EXISTING" ]; then
+            gh issue comment ${ISSUE_NUM} --repo ${REPO} --body "$RESPONSE" || true
+          fi

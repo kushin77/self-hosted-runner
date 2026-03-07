@@ -212,13 +212,21 @@ jobs:
           echo ""
           echo "[View test artifacts](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
 
-      - name: Alert on Failure
+      - name: Alert on Failure (idempotent)
         if: failure()
-        run: |
-          gh issue create \
-            --title "🚨 Cascading Failover Test Failed" \
-            --body "Cascading failover test failed at $(date). This indicates recovery may not work in a real disaster scenario. See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
-            --label critical \
-            --label disaster-recovery || true
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          FAILURE_MSG="Cascading failover test failed at $(date). This indicates recovery may not work in a real disaster scenario. See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          # Idempotent issue creation: check if issue for this run exists
+          EXISTING=$(gh issue list --repo ${REPO} --label critical,disaster-recovery --state open --json body --jq ".[] | select(.body | contains(\"run/${{ github.run_id }}\")) | 1" 2>/dev/null | head -1 || true)
+          if [ -z "$EXISTING" ]; then
+            gh issue create --repo ${REPO} \
+              --title "🚨 Cascading Failover Test Failed" \
+              --body "$FAILURE_MSG" \
+              --label critical \
+              --label disaster-recovery || true
+          fi
