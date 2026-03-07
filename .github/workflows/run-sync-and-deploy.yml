@@ -176,12 +176,42 @@ jobs:
 
       - name: Deploy Alertmanager via Ansible
         if: ${{ steps.check-ssh.conclusion == 'success' }}
+        id: deploy
+        continue-on-error: true
         run: |
           if [ -f ansible/inventory/staging ] && [ -f ansible/playbooks/deploy-alertmanager-config.yml ]; then
             ansible-playbook -i ansible/inventory/staging ansible/playbooks/deploy-alertmanager-config.yml --extra-vars "alertmanager_config_path=${ALERTMANAGER_CONFIG_PATH}"
           else
             echo "Ansible playbook or inventory not configured. Skipping Ansible deployment."
             echo "Generated alertmanager config is at: ${ALERTMANAGER_CONFIG_PATH}"
+          fi
+
+      - name: Store backup of deployed config (on success)
+        if: ${{ steps.deploy.conclusion == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          mkdir -p .backups
+          cp ${ALERTMANAGER_CONFIG_PATH} .backups/alertmanager-last-deployed.yml
+          git config user.email "automation@github.actions"
+          git config user.name "Automation Bot"
+          git add .backups/alertmanager-last-deployed.yml
+          git commit -m "chore: backup deployed alertmanager config (run ${{ github.run_id }})" || true
+          git push origin main || true
+
+      - name: Auto-rollback on deploy failure
+        if: ${{ steps.deploy.conclusion == 'failure' && steps.check-ssh.conclusion == 'success' }}
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          if [ -f .backups/alertmanager-last-deployed.yml ]; then
+            echo "⚠️  Deploy failed. Auto-rolling back to last-known-good config..."
+            cp .backups/alertmanager-last-deployed.yml ${ALERTMANAGER_CONFIG_PATH}
+            if [ -f ansible/inventory/staging ] && [ -f ansible/playbooks/deploy-alertmanager-config.yml ]; then
+              ansible-playbook -i ansible/inventory/staging ansible/playbooks/deploy-alertmanager-config.yml --extra-vars "alertmanager_config_path=${ALERTMANAGER_CONFIG_PATH}" && echo "✅ Rollback completed" || echo "❌ Rollback also failed"
+            fi
+          else
+            echo "⚠️  No backup config available for rollback. Manual intervention may be required."
           fi
 
       - name: Run synthetic Slack test (best-effort)
