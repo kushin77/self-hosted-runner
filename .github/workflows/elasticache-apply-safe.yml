@@ -45,9 +45,12 @@ jobs:
 
       - name: Determine credential path
         id: creds
+        env:
+          AWS_OIDC_ROLE: ${{ secrets.AWS_OIDC_ROLE }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         run: |
           echo "checking for AWS_OIDC_ROLE or AWS_ACCESS_KEY_ID..."
-          if [ -n "${{ secrets.AWS_OIDC_ROLE || '' }}" ] || [ -n "${{ secrets.AWS_ACCESS_KEY_ID || '' }}" ]; then
+          if [ -n "${AWS_OIDC_ROLE:-}" ] || [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
             echo "mode=full" >> $GITHUB_OUTPUT
           else
             echo "mode=dry-run" >> $GITHUB_OUTPUT
