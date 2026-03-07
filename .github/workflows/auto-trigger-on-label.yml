@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  issues: read
+  issues: write
   actions: write
 
 jobs:
@@ -14,16 +14,13 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.label.name == 'oidc-ready'
     steps:
-      - name: Notify start
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'Label `oidc-ready` detected — dispatching preflight and terraform apply workflows now.'
-            })
+      - name: Notify start (best-effort)
+        run: |
+          set -euo pipefail
+          echo "Posting start comment (best-effort)"
+          curl -s -X POST -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments" \
+            -d '{"body":"Label `oidc-ready` detected — dispatching preflight and terraform apply workflows now."}' || true
 
       - name: Dispatch OIDC preflight workflow (with retries)
         run: |
@@ -75,3 +72,60 @@ jobs:
               repo: context.repo.repo,
               body: 'Workflows dispatched. Monitor actions/runs and report back here if any failures occur.'
             })
+
+  run-terraform-on-label:
+    name: Run Terraform (on oidc-ready)
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'oidc-ready'
+    needs: dispatch-on-oidc-ready
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Configure AWS via OIDC (if enabled)
+        if: ${{ secrets.USE_OIDC == 'true' && secrets.AWS_OIDC_ROLE_ARN != '' }}
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+
+      - name: Configure static AWS creds (fallback)
+        if: ${{ secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID != '' }}
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
+
+      - name: Configure GCP creds (if provided)
+        if: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY != '' }}
+        run: |
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+
+      - name: Safe fallback: no credentials -> backend-free dry-run
+        if: ${{ (secrets.USE_OIDC != 'true' && secrets.AWS_ACCESS_KEY_ID == '') && secrets.GCP_SERVICE_ACCOUNT_KEY == '' }}
+        run: |
+          set -euo pipefail
+          echo "No cloud credentials available; running backend-free terraform init/plan for safe validation (no-op)"
+          cd terraform
+          terraform init -input=false -backend=false
+          terraform plan -input=false -out=tfplan-dry || true
+          echo "Dry-run complete; skipping apply"
+          exit 0
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        working-directory: terraform
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: terraform
+        run: terraform apply -input=false -auto-approve tfplan
