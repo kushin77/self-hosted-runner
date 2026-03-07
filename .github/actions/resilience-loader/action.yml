@@ -1,1 +1,24 @@
-bmFtZTogcmVzaWxpZW5jZS1sb2FkZXIKb24KICB3b3JrZmxvd3M6CiAgIC0gcmV1c2U6CiAgICAgIC0gY2hlY2sKCiNkZXNjcmlwdGlvbjogQ29tcG9zaXRlIGFjdGlvbiB0byBsb2FkIHJlc2lsaWVuY2Ugc2NyaXB0cyBhbmQgaG9zdCBpbml0cy4KI2F1dGhvciA6IGNvbXBvc2l0ZSBhdXRob3JzCiNhcmdzOgogIC0gLXByaW9yaXR5CiMgaGludHM6CiMgICAtIHJ1bi1hbGxPcmRlcko6ICJTZWFtcyIKCmJvbm1lbnM6CiAgLSBuYW1lOiBsb2FkLXJlc2lsaWVuY2UKICAgIHJ1bnM6CiAgICAgIC0gZmluYWw6CiAgICAgICAgZHVyYXRpb246IDMwcwoKICAgICAgICBtYXBzOgogICAgICAgICAgLSBjaGQ6IC5naXIKICAgICAgICAgIC0gZXhlYyB0ZXN0LWZvcjogIlJlc2lsaWVuY2UgQXV0b21hdGlvbiIKICAgICAgICAgIC0gY2hlY2tvdXQ6IHRydWUK
+---
+name: resilience-loader
+description: Composite action to load resilience scripts and retry helpers
+
+runs:
+  using: composite
+  steps:
+    - name: Load resilience helpers
+      shell: bash
+      run: |
+        set -e
+        echo "Loading resilience helpers..."
+        if [[ -f .github/scripts/resilience.sh ]]; then
+          source .github/scripts/resilience.sh
+          echo "Resilience helpers loaded successfully."
+        else
+          echo "Warning: resilience.sh not found. Setting up..."
+          mkdir -p .github/scripts
+          echo "#!/bin/bash" > .github/scripts/resilience.sh
+          echo "export -f retry_command 2>/dev/null || true" \
+            >> .github/scripts/resilience.sh
+          chmod +x .github/scripts/resilience.sh
+          source .github/scripts/resilience.sh
+        fi
