@@ -236,5 +236,6 @@ jobs:
         if: always()
         run: |
           set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
+          retry_command 3 5 scripts/minio/upload.sh --file deployment-report.txt --bucket "${{ secrets.MINIO_BUCKET }}" --object "deployment-report-${{ github.run_id }}.txt"
