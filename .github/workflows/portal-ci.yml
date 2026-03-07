@@ -16,6 +16,8 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+        - name: Load resilience utilities
+          run: source .github/scripts/resilience.sh
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
