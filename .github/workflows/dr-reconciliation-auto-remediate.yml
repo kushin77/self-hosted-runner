@@ -39,9 +39,10 @@ jobs:
       - name: Scan for failed DR tests (last 24h)
         id: scan-failures
         run: |
+          source .github/scripts/resilience.sh || true
           echo "Scanning for failed DR tests in last 24 hours..."
           
-          FAILED_ISSUES=$(gh issue list \
+          FAILED_ISSUES=$(retry_command 2 3 gh issue list \
             --repo kushin77/self-hosted-runner \
             --label "disaster-recovery,critical" \
             --state open \
@@ -65,11 +66,12 @@ jobs:
         id: extract-run-ids
         if: steps.scan-failures.outputs.status == 'failures-detected'
         run: |
+          source .github/scripts/resilience.sh || true
           FAILED_ISSUES="${{ steps.scan-failures.outputs.failed_issues }}"
           FAILED_ISSUES="${FAILED_ISSUES//$'\n'/,}"
           
           # Extract run IDs from issue body
-          RUN_IDS=$(gh issue view $FAILED_ISSUES --repo kushin77/self-hosted-runner \
+          RUN_IDS=$(retry_command 2 3 gh issue view $FAILED_ISSUES --repo kushin77/self-hosted-runner \
             --json body --jq '.body' | \
             grep -oE "Run ID[^:]*: ([0-9]+)" | cut -d: -f2 | tr -d ' ')
           
