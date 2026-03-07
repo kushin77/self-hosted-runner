@@ -1,0 +1,151 @@
+name: Multi-Region Backup Verification
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # daily @ 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+env:
+  REPO: kushin77/self-hosted-runner
+
+jobs:
+  verify-backups:
+    name: Verify multi-region backups
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          echo "Checking configured backup targets..."
+
+      - name: Multi-region verification script
+        id: verify
+        run: |
+          set -euo pipefail
+          # Expected environment variables (set in repo secrets or org):
+          # AWS_S3_PRIMARY_BUCKET, AWS_S3_PRIMARY_REGION
+          # AWS_S3_REPLICA_BUCKET, AWS_S3_REPLICA_REGION
+          # GCS_BUCKET, GCP_PROJECT
+          # DOCKER_REGISTRY_IMAGE (e.g. ghcr.io/org/image:tag or registry.example.com/repo:tag)
+
+          MISSING=()
+
+          check_aws_bucket() {
+            local bucket=$1
+            local region=$2
+            if ! command -v aws >/dev/null 2>&1; then
+              echo "aws cli not available; skipping AWS checks"
+              return 2
+            fi
+            if aws s3api head-bucket --bucket "$bucket" --region "$region" 2>/dev/null; then
+              echo "AWS S3 bucket $bucket exists in $region"
+              return 0
+            else
+              echo "AWS S3 bucket $bucket missing or inaccessible in $region"
+              return 1
+            fi
+          }
+
+          check_gcs_bucket() {
+            local bucket=$1
+            if ! command -v gsutil >/dev/null 2>&1; then
+              echo "gsutil not available; skipping GCS checks"
+              return 2
+            fi
+            if gsutil ls -b "gs://$bucket" >/dev/null 2>&1; then
+              echo "GCS bucket $bucket exists"
+              return 0
+            else
+              echo "GCS bucket $bucket missing or inaccessible"
+              return 1
+            fi
+          }
+
+          check_registry_image() {
+            local image=$1
+            if ! command -v curl >/dev/null 2>&1; then
+              echo "curl not available; skipping registry checks"
+              return 2
+            fi
+            # Try simple HEAD request to the image URL - fallback if registry supports manifest v2
+            if curl -sSfI "$image" >/dev/null 2>&1; then
+              echo "Registry responded for $image"
+              return 0
+            else
+              echo "Registry image $image not reachable via HTTP; manual check recommended"
+              return 1
+            fi
+          }
+
+          FAILURES=()
+
+          if [ -n "${AWS_S3_PRIMARY_BUCKET:-}" ] && [ -n "${AWS_S3_PRIMARY_REGION:-}" ]; then
+            check_aws_bucket "$AWS_S3_PRIMARY_BUCKET" "$AWS_S3_PRIMARY_REGION" || FAILURES+=("AWS primary:$AWS_S3_PRIMARY_BUCKET")
+          else
+            echo "AWS primary bucket not configured; skipping"
+          fi
+
+          if [ -n "${AWS_S3_REPLICA_BUCKET:-}" ] && [ -n "${AWS_S3_REPLICA_REGION:-}" ]; then
+            check_aws_bucket "$AWS_S3_REPLICA_BUCKET" "$AWS_S3_REPLICA_REGION" || FAILURES+=("AWS replica:$AWS_S3_REPLICA_BUCKET")
+          else
+            echo "AWS replica bucket not configured; skipping"
+          fi
+
+          if [ -n "${GCS_BUCKET:-}" ]; then
+            check_gcs_bucket "$GCS_BUCKET" || FAILURES+=("GCS:$GCS_BUCKET")
+          else
+            echo "GCS bucket not configured; skipping"
+          fi
+
+          if [ -n "${DOCKER_REGISTRY_IMAGE:-}" ]; then
+            check_registry_image "$DOCKER_REGISTRY_IMAGE" || FAILURES+=("Registry:$DOCKER_REGISTRY_IMAGE")
+          else
+            echo "Registry image not configured; skipping"
+          fi
+
+          if [ ${#FAILURES[@]} -gt 0 ]; then
+            TITLE="[VERIFICATION] Multi-region backup verification failures"
+            EXISTING=$(gh issue list --repo "$REPO" --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
+            BODY="Automated multi-region verification detected failures:\n\n$(printf '%s\n' "${FAILURES[@]}")\n\nPlease investigate. This check runs daily and will update/close the issue when resolved."
+
+            if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+              gh issue comment "$EXISTING" --repo "$REPO" --body "Re-run detected failures:\n\n$(printf '%s\n' "${FAILURES[@]}")" || true
+            else
+              gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "verification,backup,automation" || true
+            fi
+            echo "failures=$(printf '%s;' "${FAILURES[@]}")" >> "$GITHUB_OUTPUT"
+            exit 1
+          else
+            # Close existing verification issue if present
+            TITLE="[VERIFICATION] Multi-region backup verification failures"
+            EXISTING=$(gh issue list --repo "$REPO" --state open --search "$TITLE" --json number --jq '.[0].number' 2>/dev/null || echo "")
+            if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+              gh issue comment "$EXISTING" --repo "$REPO" --body "Automated verification run found no issues; closing." || true
+              gh issue edit "$EXISTING" --repo "$REPO" --state closed || true
+            fi
+            echo "failures=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload verification summary
+        if: always()
+        run: |
+          mkdir -p .verification
+          echo "{" > .verification/summary-$(date -u +%Y%m%d).json
+          echo "  \"run\": \"$(date -u -Iseconds)\"" >> .verification/summary-$(date -u +%Y%m%d).json
+          echo "}" >> .verification/summary-$(date -u +%Y%m%d).json
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: multi-region-verification
+          path: .verification
+          retention-days: 90
