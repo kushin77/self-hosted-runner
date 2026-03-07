@@ -1,0 +1,28 @@
+name: Runner Echo Diagnostic
+
+on:
+  workflow_dispatch:
+    inputs:
+      verbose:
+        description: 'Enable verbose logging'
+        required: false
+        default: 'true'
+
+jobs:
+  echo:
+    name: Runner Echo Diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Print hello
+        run: |
+          echo "hello from runner"
+          echo "RUNNER_NAME=${RUNNER_NAME:-(unset)}"
+          echo "RUNNER_OS=${RUNNER_OS:-(unset)}"
+          echo "GITHUB_RUN_ID=${GITHUB_RUN_ID}"
+          echo "PATH=$PATH"
+          which docker || true
+          docker --version || true
+          which gcloud || true
+          gcloud --version || true
