@@ -257,7 +257,9 @@ jobs:
 
             # Extract image name from provenance
             img=$(jq -r '.subject[0].name' "$prov" 2>/dev/null || echo "")
+            # Skip if image is empty or literal 'null'
             [ -n "$img" ] || continue
+            [ "$img" != "null" ] || continue
 
             echo "📝 Attesting provenance for $img"
             cosign attest --key "$COSIGN_KEY_FILE" --predicate "$prov" "$img" || {
