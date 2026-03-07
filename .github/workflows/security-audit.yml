@@ -162,16 +162,12 @@ jobs:
           if [ -f trivy-report.json ]; then
             COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
             if [ "$COUNT" -gt 0 ]; then
-              echo "✅ Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
-              CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json || echo 0)
-              HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json || echo 0)
 
               BODY="## 🔍 Trivy Vulnerability Scan Results
 
 **Summary**:
 - 🔴 **CRITICAL**: $CRITICAL
 - 🟠 **HIGH**: $HIGH
-- **Total**: $COUNT
 
 **Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
 **Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
