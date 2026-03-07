@@ -15,6 +15,9 @@ on:
         description: 'Canary hosts limit'
         required: false
         default: 'canary'
+  schedule:
+    # run daily to keep readiness and to detect when DEPLOY_SSH_KEY becomes available
+    - cron: '0 3 * * *'  # 03:00 UTC daily
 
 jobs:
   simulate:
