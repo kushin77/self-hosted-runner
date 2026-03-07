@@ -24,6 +24,14 @@ jobs:
     name: Monitor DR reconciliation and auto-close issues
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
       - name: Fetch latest DR cluster test run
         id: get-run
         env:
