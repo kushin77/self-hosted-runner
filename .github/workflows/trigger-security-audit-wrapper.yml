@@ -4,6 +4,18 @@ on:
   workflow_dispatch: {}
 
 jobs:
+  load-resilience:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
   call-audit:
+    needs: load-resilience
     uses: ./.github/workflows/security-audit.yml
     secrets: inherit
