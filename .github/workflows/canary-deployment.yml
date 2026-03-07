@@ -33,6 +33,7 @@ permissions:
 
 jobs:
   canary:
+    if: secrets.DEPLOY_SSH_KEY != ''
     name: Canary deploy + verification
     runs-on: ubuntu-latest
     steps:
@@ -107,3 +108,25 @@ jobs:
         run: |
           echo "Canary deployment succeeded for run $GITHUB_RUN_ID"
           gh issue comment --repo $GITHUB_REPOSITORY --issue 1313 --body "Canary deployment successful (run: $GITHUB_RUN_ID)." || true
+
+  simulate_canary:
+    name: Simulated Canary (no secrets)
+    runs-on: ubuntu-latest
+    if: secrets.DEPLOY_SSH_KEY == ''
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run local canary simulator
+        run: |
+          python -m pip install --upgrade pip || true
+          python scripts/simulate_canary.py || true
+
+      - name: Create simulation issue (log)
+        run: |
+          gh issue create --title "Simulated Canary run (no SSH key)" --body "A simulated canary run was executed because DEPLOY_SSH_KEY is not configured. Repository: $GITHUB_REPOSITORY, Run: $GITHUB_RUN_ID" --label automation || true

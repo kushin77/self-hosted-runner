@@ -31,6 +31,8 @@ jobs:
   # Stage 1: Generate SBOMs (idempotent, no-op safe)
   generate-sboms:
     name: Generate SBOMs (CycloneDX)
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     if: |
       github.event_name != 'workflow_run' ||
@@ -81,6 +83,8 @@ jobs:
   # Stage 2: Generate SLSA v1.0 provenance
   generate-provenance:
     name: Generate SLSA v1.0 Provenance
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     needs: [generate-sboms]
     outputs:
@@ -195,6 +199,10 @@ jobs:
   # Stage 3: Sign artifacts with cosign
   sign-artifacts:
     name: Sign Images with Cosign
+    permissions:
+      id-token: write
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     needs: [generate-provenance]
     if: ${{ inputs.skip_signature != 'true' && needs.generate-provenance.outputs.provenance-count > 0 }}
@@ -386,6 +394,10 @@ jobs:
   # Stage 3b: Verify Signatures (Multi-Signature Verification)
   verify-signatures:
     name: Verify Artifact Signatures
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
     runs-on: ubuntu-latest
     needs: [generate-provenance, sign-artifacts]
     if: ${{ inputs.skip_signature != 'true' && needs.generate-provenance.outputs.provenance-count > 0 }}
@@ -559,6 +571,9 @@ jobs:
   # Stage 4: Store provenance and SBOM artifacts
   store-artifacts:
     name: Store Provenance & SBOM Artifacts
+    permissions:
+      contents: read
+      packages: write
     runs-on: ubuntu-latest
     needs: [generate-provenance, sign-artifacts, verify-signatures]
     if: always()
@@ -752,6 +767,8 @@ jobs:
   # Gate: Verify Provenance Quality
   verify-provenance:
     name: Verify Provenance Quality
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     needs: [generate-provenance]
     if: ${{ needs.generate-provenance.outputs.provenance-count > 0 }}
