@@ -45,11 +45,20 @@ if [[ -n "${TEST_SLACK_WEBHOOK:-}" ]]; then
   echo "Falling back to direct Slack POST using TEST_SLACK_WEBHOOK (env)."
   slack_payload='{"text":"[ALERT TEST] This is a direct test message from automated_test_alert.sh"}'
   # Use --data to send JSON payload directly to Slack webhook.
-  if curl -sS -X POST -H 'Content-type: application/json' --data "$slack_payload" "$TEST_SLACK_WEBHOOK"; then
-    echo "Direct Slack POST sent successfully."
-    exit 0
+  # Ensure URL is properly quoted to avoid curl interpretation issues
+  webhook_url="${TEST_SLACK_WEBHOOK}"
+  if [[ "$webhook_url" =~ ^https?:// ]]; then
+    echo "Webhook URL is valid. Sending POST request..."
+    if curl -sS -X POST -H 'Content-type: application/json' --data "$slack_payload" -- "$webhook_url"; then
+      echo "Direct Slack POST sent successfully."
+      exit 0
+    else
+      curl_exit=$?
+      echo "Direct Slack POST failed with exit code $curl_exit. Network or webhook URL issue." >&2
+      exit 1
+    fi
   else
-    echo "Direct Slack POST failed. Network or webhook URL issue." >&2
+    echo "ERROR: TEST_SLACK_WEBHOOK does not appear to be a valid URL: $webhook_url" >&2
     exit 1
   fi
 fi
