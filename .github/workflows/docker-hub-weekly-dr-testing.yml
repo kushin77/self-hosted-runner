@@ -21,6 +21,11 @@ env:
   RESTORE_BASE_DIR: .dr-test-restore
   TEST_TIMEOUT_SECONDS: 900  # 15 minutes (RTO target)
 
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
 jobs:
   dr-test:
     name: Disaster Recovery Test
@@ -33,6 +38,14 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+      
+      - name: Preflight — verify required secrets
+        run: |
+          # Fail early with a clear message if required secrets are missing
+          if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ] || [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+            echo "::error::Required secrets GCP_SERVICE_ACCOUNT_KEY or GCP_PROJECT_ID are not set for this run. Ensure secrets are available for manual dispatch and repository-level workflows."
+            exit 1
+          fi
       
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
