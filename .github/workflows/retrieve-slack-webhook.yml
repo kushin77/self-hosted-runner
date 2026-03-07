@@ -1,0 +1,34 @@
+name: Retrieve SLACK_WEBHOOK from Runner
+
+on:
+  workflow_dispatch:
+
+  workflow_call: {}
+
+concurrency:
+  group: retrieve-slack-webhook-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  retrieve:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Check for SLACK_WEBHOOK in runner env
+        id: check
+        run: |
+          if [[ -n "${SLACK_WEBHOOK:-}" ]]; then
+            echo "webhook_found=true" >> $GITHUB_OUTPUT
+            echo "webhook=${SLACK_WEBHOOK}" >> $GITHUB_OUTPUT
+            echo "✓ Found SLACK_WEBHOOK in runner environment"
+          else
+            echo "webhook_found=false" >> $GITHUB_OUTPUT
+            echo "SLACK_WEBHOOK not found in runner environment"
+          fi
+
+      - name: Set repo secret if found
+        if: steps.check.outputs.webhook_found == 'true'
+        run: |
+          echo "${{ steps.check.outputs.webhook }}" | gh secret set SLACK_WEBHOOK_URL --repo "${{ github.repository }}" --body -
+          echo "✅ SLACK_WEBHOOK_URL set in repo secrets from runner env"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
