@@ -27,4 +27,5 @@ jobs:
         run: echo "No tests configured"
       - name: Build docker image (CI only, not published)
         run: |
-          docker build -t portal-local:ci apps/portal
+          source .github/scripts/resilience.sh || true
+          retry_command 2 5 docker build -t portal-local:ci apps/portal
