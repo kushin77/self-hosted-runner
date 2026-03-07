@@ -54,7 +54,23 @@ EOF
             cp deployment-metrics.json deployment-metrics-merged.json
           fi
 
-      - name: Upload metrics artifact
+      - name: Upload metrics artifact (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          FILE=deployment-metrics-merged.json
+          if [ -f "$FILE" ]; then
+            TAR=deployment-metrics-${{ github.run_id }}.tgz
+            tar -czf "$TAR" "$FILE" || true
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+            echo "Uploaded deployment metrics to: $URL"
+          else
+            echo "No deployment metrics file to upload"
+          fi
+
+      - name: Upload metrics artifact (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: deployment-metrics-${{ github.run_id }}

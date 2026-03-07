@@ -62,7 +62,21 @@ jobs:
           journalctl -n 200 > /tmp/legacy-cleanup-artifacts/journal.log || true
           tar -czf /tmp/legacy-cleanup-artifacts/legacy-cleanup-logs.tar.gz /tmp/legacy-cleanup-artifacts || true
 
-      - name: Upload artifacts
+      - name: Upload artifacts (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          ART=/tmp/legacy-cleanup-artifacts/legacy-cleanup-logs.tar.gz
+          if [ -f "$ART" ]; then
+            chmod +x ci/scripts/upload_to_minio.sh || true
+            URL=$(ci/scripts/upload_to_minio.sh "$ART") || true
+            echo "Uploaded legacy cleanup logs to: $URL"
+          else
+            echo "No legacy cleanup artifact to upload"
+          fi
+
+      - name: Upload artifacts (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
         with:
           name: legacy-cleanup-logs
