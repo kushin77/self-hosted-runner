@@ -55,6 +55,8 @@ if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
     echo "PAGERDUTY_KEY length: ${#PAGERDUTY_KEY}"
   fi
   
+  # For Slack webhooks, we use the direct webhook format (not slack_configs)
+  # Slack webhook URLs can be passed directly as webhook_configs URLs
   cat > "$TMPDIR/alertmanager.yml" <<'AMCFG'
 global:
   resolve_timeout: 5m
@@ -66,15 +68,13 @@ receivers:
 AMCFG
 
   if [ -n "$SLACK_URL" ]; then
-    echo "✓ Configuring Slack receiver"
+    echo "✓ Configuring Slack webhook receiver"
     cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
   - name: 'slack'
-    slack_configs:
-      - api_url: '$SLACK_URL'
+    webhook_configs:
+      - url: $SLACK_URL
         send_resolved: true
-        channel: '#alerts'
 AMCFG
-    # set route to slack
     sed -i "s/receiver: 'default'/receiver: 'slack'/" "$TMPDIR/alertmanager.yml"
   fi
   
@@ -83,7 +83,7 @@ AMCFG
     cat >> "$TMPDIR/alertmanager.yml" <<AMCFG
   - name: 'pagerduty'
     pagerduty_configs:
-      - service_key: '$PAGERDUTY_KEY'
+      - service_key: $PAGERDUTY_KEY
 AMCFG
     sed -i "s/receiver: 'default'/receiver: 'pagerduty'/" "$TMPDIR/alertmanager.yml"
   fi
