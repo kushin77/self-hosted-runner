@@ -1,0 +1,81 @@
+name: npm Audit (automated triage)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 3 * * *' # daily @ 03:00 UTC
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  npm-audit:
+    name: Run npm audit and open/update issue
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Skip if no package.json
+        id: check
+        run: |
+          if [ ! -f package.json ]; then
+            echo "No package.json found; skipping npm audit.";
+            exit 0
+          fi
+
+      - name: Install dependencies (no audit)
+        if: success()
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund || true
+
+      - name: Run npm audit
+        if: success()
+        run: |
+          npm audit --json > npm-audit.json || true
+          cat npm-audit.json
+
+      - name: Upload npm audit artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit
+          path: npm-audit.json
+
+      - name: Create or update issue with findings
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TITLE: "[SECURITY] npm audit vulnerabilities detected"
+        run: |
+          set -euo pipefail
+          if [ ! -f npm-audit.json ]; then
+            echo "No audit output; skipping issue creation.";
+            exit 0
+          fi
+          count=$(jq '.metadata.vulnerabilities | values | add // 0' npm-audit.json || echo 0)
+          if [ "$count" -eq 0 ]; then
+            echo "No vulnerabilities detected."
+            exit 0
+          fi
+          body="Automated npm audit found $count vulnerabilities. See artifact 'npm-audit' for details. This issue was opened by an automated triage workflow."
+
+          # Search for an existing open issue with the same title
+          issues=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/$REPO/issues?state=open&per_page=100")
+          existing=$(echo "$issues" | jq -r ".[] | select(.title==\"$TITLE\") | .number" | head -n1 || true)
+          if [ -n "$existing" ]; then
+            echo "Updating existing issue #$existing"
+            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+              -d "{\"body\": \"$body\"}" "https://api.github.com/repos/$REPO/issues/$existing/comments" >/dev/null || true
+          else
+            echo "Creating new issue titled: $TITLE"
+            curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" \
+              -d "{\"title\": \"$TITLE\", \"body\": \"$body\"}" "https://api.github.com/repos/$REPO/issues" >/dev/null || true
+          fi
