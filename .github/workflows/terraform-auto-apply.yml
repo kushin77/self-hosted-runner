@@ -40,6 +40,24 @@ jobs:
         with:
           terraform_version: "1.4.0"
 
+      - name: Detect available credential sources
+        id: detect-creds
+        env:
+          USE_OIDC: ${{ secrets.USE_OIDC }}
+          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ "${USE_OIDC:-}" = "true" ] && [ -n "${AWS_OIDC_ROLE_ARN:-}" ]; then
+            echo "oidc=true" >> $GITHUB_OUTPUT
+          else
+            echo "oidc=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "static=true" >> $GITHUB_OUTPUT
+          else
+            echo "static=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Decide and run dry-run (no backend)
         working-directory: terraform
         run: |
@@ -66,7 +84,7 @@ jobs:
           terraform_version: "1.4.0"
 
       - name: Configure AWS via OIDC (if enabled)
-        if: ${{ secrets.USE_OIDC == 'true' && secrets.AWS_OIDC_ROLE_ARN != '' }}
+        if: ${{ steps.detect-creds.outputs.oidc == 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
@@ -82,7 +100,7 @@ jobs:
           echo "AWS_DEFAULT_REGION=${{ needs.fetch-aws-creds.outputs.aws_region }}" >> $GITHUB_ENV
 
       - name: Configure static AWS creds (fallback)
-        if: ${{ secrets.USE_OIDC != 'true' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' && secrets.AWS_ACCESS_KEY_ID != '' }}
+        if: ${{ steps.detect-creds.outputs.static == 'true' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' }}
         run: |
           echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
           echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}" >> $GITHUB_ENV
