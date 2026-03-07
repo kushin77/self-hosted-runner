@@ -384,3 +384,14 @@ gh issue list --state open --repo kushin77/self-hosted-runner --limit 10 > /tmp/
 **Last Updated**: 2026-03-07  
 **Status**: Production Ready  
 **Maintainer**: Automation Team
+
+---
+
+## Resilience Loader Rollout — 2026-03-07
+
+- **Status:** Completed — 112/112 workflows patched.
+- **Release:** v0.1.1-resilience-2026-03-07
+- **Archive:** /tmp/rollout-archive.tgz (attached to release)
+- **Tracking issue:** #1254
+- **Summary:** All workflow jobs now source the resilience helpers using `source .github/scripts/resilience.sh || true`, providing immutable, ephemeral, idempotent, noop-safe behavior for job setup. Verification artifacts and logs are attached to the release.
+
