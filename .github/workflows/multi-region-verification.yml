@@ -19,10 +19,23 @@ env:
   REPO: kushin77/self-hosted-runner
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   verify-backups:
     name: Verify multi-region backups
+    needs: [fetch-aws-creds]
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
 
     steps:
             - name: Load resilience helpers

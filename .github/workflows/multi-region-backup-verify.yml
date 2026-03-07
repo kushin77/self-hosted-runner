@@ -19,9 +19,22 @@ env:
   AWS_DEFAULT_REGION: us-east-1
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   verify-backups:
     name: Verify Multi-Region Backups
+    needs: [fetch-aws-creds]
     runs-on: ubuntu-latest
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
     steps:
             - name: Load resilience helpers
               run: |
@@ -32,7 +45,7 @@ jobs:
 
       - name: Verify AWS S3 primary (requires AWS creds)
         run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
             echo "No AWS creds configured; skipping S3 verification"
             exit 0
           fi
@@ -40,7 +53,7 @@ jobs:
 
       - name: Verify AWS S3 replica (us-west-2)
         run: |
-          if [ -z "${{ secrets.AWS_ACCESS_KEY_ID }}" ]; then
+          if [ -z "${AWS_ACCESS_KEY_ID:-}" ]; then
             echo "No AWS creds configured; skipping S3 verification"
             exit 0
           fi

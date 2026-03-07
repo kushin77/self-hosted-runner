@@ -9,8 +9,17 @@ on:
         default: 'manual'
 
 jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
   provision-dns:
     name: Provision DNS (manual dispatch)
+    needs: [fetch-aws-creds]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +42,9 @@ jobs:
       - name: Run provision DNS record playbook
         env:
           DNS_PROVIDER: ${{ secrets.DNS_PROVIDER }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           ansible-playbook playbooks/provision_dns_record.yml -e "dns_provider=${{ github.event.inputs.dns_provider || secrets.DNS_PROVIDER }}" -e "dns_name=gitlab.internal.elevatediq.com" -e "dns_value=192.168.168.42" -e "dns_zone=internal.elevatediq.com"
