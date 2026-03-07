@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ALERTMANAGER_CONFIG_PATH: ./alertmanager.yml
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
