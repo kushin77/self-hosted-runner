@@ -97,42 +97,78 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Post Cascade Status to Issue #1239
+      - name: Post Cascade Status to Issue #1239 (idempotent)
         if: steps.secrets-check.outputs.cascade_ready == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const readyStatus = "${{ steps.secrets-check.outputs.cascade_ready }}" === "true";
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ISSUE=1239
 
-            const body = readyStatus
-              ? `🎯 **AUTO-CASCADE TRIGGERED**\n\n✅ All critical secrets detected\n✅ Auto-verification cascade in progress\n\n**Timeline:**\n- T+0: Cascade detection ✓\n- T+1m: Verification workflows dispatched\n- T+5m: DR tests dispatched\n- T+10m: Results available\n\nNo further action required - system is fully automated.`
-              : `⏳ **CASCADE WAITING**\n\nCritical secrets status:\n- Still awaiting deployment\n- Auto-check will retry in 5 minutes\n- System is self-healing\n\nNo action required.`;
+          READY_STATUS='${{ steps.secrets-check.outputs.cascade_ready }}'
 
-            github.rest.issues.createComment({
-              issue_number: 1239,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          if [ "$READY_STATUS" = "true" ]; then
+            BODY="🎯 **AUTO-CASCADE TRIGGERED**
 
-      - name: Auto-Close Issue #1239 on Success
+✅ All critical secrets detected
+✅ Auto-verification cascade in progress
+
+**Timeline:**
+- T+0: Cascade detection ✓
+- T+1m: Verification workflows dispatched
+- T+5m: DR tests dispatched
+- T+10m: Results available
+
+No further action required - system is fully automated."
+          else
+            BODY="⏳ **CASCADE WAITING**
+
+Critical secrets status:
+- Still awaiting deployment
+- Auto-check will retry in 5 minutes
+- System is self-healing
+
+No action required."
+          fi
+
+          # Idempotent comment: check for existing cascade status comment
+          EXISTING=$(gh api "/repos/${REPO}/issues/${ISSUE}/comments" --jq ".[] | select(.body | contains(\"AUTO-CASCADE\") or .body | contains(\"CASCADE WAITING\")) | .id" 2>/dev/null | head -1 || true)
+          if [ -n "$EXISTING" ]; then
+            gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$BODY" || true
+          else
+            gh issue comment ${ISSUE} --repo ${REPO} --body "$BODY" || true
+          fi
+
+      - name: Auto-Close Issue #1239 on Success (idempotent)
         if: steps.secrets-check.outputs.cascade_ready == 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.update({
-              issue_number: 1239,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'closed',
-              state_reason: 'completed'
-            });
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          ISSUE=1239
 
-            github.rest.issues.createComment({
-              issue_number: 1239,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `🎉 **ISSUE RESOLVED**\n\n✅ Cascade completed\n✅ System is operational\n✅ All automation hands-off\n\nTimestamp: ${new Date().toISOString()}`
+          # Check if issue is open before closing
+          if gh issue view ${ISSUE} --repo ${REPO} >/dev/null 2>&1; then
+            state=$(gh issue view ${ISSUE} --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "CLOSED")
+            if [ "$state" = "OPEN" ]; then
+              # Post closure comment idempotently
+              CLOSURE_MSG="🎉 **ISSUE RESOLVED**
+
+✅ Cascade completed
+✅ System is operational
+✅ All automation hands-off
+
+Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+              EXISTING=$(gh api "/repos/${REPO}/issues/${ISSUE}/comments" --jq ".[] | select(.body | contains(\"ISSUE RESOLVED\")) | .id" 2>/dev/null | head -1 || true)
+              if [ -z "$EXISTING" ]; then
+                gh issue comment ${ISSUE} --repo ${REPO} --body "$CLOSURE_MSG" || true
+              fi
+              # Close issue
+              gh issue update ${ISSUE} --repo ${REPO} --state closed --state_reason completed || true
+            fi
+          fi
             });
 
       - name: Summary Report

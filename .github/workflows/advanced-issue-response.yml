@@ -164,18 +164,28 @@ Your issue has been received and classified. Our systems are:
           echo "$RESPONSE" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Post auto-response
+      - name: Post auto-response (idempotent)
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           RESPONSE='${{ steps.response.outputs.response }}'
 
           if [ "${{ github.event_name }}" = "issues" ]; then
-            gh issue comment ${{ github.event.issue.number }} \
-              --repo ${{ github.repository }} \
-              --body "$RESPONSE"
+            ISSUE_NUM=${{ github.event.issue.number }}
+            # Check if auto-response already posted to this issue
+            EXISTING=$(gh api "/repos/${REPO}/issues/${ISSUE_NUM}/comments" --jq ".[] | select(.user.login == \"${GITHUB_ACTOR}\" or .body | contains(\"Auto-response\")) | .id" 2>/dev/null | head -1 || true)
+            if [ -z "$EXISTING" ]; then
+              gh issue comment ${ISSUE_NUM} --repo ${REPO} --body "$RESPONSE" || true
+            fi
           elif [ "${{ github.event_name }}" = "pull_request" ]; then
-            gh pr comment ${{ github.event.pull_request.number }} \
-              --repo ${{ github.repository }} \
-              --body "$RESPONSE"
+            PR_NUM=${{ github.event.pull_request.number }}
+            # Check if auto-response already posted to this PR
+            EXISTING=$(gh api "/repos/${REPO}/pulls/${PR_NUM}/comments" --jq ".[] | select(.user.login == \"${GITHUB_ACTOR}\" or .body | contains(\"Auto-response\")) | .id" 2>/dev/null | head -1 || true)
+            if [ -z "$EXISTING" ]; then
+              gh pr comment ${PR_NUM} --repo ${REPO} --body "$RESPONSE" || true
+            fi
           fi
 
       - name: Auto-apply labels
