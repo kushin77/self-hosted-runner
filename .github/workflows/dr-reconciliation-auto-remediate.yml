@@ -1,4 +1,5 @@
 name: DR Reconciliation & Auto-Remediate Failures
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
   schedule:
