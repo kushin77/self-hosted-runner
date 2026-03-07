@@ -11,6 +11,10 @@ jobs:
     permissions:
       issues: write
     steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
       - name: Post weekly reminders to maintainer issues
         uses: actions/github-script@v6
         with:
