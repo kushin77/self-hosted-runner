@@ -1,0 +1,31 @@
+name: Auto-close tracking issues on self-heal success
+
+on:
+  workflow_run:
+    workflows: ["runner-self-heal.yml"]
+    types: [completed]
+
+permissions:
+  issues: write
+
+jobs:
+  close-issues:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Close admin/tracking issues
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const toClose = [969, 939];
+            for (const num of toClose) {
+              try {
+                const issue = await github.rest.issues.get({ owner: context.repo.owner, repo: context.repo.repo, issue_number: num });
+                if (issue.data.state !== 'closed') {
+                  await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: num, body: 'Automated: self-heal completed successfully — closing this tracking issue.' });
+                  await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: num, state: 'closed' });
+                }
+              } catch (err) {
+                core.warning(`Failed to close issue #${num}: ${err}`);
+              }
+            }
