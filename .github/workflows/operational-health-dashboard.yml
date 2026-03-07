@@ -39,6 +39,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
+      - name: Load resilience utilities
+        run: source .github/scripts/resilience.sh
+      
       - name: Collect Workflow Health Metrics
         id: workflow-health
         run: |
@@ -60,12 +63,12 @@ jobs:
             echo "📊 Workflow: $workflow"
             
             # Get last 5 runs
-            RUNS=$(gh run list \
+            RUNS=$(gh_safe 3 30 run list \
               --workflow "$workflow" \
               --repo kushin77/self-hosted-runner \
               --limit 5 \
               --json status,conclusion,createdAt,databaseId \
-              --jq '.')
+              --jq '.' || echo "")
             
             if [ -z "$RUNS" ]; then
               echo "⚠ No runs found for $workflow"
@@ -144,10 +147,10 @@ jobs:
           ISSUE_DETAILS=""
           
           for issue_num in "${TRACKED_ISSUES[@]}"; do
-            ISSUE=$(gh issue view "$issue_num" \
+            ISSUE=$(gh_safe 3 20 issue view "$issue_num" \
               --repo kushin77/self-hosted-runner \
               --json state,title,updatedAt \
-              --jq '.')
+              --jq '.' || echo "{}")
             
             STATE=$(echo "$ISSUE" | jq -r '.state')
             TITLE=$(echo "$ISSUE" | jq -r '.title')
@@ -189,11 +192,11 @@ $ICON #$issue_num: $TITLE (updated: $UPDATED)"
           echo "Checking secret provisioning status..."
           
           # Check if RUNNER_MGMT_TOKEN and DEPLOY_SSH_KEY are set
-          RUNNER_TOKEN_SET=$(gh api repos/kushin77/self-hosted-runner/actions/secrets \
-            --jq '.secrets | map(select(.name == "RUNNER_MGMT_TOKEN")) | length')
+          RUNNER_TOKEN_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
+            --jq '.secrets | map(select(.name == "RUNNER_MGMT_TOKEN")) | length' || echo 0)
           
-          DEPLOY_KEY_SET=$(gh api repos/kushin77/self-hosted-runner/actions/secrets \
-            --jq '.secrets | map(select(.name == "DEPLOY_SSH_KEY")) | length')
+          DEPLOY_KEY_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
+            --jq '.secrets | map(select(.name == "DEPLOY_SSH_KEY")) | length' || echo 0)
           
           if [ "$RUNNER_TOKEN_SET" -gt 0 ]; then
             echo "runner_token_status=✅ SET" >> $GITHUB_OUTPUT
