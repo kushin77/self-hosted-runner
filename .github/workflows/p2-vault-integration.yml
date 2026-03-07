@@ -16,6 +16,9 @@ jobs:
     runs-on: [self-hosted, linux]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Load resilience utilities
+        run: source .github/scripts/resilience.sh
       - name: Set up Docker Buildx (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |
