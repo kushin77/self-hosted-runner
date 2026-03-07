@@ -1,0 +1,333 @@
+name: Push Image to Registry (Automated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      registry_type:
+        description: "Registry type (docker-hub|ghcr|ecr|harbor|custom)"
+        required: true
+        default: "ghcr"
+      image_name:
+        description: "Image name (e.g., self-hosted-runner:prod-p2)"
+        required: true
+        default: "self-hosted-runner"
+      image_tags:
+        description: "Comma-separated tags (e.g., prod-p2,latest,1.0.0)"
+        required: true
+        default: "prod-p2,latest"
+      skip_validation:
+        description: "Skip local validation (risky)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: push-image-${{ github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  validate-image:
+    name: Validate Image Locally
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip_validation != 'true' }}
+    outputs:
+      image-valid: ${{ steps.validate.outputs.valid }}
+      image-sha: ${{ steps.validate.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check if image exists locally
+        id: validate
+        run: |
+          set -euo pipefail
+          
+          image="${{ inputs.image_name }}"
+          
+          # Check if image exists
+          if docker images --format "{{.Repository}}:{{.Tag}}" | grep -q "^${image}"; then
+            echo "valid=true" >> "$GITHUB_OUTPUT"
+            sha=$(docker inspect --format='{{index .RepoDigests 0}}' "$image" || echo "local")
+            echo "sha=$sha" >> "$GITHUB_OUTPUT"
+            echo "✅ Image found: $image"
+          else
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            echo "sha=" >> "$GITHUB_OUTPUT"
+            echo "⚠️ Image not found locally: $image"
+            echo "   Available images:"
+            docker images --filter "reference=*${image}*" || true
+          fi
+
+      - name: Inspect image metadata
+        if: ${{ steps.validate.outputs.valid == 'true' }}
+        run: |
+          docker inspect "${{ inputs.image_name }}" | jq 'map({
+            Id: .Id,
+            RepoDigests: .RepoDigests,
+            Created: .Created,
+            Size: .Size,
+            Config: {
+              Hostname: .Config.Hostname,
+              User: .Config.User,
+              EntryPoint: .Config.Entrypoint,
+              Cmd: .Config.Cmd
+            }
+          })'
+          
+          # Security scan with trivy
+          if command -v trivy >/dev/null 2>&1; then
+            echo "🔍 Running security scan..."
+            trivy image --severity HIGH,CRITICAL "${{ inputs.image_name }}" || true
+          fi
+
+  # Stage 1: Configure registry credentials
+  setup-registry:
+    name: Setup Registry Credentials
+    runs-on: ubuntu-latest
+    outputs:
+      registry-host: ${{ steps.config.outputs.host }}
+      registry-org: ${{ steps.config.outputs.org }}
+      push-enabled: ${{ steps.config.outputs.enabled }}
+    steps:
+      - name: Configure registry per type
+        id: config
+        run: |
+          set -euo pipefail
+          
+          registry="${{ inputs.registry_type }}"
+          
+          case "$registry" in
+            docker-hub)
+              if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+                echo "enabled=false" >> "$GITHUB_OUTPUT"
+                echo "⚠️ Docker Hub credentials not configured"
+              else
+                echo "host=docker.io" >> "$GITHUB_OUTPUT"
+                echo "org=${{ secrets.DOCKERHUB_USERNAME }}" >> "$GITHUB_OUTPUT"
+                echo "enabled=true" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            ghcr)
+              if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then
+                echo "enabled=false" >> "$GITHUB_OUTPUT"
+              else
+                echo "host=ghcr.io" >> "$GITHUB_OUTPUT"
+                echo "org=${{ github.repository_owner }}" >> "$GITHUB_OUTPUT"
+                echo "enabled=true" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            ecr)
+              if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ] || [ -z "${{ secrets.AWS_REGION }}" ]; then
+                echo "enabled=false" >> "$GITHUB_OUTPUT"
+              else
+                echo "host=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> "$GITHUB_OUTPUT"
+                echo "org=self-hosted-runner" >> "$GITHUB_OUTPUT"
+                echo "enabled=true" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            custom)
+              if [ -z "${{ secrets.REGISTRY_HOST }}" ]; then
+                echo "enabled=false" >> "$GITHUB_OUTPUT"
+              else
+                echo "host=${{ secrets.REGISTRY_HOST }}" >> "$GITHUB_OUTPUT"
+                echo "org=${{ secrets.REGISTRY_ORG || 'library' }}" >> "$GITHUB_OUTPUT"
+                echo "enabled=true" >> "$GITHUB_OUTPUT"
+              fi
+              ;;
+            *)
+              echo "enabled=false" >> "$GITHUB_OUTPUT"
+              echo "❌ Unknown registry type: $registry"
+              ;;
+          esac
+
+  # Stage 2: Authenticate to registry
+  authenticate:
+    name: Authenticate to Registry
+    runs-on: ubuntu-latest
+    needs: [setup-registry]
+    if: ${{ needs.setup-registry.outputs.push-enabled == 'true' }}
+    outputs:
+      auth-success: ${{ steps.auth.outputs.success }}
+    steps:
+      - name: Login based on registry type
+        id: auth
+        env:
+          REGISTRY_TYPE: ${{ inputs.registry_type }}
+          REGISTRY_HOST: ${{ needs.setup-registry.outputs.registry-host }}
+        run: |
+          set -euo pipefail
+          
+          case "$REGISTRY_TYPE" in
+            docker-hub)
+              docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+                -p "${{ secrets.DOCKERHUB_PASSWORD }}" && \
+                echo "success=true" >> "$GITHUB_OUTPUT" || \
+                echo "success=false" >> "$GITHUB_OUTPUT"
+              ;;
+            ghcr)
+              echo "${{ secrets.GITHUB_TOKEN }}" | docker login -u "${{ github.actor }}" --password-stdin ghcr.io && \
+                echo "success=true" >> "$GITHUB_OUTPUT" || \
+                echo "success=false" >> "$GITHUB_OUTPUT"
+              ;;
+            ecr)
+              aws ecr get-login-password --region "${{ secrets.AWS_REGION }}" | \
+                docker login -u AWS --password-stdin "$REGISTRY_HOST" && \
+                echo "success=true" >> "$GITHUB_OUTPUT" || \
+                echo "success=false" >> "$GITHUB_OUTPUT"
+              ;;
+            custom)
+              docker login -u "${{ secrets.REGISTRY_USERNAME }}" \
+                -p "${{ secrets.REGISTRY_PASSWORD }}" "$REGISTRY_HOST" && \
+                echo "success=true" >> "$GITHUB_OUTPUT" || \
+                echo "success=false" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+  # Stage 3: Tag image for target registry
+  tag-image:
+    name: Tag Image for Registry
+    runs-on: ubuntu-latest
+    needs: [setup-registry, validate-image]
+    if: ${{ needs.setup-registry.outputs.push-enabled == 'true' && needs.validate-image.outputs.image-valid == 'true' }}
+    outputs:
+      tagged-images: ${{ steps.tag.outputs.images }}
+    steps:
+      - name: Tag image
+        id: tag
+        run: |
+          set -euo pipefail
+          
+          source_image="${{ inputs.image_name }}"
+          registry_host="${{ needs.setup-registry.outputs.registry-host }}"
+          registry_org="${{ needs.setup-registry.outputs.registry-org }}"
+          tags_input="${{ inputs.image_tags }}"
+          
+          # Convert comma-separated tags to array
+          IFS=',' read -ra TAGS <<< "$tags_input"
+          
+          tagged_images=()
+          for tag in "${TAGS[@]}"; do
+            tag=$(echo "$tag" | xargs) # trim whitespace
+            full_image="${registry_host}/${registry_org}/${source_image%:*}:${tag}"
+            docker tag "$source_image" "$full_image"
+            tagged_images+=("$full_image")
+            echo "🏷️ Tagged: $full_image"
+          done
+          
+          # Output as JSON array
+          printf '%s\n' "${tagged_images[@]}" | jq -R . | jq -s . > /tmp/tagged_images.json
+          images=$(cat /tmp/tagged_images.json)
+          echo "images=$images" >> "$GITHUB_OUTPUT"
+
+  # Stage 4: Push image to registry (with retry)
+  push-image:
+    name: Push Image to Registry
+    runs-on: ubuntu-latest
+    needs: [setup-registry, authenticate, tag-image]
+    if: ${{ needs.setup-registry.outputs.push-enabled == 'true' }}
+    outputs:
+      push-success: ${{ steps.push.outputs.success }}
+      digest: ${{ steps.push.outputs.digest }}
+    steps:
+      - name: Push image with retry
+        id: push
+        env:
+          IMAGES: ${{ needs.tag-image.outputs.tagged-images }}
+        run: |
+          set -euo pipefail
+          
+          images=$(echo "$IMAGES" | jq -r '.[]')
+          
+          max_retries=3
+          retry_count=0
+          success=false
+          
+          while [ $retry_count -lt $max_retries ] && [ "$success" = "false" ]; do
+            retry_count=$((retry_count + 1))
+            
+            if [ $retry_count -gt 1 ]; then
+              echo "🔄 Retry $retry_count/$max_retries..."
+              sleep 5
+            fi
+            
+            push_success=true
+            for img in $images; do
+              if docker push "$img"; then
+                echo "✅ Pushed: $img"
+              else
+                echo "❌ Failed to push: $img"
+                push_success=false
+              fi
+            done
+            
+            if [ "$push_success" = "true" ]; then
+              success=true
+              break
+            fi
+          done
+          
+          if [ "$success" = "true" ]; then
+            echo "success=true" >> "$GITHUB_OUTPUT"
+            # Get digest of last image
+            first_img=$(echo "$IMAGES" | jq -r '.[0]')
+            digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$first_img" || echo "unknown")
+            echo "digest=$digest" >> "$GITHUB_OUTPUT"
+          else
+            echo "success=false" >> "$GITHUB_OUTPUT"
+            echo "digest=unknown" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+
+  # Stage 5: Verify pushed image
+  verify-push:
+    name: Verify Pushed Image
+    runs-on: ubuntu-latest
+    needs: [push-image, setup-registry]
+    if: ${{ needs.push-image.outputs.push-success == 'true' }}
+    continue-on-error: true
+    steps:
+      - name: Pull and verify
+        run: |
+          set -euo pipefail
+          
+          images=$(echo "${{ needs.tag-image.outputs.tagged-images }}" | jq -r '.[]')
+          
+          for img in $images; do
+            echo "🔍 Verifying: $img"
+            if docker pull "$img"; then
+              echo "✅ Verified: $img"
+            else
+              echo "⚠️ Could not verify: $img (registry may be eventual consistent)"
+            fi
+          done
+
+  # Summary
+  summary:
+    name: Push Summary
+    runs-on: ubuntu-latest
+    needs: [setup-registry, push-image, verify-push]
+    if: always()
+    steps:
+      - name: Print summary
+        run: |
+          cat << SUMMARY
+          
+          📊 IMAGE PUSH SUMMARY
+          ════════════════════════════════════════
+          
+          Image:          ${{ inputs.image_name }}
+          Tags:           ${{ inputs.image_tags }}
+          Registry:       ${{ inputs.registry_type }}
+          Host:           ${{ needs.setup-registry.outputs.registry-host }}
+          Status:         ${{ needs.push-image.outputs.push-success == 'true' && '✅ SUCCESS' || '❌ FAILED' }}
+          Digest:         ${{ needs.push-image.outputs.digest }}
+          
+          SUMMARY
+
+      - name: Fail if push failed
+        if: ${{ needs.push-image.outputs.push-success != 'true' }}
+        run: exit 1

@@ -1,0 +1,137 @@
+# terraform.tfvars.elasticache — ElastiCache Redis Production Configuration
+# Copy to terraform.tfvars and populate with your actual values
+#
+# Usage:
+#   cp terraform.tfvars.elasticache terraform.tfvars
+#   # Edit values below
+#   terraform init
+#   terraform plan
+#   terraform apply
+
+# AWS Configuration
+aws_region = "us-east-1"  # Change to your region
+
+# VPC Configuration (REQUIRED — must be updated)
+vpc_id = ""  # e.g., "vpc-12345678"
+
+# Subnet Configuration (REQUIRED — must be updated)
+# Use private subnets spanning multiple availability zones
+# Example for us-east-1: Use subnets from 1a, 1b, 1c
+subnet_ids = [
+  # "subnet-xxxxx",  # AZ 1a
+  # "subnet-yyyyy",  # AZ 1b  
+  # "subnet-zzzzz"   # AZ 1c
+]
+
+# ============================================================================
+# ElastiCache Configuration (defaults are production-ready)
+# ============================================================================
+
+# Cluster naming
+cluster_name = "provisioner-redis-prod"
+
+# Redis version (7.0 is recommended for 2026)
+engine_version = "7.0"
+
+# Node Type Selection Guide:
+# - cache.t4g.micro:    1 GB   memory — dev/test only
+# - cache.t4g.small:    2 GB   memory — low-traffic jobs
+# - cache.r6g.large:    16 GB  memory — standard production (2-3 nodes)
+# - cache.r6g.xlarge:   26 GB  memory — high-throughput (recommended)
+# - cache.r6g.2xlarge:  52 GB  memory — very heavy workloads (4+ nodes)
+node_type = "cache.r6g.xlarge"
+
+# Number of nodes
+# - 1 = single node (no failover, no Multi-AZ)
+# - 2 = primary + replica (failover enabled, Multi-AZ available)
+# - 3+ = replication group with even better distribution
+num_cache_nodes = 3
+
+# Automatic failover (requires num_cache_nodes >= 2)
+automatic_failover_enabled = true
+
+# Multi-AZ deployment (requires num_cache_nodes >= 2)
+multi_az_enabled = true
+
+# Backup Configuration
+backup_retention_days = 30     # Daily snapshots retained for 30 days
+snapshot_retention_limit = 5    # Keep 5 most recent manual snapshots
+snapshot_window = "03:00-04:00" # UTC time (update to your preference)
+
+# Maintenance Window (always specify UTC, format: ddd:hh:mm-ddd:hh:mm)
+# Examples:
+# - "sun:04:00-sun:05:00" = every Sunday 4am-5am UTC
+# - "mon:02:00-mon:03:00" = every Monday 2am-3am UTC
+maintenance_window = "sun:04:00-sun:05:00"
+
+# ============================================================================
+# Security Configuration
+# ============================================================================
+
+# Encryption at Rest (using AWS KMS)
+enable_encryption_at_rest = true
+
+# Encryption in Transit (TLS)
+enable_encryption_in_transit = true
+
+# AUTH Token for additional security
+auth_token_enabled = true
+# If auth_token is empty, a random 48-character token will be generated
+# If you provide a token, it must be 32-128 alphanumeric characters
+auth_token = ""  # Leave empty for auto-generation, or paste a pre-generated token
+
+# Security Group Access
+# Option A: Allow from specific security groups (preferred for internal services)
+allowed_security_groups = [
+  # e.g., "sg-0123456789abcdef0"  # provisioner-worker security group
+]
+
+# Option B: Allow from specific CIDR blocks (less preferred but acceptable)
+allowed_cidr_blocks = [
+  # e.g., "10.0.0.0/16"  # Your VPC CIDR
+  # e.g., "10.1.0.0/16"  # Another VPC CIDR (for multi-VPC peering)
+]
+
+# ============================================================================
+# Tagging (for cost allocation and organization)
+# ============================================================================
+
+tags = {
+  Project     = "elevatediq-runners"
+  Environment = "prod"
+  ManagedBy   = "Terraform"
+  Owner       = "Platform Team"
+  CostCenter  = "Engineering"  # Update as needed
+}
+
+# ============================================================================
+# Notes & Next Steps
+# ============================================================================
+
+# 1. BEFORE APPLYING:
+#    - Update vpc_id with your VPC ID
+#    - Update subnet_ids with your private subnet IDs (at least 1, recommend 3+)
+#    - Populate allowed_security_groups OR allowed_cidr_blocks
+#
+# 2. EXECUTION:
+#    terraform plan -out=tfplan
+#    # Review the plan carefully, especially security group rules
+#    terraform apply tfplan
+#
+# 3. POST-DEPLOYMENT:
+#    - Retrieve the AUTH token from outputs:
+#      terraform output -raw redis_auth_token > /tmp/redis-auth.txt
+#    - Add to GitHub Secrets as PROVISIONER_REDIS_AUTH_TOKEN
+#    - Add Redis URL to GitHub Secrets as PROVISIONER_REDIS_URL
+#
+# 4. FAILOVER TESTING:
+#    terraform apply -var='num_cache_nodes=1' -auto-approve  # Single node
+#    terraform apply -var='num_cache_nodes=3' -auto-approve  # Restore HA
+#
+# 5. SECURITY CHECKLIST:
+#    ✓ Encryption at rest (KMS): enabled
+#    ✓ Encryption in transit (TLS): enabled
+#    ✓ AUTH token: enabled and strong
+#    ✓ Security group rules: restrictive
+#    ✓ Backup retention: 30 days
+#    ✓ Auto-failover: enabled

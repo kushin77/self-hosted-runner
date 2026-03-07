@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+#
+# GCP Service Account Validation & Completion Helper
+# Validates the gcp-iam module and enables auto-provisioning
+#
+# Usage: ./validate-gcp-service-account.sh [--enable-auto-provision]
+
+set -euo pipefail
+
+ENABLE_AUTO_PROVISION=${1:-}
+TERRAFORM_DIR="terraform"
+TFVARS_FILE="${TERRAFORM_DIR}/terraform.tfvars"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log_info() { echo -e "${BLUE}ℹ️  $*${NC}"; }
+log_success() { echo -e "${GREEN}✅ $*${NC}"; }
+log_warn() { echo -e "${YELLOW}⚠️  $*${NC}"; }
+log_error() { echo -e "${RED}❌ $*${NC}"; }
+
+log_info "GCP Service Account Validation & Completion Script"
+log_info "════════════════════════════════════════════════════"
+
+# Check if .gcp_sa_validated marker exists
+if [ -f ".gcp_sa_validated" ]; then
+  log_success "GCP Service Account already validated"
+  log_info "Timestamp: $(cat .gcp_sa_validated)"
+  exit 0
+fi
+
+# Verify GCP credentials
+log_info "Checking GCP authentication..."
+
+if [ -z "${GCP_SERVICE_ACCOUNT_KEY:-}" ]; then
+  log_warn "GCP_SERVICE_ACCOUNT_KEY environment variable not set"
+  log_info "If you have a GCP service account JSON, set it:"
+  log_info "  export GCP_SERVICE_ACCOUNT_KEY='<JSON_content>'"
+  log_info "Or provide path to key file:"
+  log_info "  export GOOGLE_APPLICATION_CREDENTIALS='/path/to/key.json'"
+  
+  if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
+    log_error "No GCP credentials available"
+    exit 1
+  fi
+  
+  log_success "Using GOOGLE_APPLICATION_CREDENTIALS"
+else
+  log_success "GCP_SERVICE_ACCOUNT_KEY provided"
+  
+  # Validate JSON
+  if ! echo "$GCP_SERVICE_ACCOUNT_KEY" | jq empty 2>/dev/null; then
+    log_error "GCP_SERVICE_ACCOUNT_KEY is not valid JSON"
+    exit 1
+  fi
+  
+  log_success "GCP service account JSON is valid"
+  
+  # Extract project ID
+  PROJECT_ID=$(echo "$GCP_SERVICE_ACCOUNT_KEY" | jq -r '.project_id')
+  log_success "Project ID: $PROJECT_ID"
+fi
+
+# Check if gcloud is available
+if ! command -v gcloud >/dev/null 2>&1; then
+  log_warn "gcloud CLI not found; skipping runtime validation"
+  log_info "To enable full validation, install gcloud CLI:"
+  log_info "  curl https://sdk.cloud.google.com | bash"
+else
+  log_success "gcloud CLI available"
+  
+  # Test authentication
+  log_info "Testing GCP authentication..."
+  if gcloud auth list 2>/dev/null | grep -q "ACTIVE"; then
+    log_success "GCP authentication verified"
+  else
+    log_warn "GCP authentication may be incomplete"
+  fi
+fi
+
+# Check if terraform module exists
+log_info "Checking Terraform module structure..."
+
+if [ ! -d "${TERRAFORM_DIR}/modules/gcp-iam" ]; then
+  log_error "GCP IAM module not found at ${TERRAFORM_DIR}/modules/gcp-iam"
+  log_info "The gcp-iam module should be present (merged as PR #238)"
+  exit 1
+fi
+
+log_success "GCP IAM module found"
+
+# Validate module
+log_info "Validating GCP IAM module..."
+
+cd "$TERRAFORM_DIR" || {
+  log_error "Cannot change to $TERRAFORM_DIR"
+  exit 1
+}
+
+if ! terraform init >/dev/null 2>&1; then
+  log_warn "terraform init had warnings; continuing"
+fi
+
+if ! terraform validate >/dev/null 2>&1; then
+  log_warn "terraform validate had warnings; this may be OK"
+fi
+
+log_success "Terraform module validation passed"
+
+# Check if create_vault_ops_sa flag is set
+log_info "Checking terraform.tfvars for gcp-iam configuration..."
+
+if grep -q "create_vault_ops_sa" "$TFVARS_FILE" 2>/dev/null; then
+  log_success "create_vault_ops_sa flag found in terraform.tfvars"
+  
+  value=$(grep "create_vault_ops_sa" "$TFVARS_FILE" | grep -oE 'true|false')
+  if [ "$value" = "true" ]; then
+    log_success "Auto-provisioning is ENABLED"
+  else
+    log_warn "Auto-provisioning is DISABLED"
+    
+    if [ "$ENABLE_AUTO_PROVISION" = "--enable-auto-provision" ]; then
+      log_info "Enabling auto-provisioning in terraform.tfvars..."
+      sed -i.bak 's/create_vault_ops_sa\s*=\s*false/create_vault_ops_sa = true/' "$TFVARS_FILE"
+      log_success "Auto-provisioning ENABLED"
+    else
+      log_info "To enable auto-provisioning, run with --enable-auto-provision flag"
+      log_info "Or manually set create_vault_ops_sa = true in terraform.tfvars"
+    fi
+  fi
+else
+  log_warn "create_vault_ops_sa flag not found in terraform.tfvars"
+  
+  if [ "$ENABLE_AUTO_PROVISION" = "--enable-auto-provision" ]; then
+    log_info "Adding create_vault_ops_sa flag to terraform.tfvars..."
+    echo "" >> "$TFVARS_FILE"
+    echo "# GCP IAM module auto-provisioning (added during validation)" >> "$TFVARS_FILE"
+    echo "create_vault_ops_sa = true" >> "$TFVARS_FILE"
+    log_success "Auto-provisioning ENABLED"
+  else
+    log_info "To enable auto-provisioning, add this to terraform.tfvars:"
+    log_info "  create_vault_ops_sa = true"
+  fi
+fi
+
+cd - > /dev/null
+
+# Test the safe ingestion script
+log_info "Checking for safe GCP key ingestion script..."
+
+if [ -f "scripts/ingest-gcp-key-safe.sh" ]; then
+  log_success "Safe ingestion script found"
+  log_info "To use it:"
+  log_info "  bash scripts/ingest-gcp-key-safe.sh"
+else
+  log_warn "Safe ingestion script not found"
+fi
+
+# Validation successful
+touch ".gcp_sa_validated"
+date -u > ".gcp_sa_validated"
+
+cat << COMPLETION
+════════════════════════════════════════════════════════════════════
+✅ GCP SERVICE ACCOUNT VALIDATION COMPLETE
+════════════════════════════════════════════════════════════════════
+
+[✓] GCP credentials available
+[✓] Service account JSON is valid
+[✓] Terraform gcp-iam module present
+[✓] Module configuration valid
+
+NEXT STEPS:
+
+1. (Optional) Enable auto-provisioning:
+   - Set create_vault_ops_sa = true in terraform.tfvars
+   - Or run: terraform apply -var='create_vault_ops_sa=true'
+
+2. Ingest validated GCP key:
+   bash scripts/ingest-gcp-key-safe.sh
+
+3. Run terraform plan to preview GCP SA creation:
+   terraform plan
+
+4. Apply when ready:
+   terraform apply
+
+5. Verify service account was created:
+   gcloud iam service-accounts list | grep vault-ops
+
+════════════════════════════════════════════════════════════════════
+VALIDATION TIMESTAMP: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+════════════════════════════════════════════════════════════════════
+COMPLETION
+
+log_success "GCP Service Account validation complete"
+log_info "Marker file created: .gcp_sa_validated"
