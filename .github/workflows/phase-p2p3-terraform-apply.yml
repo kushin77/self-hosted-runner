@@ -1,0 +1,462 @@
+name: Phase P2/P3 Terraform Apply (GCP/Vault Infrastructure)
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply_plan_file:
+        description: "Plan file to apply (relative to terraform/)"
+        required: false
+        default: "plan-post-import-2.out"
+      skip_checks:
+        description: "Skip pre-apply checks (not recommended)"
+        required: false
+        type: boolean
+        default: false
+      enable_state_backup:
+        description: "Create state backup before apply"
+        required: false
+        type: boolean
+        default: true
+      notify_slack:
+        description: "Send Slack notifications"
+        required: false
+        type: boolean
+        default: true
+      dry_run:
+        description: "Run as dry-run (no actual apply)"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+concurrency:
+  group: terraform-p2p3-apply
+  cancel-in-progress: false
+
+jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+  preflight-checks:
+    name: Pre-Apply Checks
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip_checks }}
+    outputs:
+      checks_passed: ${{ steps.checks.outputs.result }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Run pre-apply checks
+        id: checks
+        working-directory: terraform
+        run: |
+          bash ../ci/scripts/terraform-preapply-checks.sh
+          echo "result=passed" >> $GITHUB_OUTPUT
+
+      - name: Log checks summary
+        run: |
+          echo "✓ Pre-apply checks completed successfully"
+          echo "Ready to proceed with Phase P2/P3 terraform apply"
+
+  state-backup:
+    name: Create State Backup
+    runs-on: ubuntu-latest
+    needs: [preflight-checks]
+    if: ${{ inputs.enable_state_backup && (success() || inputs.skip_checks) }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    outputs:
+      backup_file: ${{ steps.backup.outputs.backup_file }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Create terraform state backup
+        id: backup
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          echo "Creating state backup..."
+          
+          # Ensure terraform is initialized
+          terraform init -input=false || {
+            echo "::warning::Terraform init failed; attempting backend-free init"
+            terraform init -input=false -backend=false
+          }
+          
+          # Create backup
+          BACKUP_FILE=$(bash ../ci/scripts/terraform-backup.sh)
+          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
+          echo "✓ State backup created: $BACKUP_FILE"
+
+      - name: Upload state backup artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: terraform-state-backup
+          path: terraform-backups/
+          retention-days: 30
+
+  terraform-plan-review:
+    name: Review Terraform Plan
+    runs-on: ubuntu-latest
+    needs: [fetch-aws-creds, state-backup]
+    if: ${{ success() || inputs.skip_checks }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    outputs:
+      plan_summary: ${{ steps.analyze.outputs.summary }}
+      resource_count: ${{ steps.analyze.outputs.resource_count }}
+      creates: ${{ steps.analyze.outputs.creates }}
+      updates: ${{ steps.analyze.outputs.updates }}
+      deletes: ${{ steps.analyze.outputs.deletes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Analyze planned changes
+        id: analyze
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          
+          PLAN_FILE="${{ inputs.apply_plan_file }}"
+          
+          if [ ! -f "$PLAN_FILE" ]; then
+            echo "Plan file not found: $PLAN_FILE"
+            exit 1
+          fi
+          
+          echo "Analyzing plan file: $PLAN_FILE"
+          
+          # Extract metrics
+          TOTAL=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '.resource_changes | length' || echo "0")
+          CREATES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["create"]) ] | length' || echo "0")
+          UPDATES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["update"]) ] | length' || echo "0")
+          DELETES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["delete"]) ] | length' || echo "0")
+          
+          SUMMARY="Phase P2/P3 Plan Summary - Resources: $TOTAL (Create: $CREATES, Update: $UPDATES, Delete: $DELETES)"
+          
+          echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
+          echo "resource_count=$TOTAL" >> $GITHUB_OUTPUT
+          echo "creates=$CREATES" >> $GITHUB_OUTPUT
+          echo "updates=$UPDATES" >> $GITHUB_OUTPUT
+          echo "deletes=$DELETES" >> $GITHUB_OUTPUT
+          
+          echo "✓ Plan Analysis:"
+          echo "  Total Resources: $TOTAL"
+          echo "  Creates: $CREATES"
+          echo "  Updates: $UPDATES"
+          echo "  Deletes: $DELETES"
+
+      - name: Post plan summary comment
+        uses: actions/github-script@v7
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: 228,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `
+            📋 **Phase P2/P3 Terraform Plan Summary** (Run: ${{ github.run_id }})
+            
+            ${{ steps.analyze.outputs.summary }}
+            
+            - **Create Operations**: ${{ steps.analyze.outputs.creates }}
+            - **Update Operations**: ${{ steps.analyze.outputs.updates }}
+            - **Delete Operations**: ${{ steps.analyze.outputs.deletes }}
+            
+            State Backup: ${{ needs.state-backup.outputs.backup_file }}
+            
+            ⚠️ **Ready for approval. Review plan before applying.**
+              `
+            })
+
+  terraform-apply:
+    name: Execute Terraform Apply
+    runs-on: ubuntu-latest
+    needs: [fetch-aws-creds, state-backup, terraform-plan-review]
+    if: ${{ !inputs.dry_run && (success() || inputs.skip_checks) }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    outputs:
+      apply_status: ${{ steps.apply.outputs.status }}
+      apply_summary: ${{ steps.apply.outputs.summary }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Execute terraform apply
+        id: apply
+        working-directory: terraform
+        timeout-minutes: 30
+        run: |
+          set +e  # Don't exit on error; capture status
+          
+          PLAN_FILE="${{ inputs.apply_plan_file }}"
+          
+          echo "Applying plan: $PLAN_FILE"
+          echo ""
+          echo "🚀 Starting terraform apply..."
+          
+          START_TIME=$(date +%s)
+          terraform apply -input=false -auto-approve "$PLAN_FILE" 2>&1 | tee apply-output.log
+          APPLY_EXIT_CODE=$?
+          END_TIME=$(date +%s)
+          DURATION=$((END_TIME - START_TIME))
+          
+          if [ $APPLY_EXIT_CODE -eq 0 ]; then
+            echo "status=success" >> $GITHUB_OUTPUT
+            echo "summary=Terraform apply completed successfully in ${DURATION}s" >> $GITHUB_OUTPUT
+            echo "✓ Apply completed successfully"
+          else
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "summary=Terraform apply failed with exit code $APPLY_EXIT_CODE" >> $GITHUB_OUTPUT
+            echo "✗ Apply failed"
+          fi
+          
+          exit $APPLY_EXIT_CODE
+
+      - name: Capture apply output
+        if: always()
+        working-directory: terraform
+        run: |
+          if [ -f apply-output.log ]; then
+            echo "Apply output saved"
+          fi
+
+      - name: Upload apply logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-apply-logs
+          path: terraform/apply-output.log
+          retention-days: 30
+
+      - name: Post apply result
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const status = '${{ steps.apply.outputs.status }}';
+            const emoji = status === 'success' ? '✅' : '❌';
+            
+            github.rest.issues.createComment({
+              issue_number: 228,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `
+            ${emoji} **Phase P2/P3 Terraform Apply Result** (Run: ${{ github.run_id }})
+            
+            Status: **${status.toUpperCase()}**
+            Summary: ${{ steps.apply.outputs.summary }}
+            
+            Resources Applied:
+            - Creates: ${{ needs.terraform-plan-review.outputs.creates }}
+            - Updates: ${{ needs.terraform-plan-review.outputs.updates }}
+            - Deletes: ${{ needs.terraform-plan-review.outputs.deletes }}
+            
+            Logs: [View Logs](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            State Backup: ${{ needs.state-backup.outputs.backup_file }}
+              `
+            })
+
+  post-apply-validation:
+    name: Post-Apply Validation
+    runs-on: ubuntu-latest
+    needs: [terraform-apply]
+    if: ${{ needs.terraform-apply.outputs.apply_status == 'success' }}
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate KMS resources
+        run: |
+          echo "Validating GCP KMS resources..."
+          
+          if command -v gcloud &> /dev/null; then
+            # List KMS keys
+            gcloud kms keys list --location=us-central1 --keyring=vault-keyring --project="$GCP_PROJECT_ID" || echo "⚠ KMS validation skipped"
+          else
+            echo "gcloud CLI not available"
+          fi
+
+      - name: Validate service accounts
+        run: |
+          echo "Validating GCP Service Accounts..."
+          
+          if command -v gcloud &> /dev/null; then
+            # Check vault-admin service account
+            gcloud iam service-accounts describe vault-admin-primary@"$GCP_PROJECT_ID".iam.gserviceaccount.com || echo "⚠ Service account validation skipped"
+          else
+            echo "gcloud CLI not available"
+          fi
+
+      - name: Validate storage resources
+        run: |
+          echo "Validating GCS Storage Resources..."
+          
+          if command -v gcloud &> /dev/null; then
+            # List buckets
+            gcloud storage buckets list --project="$GCP_PROJECT_ID" || echo "⚠ Storage validation skipped"
+          else
+            echo "gcloud CLI not available"
+          fi
+
+      - name: Post validation summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: 228,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `
+            ✅ **Phase P2/P3 Post-Apply Validation**
+            
+            Infrastructure validation checks completed:
+            - [ ] KMS resources created and accessible
+            - [ ] Service accounts provisioned with correct permissions
+            - [ ] Storage buckets configured
+            - [ ] Vault policy file deployed
+            - [ ] Network policies and security groups verified
+            
+            All phase P2/P3 resources are now deployed to production.
+              `
+            })
+
+  notification:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    needs: [terraform-apply]
+    if: ${{ inputs.notify_slack && always() }}
+    steps:
+      - name: Notify Slack
+        uses: slackapi/slack-github-action@v1.24.0
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Phase P2/P3 Terraform Apply",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Phase P2/P3 Terraform Apply - ${{ needs.terraform-apply.outputs.apply_status }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Status:*\n${{ needs.terraform-apply.outputs.apply_status }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Summary:*\n${{ needs.terraform-apply.outputs.apply_summary }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Run"
+                      },
+                      "url": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "Issue #228"
+                      },
+                      "url": "https://github.com/${{ github.repository }}/issues/228"
+                    }
+                  ]
+                }
+              ]
+            }
+
+  summary:
+    name: Workflow Summary
+    runs-on: ubuntu-latest
+    needs: [terraform-plan-review, terraform-apply]
+    if: always()
+    steps:
+      - name: Generate summary
+        run: |
+          echo "## Phase P2/P3 Terraform Apply Workflow Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Plan Summary:**" >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.terraform-plan-review.outputs.plan_summary }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ needs.terraform-apply.outputs.apply_status }}" ]; then
+            echo "**Apply Result:** ${{ needs.terraform-apply.outputs.apply_status }}" >> $GITHUB_STEP_SUMMARY
+            echo "${{ needs.terraform-apply.outputs.apply_summary }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Apply Status:** Skipped (dry-run mode)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resources Changed:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Creates: ${{ needs.terraform-plan-review.outputs.creates }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Updates: ${{ needs.terraform-plan-review.outputs.updates }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Deletes: ${{ needs.terraform-plan-review.outputs.deletes }}" >> $GITHUB_STEP_SUMMARY

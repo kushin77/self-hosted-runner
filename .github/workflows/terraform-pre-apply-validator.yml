@@ -1,0 +1,235 @@
+name: Terraform Pre-Apply Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      validate_only:
+        description: 'Run validation only (no plan generation)'
+        required: false
+        default: 'true'
+      var_file:
+        description: 'Path to tfvars file (relative to terraform/)'
+        required: false
+        default: 'terraform.tfvars'
+  workflow_call:
+    secrets:
+      GCP_SERVICE_ACCOUNT_EMAIL:
+        required: false
+      GCP_PROJECT_ID:
+        required: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: terraform-pre-apply-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validation:
+    name: Terraform Pre-Apply Validation
+    runs-on: ubuntu-latest
+    outputs:
+      valid: ${{ steps.validate.outputs.valid }}
+      tf_version: ${{ steps.setup.outputs.tf_version }}
+      modules_ok: ${{ steps.validate.outputs.modules_ok }}
+      syntax_ok: ${{ steps.validate.outputs.syntax_ok }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        id: setup
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ~1.5
+
+      - name: Load resilience helpers
+        run: source .github/scripts/resilience.sh || true
+
+      - name: Validate Terraform Configuration
+        id: validate
+        run: |
+          set -euo pipefail
+          
+          echo "🔍 Starting Terraform pre-apply validation..."
+          
+          # Check terraform files exist
+          if [ ! -d "terraform" ]; then
+            echo "✗ terraform directory not found"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          
+          cd terraform
+          
+          # Initialize (read-only mode)
+          echo "📦 Initializing Terraform..."
+          retry_command 2 5 terraform init -input=false -upgrade=false || {
+            echo "✗ Terraform init failed"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          }
+          
+          # Validate syntax
+          echo "✅ Validating Terraform syntax..."
+          if terraform validate; then
+            echo "✓ Syntax validation passed"
+            echo "syntax_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "✗ Syntax validation failed"
+            echo "syntax_ok=false" >> "$GITHUB_OUTPUT"
+            echo "valid=false" >> "$GITHUB_OUTPUT"
+            exit 1
+          fi
+          
+          # Check module dependencies
+          echo "📋 Checking module dependencies..."
+          if [ -d "modules" ]; then
+            MODULE_COUNT=$(find modules -name "main.tf" | wc -l)
+            echo "✓ Found $MODULE_COUNT module(s)"
+            echo "modules_ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "⚠️  No modules directory found (optional)"
+            echo "modules_ok=warning" >> "$GITHUB_OUTPUT"
+          fi
+          
+          # Check for critical variable definitions
+          echo "🔐 Checking variable definitions..."
+          if [ -f "variables.tf" ]; then
+            VAR_COUNT=$(grep -c "^variable" variables.tf || echo "0")
+            echo "✓ Found $VAR_COUNT variable definitions"
+          else
+            echo "⚠️  variables.tf not found (may be optional)"
+          fi
+          
+          # If var file exists, validate it
+          VAR_FILE="${{ github.event.inputs.var_file || 'terraform.tfvars' }}"
+          if [ -f "$VAR_FILE" ]; then
+            echo "📝 Validating tfvars file: $VAR_FILE"
+            
+            # Basic HCL syntax check
+            if terraform validate -var-file="$VAR_FILE" 2>&1 | grep -q "Invalid variable value"; then
+              echo "✗ Invalid values in $VAR_FILE"
+              echo "valid=false" >> "$GITHUB_OUTPUT"
+              exit 1
+            else
+              echo "✓ Tfvars file valid"
+            fi
+          else
+            echo "⚠️  Tfvars file not found: $VAR_FILE (will need to be provided for apply)"
+          fi
+          
+          echo ""
+          echo "✓ ALL VALIDATION CHECKS PASSED"
+          echo "valid=true" >> "$GITHUB_OUTPUT"
+
+      - name: Terraform Format Check
+        id: fmt
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          
+          cd terraform
+          
+          echo "🎨 Checking Terraform formatting..."
+          
+          if terraform fmt -check -recursive . > /dev/null 2>&1; then
+            echo "✓ All files properly formatted"
+          else
+            echo "⚠️  Some files need formatting. Running: terraform fmt -recursive ."
+            terraform fmt -recursive .
+            echo "⚠️  Files have been auto-formatted (review before commit)"
+          fi
+
+      - name: Generate Plan Structure (Validation Only)
+        id: plan_struct
+        if: github.event.inputs.validate_only == 'true'
+        run: |
+          set -euo pipefail
+          
+          cd terraform
+          
+          echo "📊 Analyzing Terraform structure for plan readiness..."
+          
+          # Count resources
+          RESOURCE_COUNT=$(grep -r "^resource" . --include="*.tf" 2>/dev/null | wc -l)
+          echo "✓ Found $RESOURCE_COUNT resource definitions"
+          
+          # Count data sources
+          DATA_COUNT=$(grep -r "^data" . --include="*.tf" 2>/dev/null | wc -l)
+          echo "✓ Found $DATA_COUNT data sources"
+          
+          # Count outputs
+          OUTPUT_COUNT=$(grep -r "^output" . --include="*.tf" 2>/dev/null | wc -l)
+          echo "✓ Found $OUTPUT_COUNT outputs"
+          
+          echo ""
+          echo "Structure Summary:"
+          echo "  - Resources: $RESOURCE_COUNT"
+          echo "  - Data sources: $DATA_COUNT"
+          echo "  - Outputs: $OUTPUT_COUNT"
+          echo ""
+          echo "✓ Terraform structure validated (ready for plan generation)"
+
+      - name: Validation Summary
+        if: always()
+        run: |
+          cat <<'EOF'
+          
+          ╔════════════════════════════════════════════════════════════════════╗
+          ║            TERRAFORM PRE-APPLY VALIDATION - SUMMARY               ║
+          ╚════════════════════════════════════════════════════════════════════╝
+          
+          Validation Results:
+            Overall Status: ${{ steps.validate.outputs.valid }}
+            Syntax Check: ${{ steps.validate.outputs.syntax_ok }}
+            Modules: ${{ steps.validate.outputs.modules_ok }}
+            Format Check: ${{ steps.fmt.outcome }}
+          
+          Configuration:
+            Terraform Version: ${{ steps.setup.outputs.tf_version }}
+            Validation Mode: ${{ github.event.inputs.validate_only == 'true' && 'Validation Only' || 'Plan Generation' }}
+            Tfvars File: ${{ github.event.inputs.var_file || 'terraform.tfvars' }}
+          
+          Next Steps:
+            1. If validation PASSED: ready for terraform plan
+            2. If validation FAILED: fix issues in terraform configuration
+            3. If TFVARS missing: populate from example file before apply
+          
+          Documentation:
+            • docs/PHASE_2_3_OPS_RUNBOOK.md
+            • terraform/terraform.tfvars.example
+            • terraform/README.md
+          
+          Automation: ✨ HANDS-OFF
+          
+          EOF
+
+      - name: Post Results to Issue
+        if: github.event_name == 'workflow_dispatch' && always()
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          
+          RESULT="$([ '${{ steps.validate.outputs.valid }}' = 'true' ] && echo '✅ PASSED' || echo '❌ FAILED')"
+          
+          gh issue comment 231 \
+            --body "## Terraform Pre-Apply Validation
+
+          **Status**: $RESULT  
+          **Run**: [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ### Validation Details
+          - Syntax: ${{ steps.validate.outputs.syntax_ok }}
+          - Modules: ${{ steps.validate.outputs.modules_ok }}
+          - Format: ${{ steps.fmt.outcome }}
+          
+          ### Next Steps
+          - Review terraform plan when ready
+          - Verify GCP service account permissions
+          - Approve terraform apply step
+          " 2>&1 || echo "Comment post skipped"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
