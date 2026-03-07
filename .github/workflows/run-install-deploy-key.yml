@@ -1,0 +1,134 @@
+name: Run Install Deploy Key
+
+on:
+  workflow_dispatch:
+    inputs:
+      inventory_file:
+        description: 'Path to Ansible inventory file (relative to repo root)'
+        required: true
+        default: 'ansible/inventory/staging'
+      ansible_user:
+        description: 'SSH user for Ansible'
+        required: false
+        default: 'deploy'
+      vault_secret_path:
+        description: 'Vault secret path for deploy SSH private key (optional)'
+        required: false
+        default: 'secret/data/runnercloud/deploy-ssh-key'
+      dry_run:
+        description: 'Run in check mode (dry-run)?'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  install-deploy-key:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: run-install-deploy-key-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      ANSIBLE_SSH_KEY_PATH: /tmp/deploy_id_rsa
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        uses: ./.github/actions/resilience-loader
+
+      - name: Ensure AppRole credentials or fallbacks
+        id: approle_setup
+        run: |
+          set -euo pipefail
+          if [ -n "${VAULT_ROLE_ID:-}" ] && [ -n "${VAULT_SECRET_ID:-}" ]; then
+            echo "role_id=${VAULT_ROLE_ID}" >> $GITHUB_OUTPUT
+            echo "secret_id=${VAULT_SECRET_ID}" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          if [ -n "${VAULT_ADMIN_TOKEN:-}" ]; then
+            export VAULT_TOKEN="$VAULT_ADMIN_TOKEN"
+            export VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+            chmod +x scripts/ci/setup-approle.sh || true
+            scripts/ci/setup-approle.sh --policy-file scripts/ci/deploy-runner-policy.hcl --role-name deploy-runner --policy-name deploy-runner-policy --output-file /tmp/approle.json || true
+            ROLE_ID=$(jq -r .role_id /tmp/approle.json || true)
+            SECRET_ID=$(jq -r .secret_id /tmp/approle.json || true)
+            echo "role_id=$ROLE_ID" >> $GITHUB_OUTPUT
+            echo "secret_id=$SECRET_ID" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        env:
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_ADMIN_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+
+      - name: Fetch deploy SSH key from Vault (if configured)
+        if: ${{ github.event.inputs.vault_secret_path != '' }}
+        env:
+          VAULT_ROLE_ID: ${{ steps.approle_setup.outputs.role_id }}
+          VAULT_SECRET_ID: ${{ steps.approle_setup.outputs.secret_id }}
+          ROLE_ID_SECRET: ${{ secrets.VAULT_ROLE_ID }}
+          SECRET_ID_SECRET: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          set -e
+          ROLE_ID="${VAULT_ROLE_ID:-$ROLE_ID_SECRET}"
+          SECRET_ID="${VAULT_SECRET_ID:-$SECRET_ID_SECRET}"
+          if [ -z "$ROLE_ID" ] || [ -z "$SECRET_ID" ]; then
+            echo "No AppRole credentials available; skipping Vault fetch"
+            exit 0
+          fi
+          VAULT_TOKEN=$(curl -s -X POST "${{ secrets.VAULT_ADDR }}/v1/auth/approle/login" -H "Content-Type: application/json" -d "{\"role_id\":\"$ROLE_ID\",\"secret_id\":\"$SECRET_ID\"}" | jq -r '.auth.client_token')
+          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+            echo "Failed to authenticate to Vault; skipping"
+            exit 0
+          fi
+          SSH_KEY=$(curl -s -X GET "${{ secrets.VAULT_ADDR }}/v1/${{ github.event.inputs.vault_secret_path }}" -H "X-Vault-Token: $VAULT_TOKEN" | jq -r '.data.data.private_key')
+          if [ -n "$SSH_KEY" ] && [ "$SSH_KEY" != "null" ]; then
+            mkdir -p $(dirname "$ANSIBLE_SSH_KEY_PATH")
+            echo "$SSH_KEY" > "$ANSIBLE_SSH_KEY_PATH"
+            chmod 600 "$ANSIBLE_SSH_KEY_PATH"
+            echo "SSH key written to $ANSIBLE_SSH_KEY_PATH"
+          else
+            echo "No SSH key found in Vault path; proceeding without private key"
+          fi
+
+      - name: Set up Python for Ansible
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install --upgrade pip
+          pip install ansible jinja2 pyyaml
+
+      - name: Validate inventory file exists
+        run: |
+          if [ ! -f "${{ github.event.inputs.inventory_file }}" ]; then
+            echo "Inventory file not found: ${{ github.event.inputs.inventory_file }}"
+            exit 1
+          fi
+          echo "Inventory file validated"
+
+      - name: Run Ansible idempotent install (check or apply)
+        run: |
+          set -euo pipefail
+          EXTRA_KEYS=""
+          if [ -f "$ANSIBLE_SSH_KEY_PATH" ]; then
+            EXTRA_KEYS="--private-key=$ANSIBLE_SSH_KEY_PATH"
+          fi
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            ansible-playbook --check --inventory="${{ github.event.inputs.inventory_file }}" $EXTRA_KEYS -u "${{ github.event.inputs.ansible_user }}" ansible/playbooks/install-deploy-key.yml
+            echo "Dry-run complete"
+            exit 0
+          fi
+          ansible-playbook --inventory="${{ github.event.inputs.inventory_file }}" $EXTRA_KEYS -u "${{ github.event.inputs.ansible_user }}" ansible/playbooks/install-deploy-key.yml
+          echo "Ansible install-deploy-key completed"
+
+      - name: Cleanup sensitive files
+        if: always()
+        run: |
+          rm -f "$ANSIBLE_SSH_KEY_PATH" || true
+          echo "Cleaned up SSH key"
