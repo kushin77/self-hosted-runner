@@ -328,7 +328,18 @@ $REPORT
           }
           EOF
 
-      - name: Upload metrics
+      - name: Package metrics for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/comprehensive-metrics-reports.tar.gz .metrics || echo "No metrics to package"
+
+      - name: Upload metrics to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/comprehensive-metrics-reports.tar.gz comprehensive-metrics-reports.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload metrics (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: comprehensive-metrics-reports

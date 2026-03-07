@@ -86,13 +86,19 @@ jobs:
           
           echo "✅ Plan completed"
 
-      - name: Generate Plan Summary
+      - name: Package terraform plan for MinIO
         working-directory: ./terraform/elasticache
         run: |
-          echo "📊 Terraform Plan Summary:"
-          terraform show -no-color tfplan.binary | head -50
+          mkdir -p /tmp/minio-uploads
+          cp tfplan.binary /tmp/minio-uploads/
 
-      - name: Save Plan Artifact
+      - name: Upload terraform plan to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/tfplan.binary terraform-plan-elasticache.binary || echo "MinIO upload failed; will use fallback"
+
+      - name: Save Plan Artifact (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan-elasticache

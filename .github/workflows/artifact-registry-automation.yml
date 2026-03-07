@@ -107,7 +107,18 @@ jobs:
 EOF
           echo "Created artifact-metadata.json"
 
-      - name: Upload metadata artifact
+      - name: Package artifact metadata for MinIO
+        run: |
+          mkdir -p /tmp/minio-uploads
+          cp artifact-metadata.json /tmp/minio-uploads/
+
+      - name: Upload artifact metadata to MinIO
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/artifact-metadata.json artifact-metadata.json || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload metadata artifact (hosted fallback)
+        if: '!contains(runner.labels, ''self-hosted'')'
         uses: actions/upload-artifact@v4
         with:
           name: artifact-metadata
