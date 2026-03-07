@@ -4,206 +4,206 @@ on:
   schedule:
     - cron: '0 2 * * *' # daily @ 02:00 UTC
   workflow_dispatch: {}
-  # re-register trigger: 2026-03-07T00:00:00Z (no-op comment to refresh registration)
-  workflow_call: {}
+  name: Security Audit (gitleaks + trivy)
 
-concurrency:
-  group: security-audit-${{ github.ref }}
-  cancel-in-progress: false
+  on:
+    schedule:
+      - cron: '0 2 * * *' # daily @ 02:00 UTC
+    workflow_dispatch: {}
+    # re-register trigger: 2026-03-07T00:00:00Z (no-op comment to refresh registration)
+    workflow_call: {}
 
-name: Security Audit (gitleaks + trivy)
+  concurrency:
+    group: security-audit-${{ github.ref }}
+    cancel-in-progress: false
 
-on:
-  schedule:
-    - cron: '0 2 * * *' # daily @ 02:00 UTC
-  workflow_dispatch: {}
-  # re-register trigger: 2026-03-07T00:00:00Z (no-op comment to refresh registration)
-  workflow_call: {}
+  permissions:
+    contents: read
+    issues: write
 
-concurrency:
-  group: security-audit-${{ github.ref }}
-  cancel-in-progress: false
+  jobs:
+    gitleaks-scan:
+      name: Gitleaks Scan
+      runs-on: ubuntu-latest
+      env:
+        ACTIONS_STEP_DEBUG: 'true'
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
 
-permissions:
-  contents: read
-  issues: write
+        - name: Load resilience helpers
+          run: |
+            set -euo pipefail
+            source .github/scripts/resilience.sh || true
 
-jobs:
-  gitleaks-scan:
-    name: Gitleaks Scan
-    runs-on: ubuntu-latest
-    env:
-      ACTIONS_STEP_DEBUG: 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+        - name: Run gitleaks (repository secrets scan)
+          uses: zricethezav/gitleaks-action@v1
+          with:
+            args: "--path=. --report-format=json --report-path=./gitleaks-report.json || true"
 
-      - name: Load resilience helpers
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh || true
-
-      - name: Run gitleaks (repository secrets scan)
-        uses: zricethezav/gitleaks-action@v1
-        with:
-          args: "--path=. --report-format=json --report-path=./gitleaks-report.json || true"
-
-      - name: Fallback: ensure gitleaks report exists
-        if: always()
-        run: |
-          set -euo pipefail
-          if [ -f gitleaks-report.json ]; then
-            echo "gitleaks-report.json already present"
-          else
-            echo "Attempting to generate gitleaks-report.json via docker image fallback"
-            docker run --rm -v "$PWD":/workspace zricethezav/gitleaks:v7.4.0 gitleaks detect --path=/workspace --report-format=json --report-path=/workspace/gitleaks-report.json || true
-          fi
-
-      - name: Debug gitleaks workspace
-        if: always()
-        run: |
-          set -euo pipefail
-          echo "DEBUG: PWD=$(pwd)"
-          echo "DEBUG: listing workspace root"
-          ls -la
-          echo "DEBUG: checking for gitleaks-report.json"
-          if [ -f gitleaks-report.json ]; then
-            echo "gitleaks-report.json exists — showing summary"
-            jq '. | {leaks: (.leaks | length), rules: (.rules | length) }' gitleaks-report.json || true
-          else
-            echo "gitleaks-report.json missing"
-            echo "Printing container logs for troubleshooting (if available)"
-            true
-          fi
-
-      - name: Upload gitleaks report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gitleaks-report
-          path: gitleaks-report.json
-          if-no-files-found: warn
-
-      - name: Inspect gitleaks report and create issue if findings
-        run: |
-          if [ -f gitleaks-report.json ]; then
-            COUNT=$(jq '.leaks | length' gitleaks-report.json || echo 0)
-            if [ "$COUNT" -gt 0 ]; then
-              echo "Gitleaks findings detected ($COUNT). Creating issue..."
-              BODY="## 🔐 Gitleaks Scan Findings
-
-**Count**: $COUNT potential secrets detected  
-**Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
-**SLA**: Rotate exposed credentials within 1 hour
-
-### Action Required
-1. Review gitleaks-report.json artifact for details
-2. Identify which leaks are actual credentials vs placeholders
-3. Rotate any actual exposed credentials
-4. Close this issue once rotations complete
-
-**Note**: Current scan found placeholder variables in documentation (e.g., \`${GITHUB_TOKEN}\`, `YOUR_TOKEN`). Review to confirm."
-
-              gh issue create \
-                --repo kushin77/self-hosted-runner \
-                --title "[SECURITY] Gitleaks findings detected" \
-                --body "$BODY" \
-                --label "security,gitleaks" || true
+        - name: Fallback: ensure gitleaks report exists
+          if: always()
+          run: |
+            set -euo pipefail
+            if [ -f gitleaks-report.json ]; then
+              echo "gitleaks-report.json already present"
             else
-              echo "✅ No gitleaks findings."
+              echo "Attempting to generate gitleaks-report.json via docker image fallback"
+              docker run --rm -v "$PWD":/workspace zricethezav/gitleaks:v7.4.0 gitleaks detect --path=/workspace --report-format=json --report-path=/workspace/gitleaks-report.json || true
             fi
-          else
-            echo "No gitleaks report present; skipping."
-          fi
 
-  trivy-scan:
-    name: Trivy Container Scan
-    runs-on: ubuntu-latest
-    env:
-      ACTIONS_STEP_DEBUG: 'true'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Run trivy filesystem scan
-        uses: aquasecurity/trivy-action@v0
-        with:
-          scan-type: 'filesystem'
-          format: 'json'
-          output: 'trivy-report.json'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Debug trivy workspace
-        if: always()
-        run: |
-          set -euo pipefail
-          echo "DEBUG: PWD=$(pwd)"
-          echo "DEBUG: listing workspace root"
-          ls -la
-          if [ -f trivy-report.json ]; then
-            echo "trivy-report.json exists — showing summary"
-            jq '{results: (.Results | length), vulnerabilities: ([.Results[]?.Vulnerabilities[]?] | length)}' trivy-report.json || true
-          else
-            echo "trivy-report.json missing"
-          fi
-
-      - name: Upload trivy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: trivy-report.json
-          if-no-files-found: warn
-
-      - name: Inspect trivy report and create issue if findings
-        id: trivy-result
-        run: |
-          if [ -f trivy-report.json ]; then
-            COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
-            if [ "$COUNT" -gt 0 ]; then
-
-              BODY="## 🔍 Trivy Vulnerability Scan Results
-
-**Summary**:
-- 🔴 **CRITICAL**: $CRITICAL
-- 🟠 **HIGH**: $HIGH
-
-**Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
-**Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
-**SLA**: High/critical vulnerabilities must be patched within 24 hours
-
-### Artifacts
-- 📊 **trivy-report.json**: Full vulnerability report with CVE details
-
-### Action Required
-1. Review trivy-report.json for detailed vulnerability information
-2. Identify affected dependencies
-3. Merge remediation PRs when available
-4. If no auto-remediation PR exists, create a manual PR to update dependencies
-
-**Note**: Auto-remediation workflow will create dependency-bump PRs for npm/pip packages."
-
-              gh issue create \
-                --repo kushin77/self-hosted-runner \
-                --title "[SECURITY] Trivy vulnerabilities detected ($CRITICAL critical, $HIGH high)" \
-                --body "$BODY" \
-                --label "security,trivy,urgent" || true
-
-              echo "findings=true" >> $GITHUB_OUTPUT
+        - name: Debug gitleaks workspace
+          if: always()
+          run: |
+            set -euo pipefail
+            echo "DEBUG: PWD=$(pwd)"
+            echo "DEBUG: listing workspace root"
+            ls -la
+            echo "DEBUG: checking for gitleaks-report.json"
+            if [ -f gitleaks-report.json ]; then
+              echo "gitleaks-report.json exists — showing summary"
+              jq '. | {leaks: (.leaks | length), rules: (.rules | length) }' gitleaks-report.json || true
             else
-              echo "✅ No high/critical vulnerabilities found by Trivy."
+              echo "gitleaks-report.json missing"
+              echo "Printing container logs for troubleshooting (if available)"
+              true
+            fi
+
+        - name: Upload gitleaks report
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: gitleaks-report
+            path: gitleaks-report.json
+            if-no-files-found: warn
+
+        - name: Inspect gitleaks report and create issue if findings
+          run: |
+            if [ -f gitleaks-report.json ]; then
+              COUNT=$(jq '.leaks | length' gitleaks-report.json || echo 0)
+              if [ "$COUNT" -gt 0 ]; then
+                echo "Gitleaks findings detected ($COUNT). Creating issue..."
+                BODY="## 🔐 Gitleaks Scan Findings
+
+  **Count**: $COUNT potential secrets detected  
+  **Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+  **Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+  **SLA**: Rotate exposed credentials within 1 hour
+
+  ### Action Required
+  1. Review gitleaks-report.json artifact for details
+  2. Identify which leaks are actual credentials vs placeholders
+  3. Rotate any actual exposed credentials
+  4. Close this issue once rotations complete
+
+  **Note**: Current scan found placeholder variables in documentation (e.g., \`${GITHUB_TOKEN}\`, `YOUR_TOKEN`). Review to confirm."
+
+                gh issue create \
+                  --repo kushin77/self-hosted-runner \
+                  --title "[SECURITY] Gitleaks findings detected" \
+                  --body "$BODY" \
+                  --label "security,gitleaks" || true
+              else
+                echo "✅ No gitleaks findings."
+              fi
+            else
+              echo "No gitleaks report present; skipping."
+            fi
+
+    trivy-scan:
+      name: Trivy Container Scan
+      runs-on: ubuntu-latest
+      env:
+        ACTIONS_STEP_DEBUG: 'true'
+      steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Run trivy filesystem scan
+          uses: aquasecurity/trivy-action@v0
+          with:
+            scan-type: 'filesystem'
+            format: 'json'
+            output: 'trivy-report.json'
+            severity: 'CRITICAL,HIGH'
+
+        - name: Debug trivy workspace
+          if: always()
+          run: |
+            set -euo pipefail
+            echo "DEBUG: PWD=$(pwd)"
+            echo "DEBUG: listing workspace root"
+            ls -la
+            if [ -f trivy-report.json ]; then
+              echo "trivy-report.json exists — showing summary"
+              jq '{results: (.Results | length), vulnerabilities: ([.Results[]?.Vulnerabilities[]?] | length)}' trivy-report.json || true
+            else
+              echo "trivy-report.json missing"
+            fi
+
+        - name: Upload trivy report
+          if: always()
+          uses: actions/upload-artifact@v4
+          with:
+            name: trivy-report
+            path: trivy-report.json
+            if-no-files-found: warn
+
+        - name: Inspect trivy report and create issue if findings
+          id: trivy-result
+          run: |
+            if [ -f trivy-report.json ]; then
+              COUNT=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-report.json || echo 0)
+              if [ "$COUNT" -gt 0 ]; then
+                echo "✅ Trivy found $COUNT vulnerabilities (high/critical). Creating issue..."
+                CRITICAL=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL")] | length' trivy-report.json || echo 0)
+                HIGH=$(jq '[.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH")] | length' trivy-report.json || echo 0)
+
+                BODY="## 🔍 Trivy Vulnerability Scan Results
+
+  **Summary**:
+  - 🔴 **CRITICAL**: $CRITICAL
+  - 🟠 **HIGH**: $HIGH
+  - **Total**: $COUNT
+
+  **Run ID**: [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})  
+  **Time**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+  **SLA**: High/critical vulnerabilities must be patched within 24 hours
+
+  ### Artifacts
+  - 📊 **trivy-report.json**: Full vulnerability report with CVE details
+
+  ### Action Required
+  1. Review trivy-report.json for detailed vulnerability information
+  2. Identify affected dependencies
+  3. Merge remediation PRs when available
+  4. If no auto-remediation PR exists, create a manual PR to update dependencies
+
+  **Note**: Auto-remediation workflow will create dependency-bump PRs for npm/pip packages."
+
+                gh issue create \
+                  --repo kushin77/self-hosted-runner \
+                  --title "[SECURITY] Trivy vulnerabilities detected ($CRITICAL critical, $HIGH high)" \
+                  --body "$BODY" \
+                  --label "security,trivy,urgent" || true
+
+                echo "findings=true" >> $GITHUB_OUTPUT
+              else
+                echo "✅ No high/critical vulnerabilities found by Trivy."
+                echo "findings=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "No trivy report present; skipping."
               echo "findings=false" >> $GITHUB_OUTPUT
             fi
-          else
-            echo "No trivy report present; skipping."
-            echo "findings=false" >> $GITHUB_OUTPUT
-          fi
 
-      - name: Trigger remediation workflow
-        if: steps.trivy-result.outputs.findings == 'true'
-        run: |
-          echo "🔧 Triggering security-findings-remediation workflow..."
+        - name: Trigger remediation workflow
+          if: steps.trivy-result.outputs.findings == 'true'
+          run: |
+            echo "🔧 Triggering security-findings-remediation workflow..."
+            gh workflow run security-findings-remediation.yml \
+              --repo ${{ github.repository }} \
+              --ref main || true
           gh workflow run security-findings-remediation.yml \
             --repo ${{ github.repository }} \
             --ref main || true
