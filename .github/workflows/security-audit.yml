@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '0 2 * * *' # daily @ 02:00 UTC
   workflow_dispatch: {}
+  # re-register trigger: 2026-03-07T00:00:00Z (no-op comment to refresh registration)
   workflow_call: {}
 
 concurrency:
