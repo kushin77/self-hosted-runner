@@ -46,8 +46,10 @@ jobs:
       - name: Upload portal artifact to MinIO (self-hosted)
         if: contains(runner.labels, 'self-hosted')
         run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
           chmod +x ci/scripts/upload_to_minio.sh
-          ci/scripts/upload_to_minio.sh portal-artifact.json "portal-artifact-${{ github.run_id }}.json"
+          retry_command 3 5 ci/scripts/upload_to_minio.sh portal-artifact.json "portal-artifact-${{ github.run_id }}.json"
       - name: Upload portal artifact (hosted fallback)
         if: ${{ !contains(runner.labels, 'self-hosted') }}
         uses: actions/upload-artifact@v4
