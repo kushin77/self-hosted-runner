@@ -1,0 +1,135 @@
+name: Manual — Vault AppRole Rotation (Dry-Run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      perform_update:
+        description: 'If true, will update GitHub secret (default: false)'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  VAULT_ROLE_NAME: gh-runner
+
+jobs:
+  dryrun-rotate:
+    name: Vault AppRole Dry-Run Rotation
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies (jq, curl)
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq curl
+
+      - name: Verify Vault connectivity
+        id: vault-check
+        run: |
+          VAULT_ADDR="${{ secrets.VAULT_ADDR }}"
+          if [[ -z "$VAULT_ADDR" ]]; then
+            echo "vault_available=false" >> $GITHUB_OUTPUT
+            echo "Vault address not configured"
+            exit 0
+          fi
+          if timeout 5 curl -s "$VAULT_ADDR/v1/sys/health" >/dev/null 2>&1; then
+            echo "vault_available=true" >> $GITHUB_OUTPUT
+            echo "✅ Vault reachable"
+          else
+            echo "vault_available=false" >> $GITHUB_OUTPUT
+            echo "⚠️ Vault not reachable"
+          fi
+
+      - name: Attempt AppRole authentication (dry-run)
+        if: steps.vault-check.outputs.vault_available == 'true'
+        id: vault-auth
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          if [[ -z "$VAULT_ROLE_ID" ]] || [[ -z "$VAULT_SECRET_ID" ]]; then
+            echo "::error::VAULT_ROLE_ID or VAULT_SECRET_ID not set"
+            exit 1
+          fi
+
+          VAULT_TOKEN=$(curl -s -X POST \
+            -d "{\"role_id\":\"$VAULT_ROLE_ID\",\"secret_id\":\"$VAULT_SECRET_ID\"}" \
+            "$VAULT_ADDR/v1/auth/approle/login" | jq -r '.auth.client_token' 2>/dev/null)
+
+          if [[ -z "$VAULT_TOKEN" ]] || [[ "$VAULT_TOKEN" == "null" ]]; then
+            echo "::error::Failed to obtain Vault token"
+            exit 1
+          fi
+
+          echo "vault_token_present=true" >> $GITHUB_OUTPUT
+          echo "✅ Authenticated to Vault (dry-run)"
+
+      - name: Generate Secret ID (dry-run, do not persist)
+        if: steps.vault-auth.outputs.vault_token_present == 'true'
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ steps.vault-auth.outputs.vault_token || '' }}
+        run: |
+          NEW_SECRET_ID=$(curl -s -X POST \
+            -H "X-Vault-Token: $VAULT_TOKEN" \
+            "$VAULT_ADDR/v1/auth/approle/role/${{ env.VAULT_ROLE_NAME }}/secret-id" | jq -r '.data.secret_id' 2>/dev/null)
+
+          if [[ -z "$NEW_SECRET_ID" ]] || [[ "$NEW_SECRET_ID" == "null" ]]; then
+            echo "::error::Failed to generate new Secret ID (dry-run)"
+            exit 1
+          fi
+
+          echo "::add-mask::$NEW_SECRET_ID"
+          echo "new_secret_id=$NEW_SECRET_ID" >> $GITHUB_OUTPUT
+          echo "✅ Generated new Secret ID (dry-run, not updating secrets)"
+
+      - name: Optional: Update GitHub secret (manual opt-in)
+        if: ${{ github.event.inputs.perform_update == 'true' && steps.vault-auth.outputs.vault_token_present == 'true' }}
+        env:
+          NEW_SECRET_ID: ${{ steps.generate.outputs.new_secret_id || '' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ -z "$NEW_SECRET_ID" ]]; then
+            echo "No new secret id available to update"
+            exit 1
+          fi
+          echo "$NEW_SECRET_ID" | gh secret set VAULT_SECRET_ID --repo "${{ github.repository }}"
+          echo "✅ GitHub secret updated with new Secret ID"
+
+      - name: Create audit log issue
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VAULT_OK="${{ steps.vault-check.outputs.vault_available }}"
+          AUTH_OK="${{ steps.vault-auth.outputs.vault_token_present }}"
+          STATUS=$([[ "$VAULT_OK" == "true" ]] && [[ "$AUTH_OK" == "true" ]] && echo "✅ SUCCESS" || echo "⚠️ PARTIAL")
+          
+          BODY="## Vault AppRole Dry-Run Rotation Audit
+          
+**Status**: $STATUS  
+**Timestamp**: $(date -u +'%Y-%m-%dT%H:%M:%SZ')  
+**Workflow Run**: [${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+### Results
+- Vault Connectivity: ${{ steps.vault-check.outputs.vault_available }}
+- AppRole Auth: ${{ steps.vault-auth.outputs.vault_token_present }}
+- Secret ID Generated: $([[ -n '${{ steps.vault-auth.outputs.vault_token_present }}' ]] && echo 'Yes' || echo 'No')
+- GitHub Secret Updated: $([[ '${{ github.event.inputs.perform_update }}' == 'true' ]] && echo 'Yes (requested)' || echo 'No (dry-run only)')
+          
+### Compliance
+- Type: Dry-run, non-destructive rotation test
+- Frequency: Manual dispatch  
+- Owner: ops-team
+          
+---
+Generated by hands-off automation suite (Phase 5)"
+          
+          TITLE="Vault Dry-Run Rotation - $(date -u +'%Y-%m-%d %H:%M')"
+          gh issue create --repo "${{ github.repository }}" --title "$TITLE" --body "$BODY" --label "automation,security,vault" || true
