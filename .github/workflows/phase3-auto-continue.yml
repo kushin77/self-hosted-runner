@@ -29,6 +29,8 @@ jobs:
       pull-requests: read
     steps:
       - uses: actions/checkout@v4
+        - name: Load resilience utilities
+          run: source .github/scripts/resilience.sh
 
       - name: Check blocker status
         id: check_blockers
