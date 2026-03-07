@@ -48,47 +48,45 @@ if [ "${DEBUG_MODE:-false}" = "true" ]; then
 fi
 
 # generate Alertmanager config; prefer real receivers if provided, otherwise use mock webhook
+RECEIVER_LINE=""
 if [ -n "$SLACK_URL" ] || [ -n "$PAGERDUTY_KEY" ]; then
   echo "Generating Alertmanager config for real receivers..."
   if [ "${DEBUG_MODE:-false}" = "true" ]; then
-    echo "SLACK_URL length: ${#SLACK_URL}"
-    echo "PAGERDUTY_KEY length: ${#PAGERDUTY_KEY}"
+    echo "SLACK_URL provided: $([ -n "$SLACK_URL" ] && echo 'yes' || echo 'no')"
+    echo "PAGERDUTY_KEY provided: $([ -n "$PAGERDUTY_KEY" ] && echo 'yes' || echo 'no')"
   fi
   
-  # Build config by concatenating pieces to avoid variable expansion issues
+  # Build config by concatenating pieces
   {
     echo "global:"
     echo "  resolve_timeout: 5m"
     echo "route:"
-    echo "  receiver: 'default'"
+    if [ -n "$SLACK_URL" ]; then
+      echo "  receiver: 'slack'"
+      RECEIVER_LINE="slack_configured"
+    elif [ -n "$PAGERDUTY_KEY" ]; then
+      echo "  receiver: 'pagerduty'"
+      RECEIVER_LINE="pagerduty_configured"
+    else
+      echo "  receiver: 'default'"
+    fi
     echo "receivers:"
     echo "  - name: 'default'"
     echo "    webhook_configs: []"
     
     if [ -n "$SLACK_URL" ]; then
-      echo "✓ Configuring Slack webhook receiver"
       echo "  - name: 'slack'"
       echo "    webhook_configs:"
       echo "      - url: '$SLACK_URL'"
       echo "        send_resolved: true"
-      # Update route to use slack receiver
-      RECEIVER_LINE="  receiver: 'slack'"
     fi
     
     if [ -n "$PAGERDUTY_KEY" ]; then
-      echo "✓ Configuring PagerDuty receiver"
       echo "  - name: 'pagerduty'"
       echo "    pagerduty_configs:"
       echo "      - service_key: '$PAGERDUTY_KEY'"
-      # Update route to use pagerduty receiver
-      RECEIVER_LINE="  receiver: 'pagerduty'"
     fi
   } > "$TMPDIR/alertmanager.yml"
-  
-  # Update receiver line if needed
-  if [ -n "${RECEIVER_LINE:-}" ]; then
-    sed -i "s/  receiver: 'default'/$RECEIVER_LINE/" "$TMPDIR/alertmanager.yml"
-  fi
 else
   echo "Generating Alertmanager config with mock webhook..."
   cat > "$TMPDIR/alertmanager.yml" << 'EOF'
