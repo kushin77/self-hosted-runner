@@ -1,15 +1,15 @@
 // Namespace and NetworkPolicy for air-gapped control plane
-resource "kubernetes_namespace" "airgap_control_plane" {
+resource "kubernetes_namespace_v1" "airgap_control_plane" {
   metadata {
     name   = var.namespace_name
     labels = var.namespace_labels
   }
 }
 
-resource "kubernetes_network_policy" "airgap_egress_policy" {
+resource "kubernetes_network_policy_v1" "airgap_egress_policy" {
   metadata {
     name      = "airgap-control-plane-egress"
-    namespace = kubernetes_namespace.airgap_control_plane.metadata[0].name
+    namespace = kubernetes_namespace_v1.airgap_control_plane.metadata[0].name
   }
 
   spec {
