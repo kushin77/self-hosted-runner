@@ -1,0 +1,9 @@
+name: Trigger Security Audit (wrapper)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  call-audit:
+    uses: ./.github/workflows/security-audit.yml
+    secrets: inherit
