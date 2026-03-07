@@ -1,4 +1,5 @@
 name: DR Reconciliation & Auto-Remediate Failures
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
   schedule:
@@ -20,10 +21,15 @@ permissions:
   issues: write
   statuses: write
 
+workflow_call: {}
+
 jobs:
   reconcile-dr-failures:
     name: Detect & Remediate DR Failures
     runs-on: ubuntu-latest
+    concurrency:
+      group: dr-reconciliation-auto-remediate-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     timeout-minutes: 30
     
     steps:

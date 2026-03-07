@@ -15,6 +15,12 @@ env:
   IMAGE_NAME: elevatediq/app-backup
   BACKUP_TAG: backup-$(date +%Y%m%d-%H%M%S)
 
+  workflow_call: {}
+
+concurrency:
+  group: docker-hub-weekly-backup-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push-multi-registry:
     runs-on: ubuntu-latest

@@ -1,4 +1,5 @@
 name: Terraform DNS Apply
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
   workflow_dispatch:
@@ -7,11 +8,15 @@ on:
         description: 'terraform action: plan or apply'
         required: true
         default: 'plan'
+  workflow_call: {}
 
 jobs:
   terraform:
     name: Terraform Route53 DNS
     runs-on: ubuntu-latest
+    concurrency:
+      group: terraform-dns-apply-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
 

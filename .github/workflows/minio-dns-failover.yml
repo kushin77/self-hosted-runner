@@ -1,4 +1,5 @@
 name: MinIO DNS Failover & Archival Recovery
+# sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
   schedule:
@@ -20,10 +21,15 @@ permissions:
   actions: write
   issues: write
 
+workflow_call: {}
+
 jobs:
   minio-dns-failover:
     name: MinIO DNS Failover & Archival
     runs-on: ubuntu-latest
+    concurrency:
+      group: minio-dns-failover-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
     timeout-minutes: 20
     
     steps:

@@ -7,6 +7,12 @@ on:
         description: 'Confirmation token to run cleanup'
         required: false
 
+  workflow_call: {}
+
+concurrency:
+  group: legacy-node-cleanup-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
   actions: write
