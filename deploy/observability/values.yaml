@@ -1,17 +1,3 @@
-prometheus:
-  enabled: true
-  retention: 7d
-  resources: {}
+REPLACED BY SECURITY POLICY - SECRET REMOVED
 
-grafana:
-  enabled: true
-  adminUser: admin
-  adminPassword: "changeme"
-  resources: {}
-
-loki:
-  enabled: true
-  retention: 7d
-  resources: {}
-
-# Note: This chart is a scaffold. For production use, prefer the upstream operator charts (kube-prometheus-stack, grafana, loki) and configure TLS, persistence, and RBAC.
+This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.
