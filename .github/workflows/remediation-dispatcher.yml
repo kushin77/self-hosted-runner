@@ -1,14 +1,15 @@
 name: Remediation Dispatcher (fallback)
 
 on:
+  # Converted to event-driven. Replace frequent polling with repository_dispatch.
   workflow_dispatch:
     inputs:
       scope:
         description: "Scope to remediate (all, ci, infra, secrets)"
         required: false
         default: "all"
-  schedule:
-    - cron: '*/5 * * * *'
+  repository_dispatch:
+    types: [remediation-request, remediation-fallback]
 
 permissions:
   issues: write
