@@ -441,6 +441,309 @@ COMPONENTS_REGISTRY: Dict[str, DeploymentComponent] = {
         ],
         github_issue_template="HEALING_ACTIVATION",
     ),
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # PHASE 3: KEY REVOCATION & CREDENTIAL REGENERATION
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    "revoke-exposed-keys": DeploymentComponent(
+        component_id="revoke-exposed-keys",
+        name="Revoke Exposed & Compromised Keys",
+        category="security",
+        version="1.0.0",
+        description="Scan for and revoke all exposed keys across all systems",
+        dependencies=["remove-embedded-secrets"],
+        github_labels=["security", "remediation", "phase-3"],
+        is_critical=True,
+        steps=[
+            ComponentStep(
+                name="scan-exposed-keys",
+                description="Scan repository for exposed keys using gitleaks/truffleHog",
+                command="bash scripts/security/scan_exposed_keys.sh",
+                timeout_seconds=600,
+                retry_count=1
+            ),
+            ComponentStep(
+                name="revoke-github-tokens",
+                description="Revoke exposed GitHub tokens",
+                command="bash scripts/security/revoke_github_tokens.sh --confirm",
+                timeout_seconds=300,
+                retry_count=1
+            ),
+            ComponentStep(
+                name="revoke-gcp-keys",
+                description="Revoke exposed GCP service account keys",
+                command="bash scripts/security/revoke_gcp_keys.sh",
+                timeout_seconds=300,
+                retry_count=1
+            ),
+            ComponentStep(
+                name="revoke-aws-keys",
+                description="Revoke exposed AWS IAM user keys",
+                command="bash scripts/security/revoke_aws_keys.sh",
+                timeout_seconds=300,
+                retry_count=1
+            ),
+            ComponentStep(
+                name="revoke-vault-tokens",
+                description="Revoke exposed Vault tokens",
+                command="bash scripts/security/revoke_vault_tokens.sh",
+                timeout_seconds=300,
+                retry_count=1
+            ),
+            ComponentStep(
+                name="document-revocations",
+                description="Document all revocations in immutable audit log",
+                command="bash scripts/security/document_revocations.sh --audit-trail",
+                timeout_seconds=300
+            ),
+        ],
+        credentials=[
+            ComponentCredential(name="github_token", credential_type="oidc", secret_name="GITHUB_TOKEN"),
+            ComponentCredential(name="gcp_project_id", credential_type="gsm", secret_name="GCP_PROJECT_ID"),
+        ],
+        validation_steps=[
+            ComponentStep(
+                name="validate-revocations",
+                description="Validate all keys have been revoked",
+                command="bash scripts/security/validate_revocations.sh --strict",
+                timeout_seconds=300
+            ),
+        ],
+        github_issue_template="SECURITY_REMEDIATION",
+    ),
+    
+    "regenerate-credentials": DeploymentComponent(
+        component_id="regenerate-credentials",
+        name="Regenerate All Fresh Credentials",
+        category="security",
+        version="1.0.0",
+        description="Create fresh credentials for all systems post-revocation",
+        dependencies=["revoke-exposed-keys"],
+        github_labels=["security", "credentials", "phase-3"],
+        is_critical=True,
+        steps=[
+            ComponentStep(
+                name="generate-github-token",
+                description="Generate new GitHub PAT token",
+                command="bash scripts/security/generate_github_token.sh --scope minimal --confirm",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="generate-gcp-keys",
+                description="Generate new GCP service account keys",
+                command="bash scripts/security/generate_gcp_keys.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="generate-aws-keys",
+                description="Generate new AWS IAM user keys",
+                command="bash scripts/security/generate_aws_keys.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="generate-vault-tokens",
+                description="Generate new Vault tokens",
+                command="bash scripts/security/generate_vault_tokens.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="update-github-secrets",
+                description="Update GitHub Secrets with new credentials",
+                command="bash scripts/security/update_secrets.sh --new-credentials --confirm",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="document-regeneration",
+                description="Document credential regeneration",
+                command="bash scripts/security/document_regeneration.sh --audit-trail",
+                timeout_seconds=300
+            ),
+        ],
+        credentials=[
+            ComponentCredential(name="github_token", credential_type="oidc", secret_name="GITHUB_TOKEN"),
+        ],
+        validation_steps=[
+            ComponentStep(
+                name="validate-new-credentials",
+                description="Validate all new credentials are working",
+                command="bash scripts/security/validate_new_credentials.sh --strict",
+                timeout_seconds=300
+            ),
+        ],
+        github_issue_template="SECURITY_REMEDIATION",
+    ),
+    
+    "verify-health": DeploymentComponent(
+        component_id="verify-health",
+        name="Verify All Layers Post-Remediation",
+        category="security",
+        version="1.0.0",
+        description="Verify all credential layers are healthy after revocation/regeneration",
+        dependencies=["regenerate-credentials"],
+        github_labels=["security", "validation", "phase-3"],
+        is_critical=True,
+        steps=[
+            ComponentStep(
+                name="verify-gsm-access",
+                description="Verify GSM access is working",
+                command="bash scripts/security/verify_gsm_access.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="verify-vault-access",
+                description="Verify Vault JWT access is working",
+                command="bash scripts/security/verify_vault_access.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="verify-aws-access",
+                description="Verify AWS STS token access is working",
+                command="bash scripts/security/verify_aws_access.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="verify-workflows",
+                description="Verify all workflows can fetch credentials",
+                command="bash scripts/security/verify_workflow_access.sh --all",
+                timeout_seconds=600
+            ),
+            ComponentStep(
+                name="final-validation",
+                description="Final comprehensive health check",
+                command="bash scripts/security/final_health_check.sh",
+                timeout_seconds=300
+            ),
+        ],
+        validation_steps=[
+            ComponentStep(
+                name="validate-all-healthy",
+                description="Validate all layers are operational",
+                command="bash scripts/security/validate_all_health.sh --strict",
+                timeout_seconds=300
+            ),
+        ],
+        github_issue_template="VALIDATION",
+    ),
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # PHASE 4: PRODUCTION VALIDATION
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    "setup-production-monitoring": DeploymentComponent(
+        component_id="setup-production-monitoring",
+        name="Setup Production Monitoring & Validation",
+        category="monitoring",
+        version="1.0.0",
+        description="Setup continuous monitoring for production validation phase",
+        dependencies=["verify-health"],
+        github_labels=["monitoring", "phase-4"],
+        is_critical=True,
+        steps=[
+            ComponentStep(
+                name="deploy-auth-monitoring",
+                description="Deploy authentication success rate monitoring (99.9% SLA)",
+                command="bash scripts/monitoring/deploy_auth_monitoring.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="deploy-rotation-monitoring",
+                description="Deploy credential rotation success monitoring (100%)",
+                command="bash scripts/monitoring/deploy_rotation_monitoring.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="setup-incident-detection",
+                description="Setup automatic incident detection and alerting",
+                command="bash scripts/monitoring/setup_incident_detection.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="deploy-dashboards",
+                description="Deploy monitoring dashboards",
+                command="bash scripts/monitoring/deploy_dashboards.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="configure-alerts",
+                description="Configure production alerts",
+                command="bash scripts/monitoring/configure_alerts.sh",
+                timeout_seconds=300
+            ),
+        ],
+        validation_steps=[
+            ComponentStep(
+                name="validate-monitoring",
+                description="Validate monitoring is operational",
+                command="bash scripts/monitoring/validate_monitoring.sh",
+                timeout_seconds=300
+            ),
+        ],
+        github_issue_template="MONITORING_SETUP",
+    ),
+    
+    # ───────────────────────────────────────────────────────────────────────────
+    # PHASE 5: 24/7 OPERATIONS
+    # ───────────────────────────────────────────────────────────────────────────
+    
+    "activate-24x7-operations": DeploymentComponent(
+        component_id="activate-24x7-operations",
+        name="Activate 24/7 Operations & Incident Response",
+        category="operations",
+        version="1.0.0",
+        description="Activate permanent 24/7 operations and incident response",
+        dependencies=["setup-production-monitoring"],
+        github_labels=["operations", "phase-5"],
+        is_critical=True,
+        auto_remediate=True,
+        steps=[
+            ComponentStep(
+                name="enable-incident-response",
+                description="Enable automatic incident response workflows",
+                command="bash scripts/operations/enable_incident_response.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="setup-compliance-reporting",
+                description="Setup daily compliance reporting",
+                command="bash scripts/operations/setup_compliance_reporting.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="activate-audit-logging",
+                description="Activate comprehensive audit logging",
+                command="bash scripts/operations/activate_audit_logging.sh --permanent",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="setup-runbooks",
+                description="Deploy operational runbooks",
+                command="bash scripts/operations/deploy_runbooks.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="configure-escalation",
+                description="Configure escalation policies and notifications",
+                command="bash scripts/operations/configure_escalation.sh",
+                timeout_seconds=300
+            ),
+            ComponentStep(
+                name="final-activation",
+                description="Final activation for 24/7 ops",
+                command="bash scripts/operations/final_activation.sh --confirm",
+                timeout_seconds=300
+            ),
+        ],
+        validation_steps=[
+            ComponentStep(
+                name="validate-24x7-ready",
+                description="Validate 24/7 operations are fully active",
+                command="bash scripts/operations/validate_24x7_ready.sh --strict",
+                timeout_seconds=300
+            ),
+        ],
+        github_issue_template="OPERATIONS_ACTIVATION",
+    ),
 }
 
 
