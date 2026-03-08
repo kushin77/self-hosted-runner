@@ -6,6 +6,11 @@ on:
   repository_dispatch:
     types: [ops-issue-check, ops-issue-trigger]
 
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
 concurrency:
   group: ops-issue-completion
   cancel-in-progress: false

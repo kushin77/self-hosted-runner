@@ -15,6 +15,11 @@ on:
         default: "auto"
   repository_dispatch:
     types: [minio-failover-check, minio-failover-trigger]
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
     inputs:
       force_archival:
         description: "Force retry of failed archival operations"
