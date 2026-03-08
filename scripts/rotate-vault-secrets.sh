@@ -11,12 +11,11 @@ ROLE_NAME="${ROLE_NAME:-provisioner-worker-role}"
 NAMESPACE="${NAMESPACE:-provisioner-system}"
 
 if [ -z "$VAULT_TOKEN" ]; then
-  echo "ERROR: VAULT_TOKEN must be set" >&2
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   exit 1
 fi
 
-export VAULT_ADDR VAULT_TOKEN
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 echo "Starting AppRole secret rotation for ${ROLE_NAME} in ${NAMESPACE}"
 
 # Step 1: Generate new secret_id

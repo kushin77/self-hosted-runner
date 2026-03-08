@@ -378,9 +378,9 @@ EOF
         if: always()
         run: |
           # Overwrite environment variables
-          unset AWS_ACCESS_KEY_ID
-          unset AWS_SECRET_ACCESS_KEY
-          unset VAULT_TOKEN
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
           
           # Shred sensitive files
           shred -vfz -n 3 /tmp/encrypted-secret.txt 2>/dev/null || true

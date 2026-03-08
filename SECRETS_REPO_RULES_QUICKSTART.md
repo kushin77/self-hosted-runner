@@ -51,7 +51,7 @@ export GCP_KEY="${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"  # In workflows only
 
 ```
 every_60_days:  DOCKER_HUB_PAT, MINIO_*, ...
-every_90_days:  GCP_SERVICE_ACCOUNT_KEY, RUNNER_MGMT_TOKEN, DEPLOY_SSH_KEY, ...
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 every_180_days: SLACK_WEBHOOK_URL
 ```
 
