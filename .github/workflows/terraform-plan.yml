@@ -69,10 +69,28 @@ jobs:
       - name: Terraform Init
         run: |
           cd terraform/environments/production
+          # Determine backend bucket robustly:
+          if [ -n "${{ secrets.TFSTATE_BUCKET }}" ]; then
+            BUCKET="${{ secrets.TFSTATE_BUCKET }}"
+          else
+            # If PROD_TFVARS is JSON, extract .bucket; otherwise parse tfvars file
+            if echo '${{ secrets.PROD_TFVARS }}' | jq -e . >/dev/null 2>&1; then
+              BUCKET=$(echo '${{ secrets.PROD_TFVARS }}' | jq -r '.bucket // empty')
+            else
+              # Write terraform.tfvars already performed above; parse it
+              BUCKET=$(awk -F'=' '/^[[:space:]]*bucket[[:space:]]*=/{gsub(/"|\047/,"",$2); gsub(/ /,"",$2); print $2; exit}' terraform.tfvars || true)
+            fi
+          fi
+
+          if [ -z "$BUCKET" ]; then
+            echo "❌ Could not determine backend bucket. Set secret TFSTATE_BUCKET or include bucket in PROD_TFVARS.";
+            exit 1
+          fi
+
           terraform init \
-            -backend-config="bucket=$(jq -r '.bucket' <<< '${{ secrets.PROD_TFVARS }}')" \
+            -backend-config="bucket=$BUCKET" \
             -upgrade
-          echo "✅ Terraform initialized"
+          echo "✅ Terraform initialized (backend: $BUCKET)"
 
       - name: Terraform Validate
         run: |
