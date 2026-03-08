@@ -36,6 +36,13 @@ jobs:
           echo "debug-run: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > debug_marker.txt
           ls -la debug_marker.txt || true
 
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: p5-debug-logs
+          path: |
+            debug_marker.txt
+            .
       - name: Always succeed
         run: |
           echo "Debug workflow completed (non-fatal)"
