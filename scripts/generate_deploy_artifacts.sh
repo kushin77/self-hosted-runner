@@ -43,7 +43,7 @@ cat > "$DEPLOYMENT_ARTIFACTS_FILE" <<EOF
 # Deployment Artifacts — ${DATE_LABEL}
 
 ## Executive Summary
-Multi-layer secrets orchestrator deployment (GSM → Vault → AWS KMS) asserts immutable, ephemeral, idempotent automation with zero-touch runbooks. The run on branch ${BRANCH} (${RUN_NUMBER}) captured workflows, scripts, infrastructure, and operator guidance that mirror the approved deployment manifest.
+Multi-layer secrets orchestrator deployment (GSM -> Vault -> AWS KMS) asserts immutable, ephemeral, idempotent automation with zero-touch runbooks. The run on branch ${BRANCH} (${RUN_NUMBER}) captured workflows, scripts, infrastructure, and operator guidance that mirror the approved deployment manifest.
 
 **Status:** Code-ready for deployment, operator credentials pending
 **Release:** ${RELEASE_TAG}
@@ -55,7 +55,7 @@ Multi-layer secrets orchestrator deployment (GSM → Vault → AWS KMS) asserts 
 
 ### 1. Workflows (GitHub Actions)
 **Location:** .github/workflows/
-- `secrets-orchestrator-multi-layer.yml`: main rotation driver that steps through GSM → Vault → KMS with retries and immutable audit issues.
+- `secrets-orchestrator-multi-layer.yml`: main rotation driver that steps through GSM -> Vault -> KMS with retries and immutable audit issues.
 - `secrets-health-multi-layer.yml`: 15-minute health probes and connectivity verification for every secret layer.
 - `deploy-cloud-credentials.yml`: Terraform-driven credential provisioning with `dry_run` gating and operator-supplied secrets.
 - `generate-deploy-artifacts.yml`: orchestrates this report, uploads the artifact, and updates the audit issue.
@@ -70,15 +70,15 @@ Multi-layer secrets orchestrator deployment (GSM → Vault → AWS KMS) asserts 
 
 ### 3. Infrastructure as Code (Terraform)
 **Location:** infra/
-- `infra/gcp/wif/`: GCP Workload Identity Federation scaffolding for GitHub Actions OIDC → GSM token minting.
+- `infra/gcp/wif/`: GCP Workload Identity Federation scaffolding for GitHub Actions OIDC -> GSM token minting.
 - `infra/aws/oidc/`: AWS OIDC provider, IAM roles, and KMS key policies for ephemeral access.
 - `infra/vault/`: Vault bootstrap modules that register JWT auth, policy bundles, and secrets engines for the multi-layer pipeline.
 
 ### 4. Documentation & Runbooks
 **Location:** root docs
-- `PRODUCTION_READY_2026_03_08.md`: production readiness checklist that mirrors this artifact’s approval guardrails.
+- `PRODUCTION_READY_2026_03_08.md`: production readiness checklist that mirrors this artifact's approval guardrails.
 - `PHASE_P4_HANDOFF.md`: notice that operator handoff instructions align with the zero-touch runbook.
-- `RCA_10X_ENHANCEMENTS.md`: summary of lessons learned and 10× improvement recommendations for remediation cycles.
+- `RCA_10X_ENHANCEMENTS.md`: summary of lessons learned and 10x improvement recommendations for remediation cycles.
 - `SECRETS_REMEDIATION_STATUS_${DATE_LABEL}.md`: generated alongside this file to highlight the current remediation cadence.
 - `HANDS_OFF_AUTOMATION_RUNBOOK.md`: defines the fully automated, no-ops execution pattern operators can depend on.
 
@@ -104,7 +104,7 @@ Multi-layer secrets orchestrator deployment (GSM → Vault → AWS KMS) asserts 
 
 ## Architecture & Security Properties
 - **Immutable:** All workflows, scripts, and Terraform state are committed to `main` and tagged `${RELEASE_TAG}` for audit; each run appends a GitHub issue comment with an immutable artifact link.
-- **Ephemeral:** Every credential motion uses session tokens (GSM → Vault → AWS KMS) with GitHub Actions OIDC, no long-lived secrets are stored.
+- **Ephemeral:** Every credential motion uses session tokens (GSM -> Vault -> AWS KMS) with GitHub Actions OIDC, no long-lived secrets are stored.
 - **Idempotent:** Terraform modules and scripts support `dry_run` planning plus safe re-apply semantics that preserve resources.
 - **No-Ops / Fully Hands-Off:** Scheduled workflows cover daily provisioning, 15-minute health checks, and artifact generation so operators only supply credentials once.
 - **GSM, VAULT, KMS:** The pipeline progresses sequentially through GSM secrets, Vault policies, and AWS KMS encryption, guaranteeing layered defense-in-depth.
@@ -156,8 +156,7 @@ echo "Status file written: $STATUS_FILE"
 echo "Deployment artifacts written: $DEPLOYMENT_ARTIFACTS_FILE"
 
 if [ -n "${GITHUB_OUTPUT:-}" ]; then
-  printf 'deploy_artifacts_file=%s
-' "$DEPLOYMENT_ARTIFACTS_FILE" >> "$GITHUB_OUTPUT"
+  printf 'deploy_artifacts_file=%s\n' "$DEPLOYMENT_ARTIFACTS_FILE" >> "$GITHUB_OUTPUT"
 fi
 
 ISSUE_TITLE="Secrets Orchestration: Multi-Layer Automation Deployed & Operational"
