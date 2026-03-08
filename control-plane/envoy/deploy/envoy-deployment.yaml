@@ -2,87 +2,255 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: control-plane-envoy
+  namespace: control-plane
   labels:
     app: control-plane-envoy
+    version: v1
+    tier: infrastructure
+  annotations:
+    "vault.hashicorp.com/agent-inject": "true"
+    "vault.hashicorp.com/agent-cache-enable": "true"
 spec:
-  replicas: 2
+  replicas: 3
+  revisionHistoryLimit: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   selector:
     matchLabels:
       app: control-plane-envoy
-          livenessProbe:
-            httpGet:
-              host: 127.0.0.1
-              path: /ready
-              port: 9901
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 3
   template:
     metadata:
       labels:
         app: control-plane-envoy
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9901"
+        prometheus.io/path: "/stats"
+        vault.hashicorp.com/agent-inject: "true"
+        vault.hashicorp.com/role: "control-plane-envoy"
     spec:
+      serviceAccountName: control-plane-envoy
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 101
+        runAsGroup: 101
+        fsGroup: 101
+        seccompProfile:
+          type: RuntimeDefault
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - control-plane-envoy
+              topologyKey: kubernetes.io/hostname
       containers:
-        - name: envoy
-          image: envoyproxy/envoy:v1.30-latest
-          ports:
-            - containerPort: 8443
-          volumeMounts:
-        - name: envoy-reloader
-          image: curlimages/curl:8.2.1
-          command: ["/bin/sh","-c","/opt/envoy/reload/envoy_reload_watcher.sh"]
-          volumeMounts:
-            - name: tls
-              mountPath: /etc/envoy/tls
-            - name: reload-script
-              mountPath: /opt/envoy/reload
-      initContainers: []
-            - name: tls
-              mountPath: /etc/envoy/tls
-              readOnly: true
-          livenessProbe:
-            httpGet:
-              host: 127.0.0.1
-              path: /ready
-              port: 9901
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 3
-          readinessProbe:
-            httpGet:
-              host: 127.0.0.1
-              path: /stats
-              port: 9901
-            initialDelaySeconds: 5
-            periodSeconds: 5
-        - name: vault-agent
-          image: hashicorp/vault:1.13.0
-          command: ["/bin/vault","agent","-config=/etc/vault/vault-agent.hcl"]
-        - name: reload-script
-          configMap:
-            name: control-plane-envoy-reload-script
-          env:
-            - name: VAULT_ADDR
-              value: "https://vault.example.local"
-          volumeMounts:
-            - name: tls
-              mountPath: /etc/envoy/tls
-            - name: vault-config
-              mountPath: /etc/vault
-        - name: envoy-reloader
-          image: curlimages/curl:8.2.1
-          command: ["/bin/sh","-c","/opt/envoy/reload/envoy_reload_watcher.sh"]
-          volumeMounts:
-            - name: tls
-              mountPath: /etc/envoy/tls
-            - name: reload-script
-              mountPath: /opt/envoy/reload
-      volumes:
-        - name: tls
-          emptyDir: {}
+      - name: envoy
+        image: envoyproxy/envoy:v1.30-latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: https
+          containerPort: 8443
+          protocol: TCP
+        - name: admin
+          containerPort: 9901
+          protocol: TCP
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+          readOnly: true
+        - name: tls-certs
+          mountPath: /etc/envoy/tls
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        env:
+        - name: ENVOY_LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: admin
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /stats
+            port: admin
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+            add: ["NET_BIND_SERVICE"]
+      - name: vault-agent
+        image: hashicorp/vault:1.15.0
+        args: ["agent", "-config=/etc/vault/agent.hcl", "-log-level=debug"]
+        volumeMounts:
         - name: vault-config
-          configMap:
-            name: control-plane-envoy-vault-config
-        - name: reload-script
-          configMap:
-            name: control-plane-envoy-reload-script
+          mountPath: /etc/vault
+          readOnly: true
+        - name: vault-token
+          mountPath: /var/run/secrets/vaults
+        - name: tls-certs
+          mountPath: /etc/envoy/tls
+        env:
+        - name: VAULT_ADDR
+          value: "https://vault.example.local:8200"
+        - name: VAULT_NAMESPACE
+          value: "admin"
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+      - name: cert-reload-watcher
+        image: curlimages/curl:8.2.1
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -eu
+          CERT_PATH="/etc/envoy/tls"
+          while true; do
+            [ -f "$CERT_PATH/tls.crt" ] && CURRENT_CHECKSUM=$(sha256sum "$CERT_PATH/tls.crt" 2>/dev/null | cut -d' ' -f1)
+            if [ "$CURRENT_CHECKSUM" != "$LAST_CHECKSUM" ] && [ -n "$LAST_CHECKSUM" ]; then
+              curl -X POST "http://localhost:9901/drain_listeners?graceful" || true
+              sleep 5
+            fi
+            LAST_CHECKSUM="$CURRENT_CHECKSUM"
+            sleep 30
+          done
+        volumeMounts:
+        - name: tls-certs
+          mountPath: /etc/envoy/tls
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop: ["ALL"]
+      initContainers:
+      - name: wait-for-vault
+        image: hashicorp/vault:1.15.0
+        command: ["/bin/sh", "-c", "for i in $(seq 1 30); do curl -k -s -o /dev/null -w '%{http_code}' $VAULT_ADDR/v1/sys/health | grep -q 200 && exit 0; sleep 2; done; exit 1"]
+        env:
+        - name: VAULT_ADDR
+          value: "https://vault.example.local:8200"
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: control-plane-envoy-config
+      - name: vault-config
+        configMap:
+          name: control-plane-envoy-vault-agent-config
+      - name: tls-certs
+        emptyDir:
+          medium: Memory
+          sizeLimit: 100Mi
+      - name: vault-token
+        emptyDir:
+          medium: Memory
+          sizeLimit: 10Mi
+      - name: tmp
+        emptyDir: {}
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: control-plane-envoy
+  namespace: control-plane
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: control-plane-envoy-pdb
+  namespace: control-plane
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: control-plane-envoy
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: control-plane-envoy
+  namespace: control-plane
+spec:
+  type: ClusterIP
+  ports:
+  - name: https
+    port: 8443
+    targetPort: 8443
+  - name: admin
+    port: 9901
+    targetPort: 9901
+  selector:
+    app: control-plane-envoy
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: control-plane-envoy-hpa
+  namespace: control-plane
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: control-plane-envoy
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
