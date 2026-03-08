@@ -1,0 +1,24 @@
+name: Force Terraform Plan
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  call-plan:
+    uses: ./.github/workflows/terraform-plan.yml
+    with:
+      terraform_version: '1.7.0'
+    secrets:
+      PROD_TFVARS: ${{ secrets.PROD_TFVARS }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
