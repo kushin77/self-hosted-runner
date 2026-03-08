@@ -1,0 +1,7 @@
+{"timestamp": "2026-03-08T22:56:21.949664", "event_type": "deployment_start", "component_id": "remove-embedded-secrets", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:56:22.126627", "event_type": "deployment_success", "component_id": "remove-embedded-secrets", "status": "completed", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:56:22.127352", "event_type": "deployment_start", "component_id": "activate-rca-autohealer", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:56:32.462678", "event_type": "deployment_failed", "component_id": "activate-rca-autohealer", "status": "failed", "details": {}, "error": "Validation failed: validate-rca-active"}
+{"timestamp": "2026-03-08T22:56:32.463706", "event_type": "deployment_start", "component_id": "migrate-to-gsm", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:56:42.552536", "event_type": "step_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {"step": "inventory-secrets"}, "error": null}
+{"timestamp": "2026-03-08T22:56:42.553283", "event_type": "deployment_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {}, "error": "Step failed: inventory-secrets"}
