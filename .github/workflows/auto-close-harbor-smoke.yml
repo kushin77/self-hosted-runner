@@ -1,4 +1,8 @@
 name: Auto-close Harbor smoke issue
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 # closes issue 620 once the harbor-integration-smoke workflow passes
 on:

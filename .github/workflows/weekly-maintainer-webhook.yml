@@ -1,4 +1,8 @@
 name: Weekly Maintainer Webhook Reminder
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:

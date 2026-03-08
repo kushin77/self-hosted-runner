@@ -1,4 +1,8 @@
 name: Hands-Off CI/CD Auto-Promotion & Observability (Phases 2+3)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:

@@ -1,4 +1,8 @@
 name: Self-hosted Heavy Runner Verification
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch: {}

@@ -1,4 +1,8 @@
 name: TypeScript Check
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:
