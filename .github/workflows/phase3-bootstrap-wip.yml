@@ -1,0 +1,129 @@
+name: 🔧 Phase 3 Bootstrap - Provision Workload Identity Pool
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: false
+        default: 'production'
+
+permissions:
+  id-token: write
+  contents: read
+  actions: write
+  issues: write
+
+env:
+  TERRAFORM_VERSION: '1.14.6'
+  GCP_PROJECT_ID: gcp-eiq
+  GCP_REGION: us-central1
+
+jobs:
+  bootstrap-wip:
+    name: Bootstrap GCP Workload Identity Pool
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Setup Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Authenticate to Google Cloud (Service Account Key)
+        run: |
+          echo "🔐 Authenticating with service account key..."
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > /tmp/gcp-sa-key.json
+          gcloud auth activate-service-account --key-file=/tmp/gcp-sa-key.json
+          gcloud config set project ${{ env.GCP_PROJECT_ID }}
+          echo "✅ GCP authentication successful"
+
+      - name: Initialize Terraform
+        working-directory: ./infra/gcp/wif
+        run: |
+          terraform init -upgrade
+
+      - name: Plan WIP Provisioning
+        working-directory: ./infra/gcp/wif
+        run: |
+          terraform plan \
+            -var="project_id=${{ env.GCP_PROJECT_ID }}" \
+            -var="region=${{ env.GCP_REGION }}" \
+            -var="pool_id=github-actions-pool" \
+            -var="provider_id=github-actions-provider" \
+            -out=tfplan
+
+      - name: Apply WIP Configuration
+        working-directory: ./infra/gcp/wif
+        run: |
+          terraform apply -auto-approve tfplan
+          
+          # Export outputs for next steps
+          POOL_ID=$(terraform output -raw workload_identity_pool_id)
+          PROVIDER_NAME=$(terraform output -raw workload_identity_provider_name)
+          echo "pool_id=$POOL_ID" >> $GITHUB_OUTPUT
+          echo "provider_name=$PROVIDER_NAME" >> $GITHUB_OUTPUT
+
+      - name: Verify WIP Configuration
+        run: |
+          echo "🔍 Verifying Workload Identity Pool..."
+          gcloud iam workload-identity-pools describe github-actions-pool \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --location=global
+          
+          echo "🔍 Verifying Workload Identity Pool Provider..."
+          gcloud iam workload-identity-pools providers describe github-actions-provider \
+            --project=${{ env.GCP_PROJECT_ID }} \
+            --location=global \
+            --workload-identity-pool=github-actions-pool
+          
+          echo "✅ WIP bootstrap successful"
+
+      - name: Update GitHub Secrets
+        run: |
+          export PROVIDER_NAME="projects/${{ env.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
+          export SERVICE_ACCOUNT_EMAIL="${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}"
+          
+          echo "🔐 Secrets to configure (if not already set):"
+          echo "GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER_NAME"
+          echo "GCP_SERVICE_ACCOUNT_EMAIL=$SERVICE_ACCOUNT_EMAIL"
+          echo "GCP_PROJECT_ID=${{ env.GCP_PROJECT_ID }}"
+          
+          # Note: Secret updates must be done manually or via gh CLI
+          # For now, output the values for reference
+
+      - name: Create Issue Comment
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: 1869,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ WIP Bootstrap Complete
+              
+**Status:** ${{ job.status }}
+
+### Workload Identity Pool Setup
+- Pool ID: \`github-actions-pool\`
+- Provider ID: \`github-actions-provider\`
+- Location: \`global\`
+- Project: \`${{ env.GCP_PROJECT_ID }}\`
+
+### Next Steps
+1. Verify GCP_WORKLOAD_IDENTITY_PROVIDER secret is set to:
+   \`projects/${{ env.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider\`
+2. Verify GCP_SERVICE_ACCOUNT_EMAIL secret is set correctly
+3. Re-trigger \`phase3-production-deploy.yml\` workflow
+
+**Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')`
+            })
