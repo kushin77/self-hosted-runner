@@ -1,0 +1,45 @@
+name: Force Terraform Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or ref to run terraform-plan on'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  dispatch-plan:
+    name: Dispatch Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch terraform-plan workflow on target ref
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            const workflow_id = 'terraform-plan.yml';
+            const ref = core.getInput('ref') || github.context.payload.ref || 'main';
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id,
+              ref
+            });
+      - name: Post note to ops issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const runRef = core.getInput('ref') || github.context.payload.ref || 'main';
+            const body = `Triggered terraform-plan on ref: ${runRef}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1384,
+              body
+            });
