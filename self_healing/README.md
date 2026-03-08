@@ -1,5 +1,5 @@
-# Automatic Rollback & Recovery Implementation
+# PR Prioritization Implementation
 
-Zero-downtime rollback with health check orchestration.
+Risk-based PR scheduling with 4-tier merge strategy.
 
 See main README for full framework overview.
