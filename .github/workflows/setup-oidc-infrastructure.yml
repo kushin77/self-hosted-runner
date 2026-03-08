@@ -1,0 +1,175 @@
+name: Setup OIDC Infrastructure & Vault JWT
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcp-project-id:
+        description: GCP Project ID
+        required: true
+      
+      aws-account-id:
+        description: AWS Account ID
+        required: true
+      
+      vault-addr:
+        description: Vault server address
+        required: true
+      
+      dry-run:
+        description: Run in dry-run mode
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+  id-token: write
+  secrets: write
+
+env:
+  SETUP_LOG_DIR: .setup-logs
+
+jobs:
+  setup-gcp-wif:
+    name: "Setup GCP Workload Identity Federation"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      gcp-provider: ${{ steps.setup.outputs.wif-provider }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: latest
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Setup GCP WIF (idempotent)
+        id: setup
+        run: |
+          bash .github/scripts/setup-oidc-wif.sh \
+            --project-id "${{ inputs.gcp-project-id }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcp-wif-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  setup-aws-oidc:
+    name: "Setup AWS OIDC Provider"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      aws-provider: ${{ steps.setup.outputs.oidc-provider }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ inputs.aws-account-id }}:role/github-assume-role
+          aws-region: us-east-1
+        continue-on-error: true
+      
+      - name: Setup AWS OIDC Provider (idempotent)
+        id: setup
+        run: |
+          bash .github/scripts/setup-aws-oidc.sh \
+            --account-id "${{ inputs.aws-account-id }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-oidc-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  setup-vault-jwt:
+    name: "Setup Vault JWT Authentication"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Setup Vault JWT Auth (idempotent)
+        run: |
+          bash .github/scripts/setup-vault-jwt.sh \
+            --vault-addr "${{ inputs.vault-addr }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        env:
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-jwt-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  consolidate-setup-report:
+    name: "Consolidate Setup Report"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [setup-gcp-wif, setup-aws-oidc, setup-vault-jwt]
+    if: always()
+    
+    steps:
+      - name: Download all setup artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-setup-logs-*'
+          path: all-setup-logs
+      
+      - name: Consolidate logs
+        run: |
+          mkdir -p consolidated-setup
+          find all-setup-logs -name "*.log" -exec cat {} \; > consolidated-setup/setup-all.log
+          find all-setup-logs -name "*.json" -exec cat {} \; > consolidated-setup/setup-providers.json 2>/dev/null || true
+      
+      - name: Create summary
+        run: |
+          echo "## OIDC/WIF Setup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Timestamp: $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "- GCP Project: ${{ inputs.gcp-project-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- AWS Account: ${{ inputs.aws-account-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Vault Address: ${{ inputs.vault-addr }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry Run: ${{ inputs.dry-run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review setup logs in artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Update GitHub repository secrets with provider IDs" >> $GITHUB_STEP_SUMMARY
+          echo "3. Trigger rotation workflows to verify dynamic credential retrieval" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload consolidated setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-consolidated-${{ github.run_id }}
+          path: consolidated-setup/
+          retention-days: 365
