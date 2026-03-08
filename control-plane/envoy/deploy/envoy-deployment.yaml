@@ -23,6 +23,21 @@ spec:
             - name: tls
               mountPath: /etc/envoy/tls
               readOnly: true
+          livenessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /ready
+              port: 9901
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              host: 127.0.0.1
+              path: /stats
+              port: 9901
+            initialDelaySeconds: 5
+            periodSeconds: 5
         - name: vault-agent
           image: hashicorp/vault:1.13.0
           command: ["/bin/vault","agent","-config=/etc/vault/vault-agent.hcl"]
@@ -34,10 +49,20 @@ spec:
               mountPath: /etc/envoy/tls
             - name: vault-config
               mountPath: /etc/vault
-      initContainers: []
+        - name: envoy-reloader
+          image: curlimages/curl:8.2.1
+          command: ["/bin/sh","-c","/opt/envoy/reload/envoy_reload_watcher.sh"]
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/envoy/tls
+            - name: reload-script
+              mountPath: /opt/envoy/reload
       volumes:
         - name: tls
           emptyDir: {}
         - name: vault-config
           configMap:
             name: control-plane-envoy-vault-config
+        - name: reload-script
+          configMap:
+            name: control-plane-envoy-reload-script
