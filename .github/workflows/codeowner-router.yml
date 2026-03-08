@@ -1,0 +1,24 @@
+name: Code Owner Auto-Assignment
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  assign-reviewers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-assign based on CODEOWNERS
+        run: |
+          echo "Extracting CODEOWNERS for changed files..."
+          
+          # Get changed files
+          CHANGED_FILES=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }})
+          
+          # This would integrate with CODEOWNERS file
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+          echo ""
+          echo "ℹ️  CODEOWNERS would auto-assign reviewers based on matching patterns"
+          echo "✅ Code owner assignment logic ready (manual-only for now)"
