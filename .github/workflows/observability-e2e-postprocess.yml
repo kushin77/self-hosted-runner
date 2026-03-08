@@ -1,0 +1,95 @@
+name: Observability E2E Postprocess
+
+on:
+  workflow_run:
+    workflows:
+      - "Observability E2E Scheduled Run"
+    types:
+      - completed
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  postprocess:
+    name: Download metrics + post summary
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          apt-get update -qq
+          apt-get install -y -qq jq unzip curl
+
+      - name: Download metrics artifact from completed run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          echo "Looking up artifacts for run $RUN_ID"
+          ART_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+            | jq -r '.artifacts[] | select(.name=="observability-e2e-metrics") | .archive_download_url')
+
+          if [ -z "$ART_URL" ] || [ "$ART_URL" = "null" ]; then
+            echo "No observability-e2e-metrics artifact found for run $RUN_ID"
+            exit 0
+          fi
+
+          echo "Downloading artifact from $ART_URL"
+          curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -o /tmp/metrics_artifact.zip "$ART_URL"
+          mkdir -p /tmp/metrics_artifact
+          unzip -q /tmp/metrics_artifact.zip -d /tmp/metrics_artifact
+
+      - name: Parse metrics and post summary comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_HTML_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          set -euo pipefail
+          METRIC_FILES=$(find /tmp/metrics_artifact -type f -name metrics.json || true)
+          if [ -z "$METRIC_FILES" ]; then
+            echo "No metrics.json files found in artifact"
+            exit 0
+          fi
+
+          TOTAL=0
+          COUNT=0
+          PASSES=0
+          FAILS=0
+
+          for f in $METRIC_FILES; do
+            echo "Processing $f"
+            jq -c '.tests[]' "$f" | while read -r test; do
+              status=$(echo "$test" | jq -r '.status')
+              lat=$(echo "$test" | jq -r '.latency_ms // 0')
+              TOTAL=$((TOTAL + lat))
+              COUNT=$((COUNT + 1))
+              if [ "$status" = "passed" ] || [ "$status" = "success" ]; then
+                PASSES=$((PASSES + 1))
+              else
+                FAILS=$((FAILS + 1))
+              fi
+            done
+          done
+
+          if [ "$COUNT" -gt 0 ]; then
+            AVG=$((TOTAL / COUNT))
+          else
+            AVG=0
+          fi
+
+          SUMMARY="Observability E2E run summary for [workflow run]($RUN_HTML_URL)\n\n- Tests processed: $COUNT\n- Passed: $PASSES\n- Failed: $FAILS\n- Average latency (ms): $AVG\n\nArtifacts: observability-e2e-metrics"
+
+          COMMENT_PAYLOAD=$(jq -n --arg body "$SUMMARY" '{body:$body}')
+          echo "Posting summary to issue #1370"
+          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -X POST "https://api.github.com/repos/$REPO/issues/1370/comments" \
+            -d "$COMMENT_PAYLOAD"
