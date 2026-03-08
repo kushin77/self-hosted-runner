@@ -1,0 +1,155 @@
+name: "Setup Infrastructure: OIDC/WIF + Secrets Managers"
+
+on:
+  workflow_dispatch:
+    inputs:
+      setup_gcp:
+        description: "Setup GCP WIF"
+        required: false
+        default: "true"
+        type: boolean
+      setup_aws:
+        description: "Setup AWS OIDC"
+        required: false
+        default: "true"
+        type: boolean
+      setup_vault:
+        description: "Setup Vault JWT"
+        required: false
+        default: "true"
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  setup-gcp-wif:
+    name: "Setup GCP Workload Identity Federation"
+    runs-on: ubuntu-latest
+    if: inputs.setup_gcp == true
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: false
+        if: secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: "Run GCP WIF setup script"
+        shell: bash
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          chmod +x .github/scripts/setup-oidc-wif.sh
+          .github/scripts/setup-oidc-wif.sh
+
+      - name: "Upload setup log"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gcp-wif-setup-log
+          path: .github/scripts/.oidc-setup-*.log
+          retention-days: 30
+
+  setup-aws-oidc:
+    name: "Setup AWS OIDC + IAM Role"
+    runs-on: ubuntu-latest
+    if: inputs.setup_aws == true
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+        if: secrets.AWS_ROLE_TO_ASSUME != ''
+
+      - name: "Run AWS setup script"
+        shell: bash
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          chmod +x .github/scripts/setup-oidc-wif.sh
+          .github/scripts/setup-oidc-wif.sh
+
+      - name: "Upload setup log"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aws-oidc-setup-log
+          path: .github/scripts/.oidc-setup-*.log
+          retention-days: 30
+
+  setup-vault-jwt:
+    name: "Setup Vault JWT Auth"
+    runs-on: ubuntu-latest
+    if: inputs.setup_vault == true
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: "Run Vault JWT setup script"
+        shell: bash
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+          GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          chmod +x .github/scripts/setup-vault-jwt.sh
+          .github/scripts/setup-vault-jwt.sh
+
+      - name: "Upload setup log"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vault-jwt-setup-log
+          path: .github/scripts/.vault-setup-*.log
+          retention-days: 30
+
+  report:
+    name: "Setup Summary Report"
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [setup-gcp-wif, setup-aws-oidc, setup-vault-jwt]
+
+    steps:
+      - name: "Post setup summary"
+        shell: bash
+        run: |
+          echo "## Infrastructure Setup Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✓ GCP Workload Identity Federation" >> $GITHUB_STEP_SUMMARY
+          echo "✓ AWS OIDC Provider + IAM Role" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Vault JWT Auth Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next**: Update GitHub repository secrets with identifiers from setup logs." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Required secrets:" >> $GITHUB_STEP_SUMMARY
+          echo "- GCP_WORKLOAD_IDENTITY_PROVIDER" >> $GITHUB_STEP_SUMMARY
+          echo "- GCP_SERVICE_ACCOUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- GCP_PROJECT_ID" >> $GITHUB_STEP_SUMMARY
+          echo "- AWS_ROLE_TO_ASSUME" >> $GITHUB_STEP_SUMMARY
+          echo "- AWS_ACCOUNT_ID" >> $GITHUB_STEP_SUMMARY
+          echo "- VAULT_ADDR" >> $GITHUB_STEP_SUMMARY
+          echo "- VAULT_TOKEN (short-lived, rotate after setup)" >> $GITHUB_STEP_SUMMARY
