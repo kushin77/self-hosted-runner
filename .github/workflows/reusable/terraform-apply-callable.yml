@@ -1,4 +1,8 @@
 name: Reusable: Terraform Apply (callable)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_call:
