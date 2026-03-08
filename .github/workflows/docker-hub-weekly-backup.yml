@@ -1,4 +1,8 @@
 name: Docker Hub Multi-Registry Weekly Backup
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:
