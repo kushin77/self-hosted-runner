@@ -1,4 +1,8 @@
 name: Auto-close dependent issues on successful deploy
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_run:

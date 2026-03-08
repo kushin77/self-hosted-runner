@@ -1,4 +1,8 @@
 name: Validate Kubernetes manifests
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   pull_request:

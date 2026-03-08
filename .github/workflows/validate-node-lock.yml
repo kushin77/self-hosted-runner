@@ -1,4 +1,8 @@
 name: Validate Node engines and lockfile
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 on: [push, pull_request]
 
 jobs:

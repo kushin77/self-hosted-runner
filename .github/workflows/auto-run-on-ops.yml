@@ -1,4 +1,8 @@
 name: Auto-run E2E on Ops confirmation
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   issue_comment:

@@ -1,4 +1,8 @@
 name: Portal CI
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:

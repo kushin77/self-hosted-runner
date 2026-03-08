@@ -1,4 +1,8 @@
 name: Test Air-Gap Control Plane Terraform Module
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:
