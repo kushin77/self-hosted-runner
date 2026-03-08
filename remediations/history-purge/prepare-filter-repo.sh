@@ -18,7 +18,7 @@ fi
 # Patterns to remove (customize as needed)
 PATTERNS=(
   'ghp_'                                   # GitHub PAT-like tokens
-  'GITHUB_TOKEN'                           # explicit token variable in commits
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   'YOUR_TOKEN'                             # placeholder token
 )
 

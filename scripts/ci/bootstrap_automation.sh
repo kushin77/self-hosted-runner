@@ -20,7 +20,7 @@ Required env vars:
   GITLAB_API_TOKEN     - token with api scope
   GITLAB_GROUP_ID      - numeric group id to store group-level CI variables (or PROJECT_ID)
   GITHUB_REPO          - target GitHub backup repo (owner/repo)
-  GITHUB_TOKEN         - GitHub PAT with repo access to add deploy keys
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   RESTORE_S3_BUCKET    - s3://bucket/path
 Optional:
   VAR_KEY              - name of CI var to store private SSH key (default: GITHUB_MIRROR_SSH_KEY)
@@ -43,7 +43,7 @@ CRON=${CRON:-"0 2 * * *"}
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 echo "[bootstrap] Rotating GitHub deploy key and storing private key in GitLab variable ${VAR_KEY}"
-export GITHUB_TOKEN
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 export GITLAB_API_URL
 export GITLAB_API_TOKEN
 export GROUP_ID=${GITLAB_GROUP_ID}

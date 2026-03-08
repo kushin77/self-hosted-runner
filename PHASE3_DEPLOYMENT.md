@@ -58,7 +58,7 @@ All automation code is complete, tested, and committed to main branch. System aw
   - Binds GitHub repo to GCP service account
 
 - **Layer 2 (Secrets)**: Google Secret Manager (GSM)
-  - `GCP_SERVICE_ACCOUNT_KEY` — bootstraps WIF initially
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   - After WIF enabled: credentials rotated to OIDC-only
   - Vault integration for multi-layer secret rotation (optional)
 
@@ -81,7 +81,7 @@ All automation code is complete, tested, and committed to main branch. System aw
 
 1. **Provide Credentials in Repository Secrets**:
    ```
-   GCP_SERVICE_ACCOUNT_KEY  = <service-account-json>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
    GCP_PROJECT_ID           = <gcp-project-id>
    GCP_WORKLOAD_IDENTITY_PROVIDER = <optional, auto-populated>
    KUBECONFIG               = <optional, for Vault Helm deployment>
@@ -100,10 +100,9 @@ All automation code is complete, tested, and committed to main branch. System aw
 ### **Option B: Local Script Execution**
 
 ```bash
-export GCP_SERVICE_ACCOUNT_KEY='<json>'
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 export GCP_PROJECT_ID='<project-id>'
-export GITHUB_TOKEN='<repo-scoped-token>'
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ./scripts/provision_phase3.sh deploy_vault=true
 ```
 

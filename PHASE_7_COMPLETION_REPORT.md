@@ -88,8 +88,7 @@
 
 2. **Set AWS credentials** (pick one):
    - PREFERRED: `gh secret set AWS_OIDC_ROLE --body "arn:aws:iam::ACCOUNT_ID:role/github-actions-role"`
-   - ALTERNATE: Set `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 3. **Merge PR #1314** with updated tfvars
 
 4. **Trigger safe apply:**

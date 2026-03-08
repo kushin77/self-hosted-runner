@@ -48,7 +48,7 @@ The Disaster Recovery (DR) workflow has been hardened and integrated into a full
 ```
 Start Monitor Workflow
   ↓
-Check GCP_SERVICE_ACCOUNT_KEY Secret
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   ├─ If missing → Post escalation comment to #995, wait for next cycle
   ├─ If invalid JSON → Post error comment to #995, wait for next cycle
   └─ If valid JSON → Proceed
@@ -122,7 +122,7 @@ gh api repos/kushin77/self-hosted-runner/actions/secrets/GCP_SERVICE_ACCOUNT_KEY
 
 ```bash
 gh secret list --repo kushin77/self-hosted-runner | grep GCP_SERVICE_ACCOUNT_KEY
-# Should show: GCP_SERVICE_ACCOUNT_KEY    <recent timestamp>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ```
 
 ---

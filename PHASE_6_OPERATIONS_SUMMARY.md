@@ -68,8 +68,7 @@ The 10X Automated Secrets Engineering initiative Phase 6 is **complete and produ
 ```
 
 ### Step 2: Update Secret
-Settings → Secrets → Actions → `GCP_SERVICE_ACCOUNT_KEY` → Paste JSON
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ### Step 3: Trigger Automation
 Go to [Issue #1239](https://github.com/kushin77/self-hosted-runner/issues/1239) and comment:
 ```

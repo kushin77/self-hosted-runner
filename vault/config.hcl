@@ -118,8 +118,8 @@ secret_engine "aws" {
   path = "aws"
   
   config = {
-    access_key = "AWS_ACCESS_KEY_ID"           # Set from environment
-    secret_key = "AWS_SECRET_ACCESS_KEY"       # Set from environment
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     region     = "us-east-1"
   }
   
