@@ -1,0 +1,120 @@
+#!/bin/bash
+# Vault-based credential fetch as alternative to GCP OIDC + GSM
+# Usage: ./fetch-creds-from-vault.sh <VAULT_ADDR> <VAULT_TOKEN_OR_AUTH_METHOD>
+# For GitHub Actions: Set VAULT_ADDR and VAULT_TOKEN (or use VAULT_ROLE_ID+VAULT_SECRET_ID for AppRole)
+# Outputs: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION (via $GITHUB_OUTPUT if in Actions)
+
+set -euo pipefail
+
+VAULT_ADDR="${VAULT_ADDR:-https://vault.example.com}"
+VAULT_NAMESPACE="${VAULT_NAMESPACE:-}"
+VAULT_TOKEN="${VAULT_TOKEN:-}"
+VAULT_ROLE_ID="${VAULT_ROLE_ID:-}"
+VAULT_SECRET_ID="${VAULT_SECRET_ID:-}"
+
+# Path to AWS dynamic secret engine
+AWS_SECRET_PATH="${AWS_SECRET_PATH:-aws/creds/prod}"
+LEASE_DURATION="${LEASE_DURATION:-3600}" # 1 hour
+
+# Validation
+if [ -z "$VAULT_ADDR" ]; then
+  echo "❌ VAULT_ADDR not set"
+  exit 1
+fi
+
+echo "🔐 Fetching credentials from Vault..."
+echo "   Vault: $VAULT_ADDR"
+echo "   Path: $AWS_SECRET_PATH"
+echo ""
+
+# Step 1: Authenticate if no token provided
+if [ -z "$VAULT_TOKEN" ]; then
+  if [ -n "$VAULT_ROLE_ID" ] && [ -n "$VAULT_SECRET_ID" ]; then
+    echo "Authenticating via AppRole..."
+    
+    VAULT_NS_PARAM=""
+    if [ -n "$VAULT_NAMESPACE" ]; then
+      VAULT_NS_PARAM="-H X-Vault-Namespace:$VAULT_NAMESPACE"
+    fi
+    
+    AUTH_RESPONSE=$(curl -s -X POST \
+      $VAULT_NS_PARAM \
+      "$VAULT_ADDR/v1/auth/approle/login" \
+      -d "{\"role_id\":\"$VAULT_ROLE_ID\",\"secret_id\":\"$VAULT_SECRET_ID\"}")
+    
+    VAULT_TOKEN=$(echo "$AUTH_RESPONSE" | grep -o '"client_token":"[^"]*' | cut -d'"' -f4)
+    if [ -z "$VAULT_TOKEN" ]; then
+      echo "❌ Failed to authenticate with Vault (AppRole)"
+      echo "Response: $AUTH_RESPONSE"
+      exit 1
+    fi
+    echo "✅ AppRole authentication successful"
+  else
+    echo "❌ No VAULT_TOKEN provided and incomplete AppRole credentials"
+    exit 1
+  fi
+fi
+
+# Step 2: Fetch AWS credentials from Vault
+echo "Fetching AWS credentials from Vault ($AWS_SECRET_PATH)..."
+
+VAULT_NS_PARAM=""
+if [ -n "$VAULT_NAMESPACE" ]; then
+  VAULT_NS_PARAM="-H X-Vault-Namespace:$VAULT_NAMESPACE"
+fi
+
+CREDS_RESPONSE=$(curl -s -X GET \
+  $VAULT_NS_PARAM \
+  -H "X-Vault-Token: $VAULT_TOKEN" \
+  "$VAULT_ADDR/v1/$AWS_SECRET_PATH")
+
+# Extract credentials
+AWS_ACCESS_KEY=$(echo "$CREDS_RESPONSE" | grep -o '"access_key":"[^"]*' | cut -d'"' -f4)
+AWS_SECRET_KEY=$(echo "$CREDS_RESPONSE" | grep -o '"secret_key":"[^"]*' | cut -d'"' -f4)
+
+if [ -z "$AWS_ACCESS_KEY" ] || [ -z "$AWS_SECRET_KEY" ]; then
+  echo "❌ Failed to fetch AWS credentials from Vault"
+  echo "Response: $CREDS_RESPONSE"
+  exit 1
+fi
+
+echo "✅ Successfully fetched ephemeral AWS credentials from Vault"
+
+# Mask sensitive values if in GitHub Actions
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  echo "::add-mask::$AWS_ACCESS_KEY"
+  echo "::add-mask::$AWS_SECRET_KEY"
+  
+  echo "aws_access_key_id=$AWS_ACCESS_KEY" >> "$GITHUB_OUTPUT"
+  echo "aws_secret_access_key=$AWS_SECRET_KEY" >> "$GITHUB_OUTPUT"
+  echo "aws_region=us-east-1" >> "$GITHUB_OUTPUT" # or fetch from Vault config
+  
+  echo "✅ Credentials exported to GITHUB_OUTPUT"
+else
+  # For local testing
+  export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
+  export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
+  export AWS_REGION="${AWS_REGION:-us-east-1}"
+  
+  echo ""
+  echo "Credentials available as environment variables:"
+  echo "  AWS_ACCESS_KEY_ID (length: ${#AWS_ACCESS_KEY})"
+  echo "  AWS_SECRET_ACCESS_KEY (length: ${#AWS_SECRET_KEY})"
+  echo "  AWS_REGION=$AWS_REGION"
+fi
+
+# Step 3: Verify credentials (optional)
+if command -v aws >/dev/null 2>&1; then
+  echo ""
+  echo "Verifying credentials with STS..."
+  if AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY" \
+     AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY" \
+     aws sts get-caller-identity >/dev/null 2>&1; then
+    echo "✅ AWS credentials validated"
+  else
+    echo "⚠️  AWS credentials validation failed (may be in restricted environment)"
+  fi
+fi
+
+echo ""
+echo "✅ Vault credential fetch complete"
