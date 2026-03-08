@@ -1,5 +1,6 @@
 version: 2
 updates:
+  # npm dependencies — daily updates (container image)
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
@@ -9,6 +10,8 @@ updates:
       - "dependencies"
       - "automated"
       - "phase-p4"
+
+  # Go modules — daily updates
   - package-ecosystem: "gomod"
     directory: "/"
     schedule:
@@ -18,36 +21,40 @@ updates:
       - "dependencies"
       - "automated"
       - "phase-p4"
-version: 2
-updates:
+
+  # GitHub Actions — weekly updates
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+      - "phase-p4"
 
+  # Docker base image — daily updates (critical for security)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "automated"
+      - "security"
+      - "phase-p4"
+
+  # Python dependencies — weekly updates
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    # Optionally restrict to requirements files; Dependabot will auto-detect common files
-version: 2
-updates:
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "daily"
-    open-pull-requests-limit: 5
-
-  - package-ecosystem: "npm"
-    directory: "/"
+    labels:
+      - "dependencies"
+      - "automated"
+      - "phase-p4"
     schedule:
       interval: "daily"
     open-pull-requests-limit: 10
