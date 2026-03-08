@@ -29,7 +29,29 @@ jobs:
         env:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         run: |
-          printf '%s' "$GOOGLE_CREDENTIALS" > /tmp/gcloud_key.json
+          set -euo pipefail
+          echo "Validating and writing GCP credentials..."
+          # Try raw JSON first
+          if printf '%s' "$GOOGLE_CREDENTIALS" | jq -e . >/dev/null 2>&1; then
+            printf '%s' "$GOOGLE_CREDENTIALS" > /tmp/gcloud_key.json
+            echo "detected: raw JSON"
+          else
+            # Try escaped newlines (\n -> newline)
+            if printf '%b' "$GOOGLE_CREDENTIALS" | jq -e . >/dev/null 2>&1; then
+              printf '%b' "$GOOGLE_CREDENTIALS" > /tmp/gcloud_key.json
+              echo "detected: escaped-newlines"
+            else
+              # Try base64 decode
+              if printf '%s' "$GOOGLE_CREDENTIALS" | base64 --decode >/tmp/gcloud_key.json 2>/dev/null && jq -e . /tmp/gcloud_key.json >/dev/null 2>&1; then
+                echo "detected: base64"
+              else
+                echo "ERROR: GOOGLE_CREDENTIALS secret is not valid JSON, escaped JSON, or base64-encoded JSON" >&2
+                echo "First 200 chars of secret (masked) -> $(printf '%.200s' "$GOOGLE_CREDENTIALS")" >&2
+                exit 1
+              fi
+            fi
+          fi
+          jq -e . /tmp/gcloud_key.json >/dev/null
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_key.json" >> $GITHUB_ENV
 
       - name: Setup Terraform
@@ -41,7 +63,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
         run: |
           echo "AWS creds loaded from secrets"
 
