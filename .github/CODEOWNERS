@@ -5,6 +5,16 @@
 # Global owners (all PRs require their review)
 * @kushin77
 
+# 📊 METADATA GOVERNANCE SYSTEM (Immutable, Automated)
+# All metadata changes auto-tracked and validated
+/metadata/ @kushin77
+METADATA_*.md @kushin77
+.github/workflows/metadata-sync.yml @kushin77
+scripts/manage-metadata.sh @kushin77
+scripts/validate-metadata.sh @kushin77
+scripts/visualize-dependencies.sh @kushin77
+scripts/audit-metadata.sh @kushin77
+
 # Infrastructure & Terraform (P4 AWS Spot)
 terraform/ @kushin77
 terraform/modules/aws_spot_runner/ @kushin77
