@@ -4,12 +4,12 @@ variable "region" {
 }
 
 variable "thumbprint" {
-  type = string
+  type        = string
   description = "OIDC provider thumbprint (SHA1)"
 }
 
 variable "role_name" {
-  type = string
+  type    = string
   default = "github-actions-oidc-role"
 }
 
@@ -18,6 +18,6 @@ variable "github_repo" {
 }
 
 variable "github_branch" {
-  type = string
+  type    = string
   default = "main"
 }

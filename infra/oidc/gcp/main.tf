@@ -13,16 +13,16 @@ provider "google" {
 }
 
 resource "google_iam_workload_identity_pool" "github_pool" {
-  provider = google
+  provider                  = google
   workload_identity_pool_id = var.pool_id
   display_name              = "GitHub Actions Workload Identity Pool"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github_provider" {
-  provider = google
-  workload_identity_pool_id = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
+  provider                           = google
+  workload_identity_pool_id          = google_iam_workload_identity_pool.github_pool.workload_identity_pool_id
   workload_identity_pool_provider_id = var.provider_id
-  display_name = "GitHub Actions OIDC Provider"
+  display_name                       = "GitHub Actions OIDC Provider"
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
   }

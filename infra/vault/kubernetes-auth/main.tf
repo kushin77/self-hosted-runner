@@ -17,19 +17,19 @@ variable "vault_addr" {
 }
 
 variable "kubernetes_host" {
-  type    = string
+  type        = string
   description = "Kubernetes API server URL (e.g., https://kubernetes.default.svc)"
-  default = "https://kubernetes.default.svc"
+  default     = "https://kubernetes.default.svc"
 }
 
 variable "kubernetes_ca_cert" {
-  type    = string
+  type        = string
   description = "Kubernetes CA certificate (read from /var/run/secrets/kubernetes.io/serviceaccount/ca.crt in pod)"
 }
 
 variable "kubernetes_token" {
-  type    = string
-  sensitive = true
+  type        = string
+  sensitive   = true
   description = "Kubernetes service account token (read from /var/run/secrets/kubernetes.io/serviceaccount/token in pod)"
 }
 
@@ -54,9 +54,9 @@ resource "vault_kubernetes_auth_backend_role" "control_plane_role" {
   bound_service_account_names      = ["control-plane-envoy"]
   bound_service_account_namespaces = ["control-plane"]
 
-  token_ttl       = 3600
-  token_max_ttl   = 86400
-  token_policies  = ["control-plane"]
+  token_ttl      = 3600
+  token_max_ttl  = 86400
+  token_policies = ["control-plane"]
 }
 
 // Example Vault policy for control-plane runners

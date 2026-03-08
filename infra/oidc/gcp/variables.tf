@@ -16,7 +16,7 @@ variable "provider_id" {
 }
 
 variable "service_account_email" {
-  type = string
+  type        = string
   description = "Email of the existing or new service account to allow impersonation"
 }
 

@@ -32,7 +32,7 @@ variable "intermediate_ca_common_name" {
 
 variable "ttl" {
   type    = string
-  default = "87600h"  # 10 years for root, adjust as needed
+  default = "87600h" # 10 years for root, adjust as needed
 }
 
 variable "max_ttl" {
@@ -46,7 +46,7 @@ resource "vault_mount" "pki_root" {
   type        = "pki"
   description = "Phase P4 Root PKI"
 
-  max_lease_ttl_seconds = 315360000  # 10 years
+  max_lease_ttl_seconds = 315360000 # 10 years
 }
 
 resource "vault_mount" "pki_intermediate" {
@@ -54,14 +54,14 @@ resource "vault_mount" "pki_intermediate" {
   type        = "pki"
   description = "Phase P4 Intermediate PKI"
 
-  max_lease_ttl_seconds = 157680000  # 5 years
+  max_lease_ttl_seconds = 157680000 # 5 years
 }
 
 // Configure root CA
 resource "vault_pki_secret_backend_config_ca" "root" {
-  backend             = vault_mount.pki_root.path
-  pem_bundle          = tls_self_signed_cert.root.cert_pem
-  depends_on          = [vault_mount.pki_root]
+  backend    = vault_mount.pki_root.path
+  pem_bundle = tls_self_signed_cert.root.cert_pem
+  depends_on = [vault_mount.pki_root]
 }
 
 // Generate root CA certificate (self-signed)
@@ -79,7 +79,7 @@ resource "tls_self_signed_cert" "root" {
     organization = "Phase P4"
   }
 
-  validity_period_hours = 87600  # 10 years
+  validity_period_hours = 87600 # 10 years
   is_ca_certificate     = true
 
   allowed_uses = [
@@ -94,7 +94,7 @@ resource "tls_self_signed_cert" "root" {
 resource "vault_mount_tune" "pki_int_tune" {
   path = vault_mount.pki_intermediate.path
 
-  max_lease_ttl_seconds = 157680000
+  max_lease_ttl_seconds     = 157680000
   default_lease_ttl_seconds = 157680000
 }
 
@@ -109,14 +109,14 @@ resource "vault_pki_secret_backend_intermediate_cert_request" "intermediate" {
 
 // Sign intermediate CSR with root CA (in Vault)
 resource "vault_pki_secret_backend_root_sign_intermediate" "intermediate_signed" {
-  backend             = vault_mount.pki_root.path
-  csr                 = vault_pki_secret_backend_intermediate_cert_request.intermediate.csr
-  common_name         = var.intermediate_ca_common_name
-  organization        = "Phase P4"
-  ttl                 = "43800h"  # 5 years
-  max_ttl             = var.max_ttl
-  use_csr_values      = true
-  depends_on          = [vault_pki_secret_backend_config_ca.root]
+  backend        = vault_mount.pki_root.path
+  csr            = vault_pki_secret_backend_intermediate_cert_request.intermediate.csr
+  common_name    = var.intermediate_ca_common_name
+  organization   = "Phase P4"
+  ttl            = "43800h" # 5 years
+  max_ttl        = var.max_ttl
+  use_csr_values = true
+  depends_on     = [vault_pki_secret_backend_config_ca.root]
 }
 
 // Set the signed intermediate cert in vault
@@ -137,28 +137,28 @@ resource "vault_pki_secret_backend_role" "control_plane_role" {
 
   allowed_other_sans = ["*.control-plane.svc.cluster.local", "control-plane"]
 
-  key_type    = "rsa"
-  key_bits    = 2048
-  key_usage   = ["DigitalSignature", "KeyEncipherment"]
+  key_type      = "rsa"
+  key_bits      = 2048
+  key_usage     = ["DigitalSignature", "KeyEncipherment"]
   ext_key_usage = ["ServerAuth", "ClientAuth"]
 
-  require_cn             = true
-  use_csr_common_name    = false
-  enforce_hostnames      = true
-  allow_any_name         = false
-  server_flag            = true
-  client_flag            = true
+  require_cn          = true
+  use_csr_common_name = false
+  enforce_hostnames   = true
+  allow_any_name      = false
+  server_flag         = true
+  client_flag         = true
 
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.intermediate]
 }
 
 // Enable auto-tidy for old certificates
 resource "vault_pki_secret_backend_config_auto_tidy" "auto_tidy" {
-  backend                  = vault_mount.pki_intermediate.path
-  enabled                  = true
-  interval_duration        = 3600  # 1 hour
-  tidy_expired_issuers     = true
-  tidy_revoked_certs       = true
+  backend                       = vault_mount.pki_intermediate.path
+  enabled                       = true
+  interval_duration             = 3600 # 1 hour
+  tidy_expired_issuers          = true
+  tidy_revoked_certs            = true
   tidy_revoked_cert_issuer_refs = true
 
   depends_on = [vault_pki_secret_backend_intermediate_set_signed.intermediate]
