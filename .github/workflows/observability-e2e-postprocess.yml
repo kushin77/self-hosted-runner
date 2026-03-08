@@ -73,7 +73,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          RUN_HTML_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_HTML_URL: ${{ github.event.workflow_run.html_url || '' }}
+          INPUT_RUN_ID: ${{ github.event.inputs.run_id || '' }}
         run: |
           set -euo pipefail
           METRIC_FILES=$(find /tmp/metrics_artifact -type f -name metrics.json || true)
@@ -82,6 +83,7 @@ jobs:
             exit 0
           fi
 
+          # Aggregation counters
           TOTAL=0
           COUNT=0
           PASSES=0
@@ -89,17 +91,35 @@ jobs:
 
           for f in $METRIC_FILES; do
             echo "Processing $f"
-            jq -c '.tests[]' "$f" | while read -r test; do
-              status=$(echo "$test" | jq -r '.status')
-              lat=$(echo "$test" | jq -r '.latency_ms // 0')
-              TOTAL=$((TOTAL + lat))
+            # If the metrics file contains a tests array, use that schema
+            if jq -e '.tests' "$f" >/dev/null 2>&1; then
+              while IFS= read -r test; do
+                status=$(echo "$test" | jq -r '.status // ""')
+                lat=$(echo "$test" | jq -r '.latency_ms // 0')
+                TOTAL=$((TOTAL + lat))
+                COUNT=$((COUNT + 1))
+                if [ "$status" = "passed" ] || [ "$status" = "success" ]; then
+                  PASSES=$((PASSES + 1))
+                else
+                  FAILS=$((FAILS + 1))
+                fi
+              done < <(jq -c '.tests[]' "$f")
+            else
+              # Fallback: support the simple E2E runner schema
+              # - verification_passed: bool
+              # - test_type, incident_found, delivery_latency_seconds
+              VERIFIED=$(jq -r '.verification_passed // false' "$f")
+              TYPE=$(jq -r '.test_type // "unknown"' "$f")
+              INCIDENT=$(jq -r '.incident_found // false' "$f")
+              LATENCY=$(jq -r '.delivery_latency_seconds // 0' "$f")
               COUNT=$((COUNT + 1))
-              if [ "$status" = "passed" ] || [ "$status" = "success" ]; then
+              TOTAL=$((TOTAL + LATENCY))
+              if [ "$VERIFIED" = "true" ] || [ "$INCIDENT" = "true" ]; then
                 PASSES=$((PASSES + 1))
               else
                 FAILS=$((FAILS + 1))
               fi
-            done
+            fi
           done
 
           if [ "$COUNT" -gt 0 ]; then
@@ -108,11 +128,24 @@ jobs:
             AVG=0
           fi
 
-          SUMMARY="Observability E2E run summary for [workflow run]($RUN_HTML_URL)\n\n- Tests processed: $COUNT\n- Passed: $PASSES\n- Failed: $FAILS\n- Average latency (ms): $AVG\n\nArtifacts: observability-e2e-metrics"
+          # Prefer provided run URL; otherwise construct a link if run id present
+          if [ -n "$RUN_HTML_URL" ] && [ "$RUN_HTML_URL" != "null" ]; then
+            RUN_LINK="$RUN_HTML_URL"
+          else
+            # try to build URL from inputs if available
+            RUN_ID="${INPUT_RUN_ID}"
+            if [ -n "$RUN_ID" ]; then
+              RUN_LINK="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+            else
+              RUN_LINK="(unknown run)"
+            fi
+          fi
+
+          SUMMARY="Observability E2E run summary for ${RUN_LINK}\n\n- Tests processed: $COUNT\n- Passed: $PASSES\n- Failed: $FAILS\n- Average latency (ms): $AVG\n\nArtifacts: observability-e2e-metrics"
 
           COMMENT_PAYLOAD=$(jq -n --arg body "$SUMMARY" '{body:$body}')
           echo "Posting summary to issue #1370"
           curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -X POST "https://api.github.com/repos/$REPO/issues/1370/comments" \
-            -d "$COMMENT_PAYLOAD"
+            -d "$COMMENT_PAYLOAD" || true
