@@ -39,93 +39,63 @@ concurrency:
 
 jobs:
   fetch-aws-creds:
-    name: Fetch AWS Credentials from GSM
+    name: Fetch AWS Credentials from Secrets
     runs-on: ubuntu-latest
     permissions:
-      id-token: write
       contents: read
     outputs:
       aws_access_key_id: ${{ steps.credentials.outputs.aws_access_key_id }}
       aws_secret_access_key: ${{ steps.credentials.outputs.aws_secret_access_key }}
       aws_region: ${{ steps.credentials.outputs.aws_region }}
     steps:
-      - name: Authenticate to Google Cloud (OIDC)
-        id: auth
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-          token_format: 'access_token'
-          access_token_lifetime: '600s'
-
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
-
-      - name: Fetch AWS Credentials from GSM
+      - name: Export AWS Credentials from Secrets
         id: credentials
         env:
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
         run: |
           set -euo pipefail
-          echo "🔐 Fetching AWS credentials from GCP Secret Manager..."
-          
-          # Fetch AWS credentials with error handling
-          AWS_KEY=$(gcloud secrets versions access latest --secret="terraform-aws-prod" --project="$GCP_PROJECT_ID" 2>&1) || {
-            echo "::error::Failed to fetch terraform-aws-prod secret"
-            exit 1
-          }
-          
-          AWS_SECRET=$(gcloud secrets versions access latest --secret="terraform-aws-secret" --project="$GCP_PROJECT_ID" 2>&1) || {
-            echo "::error::Failed to fetch terraform-aws-secret secret"
-            exit 1
-          }
-          
-          AWS_REGION=$(gcloud secrets versions access latest --secret="terraform-aws-region" --project="$GCP_PROJECT_ID" 2>&1) || {
-            echo "::warning::terraform-aws-region not found, using default us-east-1"
-            AWS_REGION="us-east-1"
-          }
+          echo "🔐 Provisioning AWS credentials from GitHub secrets..."
           
           # Validate credentials
-          if [ -z "$AWS_KEY" ] || [ "$AWS_KEY" == "null" ]; then
-            echo "::error::AWS Access Key is empty or null"
+          if [ -z "$AWS_KEY" ]; then
+            echo "::error::AWS_ACCESS_KEY_ID secret not found"
             exit 1
           fi
           
-          if [ -z "$AWS_SECRET" ] || [ "$AWS_SECRET" == "null" ]; then
-            echo "::error::AWS Secret Key is empty or null"
+          if [ -z "$AWS_SECRET" ]; then
+            echo "::error::AWS_SECRET_ACCESS_KEY secret not found"
             exit 1
           fi
           
-          # Export as outputs
+          # Export as outputs (with masking)
           echo "::add-mask::$AWS_KEY"
           echo "::add-mask::$AWS_SECRET"
           echo "aws_access_key_id=$AWS_KEY" >> $GITHUB_OUTPUT
           echo "aws_secret_access_key=$AWS_SECRET" >> $GITHUB_OUTPUT
           echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
           
-          echo "✅ Successfully fetched AWS credentials from GSM"
+          echo "✅ AWS credentials provisioned successfully"
 
   preflight-checks:
     name: Pre-Apply Checks
     runs-on: ubuntu-latest
     if: ${{ !inputs.skip_checks }}
     permissions:
-      id-token: write
       contents: read
     outputs:
       checks_passed: ${{ steps.checks.outputs.result }}
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-creds.json
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud (OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Provision GCP Service Account
+        run: |
+          echo "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-creds.json
+          chmod 600 /tmp/gcp-creds.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -149,27 +119,22 @@ jobs:
     needs: [preflight-checks, fetch-aws-creds]
     if: ${{ inputs.enable_state_backup && (success() || inputs.skip_checks) }}
     permissions:
-      id-token: write
       contents: read
     env:
       AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
       AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
       AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-creds.json
     outputs:
       backup_file: ${{ steps.backup.outputs.backup_file }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud (OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Provision GCP Service Account
+        run: |
+          echo "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-creds.json
+          chmod 600 /tmp/gcp-creds.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -217,14 +182,13 @@ jobs:
     needs: [fetch-aws-creds, state-backup]
     if: ${{ success() || inputs.skip_checks }}
     permissions:
-      id-token: write
       contents: read
       issues: write
     env:
       AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
       AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
       AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-creds.json
     outputs:
       plan_summary: ${{ steps.analyze.outputs.summary }}
       resource_count: ${{ steps.analyze.outputs.resource_count }}
@@ -235,14 +199,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud (OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Provision GCP Service Account
+        run: |
+          echo "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-creds.json
+          chmod 600 /tmp/gcp-creds.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -315,14 +275,13 @@ jobs:
     needs: [fetch-aws-creds, state-backup, terraform-plan-review]
     if: ${{ !inputs.dry_run && (success() || inputs.skip_checks) }}
     permissions:
-      id-token: write
       contents: read
       issues: write
     env:
       AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
       AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
       AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-creds.json
     outputs:
       apply_status: ${{ steps.apply.outputs.status }}
       apply_summary: ${{ steps.apply.outputs.summary }}
@@ -330,14 +289,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Authenticate to Google Cloud (OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-
-      - name: Setup Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+      - name: Provision GCP Service Account
+        run: |
+          echo "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" > /tmp/gcp-creds.json
+          chmod 600 /tmp/gcp-creds.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
