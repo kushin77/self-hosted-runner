@@ -1,0 +1,121 @@
+name: Vault OIDC Auth (Reusable - No Ops)
+
+on:
+  workflow_call:
+    inputs:
+      vault_addr:
+        description: 'Vault server address (e.g., https://vault.example.com)'
+        required: true
+        type: string
+      vault_role:
+        description: 'Vault role name for OIDC auth'
+        required: true
+        type: string
+      vault_namespace:
+        description: 'Vault namespace (optional; default: root)'
+        required: false
+        type: string
+        default: ''
+    outputs:
+      vault_token:
+        description: 'Vault token for downstream steps'
+        value: ${{ jobs.vault-auth.outputs.token }}
+      secret_keys:
+        description: 'Comma-separated list of retrieved secret keys'
+        value: ${{ jobs.vault-auth.outputs.secret_keys }}
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  vault-auth:
+    name: Authenticate to Vault (OIDC)
+    runs-on: ubuntu-latest
+    outputs:
+      token: ${{ steps.vault-auth.outputs.token }}
+      secret_keys: ${{ steps.vault-auth.outputs.secret_keys }}
+    steps:
+      - name: Log audit event (auth start)
+        run: |
+          echo '{
+            "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+            "action": "vault_oidc_auth_start",
+            "role": "${{ inputs.vault_role }}",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}"
+          }' | jq .
+
+      - name: Authenticate to Vault via OIDC
+        id: vault-auth
+        run: |
+          set -euo pipefail
+          
+          VAULT_ADDR="${{ inputs.vault_addr }}"
+          VAULT_ROLE="${{ inputs.vault_role }}"
+          VAULT_NS="${{ inputs.vault_namespace }}"
+          
+          echo "🔐 Authenticating to Vault via OIDC..."
+          echo "  Vault Address: ${VAULT_ADDR}"
+          echo "  Role: ${VAULT_ROLE}"
+          echo "  Namespace: ${VAULT_NS:-root}"
+          
+          # Request JWT from GitHub
+          OIDC_TOKEN=$(curl -sS -X POST \
+            -H "Authorization: bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/oidc/customization/sub" \
+            | jq -r '.value' 2>/dev/null || echo "")
+          
+          if [ -z "$OIDC_TOKEN" ]; then
+            echo "❌ Failed to obtain GitHub OIDC token"
+            exit 1
+          fi
+          
+          # Exchange JWT for Vault token
+          AUTH_RESPONSE=$(curl -sS -X POST \
+            "${VAULT_ADDR}/v1/auth/jwt/login" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"role\": \"${VAULT_ROLE}\",
+              \"jwt\": \"${OIDC_TOKEN}\"
+            }")
+          
+          VAULT_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.auth.client_token' 2>/dev/null)
+          
+          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" = "null" ]; then
+            echo "❌ Failed to obtain Vault token"
+            echo "Response: $AUTH_RESPONSE" | jq .
+            exit 1
+          fi
+          
+          # Mask token in logs
+          echo "::add-mask::${VAULT_TOKEN}"
+          echo "token=${VAULT_TOKEN}" >> $GITHUB_OUTPUT
+          echo "secret_keys=" >> $GITHUB_OUTPUT
+          
+          echo "✅ Vault OIDC authentication successful"
+          echo "Token TTL: $(echo "$AUTH_RESPONSE" | jq -r '.auth.lease_duration // "unknown"') seconds"
+
+      - name: Log audit event (auth success)
+        if: success()
+        run: |
+          echo '{
+            "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+            "action": "vault_oidc_auth_success",
+            "role": "${{ inputs.vault_role }}",
+            "status": "authenticated",
+            "run_id": "${{ github.run_id }}"
+          }' | jq .
+
+      - name: Log audit event (auth failure)
+        if: failure()
+        run: |
+          echo '{
+            "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+            "action": "vault_oidc_auth_failure",
+            "role": "${{ inputs.vault_role }}",
+            "status": "failed",
+            "run_id": "${{ github.run_id }}"
+          }' | jq .
+          exit 1
