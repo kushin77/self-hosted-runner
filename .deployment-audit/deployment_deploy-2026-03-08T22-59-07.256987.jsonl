@@ -1,0 +1,2 @@
+{"timestamp": "2026-03-08T22:59:07.257757", "event_type": "deployment_start", "component_id": "activate-rca-autohealer", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:59:17.591207", "event_type": "deployment_failed", "component_id": "activate-rca-autohealer", "status": "failed", "details": {}, "error": "Validation failed: validate-rca-active"}

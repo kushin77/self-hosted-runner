@@ -17,9 +17,13 @@ import os
 import sys
 import json
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Dict, Any
+
+# Import deployment orchestration directly
+from deployment.alacarte import DeploymentOrchestrator
+from deployment.components import get_component
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # CONFIGURATION
@@ -35,7 +39,7 @@ FULL_SUITE_COMPONENTS = [
     "activate-rca-autohealer",
 ]
 
-DEPLOYMENT_ID = f"master-{datetime.now().isoformat().replace(':', '-')}"
+DEPLOYMENT_ID = f"master-{datetime.now(timezone.utc).isoformat().replace(':', '-')}"
 AUDIT_DIR = Path(".deployment-audit")
 AUDIT_DIR.mkdir(exist_ok=True)
 
@@ -48,7 +52,7 @@ class MasterDeploymentExecutor:
     
     def __init__(self):
         self.deployment_id = DEPLOYMENT_ID
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now(timezone.utc)
         self.results = {
             "deployment_id": self.deployment_id,
             "start_time": self.start_time.isoformat(),
@@ -57,7 +61,7 @@ class MasterDeploymentExecutor:
     
     def log(self, message: str, level: str = "INFO"):
         """Log message with timestamp."""
-        timestamp = datetime.utcnow().isoformat()
+        timestamp = datetime.now(timezone.utc).isoformat()
         print(f"[{timestamp}] [{level:8}] {message}")
     
     def execute_full_suite(self) -> bool:
@@ -82,7 +86,7 @@ class MasterDeploymentExecutor:
                 
                 self.results["components"][component_id] = {
                     "status": "success" if result else "failed",
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 
                 if result:
@@ -96,11 +100,11 @@ class MasterDeploymentExecutor:
                 self.results["components"][component_id] = {
                     "status": "error",
                     "error": str(e),
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 }
                 success = False
         
-        self.results["end_time"] = datetime.utcnow().isoformat()
+        self.results["end_time"] = datetime.now(timezone.utc).isoformat()
         self.results["status"] = "success" if success else "failed"
         self.results["total_components"] = len(FULL_SUITE_COMPONENTS)
         self.results["successful_components"] = sum(
@@ -115,30 +119,26 @@ class MasterDeploymentExecutor:
     def _execute_component(self, component_id: str) -> bool:
         """Execute single component via orchestrator."""
         try:
-            # Call orchestrator for this component
-            cmd = f"python3 -m deployment.alacarte --deploy {component_id}"
+            # Use Python API directly instead of subprocess to avoid circular imports
+            from deployment.alacarte import DeploymentOrchestrator
             
-            result = subprocess.run(
-                cmd,
-                shell=True,
-                capture_output=True,
-                text=True,
-                timeout=900,  # 15 minutes per component
-                cwd="/home/akushnir/self-hosted-runner"
-            )
+            orchest = DeploymentOrchestrator(deployment_id=f"comp-{component_id}")
             
-            if result.returncode == 0:
-                self.log(f"  Output: {result.stdout[:300]}", "DEBUG")
-                return True
+            # Deploy single component
+            success = orchest.deploy_components([component_id], dry_run=False)
+            
+            # Capture output
+            if success:
+                self.log(f"  Output: Component {component_id} deployed successfully", "DEBUG")
             else:
-                self.log(f"  Error: {result.stderr[:300]}", "ERROR")
-                return False
+                self.log(f"  Error: Component {component_id} had deployment issues", "ERROR")
+            
+            return success
         
-        except subprocess.TimeoutExpired:
-            self.log(f"  Timeout after 15 minutes", "ERROR")
-            return False
         except Exception as e:
             self.log(f"  Exception: {e}", "ERROR")
+            import traceback
+            traceback.print_exc()
             return False
     
     def _print_summary(self, success: bool):
@@ -148,7 +148,7 @@ class MasterDeploymentExecutor:
         self.log(f"════════════════════════════════════════════════════════════")
         self.log(f"Deployment ID: {self.deployment_id}")
         self.log(f"Status: {'✅ SUCCESS' if success else '❌ FAILED'}")
-        self.log(f"Duration: {(datetime.utcnow() - self.start_time).total_seconds():.1f} seconds")
+        self.log(f"Duration: {(datetime.now(timezone.utc) - self.start_time).total_seconds():.1f} seconds")
         self.log(f"\nComponents Deployed: {self.results['successful_components']}/{self.results['total_components']}")
         
         for component_id, result in self.results["components"].items():
@@ -186,7 +186,7 @@ class MasterDeploymentExecutor:
         
         # Write summary event
         summary_event = {
-            "timestamp": self.results.get("end_time", datetime.utcnow().isoformat()),
+            "timestamp": self.results.get("end_time", datetime.now(timezone.utc).isoformat()),
             "event_type": "master_deployment_complete",
             "status": self.results["status"],
             "successful": self.results["successful_components"],
