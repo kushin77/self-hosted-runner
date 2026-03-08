@@ -5,38 +5,68 @@
       "file": ".github/workflows/terraform-plan.yml",
       "name": "Terraform Plan",
       "category": "Infrastructure",
-      "triggers": ["push", "workflow_dispatch", "schedule"],
+      "triggers": [
+        "push",
+        "workflow_dispatch",
+        "schedule"
+      ],
       "risk_level": "HIGH",
       "owner": "@devops-team",
       "description": "Plan infrastructure changes with Terraform",
       "dependencies": {
-        "scripts": ["scripts/terraform-validate.sh"],
-        "secrets": ["AWS_OIDC_ROLE_ARN", "GCP_WORKLOAD_IDENTITY_PROVIDER"],
-        "requires": ["terraform/"]
+        "scripts": [
+          "scripts/terraform-validate.sh"
+        ],
+        "secrets": [
+          "AWS_OIDC_ROLE_ARN",
+          "GCP_WORKLOAD_IDENTITY_PROVIDER"
+        ],
+        "requires": [
+          "terraform/"
+        ]
       },
       "impacts": {
         "if_fails": "Infrastructure changes blocked",
         "if_broken": "Deployments cannot proceed",
-        "affected_workflows": ["terraform-apply.yml", "deployment.yml"]
+        "affected_workflows": [
+          "terraform-apply.yml",
+          "deployment.yml"
+        ]
       },
       "created": "2024-01-15",
       "last_modified": "2026-03-08",
-      "version": "2.1"
+      "version": "2.1",
+      "security_review": {
+        "status": "pending",
+        "reviewed_by": null,
+        "reviewed_date": null,
+        "notes": "Security review required - critical/high risk workflow",
+        "compliance_check": true
+      }
     },
     {
       "id": "terraform-apply",
       "file": ".github/workflows/terraform-apply.yml",
       "name": "Terraform Apply",
       "category": "Infrastructure",
-      "triggers": ["workflow_dispatch"],
+      "triggers": [
+        "workflow_dispatch"
+      ],
       "risk_level": "CRITICAL",
       "owner": "@devops-team",
       "requires_approval": true,
       "description": "Apply infrastructure changes to production",
       "dependencies": {
-        "scripts": ["scripts/terraform-apply.sh", "scripts/validate-state.sh"],
-        "secrets": ["AWS_OIDC_ROLE_ARN"],
-        "requires": ["terraform-plan.yml success"]
+        "scripts": [
+          "scripts/terraform-apply.sh",
+          "scripts/validate-state.sh"
+        ],
+        "secrets": [
+          "AWS_OIDC_ROLE_ARN"
+        ],
+        "requires": [
+          "terraform-plan.yml success"
+        ]
       },
       "impacts": {
         "if_fails": "Production infrastructure at risk",
@@ -45,22 +75,41 @@
       },
       "created": "2024-01-15",
       "last_modified": "2026-02-20",
-      "version": "2.0"
+      "version": "2.0",
+      "security_review": {
+        "status": "pending",
+        "reviewed_by": null,
+        "reviewed_date": null,
+        "notes": "Security review required - critical/high risk workflow",
+        "compliance_check": true
+      }
     },
     {
       "id": "deployment",
       "file": ".github/workflows/deployment.yml",
       "name": "Deployment",
       "category": "Deployment",
-      "triggers": ["push", "workflow_dispatch"],
+      "triggers": [
+        "push",
+        "workflow_dispatch"
+      ],
       "risk_level": "CRITICAL",
       "owner": "@devops-team",
       "requires_approval": true,
       "description": "Deploy application to production",
       "dependencies": {
-        "scripts": ["scripts/deploy-full-stack.sh", "scripts/smoke-test.sh"],
-        "secrets": ["AWS_OIDC_ROLE_ARN", "GITHUB_TOKEN"],
-        "requires": ["terraform-apply.yml success", "ci-cd.yml success"]
+        "scripts": [
+          "scripts/deploy-full-stack.sh",
+          "scripts/smoke-test.sh"
+        ],
+        "secrets": [
+          "AWS_OIDC_ROLE_ARN",
+          "GITHUB_TOKEN"
+        ],
+        "requires": [
+          "terraform-apply.yml success",
+          "ci-cd.yml success"
+        ]
       },
       "impacts": {
         "if_fails": "Production deployment blocked",
@@ -69,7 +118,14 @@
       },
       "created": "2024-01-10",
       "last_modified": "2026-03-05",
-      "version": "3.2"
+      "version": "3.2",
+      "security_review": {
+        "status": "pending",
+        "reviewed_by": null,
+        "reviewed_date": null,
+        "notes": "Security review required - critical/high risk workflow",
+        "compliance_check": true
+      }
     }
   ],
   "scripts": [
@@ -82,8 +138,13 @@
       "owner": "@devops-team",
       "is_critical": true,
       "description": "Validate Terraform configuration syntax",
-      "called_by": ["terraform-plan.yml", "terraform-auto.yml"],
-      "calls": ["scripts/check-providers.sh"],
+      "called_by": [
+        "terraform-plan.yml",
+        "terraform-auto.yml"
+      ],
+      "calls": [
+        "scripts/check-providers.sh"
+      ],
       "requires_root": false,
       "timeout_seconds": 300,
       "created": "2024-01-10",
@@ -99,8 +160,14 @@
       "owner": "@devops-team",
       "is_critical": true,
       "description": "Deploy entire application stack to production",
-      "called_by": ["deployment.yml"],
-      "calls": ["scripts/pre-deploy-check.sh", "scripts/deploy-containers.sh", "scripts/post-deploy-validation.sh"],
+      "called_by": [
+        "deployment.yml"
+      ],
+      "calls": [
+        "scripts/pre-deploy-check.sh",
+        "scripts/deploy-containers.sh",
+        "scripts/post-deploy-validation.sh"
+      ],
       "requires_root": false,
       "timeout_seconds": 1800,
       "created": "2024-01-10",
@@ -116,7 +183,9 @@
       "owner": "@devops-team",
       "is_critical": true,
       "description": "Validate Terraform state consistency before apply",
-      "called_by": ["terraform-apply.yml"],
+      "called_by": [
+        "terraform-apply.yml"
+      ],
       "calls": [],
       "requires_root": false,
       "timeout_seconds": 120,
@@ -131,7 +200,11 @@
       "storage": "GitHub",
       "scope": "Repository",
       "description": "AWS IAM role ARN for OIDC authentication",
-      "used_by": ["terraform-plan.yml", "terraform-apply.yml", "deployment.yml"],
+      "used_by": [
+        "terraform-plan.yml",
+        "terraform-apply.yml",
+        "deployment.yml"
+      ],
       "owner": "@devops-team",
       "rotation_schedule": "quarterly",
       "risk_level": "CRITICAL",
@@ -147,7 +220,10 @@
       "storage": "GitHub",
       "scope": "Repository",
       "description": "GCP workload identity provider for OIDC",
-      "used_by": ["terraform-plan.yml", "gcp-deployment.yml"],
+      "used_by": [
+        "terraform-plan.yml",
+        "gcp-deployment.yml"
+      ],
       "owner": "@devops-team",
       "rotation_schedule": "annual",
       "risk_level": "CRITICAL",
@@ -163,7 +239,10 @@
       "storage": "GitHub",
       "scope": "GitHub Actions (default)",
       "description": "GitHub API token for repository access",
-      "used_by": ["deployment.yml", "ci-cd.yml"],
+      "used_by": [
+        "deployment.yml",
+        "ci-cd.yml"
+      ],
       "owner": "@platform-eng",
       "rotation_schedule": "per-workflow",
       "risk_level": "HIGH",
@@ -178,26 +257,39 @@
     {
       "id": "AWS_REGION",
       "type": "environment_variable",
-      "scope": ["terraform", "scripts", "workflows"],
+      "scope": [
+        "terraform",
+        "scripts",
+        "workflows"
+      ],
       "description": "AWS region for all deployments",
       "default": "us-east-1",
       "required": true,
       "validation": "regex:^[a-z]{2}-[a-z]+-\\d$",
       "owner": "@devops-team",
-      "used_by": ["deployment.yml", "terraform-plan.yml"],
+      "used_by": [
+        "deployment.yml",
+        "terraform-plan.yml"
+      ],
       "created": "2024-01-01",
       "version": "1"
     },
     {
       "id": "GCP_PROJECT_ID",
       "type": "environment_variable",
-      "scope": ["terraform", "scripts", "gcp-workflows"],
+      "scope": [
+        "terraform",
+        "scripts",
+        "gcp-workflows"
+      ],
       "description": "GCP project ID for deployments",
       "default": "gcp-eiq",
       "required": true,
       "validation": "regex:^[a-z0-9-]+$",
       "owner": "@devops-team",
-      "used_by": ["gcp-deployment.yml"],
+      "used_by": [
+        "gcp-deployment.yml"
+      ],
       "created": "2024-02-01",
       "version": "1"
     }
