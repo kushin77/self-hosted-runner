@@ -1,0 +1,18 @@
+DEPENDENCY TREE
+===============
+
+Legend:
+  → : depends on
+  ◇ : critical item
+  ○ : normal item
+
+  ○ .github/workflows/deployment.yml → AWS_OIDC_ROLE_ARN (requires_secret)
+  ○ .github/workflows/deployment.yml → .github/workflows/terraform-apply.yml (requires)
+  ○ .github/workflows/deployment.yml → scripts/deploy-full-stack.sh (calls)
+  ○ .github/workflows/terraform-apply.yml → AWS_OIDC_ROLE_ARN (requires_secret)
+  ○ .github/workflows/terraform-apply.yml → scripts/terraform-apply.sh (calls)
+  ○ .github/workflows/terraform-apply.yml → scripts/validate-state.sh (requires)
+  ○ .github/workflows/terraform-plan.yml → AWS_OIDC_ROLE_ARN (requires_secret)
+  ○ .github/workflows/terraform-plan.yml → scripts/terraform-validate.sh (calls)
+  ○ scripts/deploy-full-stack.sh → scripts/post-deploy-validation.sh (calls)
+  ○ scripts/deploy-full-stack.sh → scripts/pre-deploy-check.sh (calls)

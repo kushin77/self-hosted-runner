@@ -1,0 +1,104 @@
+{
+  "owners": {
+    "@devops-team": {
+      "workflows": [
+        "terraform-*.yml",
+        "deployment.yml",
+        "infrastructure-*.yml"
+      ],
+      "scripts": [
+        "scripts/terraform-*",
+        "scripts/deploy*",
+        "scripts/validate-state*"
+      ],
+      "secrets": [
+        "AWS_*",
+        "GCP_WORKLOAD_*",
+        "TERRAFORM_*"
+      ],
+      "configs": [
+        "terraform/",
+        "kubernetes/",
+        "docker-compose*.yml"
+      ],
+      "oncall": true,
+      "slack_channel": "#devops",
+      "github_team": "devops-team",
+      "escalation": "@infrastructure-lead",
+      "description": "Infrastructure and deployment team"
+    },
+    "@security-team": {
+      "workflows": [
+        "security-audit.yml",
+        "secret-rotation.yml",
+        "compliance-*.yml"
+      ],
+      "scripts": [
+        "scripts/security/*",
+        "scripts/audit-*.sh"
+      ],
+      "secrets": [
+        "VAULT_*",
+        "SIGNING_*",
+        "ENCRYPTION_*"
+      ],
+      "configs": [
+        ".github/CODEOWNERS",
+        "security/"
+      ],
+      "requires_review": true,
+      "slack_channel": "#security",
+      "github_team": "security-team",
+      "escalation": "@ciso",
+      "description": "Security and compliance team"
+    },
+    "@platform-eng": {
+      "workflows": [
+        "ci-cd.yml",
+        "release.yml",
+        "publish-*.yml"
+      ],
+      "scripts": [
+        "scripts/ci/*",
+        "scripts/release/*",
+        "scripts/publish/*"
+      ],
+      "secrets": [
+        "GITHUB_*",
+        "REGISTRY_*"
+      ],
+      "configs": [
+        ".github/workflows/",
+        "build/"
+      ],
+      "requires_review": true,
+      "slack_channel": "#platform-engineering",
+      "github_team": "platform-eng",
+      "escalation": "@platform-lead",
+      "description": "Platform engineering and CI/CD team"
+    }
+  },
+  "approval_rules": {
+    "CRITICAL": {
+      "risk_level": "CRITICAL",
+      "requires_review_from": ["owner", "oncall"],
+      "min_approvals": 2,
+      "exclude_authors": false,
+      "description": "Critical changes require approval"
+    },
+    "HIGH": {
+      "risk_level": "HIGH",
+      "requires_review_from": ["owner"],
+      "min_approvals": 1,
+      "exclude_authors": true,
+      "description": "High-risk changes require owner review"
+    },
+    "MEDIUM": {
+      "risk_level": "MEDIUM",
+      "requires_review_from": [],
+      "min_approvals": 0,
+      "exclude_authors": false,
+      "description": "Medium-risk changes can be merged by author"
+    }
+  }
+}
