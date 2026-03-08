@@ -1,4 +1,8 @@
 name: Deploy Rotation Automation to Staging
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:

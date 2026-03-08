@@ -1,4 +1,8 @@
 name: E2E Validate & Hands-off Deploy
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:
