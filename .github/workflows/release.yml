@@ -1,0 +1,57 @@
+name: Release (create tag + release)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for changelog
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+    
+    - name: Validate version format
+      run: |
+        if ! [[ "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+          echo "Invalid version format. Use v1.0.0 or v1.0.0-rc1"
+          exit 1
+        fi
+    
+    - name: Create git tag
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
+        git push origin ${{ github.event.inputs.version }}
+    
+    - name: Create GitHub release
+      run: |
+        gh release create ${{ github.event.inputs.version }} \
+          --title "Release ${{ github.event.inputs.version }}" \
+          --notes "See CHANGELOG.md for details" \
+          --draft=false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Build and publish to PyPI (optional)
+      if: '!contains(github.event.inputs.version, "rc") && !contains(github.event.inputs.version, "alpha") && !contains(github.event.inputs.version, "beta")'
+      run: |
+        pip install build twine
+        python -m build
+        # Note: Add PYPI_TOKEN to secrets to enable publishing
+        # twine upload dist/* -u __token__ -p ${{ secrets.PYPI_TOKEN }}
+        echo "Dry-run: would publish to PyPI"
