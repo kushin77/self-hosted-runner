@@ -149,7 +149,7 @@ jobs:
           path: |
             scripts/automation/pmo/prometheus/*.log
 
-      - name: Debug: list workspace for metrics
+      - name: "Debug: list workspace for metrics"
         if: always()
         run: |
           echo "Workspace: $GITHUB_WORKSPACE"
@@ -163,9 +163,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: observability-e2e-metrics
-            path: |
-              **/workflow_artifacts/metrics.json
-              /tmp/observability-e2e.*/metrics.json
+          path: |
+            **/workflow_artifacts/metrics.json
+            /tmp/observability-e2e.*/metrics.json
 
       - name: Summary
         if: always()
