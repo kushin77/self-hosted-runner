@@ -1,0 +1,22 @@
+{
+  "id": "workflow-name",
+  "name": "Workflow Display Name",
+  "version": "1.0.0",
+  "type": "github-actions",
+  "path": ".github/workflows/example.yml",
+  "description": "What this workflow does",
+  "owner": "team-name",
+  "risk_level": "MEDIUM",
+  "critical": false,
+  "created": "2026-03-08T00:00:00Z",
+  "last_modified": "2026-03-08T00:00:00Z",
+  "status": "active",
+  "tags": ["example"],
+  "dependencies": [],
+  "security_review": {
+    "reviewed": false,
+    "reviewer": null,
+    "date": null,
+    "notes": ""
+  }
+}
