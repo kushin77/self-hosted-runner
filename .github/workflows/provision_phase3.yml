@@ -1,53 +1,3 @@
-name: Provision Phase 3 (GCP WIF & Vault)
-
-on:
-  workflow_dispatch:
-    inputs:
-      vault_deploy:
-        description: 'Deploy Vault (true/false)'
-        required: false
-        default: 'false'
-
-jobs:
-  provision:
-    runs-on: ubuntu-latest
-    env:
-      REPO: ${{ github.repository }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq curl unzip
-          curl -sSL https://raw.githubusercontent.com/hashicorp/terraform/main/scripts/install.sh | sudo bash -s -- 1.5.0 || true
-          curl -fsSL https://raw.githubusercontent.com/cli/cli/trunk/script/install.sh | sudo bash || true
-          sudo snap install helm --classic || true
-
-      - name: Save GCP credentials
-        if: success()
-        env:
-          GCP_CREDS: ${{ secrets.GCP_CREDENTIALS }}
-        run: |
-          if [ -n """$GCP_CREDS""" ]; then
-            echo "$GCP_CREDS" > infra/gcp_creds.json
-            chmod 600 infra/gcp_creds.json
-          else
-            echo "No GCP_CREDENTIALS provided; terraform may fail if required."
-          fi
-
-      - name: Make provisioning script executable
-        run: |
-          chmod +x ./scripts/provision_phase3.sh
-
-      - name: Run provisioning script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-          VAULT_DEPLOY: ${{ github.event.inputs.vault_deploy }}
-        run: |
-          ./scripts/provision_phase3.sh
 name: Provision Phase 3 (GCP WIF + Vault)
 
 on:
@@ -73,7 +23,7 @@ jobs:
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
           project_id: ${{ secrets.GCP_PROJECT_ID }}
 
       - name: Setup Terraform
@@ -102,9 +52,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           jq -r 'to_entries|map("- " + .key + ": " + (.value.value|tostring))|.[]' /tmp/terraform_outputs.json > /tmp/tf_summary.txt || true
-          echo "
-Terraform outputs:
-" >> /tmp/PHASE3_READY_SUMMARY.txt || true
+          echo "\nTerraform outputs:\n" >> /tmp/PHASE3_READY_SUMMARY.txt || true
           cat /tmp/tf_summary.txt >> /tmp/PHASE3_READY_SUMMARY.txt || true
           chmod +x ./scripts/phase3_generate_issue.sh
           CLOSE_INCIDENTS=true GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} REPO=${{ github.repository }} ./scripts/phase3_generate_issue.sh
@@ -121,6 +69,7 @@ Terraform outputs:
 
       - name: Trigger orchestrator & health workflows
         run: |
-          gh workflow run secrets-orchestrator-multi-layer.yml --ref main
+          gh workflow run secrets-orchestrator-multi-layer.yml --ref main || true
           sleep 180
-          gh workflow run secrets-health-multi-layer.yml --ref main
+          gh workflow run secrets-health-multi-layer.yml --ref main || true
+              if: ${{ github.event.inputs.deploy_vault == 'true' }}
