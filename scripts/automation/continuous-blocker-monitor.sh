@@ -4,7 +4,7 @@ set -euo pipefail
 # Continuous blocker monitor: runs ops-blocker-automation.sh every N seconds
 # Idempotent: uses a PID file to avoid duplicate runners
 
-WORKDIR="$(cd "$(dirname "$0")/.." && pwd)"
+WORKDIR="$(cd "$(dirname "$0")/../.." && pwd)"
 PIDFILE="$WORKDIR/.continuous_blocker_monitor.pid"
 RUNNER="$WORKDIR/scripts/automation/ops-blocker-automation.sh"
 INTERVAL=${INTERVAL:-300} # seconds
