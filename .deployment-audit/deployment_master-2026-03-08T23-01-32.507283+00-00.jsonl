@@ -1,0 +1,9 @@
+{"timestamp": "2026-03-08T23:01:32.507352+00:00", "event_type": "master_deployment_start", "deployment_id": "master-2026-03-08T23-01-32.507283+00-00", "components_count": 7}
+{"timestamp": "2026-03-08T23:01:32.682266+00:00", "event_type": "component_deployment", "component_id": "remove-embedded-secrets", "status": "success"}
+{"timestamp": "2026-03-08T23:01:42.743707+00:00", "event_type": "component_deployment", "component_id": "migrate-to-gsm", "status": "failed"}
+{"timestamp": "2026-03-08T23:01:52.811208+00:00", "event_type": "component_deployment", "component_id": "migrate-to-vault", "status": "failed"}
+{"timestamp": "2026-03-08T23:02:02.876544+00:00", "event_type": "component_deployment", "component_id": "migrate-to-kms", "status": "failed"}
+{"timestamp": "2026-03-08T23:02:12.893216+00:00", "event_type": "component_deployment", "component_id": "setup-dynamic-credential-retrieval", "status": "failed"}
+{"timestamp": "2026-03-08T23:02:22.911134+00:00", "event_type": "component_deployment", "component_id": "setup-credential-rotation", "status": "failed"}
+{"timestamp": "2026-03-08T23:02:23.194778+00:00", "event_type": "component_deployment", "component_id": "activate-rca-autohealer", "status": "success"}
+{"timestamp": "2026-03-08T23:02:23.194800+00:00", "event_type": "master_deployment_complete", "status": "failed", "successful": 2, "total": 7}
