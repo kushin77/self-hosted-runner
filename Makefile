@@ -5,6 +5,7 @@ SHELL := /bin/bash
 .PHONY: docker-build docker-run docker-clean docker-push
 .PHONY: dev-setup dev-clean dev-logs
 .PHONY: deploy-rotation-check deploy-rotation-dry-run deploy-rotation deploy-rotation-verbose
+.PHONY: quality quality-fix quality-pre-commit
 
 # Default target
 .DEFAULT_GOAL := help
@@ -15,14 +16,32 @@ HELP_SPACING = 20
 help: ## Display this help message
 	@echo "Self-Hosted Runner Development - Available targets:"
 	@echo ""
-	@echo "Development Setup:"
+	@echo "📚 Local Development Stack (Docker Compose):"
+	@echo "  make dev-up           # Start full local stack"
+	@echo "  make dev-down         # Stop local stack"
+	@echo "  make dev-reset        # Reset stack (delete volumes)"
+	@echo "  make dev-logs         # View live logs"
+	@echo "  make dev-verify       # Run smoke tests"
+	@echo "  make dev-shell        # Drop into service container"
+	@echo ""
+	@echo "⚙️  Standard Development:"
+	@echo "  make bootstrap        # Install all dependencies"
+	@echo "  make test             # Run all tests"
+	@echo "  make quality          # Run quality checks"
+	@echo ""
+	@echo "🐳 Docker & Deployment:"
+	@echo "  make docker-build     # Build runner image"
+	@echo "  make docker-push      # Push to registry"
+	@echo "  make deploy-rotation  # Deploy to staging"
+	@echo ""
+	@echo "📋 All targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-$(HELP_SPACING)s %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Examples:"
-	@echo "  make bootstrap        # Initialize dev environment"
-	@echo "  make docker-build     # Build self-hosted runner image"
-	@echo "  make docker-run       # Run self-hosted runner locally"
-	@echo "  make test             # Run all tests"
+	@echo "💡 Examples:"
+	@echo "  make dev-up           # Start: http://localhost:3000"
+	@echo "  make dev-logs         # See what's happening"
+	@echo "  make dev-verify       # Verify services are healthy"
+	@echo "  make dev-shell SERVICE=vault  # SSH into container"
 
 bootstrap: ## Initialize development environment (install dependencies)
 	@echo "Bootstrap: install repo-wide tools"
@@ -110,3 +129,94 @@ deploy-rotation: ## Full deployment to staging environment
 deploy-rotation-verbose: ## Deployment with verbose logging
 	@echo "Deploy Rotation Automation: with verbose logging"
 	./scripts/deploy-rotation-staging.sh --verbose
+
+# ===== DX Accelerator: Local Development Stack =====
+
+dev-up: ## Start full local development stack (docker-compose)
+	@echo "🚀 Starting local development stack..."
+	@echo "  Services: Vault, Redis, Postgres, MinIO, Prometheus, Grafana"
+	@echo "  Apps: Portal, Provisioner, VaultShim, AI-Oracle, ManagedAuth, PipelineRepair"
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo ""
+	@echo "✓ Stack started. Waiting for services to be ready..."
+	@sleep 5
+	@echo ""
+	@echo "🌐 Services available at:"
+	@echo "  Portal UI:        http://localhost:3000"
+	@echo "  Provisioner API:  http://localhost:8000/health"
+	@echo "  VaultShim:        http://localhost:8080"
+	@echo "  Vault UI:         http://localhost:8200/ui"
+	@echo "  Prometheus:       http://localhost:9090"
+	@echo "  Grafana:          http://localhost:3001 (admin/admin)"
+	@echo "  MinIO:            http://localhost:9001 (minioadmin/minioadmin123)"
+	@echo ""
+	@echo "Run 'make dev-logs' to view logs"
+	@echo "Run 'make dev-down' to stop the stack"
+
+dev-down: ## Stop local development stack
+	@echo "🛑 Stopping local development stack..."
+	docker-compose -f docker-compose.dev.yml down
+	@echo "✓ Stack stopped"
+
+dev-reset: ## Reset dev stack (removes volumes, caches, rebuilds)
+	@echo "🔄 Resetting development environment (WARNING: loses local data)"
+	@read -p "Press Enter to continue or Ctrl+C to cancel..."
+	docker-compose -f docker-compose.dev.yml down -v
+	docker-compose -f docker-compose.dev.yml build --no-cache
+	@echo "✓ Reset complete. Run 'make dev-up' to restart"
+
+dev-logs: ## View live logs from all dev services
+	@echo "📊 Streaming logs from development stack..."
+	@echo "(Press Ctrl+C to exit)"
+	docker-compose -f docker-compose.dev.yml logs -f --tail=50
+
+dev-logs-service: ## View logs from specific service (usage: make dev-logs-service SERVICE=vault)
+	@if [ -z "$(SERVICE)" ]; then \
+	  echo "Usage: make dev-logs-service SERVICE=<service-name>"; \
+	  echo "Available services:"; \
+	  grep "container_name:" docker-compose.dev.yml | sed 's/.*: //'; \
+	else \
+	  docker-compose -f docker-compose.dev.yml logs -f $(SERVICE); \
+	fi
+
+dev-shell: ## Drop into a running service container (usage: make dev-shell SERVICE=vault)
+	@if [ -z "$(SERVICE)" ]; then \
+	  echo "Usage: make dev-shell SERVICE=<service-name>"; \
+	  echo "Available services:"; \
+	  docker-compose -f docker-compose.dev.yml ps --services; \
+	else \
+	  docker-compose -f docker-compose.dev.yml exec $(SERVICE) bash || docker-compose -f docker-compose.dev.yml exec $(SERVICE) sh; \
+	fi
+
+dev-status: ##Show status of all dev services
+	@echo "📋 Development stack status:"
+	docker-compose -f docker-compose.dev.yml ps
+
+dev-verify: ## Run smoke tests on local stack
+	@echo "🧪 Running smoke tests on local development stack..."
+	@echo "  Checking Vault..."
+	@curl -s http://localhost:8200/v1/sys/health | jq '.' || echo "❌ Vault not responding"
+	@echo ""
+	@echo "  Checking Provisioner..."
+	@curl -s http://localhost:8000/health | jq '.' || echo "❌ Provisioner not responding"
+	@echo ""
+	@echo "  Checking Prometheus..."
+	@curl -s http://localhost:9090/-/healthy | head -1 || echo "❌ Prometheus not responding"
+	@echo ""
+	@echo "✓ Smoke tests complete"
+
+dev-migrate: ## Run any pending database migrations
+	@echo "🗄️  Running database migrations..."
+	@if [ -f scripts/run-migrations.sh ]; then \
+	  bash scripts/run-migrations.sh; \
+	else \
+	  echo "⊘ No migration script found at scripts/run-migrations.sh"; \
+	fi
+
+dev-setup-complete: bootstrap docker-build dev-up ## Complete dev setup: bootstrap, build, and start stack
+	@echo "✅ Development environment fully set up and running!"
+	@echo "📚 Next steps:"
+	@echo "  1. Run 'make dev-verify' to check services"
+	@echo "  2. Run 'make dev-logs' to see service logs"
+	@echo "  3. Visit http://localhost:3000 for the Portal"
+	@echo "  4. Read QUICKSTART.md for usage patterns"
