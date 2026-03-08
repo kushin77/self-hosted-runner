@@ -1,4 +1,8 @@
 name: Auto Merge & CI Rerun
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:
