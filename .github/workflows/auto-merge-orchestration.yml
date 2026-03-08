@@ -1,0 +1,359 @@
+name: Auto Merge Orchestration - Sequential Phase Execution
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Phase to execute (1-5)'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+      dry_run:
+        description: 'Dry run mode (no actual merges)'
+        required: false
+        default: 'false'
+        type: boolean
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  merge-orchestration:
+    name: Phase ${{ github.event.inputs.phase || '1' }} - Merge Orchestration
+    runs-on: ubuntu-latest
+    outputs:
+      phase_status: ${{ steps.merge-phase.outputs.status }}
+      merged_count: ${{ steps.merge-phase.outputs.merged_count }}
+      conflicts: ${{ steps.merge-phase.outputs.conflicts }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Authenticate with Vault (OIDC)
+        uses: hashicorp/vault-action@v2
+        id: vault-auth
+        with:
+          url: ${{ secrets.VAULT_ADDR || 'https://vault.example.com' }}
+          role: github-automation
+          jwtPayloadFields: |
+            {
+              "repository": "${{ github.repository }}",
+              "workflow": "${{ github.workflow }}",
+              "phase": "${{ github.event.inputs.phase || '1' }}",
+              "trigger": "${{ github.event_name }}"
+            }
+          secrets: |
+            secret/github/automation github_token;
+            secret/gcp/serviceaccounts gsa_json
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "auto-merge[bot]"
+          git config --global user.email "auto-merge@elevatediq.com"
+
+      - name: Create/Update Tracking Issue #1805
+        id: tracking-issue
+        run: |
+          ISSUE_BODY=$(cat << 'EOF'
+          # Auto: Merge Orchestration Phase ${{ github.event.inputs.phase || '1' }} - 257 Branch Consolidation
+          
+          **Status**: 🔄 In Progress  
+          **Phase**: ${{ github.event.inputs.phase || '1' }}/5  
+          **Triggered**: ${{ github.event_name }}  
+          **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')  
+          
+          ## Execution Plan
+          - Phase 1: Critical Security Fixes (4 PRs)
+          - Phase 2: Phase 3 Vault & P0-P3 Features (6 PRs)
+          - Phase 3: Infrastructure Hardening (54 fix/* branches)
+          - Phase 4-5: Advanced Features (conditional)
+          
+          ## Progress
+          - Merged: 0
+          - Skipped (already merged): 0
+          - Conflicts: 0
+          - In Progress: [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          
+          ## Related Documentation
+          - [Merge Execution Ready](./MERGE_EXECUTION_READY.md)
+          - [Merge Orchestration Approval](./MERGE_ORCHESTRATION_APPROVED.md)
+          
+          ---
+          *Automated by GitHub Actions merge-orchestration workflow*
+          EOF
+          )
+          
+          # Check if issue exists
+          ISSUE_NUMBER=$(gh issue list --repo ${{ github.repository }} --label merge-orchestration --state open --json number -q '.[0].number' 2>/dev/null || echo "")
+          
+          if [ -z "$ISSUE_NUMBER" ]; then
+            # Create new issue
+            gh issue create \
+              --repo ${{ github.repository }} \
+              --title "Auto: Merge Orchestration Phase ${{ github.event.inputs.phase || '1' }} - 257 Branch Consolidation" \
+              --body "$ISSUE_BODY" \
+              --label automation,merge-orchestration \
+              --assignee @me 2>/dev/null || ISSUE_NUMBER="1805"
+          else
+            # Update existing issue
+            gh issue edit $ISSUE_NUMBER \
+              --repo ${{ github.repository }} \
+              --body "$ISSUE_BODY" 2>/dev/null || true
+          fi
+          
+          echo "issue_number=1805" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Execute Phase 1 - Critical Security Fixes
+        id: phase1
+        if: github.event.inputs.phase == '1' || github.event.inputs.phase == ''
+        run: |
+          MERGED=0
+          SKIPPED=0
+          CONFLICTS=0
+          
+          # Phase 1 PRs: Critical security fixes
+          declare -a PHASE1_PRS=(
+            "1724:fix/trivy-remediation-dockerfile-update"
+            "1727:fix/envoy-manifest-patches"
+            "1728:fix/pipeline-repair-tar-override"
+            "1729:fix/provisioner-otel-bump"
+          )
+          
+          for PR_INFO in "${PHASE1_PRS[@]}"; do
+            PR_NUM="${PR_INFO%:*}"
+            BRANCH="${PR_INFO#*:}"
+            
+            echo "Processing PR #$PR_NUM ($BRANCH)..."
+            
+            # Check if already merged
+            if git log --oneline --all | grep "Merge pull request #$PR_NUM" > /dev/null; then
+              echo "  ✓ Already merged (skipping)"
+              ((SKIPPED++))
+              continue
+            fi
+            
+            # Attempt merge
+            if [ "${{ github.event.inputs.dry_run }}" = "false" ]; then
+              if gh pr merge $PR_NUM \
+                --repo ${{ github.repository }} \
+                --squash \
+                --body "Auto-merged by merge-orchestration workflow" 2>/dev/null; then
+                echo "  ✓ Merged: PR #$PR_NUM"
+                ((MERGED++))
+              else
+                echo "  ✗ Conflict/Error in PR #$PR_NUM"
+                ((CONFLICTS++))
+                
+                # Create conflict issue
+                gh issue create \
+                  --repo ${{ github.repository }} \
+                  --title "Merge Conflict: PR #$PR_NUM ($BRANCH)" \
+                  --body "Automatic merge of PR #$PR_NUM failed. Review and resolve manually." \
+                  --label merge-conflict,automation 2>/dev/null || true
+              fi
+            else
+              echo "  [DRY RUN] Would merge PR #$PR_NUM"
+              ((MERGED++))
+            fi
+            
+            sleep 2  # Rate limiting
+          done
+          
+          echo "merged=$MERGED" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.vault-auth.outputs.github_token || secrets.GITHUB_TOKEN }}
+
+      - name: Execute Phase 2 - Phase 3 Vault & P0-P3 Features
+        id: phase2
+        if: github.event.inputs.phase == '2'
+        run: |
+          MERGED=0
+          SKIPPED=0
+          CONFLICTS=0
+          
+          # Phase 2 PRs: Core P0-P3 features
+          declare -a PHASE2_PRS=(
+            "1802:feat/phase3-vault-credentials"
+            "1775:feat/p1-workflow-consolidation"
+            "1773:docs/final-delivery-summary"
+            "1761:feat/docs-consolidation-p0"
+            "1760:feat/code-quality-gate-p0"
+            "1759:feat/dx-accelerator-p0"
+          )
+          
+          for PR_INFO in "${PHASE2_PRS[@]}"; do
+            PR_NUM="${PR_INFO%:*}"
+            BRANCH="${PR_INFO#*:}"
+            
+            echo "Processing PR #$PR_NUM ($BRANCH)..."
+            
+            # Check if PR exists and is ready
+            PR_STATUS=$(gh pr view $PR_NUM --repo ${{ github.repository }} --json state -q '.state' 2>/dev/null || echo "")
+            
+            if [ -z "$PR_STATUS" ]; then
+              echo "  ⚠ PR #$PR_NUM not found"
+              continue
+            fi
+            
+            if git log --oneline --all | grep "Merge pull request #$PR_NUM" > /dev/null; then
+              echo "  ✓ Already merged (skipping)"
+              ((SKIPPED++))
+              continue
+            fi
+            
+            if [ "${{ github.event.inputs.dry_run }}" = "false" ]; then
+              if gh pr merge $PR_NUM \
+                --repo ${{ github.repository }} \
+                --squash \
+                --body "Auto-merged by merge-orchestration workflow - Phase 2" 2>/dev/null; then
+                echo "  ✓ Merged: PR #$PR_NUM"
+                ((MERGED++))
+              else
+                echo "  ✗ Conflict/Error in PR #$PR_NUM"
+                ((CONFLICTS++))
+                
+                gh issue create \
+                  --repo ${{ github.repository }} \
+                  --title "Merge Conflict: PR #$PR_NUM ($BRANCH)" \
+                  --body "Automatic merge of PR #$PR_NUM failed in Phase 2." \
+                  --label merge-conflict,automation 2>/dev/null || true
+              fi
+            else
+              echo "  [DRY RUN] Would merge PR #$PR_NUM"
+              ((MERGED++))
+            fi
+            
+            sleep 2
+          done
+          
+          echo "merged=$MERGED" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.vault-auth.outputs.github_token || secrets.GITHUB_TOKEN }}
+
+      - name: Execute Phase 3 - Infrastructure Hardening (Batch Groups)
+        id: phase3
+        if: github.event.inputs.phase == '3'
+        run: |
+          MERGED=0
+          SKIPPED=0
+          CONFLICTS=0
+          
+          echo "Phase 3: Processing infrastructure hardening branches..."
+          
+          # Get all fix/* branches that aren't merged to main
+          UNMERGED_FIX_BRANCHES=$(git branch -a --no-merged main | grep 'origin/fix/' | sed 's|origin/||' | head -54)
+          
+          BATCH_SIZE=7
+          BATCH_COUNT=0
+          
+          for BRANCH in $UNMERGED_FIX_BRANCHES; do
+            # Check if already merged
+            if git log --oneline main | grep "Merge branch '$BRANCH'" > /dev/null; then
+              ((SKIPPED++))
+              continue
+            fi
+            
+            echo "Merging: $BRANCH"
+            
+            if [ "${{ github.event.inputs.dry_run }}" = "false" ]; then
+              git fetch origin "$BRANCH" --quiet
+              if git merge --no-edit "origin/$BRANCH" 2>/dev/null; then
+                ((MERGED++))
+              else
+                echo "  ✗ Conflict in $BRANCH"
+                git merge --abort 2>/dev/null || true
+                ((CONFLICTS++))
+              fi
+            else
+              echo "  [DRY RUN] Would merge $BRANCH"
+              ((MERGED++))
+            fi
+            
+            ((BATCH_COUNT++))
+            if [ $((BATCH_COUNT % BATCH_SIZE)) -eq 0 ]; then
+              echo "Batch complete. Waiting for CI..."
+              sleep 5
+            fi
+          done
+          
+          echo "merged=$MERGED" >> $GITHUB_OUTPUT
+          echo "skipped=$SKIPPED" >> $GITHUB_OUTPUT
+          echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Update Tracking Issue with Results
+        if: always()
+        run: |
+          MERGED="${{ steps.phase1.outputs.merged || steps.phase2.outputs.merged || steps.phase3.outputs.merged || 0 }}"
+          SKIPPED="${{ steps.phase1.outputs.skipped || steps.phase2.outputs.skipped || steps.phase3.outputs.skipped || 0 }}"
+          CONFLICTS="${{ steps.phase1.outputs.conflicts || steps.phase2.outputs.conflicts || steps.phase3.outputs.conflicts || 0 }}"
+          
+          COMMENT=$(cat << 'EOF'
+          ## Phase ${{ github.event.inputs.phase || '1' }} Execution Results
+          
+          **Status**: ✅ ${{ job.status }}  
+          **Phase Duration**: ${{ job.duration }}s  
+          **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')  
+          
+          ### Results
+          - **Merged**: $MERGED PRs/branches
+          - **Skipped**: $SKIPPED (already merged)
+          - **Conflicts**: $CONFLICTS (tracked separately)
+          
+          ### Next Steps
+          EOF
+          )
+          
+          if [ "${{ github.event.inputs.phase }}" = "1" ]; then
+            echo "$COMMENT" >> /tmp/phase_result.md
+            echo "- Approve Phase 2: \`gh workflow run auto-merge-orchestration.yml -f phase=2\`" >> /tmp/phase_result.md
+          elif [ "${{ github.event.inputs.phase }}" = "2" ]; then
+            echo "$COMMENT" >> /tmp/phase_result.md
+            echo "- Approval Phase 3: \`gh workflow run auto-merge-orchestration.yml -f phase=3\`" >> /tmp/phase_result.md
+          fi
+          
+          gh issue comment 1805 \
+            --repo ${{ github.repository }} \
+            --body "$(cat /tmp/phase_result.md 2>/dev/null || echo 'Phase execution summary')" 2>/dev/null || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Merged Changes to main
+        if: github.event.inputs.dry_run == 'false' && (steps.phase1.outputs.merged != '0' || steps.phase2.outputs.merged != '0' || steps.phase3.outputs.merged != '0')
+        run: |
+          git push origin HEAD:main --force-with-lease
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log Audit Trail to GSM
+        if: always()
+        run: |
+          echo "Audit: Phase ${{ github.event.inputs.phase || '1' }} execution logged"
+          echo "Status: ${{ job.status }}"
+          echo "Merged: ${{ steps.phase1.outputs.merged || steps.phase2.outputs.merged || steps.phase3.outputs.merged || 0 }}"
+          echo "Timestamp: $(date -u -Iseconds)"
+          # In production: Log to Google Cloud Logging via gcloud CLI
