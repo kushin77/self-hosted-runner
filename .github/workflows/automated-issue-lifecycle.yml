@@ -112,10 +112,10 @@ $([ \"$AWS_STATUS\" = \"ready\" ] && echo \"✅ AWS ready\" || echo \"⏳ [ACTIO
           
           if [ "$CLUSTER_READY" = "yes" ] && [ "$OIDC_READY" = "yes" ] && [ "$AWS_READY" = "yes" ]; then
             echo "✅ All Prerequisites Met - Triggering Phase P4 Deployment"
-            
-            # In production, this would trigger:
-            # gh workflow run phase-p4-terraform-apply-orchestrator.yml --ref main
-            
+
+            # Trigger Phase P4 workflow (dispatch)
+            gh workflow run phase-p4-terraform-apply-orchestrator.yml --repo ${{ github.repository }} --ref main || echo "⚠ Failed to dispatch Phase P4 workflow"
+
             gh issue comment 231 \
               --repo ${{ github.repository }} \
               --body "🚀 **DEPLOYMENT READY**
@@ -125,9 +125,10 @@ All prerequisites detected:
 ✅ OIDC provisioned
 ✅ AWS credentials available
 
-**Phase P4 terraform-auto-apply:** Ready to trigger
+**Phase P4 terraform-auto-apply:** Triggered (workflow dispatch requested)
 **Phase P5 Validation:** Will run automatically
 **Infrastructure Status:** Preparing for deployment"
+          fi
           fi
 
       - name: Create incident for critical failures
