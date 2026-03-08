@@ -1,8 +1,16 @@
 # Track runner externals and Node binaries with Git LFS
 actions-runner-*/externals/**/bin/* filter=lfs diff=lfs merge=lfs -text
 
-# Track any provider binaries accidentally committed
+# Track Terraform provider binaries and state files
 terraform/**/.terraform/** filter=lfs diff=lfs merge=lfs -text
+terraform/**/*.tfstate filter=lfs diff=lfs merge=lfs -text
+terraform/**/*.tfstate.backup filter=lfs diff=lfs merge=lfs -text
+terraform/**/*.tfstate.lock.hcl merge=lfs -text
 
-# Empirical patterns
-**/externals/**/* bin filter=lfs diff=lfs merge=lfs -text
+# Track large Terraform variable files and plan outputs
+terraform/**/*.tfvars filter=lfs diff=lfs merge=lfs -text
+terraform/**/*.tfplan filter=lfs diff=lfs merge=lfs -text
+terraform/**/*.plan.json filter=lfs diff=lfs merge=lfs -text
+
+# Empirical patterns for large binaries
+**/externals/**/* filter=lfs diff=lfs merge=lfs -text
