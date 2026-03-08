@@ -88,6 +88,35 @@ References to secret names and vault paths are documented in `docs/` (see `docs/
 
 ---
 
+## Resources & Support
+
+### Documentation
+- 📖 **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** — Provider setup, OIDC, monitoring, troubleshooting
+- 📋 **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** — Architecture, modules, testing, phased rollout (5 phases)
+- 📊 **[CI_CD_GOVERNANCE_GUIDE.md](CI_CD_GOVERNANCE_GUIDE.md)** — Git governance standards + 120+ rules
+
+### GitHub Issues
+- [#1912](https://github.com/kushin77/self-hosted-runner/pull/1912) — Orchestration framework
+- [#1924](https://github.com/kushin77/self-hosted-runner/pull/1924) — Integration adapters
+- [#1929](https://github.com/kushin77/self-hosted-runner/pull/1929) — Credential providers
+- [#1928](https://github.com/kushin77/self-hosted-runner/pull/1928) — GitHub adapters
+- [#1930](https://github.com/kushin77/self-hosted-runner/pull/1930) — CI/CD pipeline
+- [#1938](https://github.com/kushin77/self-hosted-runner/pull/1938) — Observability
+
+### Self-Hosted Runner (Ops)
+- Rollout checklist: [Issue #240](https://github.com/kushin77/self-hosted-runner/issues/240)
+- Ops execution & secrets: [Issue #241](https://github.com/kushin77/self-hosted-runner/issues/241)
+- Terraform runbook: [docs/PHASE_2_3_OPS_RUNBOOK.md](docs/PHASE_2_3_OPS_RUNBOOK.md)
+- Final handoff: [docs/PHASE_P3_FINAL_HANDOFF.md](docs/PHASE_P3_FINAL_HANDOFF.md)
+
+### Getting Help
+- 🐛 **Issues:** [GitHub Issues](https://github.com/kushin77/self-hosted-runner/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/kushin77/self-hosted-runner/discussions)
+- 🔒 **Security:** Report to security@example.com
+- 💬 **Slack:** #platform channel
+
+---
+
 ## License & Contact
 
 This project is maintained by the platform team. For questions or operational help, open an issue or ping the `#platform` Slack channel.
