@@ -12,115 +12,78 @@ jobs:
   provision:
     runs-on: ubuntu-latest
     env:
-      REPO: ${{ github.repository }}
-    steps:
-      - uses: actions/checkout@v4
+      name: Provision Phase 3 (GCP WIF & Vault)
 
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq curl unzip
-          curl -sSL https://raw.githubusercontent.com/hashicorp/terraform/main/scripts/install.sh | sudo bash -s -- 1.5.0 || true
-          curl -fsSL https://raw.githubusercontent.com/cli/cli/trunk/script/install.sh | sudo bash || true
-          sudo snap install helm --classic || true
+      on:
+        workflow_dispatch:
+          inputs:
+            deploy_vault:
+              description: 'Deploy Vault (helm)'
+              required: false
+              default: 'false'
 
-      - name: Save GCP credentials
-        if: success()
-        env:
-          GCP_CREDS: ${{ secrets.GCP_CREDENTIALS }}
-        run: |
-          if [ -n """$GCP_CREDS""" ]; then
-            echo "$GCP_CREDS" > infra/gcp_creds.json
-            chmod 600 infra/gcp_creds.json
-          else
-            echo "No GCP_CREDENTIALS provided; terraform may fail if required."
-          fi
+      jobs:
+        provision:
+          runs-on: ubuntu-latest
+          permissions:
+            contents: read
+            issues: write
+            id-token: write
+            actions: write
 
-      - name: Make provisioning script executable
-        run: |
-          chmod +x ./scripts/provision_phase3.sh
+          steps:
+            - uses: actions/checkout@v4
 
-      - name: Run provisioning script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
-          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
-          VAULT_DEPLOY: ${{ github.event.inputs.vault_deploy }}
-        run: |
-          ./scripts/provision_phase3.sh
-name: Provision Phase 3 (GCP WIF + Vault)
+            - name: Set up Google Cloud SDK
+              uses: google-github-actions/setup-gcloud@v1
+              with:
+                service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+                project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-on:
-  workflow_dispatch:
-    inputs:
-      deploy_vault:
-        description: 'Deploy Vault (helm)'
-        required: false
-        default: 'false'
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v2
+              with:
+                terraform_version: '1.5.0'
 
-jobs:
-  provision:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      id-token: write
-      actions: write
+            - name: Terraform Init & Apply (GCP WIF)
+              working-directory: infra
+              env:
+                GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+              run: |
+                terraform init
+                terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="github_repo_owner=${{ github.repository_owner }}" -var="github_repo_name=${{ github.event.repository.name }}"
 
-    steps:
-      - uses: actions/checkout@v4
+            - name: Capture Terraform outputs
+              working-directory: infra
+              id: tfout
+              run: |
+                terraform output -json > /tmp/terraform_outputs.json
+                cat /tmp/terraform_outputs.json
 
-      - name: Set up Google Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+            - name: Update Phase 3 issue with outputs
+              env:
+                GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                REPO: ${{ github.repository }}
+              run: |
+                jq -r 'to_entries|map("- " + .key + ": " + (.value.value|tostring))|.[]' /tmp/terraform_outputs.json > /tmp/tf_summary.txt || true
+                echo "\nTerraform outputs:\n" >> /tmp/PHASE3_READY_SUMMARY.txt || true
+                cat /tmp/tf_summary.txt >> /tmp/PHASE3_READY_SUMMARY.txt || true
+                chmod +x ./scripts/phase3_generate_issue.sh
+                CLOSE_INCIDENTS=true GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} REPO=${{ github.repository }} ./scripts/phase3_generate_issue.sh
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: '1.5.0'
+            - name: Optionally deploy Vault (Helm)
+              if: ${{ github.event.inputs.deploy_vault == 'true' }}
+              env:
+                KUBECONFIG: ${{ secrets.KUBECONFIG }}
+              run: |
+                helm repo add hashicorp https://helm.releases.hashicorp.com
+                helm repo update
+                kubectl create namespace vault || true
+                helm upgrade --install vault hashicorp/vault --namespace vault --create-namespace
 
-      - name: Terraform Init & Apply (GCP WIF)
-        working-directory: infra
-        env:
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-        run: |
+            - name: Trigger orchestrator & health workflows
+              run: |
+                gh workflow run secrets-orchestrator-multi-layer.yml --ref main || true
+                sleep 180
+                gh workflow run secrets-health-multi-layer.yml --ref main || true
           terraform init
-          terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="github_repo_owner=${{ github.repository_owner }}" -var="github_repo_name=${{ github.event.repository.name }}"
-
-      - name: Capture Terraform outputs
-        working-directory: infra
-        id: tfout
-        run: |
-          terraform output -json > /tmp/terraform_outputs.json
-          cat /tmp/terraform_outputs.json
-
-      - name: Update Phase 3 issue with outputs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPO: ${{ github.repository }}
-        run: |
-          jq -r 'to_entries|map("- " + .key + ": " + (.value.value|tostring))|.[]' /tmp/terraform_outputs.json > /tmp/tf_summary.txt || true
-          echo "
-Terraform outputs:
-" >> /tmp/PHASE3_READY_SUMMARY.txt || true
-          cat /tmp/tf_summary.txt >> /tmp/PHASE3_READY_SUMMARY.txt || true
-          chmod +x ./scripts/phase3_generate_issue.sh
-          CLOSE_INCIDENTS=true GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} REPO=${{ github.repository }} ./scripts/phase3_generate_issue.sh
-
-      - name: Optionally deploy Vault (Helm)
-        if: ${{ github.event.inputs.deploy_vault == 'true' }}
-        env:
-          KUBECONFIG: ${{ secrets.KUBECONFIG }}
-        run: |
-          helm repo add hashicorp https://helm.releases.hashicorp.com
-          helm repo update
-          kubectl create namespace vault || true
-          helm upgrade --install vault hashicorp/vault --namespace vault --create-namespace
-
-      - name: Trigger orchestrator & health workflows
-        run: |
-          gh workflow run secrets-orchestrator-multi-layer.yml --ref main
-          sleep 180
-          gh workflow run secrets-health-multi-layer.yml --ref main
