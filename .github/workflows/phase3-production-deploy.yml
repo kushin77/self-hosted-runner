@@ -47,20 +47,20 @@ jobs:
           OIDC_SUCCESS="false"
 
           # Try ephemeral OIDC first (preferred)
-          if [ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" ]; then
+          if [ -n "${GCP_WORKLOAD_IDENTITY_PROVIDER:-}" ]; then
             echo "📝 Using ephemeral OIDC authentication..."
-            if gcloud iam service-accounts get-id-token --audiences="$GCP_WORKLOAD_IDENTITY_PROVIDER" --include-email 2>/dev/null; then
+            if gcloud iam service-accounts get-id-token --audiences="${GCP_WORKLOAD_IDENTITY_PROVIDER}" --include-email 2>/dev/null; then
               OIDC_SUCCESS="true"
             fi
           fi
 
           # Fallback to service account key if OIDC fails
-          if [ "$OIDC_SUCCESS" != "true" ]; then
+          if [ "${OIDC_SUCCESS:-}" != "true" ]; then
             echo "⚠️  OIDC not available, attempting service account key fallback..."
 
             # Write the secret reliably using printf (handles newlines safely)
-            if [ -n "$GCP_SERVICE_ACCOUNT_KEY" ]; then
-              printf '%s' "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-sa-key.json || true
+            if [ -n "${GCP_SERVICE_ACCOUNT_KEY:-}" ]; then
+              printf '%s' "${GCP_SERVICE_ACCOUNT_KEY}" > /tmp/gcp-sa-key.json || true
 
               # Ensure file has content and valid JSON start
               if [ -s /tmp/gcp-sa-key.json ]; then
