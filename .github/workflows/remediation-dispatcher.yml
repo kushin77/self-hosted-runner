@@ -12,6 +12,11 @@ on:
     types: [remediation-request, remediation-fallback]
 
 permissions:
+  contents: read
+  actions: write
+  issues: write
+
+permissions:
   issues: write
   actions: write
   contents: read
