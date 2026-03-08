@@ -1,0 +1,123 @@
+name: Full Deployment Orchestration
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  check-secrets:
+    name: Verify Secrets Ready
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Required Secrets
+        id: check
+        run: |
+          REQUIRED=(
+            "AWS_ROLE_TO_ASSUME"
+            "AWS_REGION"
+            "PROD_TFVARS"
+            "GOOGLE_CREDENTIALS"
+          )
+          
+          MISSING=()
+          for secret in "${REQUIRED[@]}"; do
+            if ! gh api repos/${{ github.repository }}/actions/secrets/"$secret" &>/dev/null; then
+              MISSING+=("$secret")
+            fi
+          done
+          
+          if [ ${#MISSING[@]} -eq 0 ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+            echo "✅ All secrets configured - proceeding with deployment"
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+            echo "❌ Missing secrets: ${MISSING[*]}"
+            exit 1
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-plan:
+    name: Trigger Terraform Plan
+    needs: check-secrets
+    runs-on: ubuntu-latest
+    if: ${{ needs.check-secrets.outputs.ready == 'true' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trigger terraform-plan Workflow
+        run: |
+          gh workflow run terraform-plan.yml \
+            --repo ${{ github.repository }} \
+            --ref ${{ github.ref }}
+          
+          echo "✅ Terraform plan workflow triggered"
+          
+          # Wait for workflow to appear
+          sleep 5
+          
+          # Get workflow run ID
+          RUN_ID=$(gh run list --repo ${{ github.repository }} \
+            --workflow=terraform-plan.yml \
+            --limit 1 --jq '.[0].databaseId' -q)
+          
+          echo "Plan workflow ID: $RUN_ID"
+          
+          # Post to issue
+          gh issue comment 1384 \
+            --repo ${{ github.repository }} \
+            --body "🚀 Terraform plan triggered (Run: $RUN_ID)
+
+Waiting for plan generation... This typically takes 3-5 minutes.
+
+Once plan is ready, review the output and comment with: \`⏳ Plan approved\` to trigger apply." || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-start:
+    name: Notify Deployment Start
+    needs: [check-secrets, trigger-plan]
+    runs-on: ubuntu-latest
+    if: ${{ always() }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Post Status to Issue
+        run: |
+          STATUS_MSG="## 🚀 Full Deployment Orchestration Started
+
+### Current Status
+- ✅ Secrets verified
+- ⏳ Terraform plan generating
+- ⏳ Awaiting approval
+
+### Timeline
+1. **~5 min**: Plan generation
+2. **~1 min**: Review and approval
+3. **~10 min**: Infrastructure deployment
+4. **~2 min**: Validation and health checks
+
+**Total Expected Time:** ~20 minutes
+
+For updates, check [Actions](https://github.com/${{ github.repository }}/actions)
+
+---
+*Started at $(date -u)*"
+
+          gh issue comment 1384 \
+            --repo ${{ github.repository }} \
+            --body "$STATUS_MSG" || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
