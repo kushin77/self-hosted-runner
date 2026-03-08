@@ -6,6 +6,11 @@ on:
   repository_dispatch:
     types: [runner-diagnostic-check, runner-diagnostic-trigger]
 
+permissions:
+  contents: read
+  issues: write
+  actions: read
+
 jobs:
   diagnose:
     runs-on: ubuntu-latest
