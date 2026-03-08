@@ -1,0 +1,10 @@
+# ShellCheck configuration
+# https://www.shellcheck.net
+
+# Disable specific checks if needed (rare)
+# enable=all
+# disable=SC1234,SC5678
+
+# Treat warnings as errors
+# skip-format
+set -e -u
