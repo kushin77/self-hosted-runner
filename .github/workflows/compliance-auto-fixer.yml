@@ -1,0 +1,92 @@
+name: Compliance Auto-Fixer
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  AUDIT_LOG_DIR: .compliance-audit
+
+jobs:
+  compliance-scan-and-fix:
+    runs-on: ubuntu-latest
+    name: "Scan & Fix Workflow Compliance"
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+      
+      - name: Create audit directory
+        run: |
+          mkdir -p "${{ env.AUDIT_LOG_DIR }}"
+      
+      - name: Run compliance fixer
+        run: |
+          python .github/scripts/auto-remediate-compliance.py \
+            --workflow-dir ".github/workflows" \
+            --audit-dir "${{ env.AUDIT_LOG_DIR }}" \
+            --auto-fix
+        continue-on-error: true
+      
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet .github/workflows/; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Commit and push changes
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/workflows/ "${{ env.AUDIT_LOG_DIR }}/"
+          git commit -m "ci: auto-remediate workflow compliance issues
+
+- Added missing permissions blocks (restrictive defaults)
+- Added/updated timeout-minutes (30 min default)
+- Added human-readable job names
+- Flagged hardcoded secrets for manual review
+
+Audit trail: ${{ env.AUDIT_LOG_DIR }}/compliance-fixes-*.jsonl"
+          git push origin HEAD:${{ github.ref }}
+      
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## Compliance Auto-Fixer Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -d "${{ env.AUDIT_LOG_DIR }}" ]; then
+            echo "### Audit Trail" >> $GITHUB_STEP_SUMMARY
+            find "${{ env.AUDIT_LOG_DIR }}" -name "*.jsonl" -exec wc -l {} + >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload audit artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compliance-audit-logs-${{ github.run_id }}
+          path: ${{ env.AUDIT_LOG_DIR }}/
+          retention-days: 365
