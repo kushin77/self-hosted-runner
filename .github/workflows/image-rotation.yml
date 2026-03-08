@@ -1,4 +1,8 @@
 name: Image Build & Trivy Scan
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:
