@@ -127,47 +127,26 @@ jobs:
           echo "🏥 Running infrastructure health checks for ${{ needs.initialization.outputs.environment }}..."
           
           # Check terraform state
-          cd terraform || exit 0
-          
-          if [ -f terraform.tfstate ] || [ -f terraform.tfstate.backup ]; then
-            echo "✓ Terraform state files present"
-            STATE_VALID="true"
-          else
-            echo "⚠️  No terraform state files found (optional)"
-            STATE_VALID="warning"
-          fi
-          
-          # Check for resource locks
-          if [ ! -f .terraform.lock.hcl ]; then
-            echo "⚠️  No terraform lock file (may be OK)"
-          else
-            echo "✓ Terraform lock file present"
-          fi
-          
-          # Validate terraform configuration (non-fatal)
-          set +e
-          terraform validate 2>&1 | tee /tmp/terraform-validate.log
-          TF_VALIDATE_RC=$?
-          set -e
-          if [ "$TF_VALIDATE_RC" -eq 0 ]; then
-            echo "✓ Terraform configuration valid"
-            TF_VALID="true"
-          else
-            echo "⚠️  Terraform validation returned non-zero (non-fatal)"
-            TF_VALID="warning"
-          fi
+          # Basic repository checks (no heavy Terraform on PRs)
+          if [ -d terraform ]; then
+            cd terraform || exit 0
+            if [ -f terraform.tfstate ] || [ -f terraform.tfstate.backup ]; then
+              echo "✓ Terraform state files present"
+              STATE_VALID="true"
+            else
+              echo "⚠️  No terraform state files found (optional)"
+              STATE_VALID="warning"
+            fi
 
-          # Check for drift (non-fatal)
-          set +e
-          terraform refresh -input=false 2>&1 | tee /tmp/terraform-refresh.log
-          TF_REFRESH_RC=$?
-          set -e
-          if [ "$TF_REFRESH_RC" -eq 0 ] && grep -q "Refresh complete" /tmp/terraform-refresh.log; then
-            echo "✓ Terraform refresh successful (no drift detected)"
-            DRIFT_CHECK="true"
+            # Check for resource locks
+            if [ ! -f .terraform.lock.hcl ]; then
+              echo "⚠️  No terraform lock file (may be OK)"
+            else
+              echo "✓ Terraform lock file present"
+            fi
           else
-            echo "⚠️  Terraform refresh had issues or returned non-zero (possible drift)"
-            DRIFT_CHECK="warning"
+            echo "✓ No terraform directory (skipping state checks)"
+            STATE_VALID="skipped"
           fi
           
           HEALTH_STATUS="success"
@@ -184,6 +163,34 @@ jobs:
           echo "Health Check Results:"
           echo "  - Status: ${{ steps.check.outputs.health_status }}"
           echo "  - Services: ${{ steps.check.outputs.services_healthy }}"
+
+      - name: Terraform Health Checks (skip on PRs)
+        if: ${{ github.event_name != 'pull_request' }}
+        run: |
+          set +e
+          cd terraform || exit 0
+          terraform validate 2>&1 | tee /tmp/terraform-validate.log
+          TF_VALIDATE_RC=$?
+          set -e
+          if [ "$TF_VALIDATE_RC" -eq 0 ]; then
+            echo "✓ Terraform configuration valid"
+            TF_VALID="true"
+          else
+            echo "⚠️  Terraform validation returned non-zero (non-fatal)"
+            TF_VALID="warning"
+          fi
+
+          set +e
+          terraform refresh -input=false 2>&1 | tee /tmp/terraform-refresh.log
+          TF_REFRESH_RC=$?
+          set -e
+          if [ "$TF_REFRESH_RC" -eq 0 ] && grep -q "Refresh complete" /tmp/terraform-refresh.log; then
+            echo "✓ Terraform refresh successful (no drift detected)"
+            DRIFT_CHECK="true"
+          else
+            echo "⚠️  Terraform refresh had issues or returned non-zero (possible drift)"
+            DRIFT_CHECK="warning"
+          fi
 
   e2e-validation:
     name: E2E Test Validation
@@ -273,24 +280,29 @@ SCRIPT
           
           # Run plan to detect drift
           echo "Generating plan to detect drift..."
-          set +e
-          terraform plan -input=false -out=/tmp/drift.plan 2>&1 | tee /tmp/plan.log
-          TF_PLAN_RC=$?
-          set -e
-          if [ "$TF_PLAN_RC" -eq 0 ]; then
-            if grep -q "No changes" /tmp/plan.log; then
-              echo "✓ No drift detected - infrastructure is in desired state"
-              DRIFT_DETECTED="false"
-            else
-              echo "⚠️  Drift detected - resources have drifted from desired state"
-              DRIFT_DETECTED="true"
-              echo ""
-              echo "Changes detected:"
-              grep -E "^\s+(create|modify|delete)" /tmp/plan.log || true
-            fi
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Skipping terraform plan on pull_request events (preview)"
+            DRIFT_DETECTED="skipped"
           else
-            echo "⚠️  Plan check returned non-zero (non-fatal)"
-            DRIFT_DETECTED="unknown"
+            set +e
+            terraform plan -input=false -out=/tmp/drift.plan 2>&1 | tee /tmp/plan.log
+            TF_PLAN_RC=$?
+            set -e
+            if [ "$TF_PLAN_RC" -eq 0 ]; then
+              if grep -q "No changes" /tmp/plan.log; then
+                echo "✓ No drift detected - infrastructure is in desired state"
+                DRIFT_DETECTED="false"
+              else
+                echo "⚠️  Drift detected - resources have drifted from desired state"
+                DRIFT_DETECTED="true"
+                echo ""
+                echo "Changes detected:"
+                grep -E "^\s+(create|modify|delete)" /tmp/plan.log || true
+              fi
+            else
+              echo "⚠️  Plan check returned non-zero (non-fatal)"
+              DRIFT_DETECTED="unknown"
+            fi
           fi
           
           # Check compliance
