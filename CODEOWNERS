@@ -1,0 +1,56 @@
+# FAANG-Grade Code Ownership & Review Requirements
+
+# Default owners for everything
+* @security-council
+
+# Services - Auth & Authentication
+services/auth/**         @auth-team @security-council
+services/oauth/**        @auth-team @security-council
+
+# Services - Core Infrastructure
+services/api/**          @backend-team
+services/database/**     @database-team @infra-team
+services/cache/**        @backend-team
+
+# Services - Billing & Payment
+services/billing/**      @billing-team
+services/payment/**      @billing-team @security-council
+services/invoicing/**    @billing-team
+
+# Services - Monitoring & Observability
+services/monitoring/**   @platform-team
+services/logging/**      @platform-team
+services/metrics/**      @platform-team
+
+# Infrastructure - Terraform
+infrastructure/terraform/**     @infra-team
+infrastructure/kubernetes/**    @platform-team
+infrastructure/networking/**    @infra-team @security-council
+
+# Security - Critical Path
+security/**              @security-council
+.github/workflows/**     @security-council @devops-team
+scripts/**               @devops-team
+
+# Documentation
+docs/**                  @docs-team
+README.md               @docs-team @tech-lead
+
+# CI/CD Pipelines
+.github/workflows/       @devops-team @security-council
+
+# Configuration
+*.config.js             @backend-team
+*.config.yaml           @infra-team
+dockerfile              @devops-team
+docker-compose.yml      @devops-team
+
+# Package Management
+package.json            @backend-team @security-council
+go.mod                  @backend-team
+requirements.txt        @backend-team
+
+# Governance & Standards
+.git-commit-template    @security-council
+CODEOWNERS              @tech-lead
+.github/ISSUE_TEMPLATE/ @tech-lead
