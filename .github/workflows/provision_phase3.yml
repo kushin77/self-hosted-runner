@@ -1,3 +1,53 @@
+name: Provision Phase 3 (GCP WIF & Vault)
+
+on:
+  workflow_dispatch:
+    inputs:
+      vault_deploy:
+        description: 'Deploy Vault (true/false)'
+        required: false
+        default: 'false'
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    env:
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install prerequisites
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq curl unzip
+          curl -sSL https://raw.githubusercontent.com/hashicorp/terraform/main/scripts/install.sh | sudo bash -s -- 1.5.0 || true
+          curl -fsSL https://raw.githubusercontent.com/cli/cli/trunk/script/install.sh | sudo bash || true
+          sudo snap install helm --classic || true
+
+      - name: Save GCP credentials
+        if: success()
+        env:
+          GCP_CREDS: ${{ secrets.GCP_CREDENTIALS }}
+        run: |
+          if [ -n """$GCP_CREDS""" ]; then
+            echo "$GCP_CREDS" > infra/gcp_creds.json
+            chmod 600 infra/gcp_creds.json
+          else
+            echo "No GCP_CREDENTIALS provided; terraform may fail if required."
+          fi
+
+      - name: Make provisioning script executable
+        run: |
+          chmod +x ./scripts/provision_phase3.sh
+
+      - name: Run provisioning script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+          VAULT_DEPLOY: ${{ github.event.inputs.vault_deploy }}
+        run: |
+          ./scripts/provision_phase3.sh
 name: Provision Phase 3 (GCP WIF + Vault)
 
 on:
