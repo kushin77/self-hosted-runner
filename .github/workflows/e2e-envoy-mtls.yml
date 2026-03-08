@@ -1,0 +1,51 @@
+name: E2E — Envoy mTLS + Rotation (Kind)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'control-plane/envoy/**'
+
+jobs:
+  e2e-envoy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Kind
+        uses: helm/kind-action@v1.7.0
+        with:
+          cluster_name: phase-p4
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+      - name: Create namespace
+        run: kubectl create namespace control-plane
+      - name: Apply manifests
+        run: |
+          kubectl apply -n control-plane -f control-plane/envoy/deploy/vault-configmap.yaml
+          kubectl apply -n control-plane -f control-plane/envoy/deploy/reload-configmap.yaml
+          kubectl apply -n control-plane -f control-plane/envoy/deploy/envoy-deployment.yaml
+      - name: Make E2E test executable
+        run: chmod +x control-plane/envoy/e2e_test.sh
+      - name: Run E2E test
+        run: |
+          export NAMESPACE=control-plane
+          export DEPLOYMENT=control-plane-envoy
+          bash control-plane/envoy/e2e_test.sh
+        env:
+          KUBECONFIG: /home/runner/.kube/config
+      - name: Debug info on failure
+        if: failure()
+        run: |
+          echo "=== Deployment Status ==="
+          kubectl get deployment -n control-plane -o wide
+          echo "=== Pod Status ==="
+          kubectl get pods -n control-plane -o wide
+          echo "=== Pod Logs (envoy) ==="
+          kubectl logs -n control-plane -l app=control-plane-envoy -c envoy --tail=50 || true
+          echo "=== Pod Logs (vault-agent) ==="
+          kubectl logs -n control-plane -l app=control-plane-envoy -c vault-agent --tail=50 || true
+          echo "=== Pod Logs (envoy-reloader) ==="
+          kubectl logs -n control-plane -l app=control-plane-envoy -c envoy-reloader --tail=50 || true
