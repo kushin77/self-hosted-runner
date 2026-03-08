@@ -1,0 +1,23 @@
+name: Validate Infra Modules
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'infra/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Terraform (placeholder)
+        run: |
+          echo "Skipping real install in scaffold. Replace with setup-terraform action."
+      - name: Terraform fmt check (scaffold)
+        run: |
+          echo "Run 'terraform fmt -check' in module directories when implemented."
