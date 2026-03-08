@@ -1,0 +1,121 @@
+name: GCP Workload Identity Remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      auto_remediate:
+        type: boolean
+        description: "Automatically apply IAM bindings if missing"
+        default: false
+      dry_run:
+        type: boolean
+        description: "Dry-run mode (validate only, no changes)"
+        default: true
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+
+jobs:
+  remediate:
+    name: Validate & Remediate GCP Workload Identity Mapping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP (Workload Identity)
+        id: gcp_auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run Remediation Checks
+        id: remediate
+        env:
+          AUTO_REMEDIATE: ${{ github.event.inputs.auto_remediate }}
+          DRY_RUN: ${{ github.event.inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          LOG="/tmp/gcp_remediation.log"
+          STATE="/tmp/gcp_remediation_state.json"
+          
+          echo '{}' > "$STATE"
+          
+          {
+            echo "=== GCP Workload Identity Remediation ==="
+            echo "Project: $GCP_PROJECT_ID"
+            echo "Service Account: $GCP_SERVICE_ACCOUNT_EMAIL"
+            echo "Auto-remediate: $AUTO_REMEDIATE | Dry-run: $DRY_RUN"
+            echo ""
+          } | tee "$LOG"
+          
+          # Step 1: Verify service account
+          echo "--- Step 1: Verify Service Account Exists ---" | tee -a "$LOG"
+          if gcloud iam service-accounts describe "$GCP_SERVICE_ACCOUNT_EMAIL" --project="$GCP_PROJECT_ID" --format=json 2>&1 | tee -a "$LOG" >/dev/null; then
+            echo "✓ Service account exists" | tee -a "$LOG"
+          else
+            echo "⚠ Service account NOT found" | tee -a "$LOG"
+          fi
+          
+          # Step 2: Verify WIF provider
+          echo "" | tee -a "$LOG"
+          echo "--- Step 2: Verify Workload Identity Provider ---" | tee -a "$LOG"
+          POOL_ID=$(echo "$GCP_WORKLOAD_IDENTITY_PROVIDER" | sed -n 's|.*workloadIdentityPools/\([^/]*\).*|\1|p')
+          PROVIDER_ID=$(echo "$GCP_WORKLOAD_IDENTITY_PROVIDER" | sed -n 's|.*providers/\([^/]*\).*|\1|p')
+          
+          if gcloud iam workload-identity-pools providers describe "$PROVIDER_ID" \
+            --workload-identity-pool="$POOL_ID" \
+            --location=global \
+            --project="$GCP_PROJECT_ID" --format=json 2>&1 | tee -a "$LOG" >/dev/null; then
+            echo "✓ Workload Identity Provider exists" | tee -a "$LOG"
+          else
+            echo "⚠ Workload Identity Provider NOT found (This likely causes the 404 error)" | tee -a "$LOG"
+          fi
+          
+          # Step 3: Check IAM binding
+          echo "" | tee -a "$LOG"
+          echo "--- Step 3: Check IAM Binding (roles/iam.serviceAccountTokenCreator) ---" | tee -a "$LOG"
+          SA_POLICY=$(gcloud iam service-accounts get-iam-policy "$GCP_SERVICE_ACCOUNT_EMAIL" \
+            --project="$GCP_PROJECT_ID" --format=json 2>/dev/null || echo '{"bindings":[]}')
+          
+          echo "$SA_POLICY" | jq '.bindings[] | select(.role=="roles/iam.serviceAccountTokenCreator")' | tee -a "$LOG" || true
+          
+          BINDING_EXISTS=$(echo "$SA_POLICY" | jq "[.bindings[] | select(.role==\"roles/iam.serviceAccountTokenCreator\") | .members[]] | length" 2>/dev/null || echo 0)
+          
+          if [ "$BINDING_EXISTS" -gt 0 ]; then
+            echo "✓ IAM binding for serviceAccountTokenCreator exists" | tee -a "$LOG"
+          else
+            echo "⚠ IAM binding NOT found" | tee -a "$LOG"
+            
+            if [ "$AUTO_REMEDIATE" = "true" ] && [ "$DRY_RUN" != "true" ]; then
+              echo "Adding IAM binding..." | tee -a "$LOG"
+              PRINCIPAL="principalSet://iam.googleapis.com/projects/$GCP_PROJECT_ID/locations/global/workloadIdentityPools/*/providers/*"
+              
+              gcloud iam service-accounts add-iam-policy-binding "$GCP_SERVICE_ACCOUNT_EMAIL" \
+                --project="$GCP_PROJECT_ID" \
+                --role=roles/iam.serviceAccountTokenCreator \
+                --member="$PRINCIPAL" 2>&1 | tee -a "$LOG" && echo "✓ IAM binding added" || echo "⚠ Failed to add binding"
+            fi
+          fi
+          
+          echo "" | tee -a "$LOG"
+          echo "=== Remediation Summary ===" | tee -a "$LOG"
+          echo "Log saved to: $LOG" | tee -a "$LOG"
+
+      - name: Upload Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcp-remediation-logs
+          path: /tmp/gcp_remediation*.log
+          retention-days: 30
