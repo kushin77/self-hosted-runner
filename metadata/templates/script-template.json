@@ -1,0 +1,16 @@
+{
+  "id": "script-name",
+  "name": "Script Display Name",
+  "path": "scripts/example.sh",
+  "type": "bash",
+  "owner": "team-name",
+  "risk_level": "MEDIUM",
+  "executable": true,
+  "created": "2026-03-08T00:00:00Z",
+  "last_modified": "2026-03-08T00:00:00Z",
+  "status": "active",
+  "permissions": "rwxr-xr-x",
+  "hash": "sha256:placeholder",
+  "dependencies": [],
+  "description": "What this script does"
+}

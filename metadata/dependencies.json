@@ -1,0 +1,149 @@
+{
+  "dependencies": [
+    {
+      "from": ".github/workflows/deployment.yml",
+      "to": "scripts/deploy-full-stack.sh",
+      "type": "calls",
+      "criticality": "CRITICAL",
+      "can_fail": false,
+      "description": "Deployment workflow calls the full stack deployment script"
+    },
+    {
+      "from": ".github/workflows/deployment.yml",
+      "to": ".github/workflows/terraform-apply.yml",
+      "type": "requires",
+      "criticality": "CRITICAL",
+      "can_fail": false,
+      "description": "Deployment requires terraform-apply to succeed first"
+    },
+    {
+      "from": ".github/workflows/terraform-apply.yml",
+      "to": "scripts/terraform-apply.sh",
+      "type": "calls",
+      "criticality": "CRITICAL",
+      "can_fail": false,
+      "description": "Terraform apply calls the apply script"
+    },
+    {
+      "from": ".github/workflows/terraform-apply.yml",
+      "to": "scripts/validate-state.sh",
+      "type": "requires",
+      "criticality": "HIGH",
+      "can_fail": false,
+      "description": "Terraform apply validates state before applying"
+    },
+    {
+      "from": ".github/workflows/terraform-plan.yml",
+      "to": "scripts/terraform-validate.sh",
+      "type": "calls",
+      "criticality": "HIGH",
+      "can_fail": false,
+      "description": "Terraform plan validates configuration"
+    },
+    {
+      "from": ".github/workflows/deployment.yml",
+      "to": "AWS_OIDC_ROLE_ARN",
+      "type": "requires_secret",
+      "criticality": "CRITICAL",
+      "can_be_missing": false,
+      "description": "Deployment requires AWS OIDC role to authenticate"
+    },
+    {
+      "from": ".github/workflows/terraform-plan.yml",
+      "to": "AWS_OIDC_ROLE_ARN",
+      "type": "requires_secret",
+      "criticality": "CRITICAL",
+      "can_be_missing": false,
+      "description": "Terraform plan requires AWS OIDC role"
+    },
+    {
+      "from": ".github/workflows/terraform-apply.yml",
+      "to": "AWS_OIDC_ROLE_ARN",
+      "type": "requires_secret",
+      "criticality": "CRITICAL",
+      "can_be_missing": false,
+      "description": "Terraform apply requires AWS OIDC role"
+    },
+    {
+      "from": "scripts/deploy-full-stack.sh",
+      "to": "scripts/pre-deploy-check.sh",
+      "type": "calls",
+      "criticality": "HIGH",
+      "can_fail": false,
+      "description": "Full stack deployment validates pre-deployment checks"
+    },
+    {
+      "from": "scripts/deploy-full-stack.sh",
+      "to": "scripts/post-deploy-validation.sh",
+      "type": "calls",
+      "criticality": "HIGH",
+      "can_fail": false,
+      "description": "Full stack deployment validates post-deployment health"
+    }
+  ],
+  "impact_paths": [
+    {
+      "trigger": ".github/workflows/terraform-plan.yml fails",
+      "impact": [
+        ".github/workflows/terraform-apply.yml is blocked",
+        ".github/workflows/deployment.yml is blocked",
+        "No infrastructure changes possible",
+        "Production deployment blocked"
+      ],
+      "severity": "CRITICAL",
+      "time_to_detect": "immediate",
+      "time_to_fix": "5-30 minutes",
+      "owner": "@devops-team",
+      "escalation": "@infrastructure-lead"
+    },
+    {
+      "trigger": ".github/workflows/terraform-apply.yml fails",
+      "impact": [
+        ".github/workflows/deployment.yml is blocked",
+        "Application cannot be deployed",
+        "Production is at risk if rollback needed"
+      ],
+      "severity": "CRITICAL",
+      "time_to_detect": "immediate",
+      "time_to_fix": "10-60 minutes",
+      "owner": "@devops-team",
+      "escalation": "@infrastructure-lead"
+    },
+    {
+      "trigger": "AWS_OIDC_ROLE_ARN secret missing/expired",
+      "impact": [
+        "All infrastructure workflows fail",
+        "All deployments fail",
+        "Complete system outage"
+      ],
+      "severity": "CRITICAL",
+      "time_to_detect": "workflow execution",
+      "time_to_fix": "1-2 hours",
+      "owner": "@devops-team",
+      "preventative_action": "rotating quarterly, 3-month expiry"
+    },
+    {
+      "trigger": "scripts/deploy-full-stack.sh fails",
+      "impact": [
+        ".github/workflows/deployment.yml fails",
+        "Application deployment blocked",
+        "Users may experience downtime"
+      ],
+      "severity": "CRITICAL",
+      "time_to_detect": "1-2 minutes",
+      "time_to_fix": "10-30 minutes",
+      "owner": "@devops-team",
+      "rollback": "scripts/rollback-deployment.sh (if available)"
+    }
+  ],
+  "circular_dependencies": [],
+  "orphaned_items": [
+    {
+      "type": "script",
+      "name": "old-migration.sh",
+      "last_called": "2024-01-15",
+      "status": "deprecated",
+      "action_required": "manual removal"
+    }
+  ]
+}
