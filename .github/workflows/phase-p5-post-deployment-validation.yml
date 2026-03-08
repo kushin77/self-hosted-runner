@@ -69,6 +69,42 @@ jobs:
           Status: INITIALIZED ✓
           EOF
 
+  diagnostics:
+    name: Runner Diagnostics
+    needs: initialization
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Gather runner diagnostics (non-fatal)
+        run: |
+          set +e
+          echo "=== Runner Info ==="
+          uname -a || true
+          echo "--- /etc/os-release ---"
+          cat /etc/os-release || true
+          echo "=== Runner Environment ==="
+          echo "RUNNER_OS=$RUNNER_OS"
+          echo "RUNNER_NAME=$RUNNER_NAME"
+          echo "RUNNER_TEMP=$RUNNER_TEMP"
+          echo "RUNNER_TOOL_CACHE=$RUNNER_TOOL_CACHE"
+          echo "GITHUB_WORKFLOW=$GITHUB_WORKFLOW"
+          echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER=$GITHUB_RUN_NUMBER"
+          echo "=== PATH ==="
+          echo "$PATH"
+          echo "=== terraform check ==="
+          which terraform || echo "terraform: not found"
+          terraform version 2>&1 || echo "terraform: version check failed or not installed"
+          echo "=== Disk ==="
+          df -h || true
+          echo "=== Memory ==="
+          free -m || true
+          echo "=== End diagnostics ==="
+          exit 0
+
+
   health-check:
     name: Infrastructure Health Check
     needs: initialization
