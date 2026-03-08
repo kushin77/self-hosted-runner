@@ -1,5 +1,25 @@
 version: 2
 updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+      - "phase-p4"
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+      - "phase-p4"
+version: 2
+updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
