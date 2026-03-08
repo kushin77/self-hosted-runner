@@ -1,0 +1,70 @@
+name: "Retrieve Secret from Google Secret Manager"
+description: "Dynamically retrieve secret from GSM using Workload Identity Federation"
+
+inputs:
+  secret-name:
+    description: "Name of the secret in GSM"
+    required: true
+  project-id:
+    description: "GCP Project ID"
+    required: true
+  workload-identity-provider:
+    description: "Workload Identity Provider resource name"
+    required: true
+  service-account:
+    description: "Service account email for GSM access"
+    required: true
+
+outputs:
+  secret-value:
+    description: "The retrieved secret value"
+    value: ${{ steps.retrieve.outputs.secret-value }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: auth
+      shell: bash
+      env:
+        WORKLOAD_IDENTITY_PROVIDER: ${{ inputs.workload-identity-provider }}
+        SERVICE_ACCOUNT: ${{ inputs.service-account }}
+      run: |
+        # Authenticate with GCP using OIDC (Workload Identity Federation)
+        echo "[INFO] Authenticating with GCP via OIDC..."
+        OIDC_TOKEN=$(curl -s -X GET \
+          -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+          "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://iap.googleapis.com/${{ inputs.project-id }}" \
+          | jq -r '.token')
+        
+        gcloud auth login --cred-file=<(echo "$OIDC_TOKEN") 2>/dev/null || true
+        gcloud config set project ${{ inputs.project-id }}
+        echo "[INFO] GCP authentication successful"
+
+    - id: retrieve
+      shell: bash
+      env:
+        SECRET_NAME: ${{ inputs.secret-name }}
+        PROJECT_ID: ${{ inputs.project-id }}
+      run: |
+        # Retrieve secret from GSM with audit logging
+        echo "[INFO] Retrieving secret: $SECRET_NAME"
+        SECRET_VALUE=$(gcloud secrets versions access latest \
+          --secret="$SECRET_NAME" \
+          --project="$PROJECT_ID" 2>&1)
+        
+        if [ $? -ne 0 ]; then
+          echo "[ERROR] Failed to retrieve secret: $SECRET_VALUE" >&2
+          exit 1
+        fi
+        
+        # Output as masked value
+        echo "::add-mask::$SECRET_VALUE"
+        echo "secret-value=$SECRET_VALUE" >> $GITHUB_OUTPUT
+        echo "[INFO] Secret retrieved successfully (length: ${#SECRET_VALUE})"
+
+    - shell: bash
+      run: |
+        # Ephemeral cleanup: unset sensitive variables
+        unset OIDC_TOKEN
+        unset SECRET_VALUE
+        echo "[INFO] Ephemeral cleanup completed"
