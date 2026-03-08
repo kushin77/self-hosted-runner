@@ -69,27 +69,17 @@ if [[ "$ITEM_CHECK" != "found" ]]; then
 fi
 
 # Determine item type and get details
-ITEM_TYPE=$(jq -r --arg id "$CHANGED_ID" '
-    if (.workflows[] | select(.id == $id) | .id) then "workflow"
-    elif (.scripts[] | select(.id == $id) | .id) then "script"  
-    elif (.secrets[] | select(.id == $id) | .id) then "secret"
-    else "unknown"
-    end
+ITEM_INFO=$(jq -r --arg id "$CHANGED_ID" '
+    ((.workflows[] // empty |  if .id == $id then {type: "workflow", risk: .risk_level, owner: .owner, _found: true} else empty end),
+     (.scripts[] // empty | if .id == $id then {type: "script", risk: .risk_level, owner: .owner, _found: true} else empty end),
+     (.secrets[] // empty | if .id == $id then {type: "secret", risk: .risk_level, owner: .owner, _found: true} else empty end)) |
+    select(._found) | {type, risk: (.risk // "UNKNOWN"), owner: (.owner // "unassigned")} | 
+    "\(.type)|\(.risk)|\(.owner)"
 ' "$METADATA_DIR/items.json" 2>/dev/null | head -1)
 
-ITEM_RISK=$(jq -r --arg id "$CHANGED_ID" '
-    (.workflows[] | select(.id == $id) | .risk_level //
-     .scripts[] | select(.id == $id) | .risk_level //
-     .secrets[] | select(.id == $id) | .risk_level //
-     "UNKNOWN") | first
-' "$METADATA_DIR/items.json" 2>/dev/null)
-
-ITEM_OWNER=$(jq -r --arg id "$CHANGED_ID" '
-    (.workflows[] | select(.id == $id) | .owner //
-     .scripts[] | select(.id == $id) | .owner //
-     .secrets[] | select(.id == $id) | .owner //
-     "unassigned") | first
-' "$METADATA_DIR/items.json" 2>/dev/null)
+ITEM_TYPE=$(echo "$ITEM_INFO" | cut -d'|' -f1)
+ITEM_RISK=$(echo "$ITEM_INFO" | cut -d'|' -f2)
+ITEM_OWNER=$(echo "$ITEM_INFO" | cut -d'|' -f3)
 
 # Find direct dependents (workflows/scripts that depend on this item)
 DIRECT_DEPENDENTS=$(jq -r --arg id "$CHANGED_ID" '.dependencies[] | select(.to == $id) | .from' "$METADATA_DIR/dependencies.json" | sort -u)
