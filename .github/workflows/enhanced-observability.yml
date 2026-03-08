@@ -1,10 +1,11 @@
 name: Enhanced Observability
 on:
-  schedule:
-    - cron: "*/5 * * * *"
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch:
 
   workflow_call: {}
+  repository_dispatch:
+    types: [observability-poll, observability-trigger]
 
 concurrency:
   group: enhanced-observability-${{ github.ref }}

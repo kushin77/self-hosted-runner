@@ -2,10 +2,19 @@ name: MinIO DNS Failover & Archival Recovery
 # sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:
-  schedule:
-    # Check MinIO connectivity & perform DNS failover every 15 minutes
-    - cron: "*/15 * * * *"
+  # Converted to event-driven: replaced frequent polling with repository_dispatch
   workflow_dispatch:
+    inputs:
+      force_archival:
+        description: "Force retry of failed archival operations"
+        required: false
+        default: "false"
+      failover_target:
+        description: "Failover target (aws-s3, gcp-gcs, or docker-hub)"
+        required: false
+        default: "auto"
+  repository_dispatch:
+    types: [minio-failover-check, minio-failover-trigger]
     inputs:
       force_archival:
         description: "Force retry of failed archival operations"
