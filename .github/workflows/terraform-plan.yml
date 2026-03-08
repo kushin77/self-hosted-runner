@@ -42,10 +42,23 @@ jobs:
 
       - name: Setup GCP Credentials
         run: |
-          # Decode and setup GCP service account
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" | base64 -d > /tmp/gcp-credentials.json
+          # Decode and setup GCP service account from any known secret name
+          set -euo pipefail
+          # Prefer explicit GOOGLE_CREDENTIALS, fall back to other likely names
+          if [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then
+            SA_B64="${{ secrets.GOOGLE_CREDENTIALS }}"
+          elif [ -n "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" ]; then
+            SA_B64="${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}"
+          elif [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            SA_B64="${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
+          else
+            echo "❌ No GCP service account secret found. Set one of: GOOGLE_CREDENTIALS, TF_VAR_SERVICE_ACCOUNT_KEY, GCP_SERVICE_ACCOUNT_KEY"
+            exit 1
+          fi
+
+          echo "$SA_B64" | base64 -d > /tmp/gcp-credentials.json
           echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-credentials.json" >> $GITHUB_ENV
-          
+
           # Verify credentials
           gcloud auth activate-service-account --key-file=/tmp/gcp-credentials.json
           gcloud config set project $(jq -r .project_id /tmp/gcp-credentials.json)
@@ -53,8 +66,18 @@ jobs:
 
       - name: Setup Terraform Variables
         run: |
-          # Decode and write terraform.tfvars from secret
-          echo "${{ secrets.PROD_TFVARS }}" > terraform/environments/production/terraform.tfvars
+          set -euo pipefail
+          # Support multiple possible secret names for terraform variables
+          if [ -n "${{ secrets.PROD_TFVARS }}" ]; then
+            echo "${{ secrets.PROD_TFVARS }}" > terraform/environments/production/terraform.tfvars
+          elif [ -n "${{ secrets.TFVARS_PROD }}" ]; then
+            echo "${{ secrets.TFVARS_PROD }}" > terraform/environments/production/terraform.tfvars
+          elif [ -f terraform/environments/production/terraform.tfvars ]; then
+            echo "Using committed terraform/environments/production/terraform.tfvars"
+          else
+            echo "❌ No terraform variables found. Set secret PROD_TFVARS or TFVARS_PROD, or commit terraform/environments/production/terraform.tfvars"
+            exit 1
+          fi
           echo "✅ Terraform variables loaded"
 
       - name: Terraform Format Check
