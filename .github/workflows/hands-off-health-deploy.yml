@@ -15,10 +15,6 @@ on:
       - 'QUICK_START_OPERATOR_GUIDE.md'
       - 'RCA_*.md'
 
-  schedule:
-    # Run health-check every 30 minutes to catch any degradation
-    - cron: '*/30 * * * *'
-
   workflow_dispatch:
     inputs:
       skip_deployment:
