@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/bin/bash
+
 """
 Security scan: Identify embedded secrets in repository.
 Part of Phase 1 deployment.
