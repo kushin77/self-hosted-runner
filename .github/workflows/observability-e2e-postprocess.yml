@@ -54,6 +54,13 @@ jobs:
 
           if [ -z "$ART_URL" ] || [ "$ART_URL" = "null" ]; then
             echo "No observability-e2e-metrics artifact found for run $RUN_ID"
+            SUMMARY="No metrics artifact found for run $RUN_ID. The E2E run may not have produced or uploaded metrics.json; please inspect the run logs: https://github.com/$REPO/actions/runs/$RUN_ID"
+            COMMENT_PAYLOAD=$(jq -n --arg body "$SUMMARY" '{body:$body}')
+            echo "Posting notice to issue #1370"
+            curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -X POST "https://api.github.com/repos/$REPO/issues/1370/comments" \
+              -d "$COMMENT_PAYLOAD" || true
             exit 0
           fi
 
