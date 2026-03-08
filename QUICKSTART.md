@@ -188,7 +188,7 @@ Services use **Vault** for secrets (running in dev mode on `localhost:8200`).
 
 # Set a secret (via CLI)
 export VAULT_ADDR=http://localhost:8200
-export VAULT_TOKEN=dev-token-12345
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 vault kv put secret/provisioner/key value=myvalue
 
 # Services automatically read from Vault

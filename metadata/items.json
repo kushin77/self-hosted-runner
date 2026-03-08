@@ -104,7 +104,7 @@
         ],
         "secrets": [
           "AWS_OIDC_ROLE_ARN",
-          "GITHUB_TOKEN"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
         ],
         "requires": [
           "terraform-apply.yml success",
@@ -235,7 +235,7 @@
       "version": "1"
     },
     {
-      "id": "GITHUB_TOKEN",
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
       "storage": "GitHub",
       "scope": "GitHub Actions (default)",
       "description": "GitHub API token for repository access",

@@ -193,5 +193,5 @@ _Monitor refresh: 5 minutes. Automated by monitor-ingestion.yml_"
         if: steps.check-ingestion.outputs.ingestion_detected == 'false'
         run: |
           echo "ℹ️  Ingestion not yet detected on issue #1239."
-          echo "Operator must set GCP_SERVICE_ACCOUNT_KEY secret and comment 'ingested: true' to proceed."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
           echo "Monitor will check again in 5 minutes."

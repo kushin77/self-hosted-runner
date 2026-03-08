@@ -28,7 +28,7 @@ Workflow Run History (Runs #10-18):
 └─ Analysis Pattern: 8 consecutive failures
 
 Key Finding:
-✅ GitHub secret GCP_SERVICE_ACCOUNT_KEY EXISTS
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ✅ Secret contains value (not empty)
 ❌ Workflow validation fails at credential parsing
 └─ Root Cause: NOT missing credentials, NOT missing GitHub secret

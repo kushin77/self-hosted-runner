@@ -32,7 +32,7 @@ This enhancement eliminates the Docker Hub single point of failure by automatica
 
 3. GitHub Actions secrets configured:
    - `AWS_ACCESS_KEY_ID` (IAM user with ECR push permissions)
-   - `AWS_SECRET_ACCESS_KEY`
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
    - `GCP_PROJECT_ID`
    - `GCP_SERVICE_ACCOUNT_KEY` (JSON format)
 
@@ -468,11 +468,10 @@ attempt_pull_from_any_registry() {
 docker build -f Dockerfile.backup -t elevatediq/app-backup:test .
 
 # Test pushing to each registry (requires credentials set)
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 export GCP_PROJECT_ID="..."
-export GCP_SERVICE_ACCOUNT_KEY='...'
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Test individual pushes
 ./scripts/push-to-aws-ecr.sh test
 ./scripts/push-to-gar.sh test

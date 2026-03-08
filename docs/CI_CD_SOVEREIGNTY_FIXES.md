@@ -187,8 +187,7 @@ Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Steps 1-2](docs/VAULT_DEPLOY_WORKF
 ```bash
 # Set admin token
 export VAULT_ADDR="https://vault.internal:8200"
-export VAULT_TOKEN="<admin-token>"
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Run setup script
 bash scripts/setup-vault-deploy-approle.sh ./deploy_id_rsa
 ```
