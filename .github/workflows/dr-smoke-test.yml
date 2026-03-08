@@ -53,7 +53,7 @@ jobs:
           set +e
           bash scripts/validate-gcp-key.sh /tmp/gcp_validation_output.txt
           VALIDATION_EXIT=$?
-          
+
           if [ $VALIDATION_EXIT -eq 0 ]; then
             echo "status=valid" >> $GITHUB_OUTPUT
             echo "✅ GCP key validation PASSED"
@@ -61,7 +61,7 @@ jobs:
             echo "status=invalid_structure" >> $GITHUB_OUTPUT
             echo "❌ GCP key validation FAILED"
             echo ""
-            echo "=== Validation Output Log ===" 
+            echo "=== Validation Output Log ==="
             cat /tmp/gcp_validation_output.txt || true
             exit 1
           fi
