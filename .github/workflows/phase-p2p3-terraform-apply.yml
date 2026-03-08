@@ -40,11 +40,70 @@ concurrency:
 jobs:
   fetch-aws-creds:
     name: Fetch AWS Credentials from GSM
-    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
-    secrets:
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      aws_access_key_id: ${{ steps.credentials.outputs.aws_access_key_id }}
+      aws_secret_access_key: ${{ steps.credentials.outputs.aws_secret_access_key }}
+      aws_region: ${{ steps.credentials.outputs.aws_region }}
+    steps:
+      - name: Authenticate to Google Cloud (OIDC)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          token_format: 'access_token'
+          access_token_lifetime: '600s'
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Fetch AWS Credentials from GSM
+        id: credentials
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          echo "🔐 Fetching AWS credentials from GCP Secret Manager..."
+          
+          # Fetch AWS credentials with error handling
+          AWS_KEY=$(gcloud secrets versions access latest --secret="terraform-aws-prod" --project="$GCP_PROJECT_ID" 2>&1) || {
+            echo "::error::Failed to fetch terraform-aws-prod secret"
+            exit 1
+          }
+          
+          AWS_SECRET=$(gcloud secrets versions access latest --secret="terraform-aws-secret" --project="$GCP_PROJECT_ID" 2>&1) || {
+            echo "::error::Failed to fetch terraform-aws-secret secret"
+            exit 1
+          }
+          
+          AWS_REGION=$(gcloud secrets versions access latest --secret="terraform-aws-region" --project="$GCP_PROJECT_ID" 2>&1) || {
+            echo "::warning::terraform-aws-region not found, using default us-east-1"
+            AWS_REGION="us-east-1"
+          }
+          
+          # Validate credentials
+          if [ -z "$AWS_KEY" ] || [ "$AWS_KEY" == "null" ]; then
+            echo "::error::AWS Access Key is empty or null"
+            exit 1
+          fi
+          
+          if [ -z "$AWS_SECRET" ] || [ "$AWS_SECRET" == "null" ]; then
+            echo "::error::AWS Secret Key is empty or null"
+            exit 1
+          fi
+          
+          # Export as outputs
+          echo "::add-mask::$AWS_KEY"
+          echo "::add-mask::$AWS_SECRET"
+          echo "aws_access_key_id=$AWS_KEY" >> $GITHUB_OUTPUT
+          echo "aws_secret_access_key=$AWS_SECRET" >> $GITHUB_OUTPUT
+          echo "aws_region=$AWS_REGION" >> $GITHUB_OUTPUT
+          
+          echo "✅ Successfully fetched AWS credentials from GSM"
 
   preflight-checks:
     name: Pre-Apply Checks
