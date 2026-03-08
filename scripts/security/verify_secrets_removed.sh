@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/bin/bash
+
 """
 Security: Verify all secrets have been removed.
 Part of Phase 1 deployment - Remove-Embedded-Secrets component.
