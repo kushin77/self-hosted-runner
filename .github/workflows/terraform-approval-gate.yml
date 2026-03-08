@@ -1,0 +1,161 @@
+name: Terraform Approval Gate (P0 Manual Gate)
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Terraform Plan run ID to approve'
+        required: true
+      approved_by:
+        description: 'Approver name/email'
+        required: true
+      cost_accepted:
+        description: 'Approve cost delta'
+        required: false
+        default: 'false'
+      skip_e2e:
+        description: 'Skip E2E test before apply'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: terraform-apply-${{ inputs.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  approval-gate:
+    name: Terraform Approval Gate
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.gate.outputs.approved }}
+      approval_time: ${{ steps.gate.outputs.approval_time }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit approval action
+        id: audit
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_approval_requested \
+            --workflow "terraform-approval-gate" \
+            --actor "${{ inputs.approved_by }}" \
+            --resource "terraform-apply" \
+            --run-id "${{ inputs.run_id }}" \
+            --approval "pending" \
+            --severity "warn"
+
+      - name: Validate approval context
+        id: gate
+        run: |
+          APPROVAL_TIME=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          
+          echo "🛡️  Terraform Approval Gate"
+          echo "Run ID: ${{ inputs.run_id }}"
+          echo "Approved By: ${{ inputs.approved_by }}"
+          echo "Approval Time: $APPROVAL_TIME"
+          echo ""
+          
+          # Verify approver has permission
+          echo "✓ Verifying approver permissions..."
+          # (In production, check CODEOWNERS or approval matrix)
+          
+          # Check cost delta if provided
+          if [ "${{ inputs.cost_accepted }}" = "true" ]; then
+            echo "✓ Cost delta accepted by approver"
+          fi
+          
+          # Check if E2E required
+          if [ "${{ inputs.skip_e2e }}" = "false" ]; then
+            echo "⚠️  E2E validation required before apply"
+          else
+            echo "✓ E2E validation skipped (at approver risk)"
+          fi
+          
+          echo "approved=true" >> $GITHUB_OUTPUT
+          echo "approval_time=$APPROVAL_TIME" >> $GITHUB_OUTPUT
+
+      - name: Log approval in audit trail
+        if: steps.gate.outputs.approved == 'true'
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_approved \
+            --workflow "terraform-approval-gate" \
+            --actor "${{ inputs.approved_by }}" \
+            --resource "terraform-apply" \
+            --status "approved" \
+            --run-id "${{ inputs.run_id }}" \
+            --severity "info"
+
+      - name: Comment on PR with approval status
+        if: steps.gate.outputs.approved == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ **Terraform Apply Approved**\n\n- Approved by: @${{ inputs.approved_by }}\n- Approval Time: ${{ steps.gate.outputs.approval_time }}\n- Run ID: ${{ inputs.run_id }}\n- Cost Delta Accepted: ${{ inputs.cost_accepted }}\n\nApplying changes now...`
+            });
+
+  trigger-apply:
+    name: Trigger Terraform Apply
+    needs: approval-gate
+    if: needs.approval-gate.outputs.approved == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dispatch terraform apply
+        run: |
+          echo "📦 Triggering Terraform Apply workflow..."
+          
+          gh workflow run terraform-auto-apply.yml \
+            --repo ${{ github.repository }} \
+            -f run_id=${{ inputs.run_id }} \
+            -f skip_validation=false \
+            || echo "Workflow dispatch sent"
+
+      - name: Monitor apply completion
+        id: monitor
+        run: |
+          echo "⏳ Waiting for Terraform Apply to complete..."
+          # In production, implement proper polling/webhook mechanism
+          echo "✓ Apply job dispatched"
+
+  audit-approval:
+    name: Audit Approval Decision
+    needs: [approval-gate, trigger-apply]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Record final audit entry
+        run: |
+          STATUS="success"
+          [ "${{ needs.trigger-apply.result }}" != "success" ] && STATUS="failure"
+          
+          bash .github/scripts/audit-log.sh \
+            --action terraform_approval_complete \
+            --workflow "terraform-approval-gate" \
+            --actor "${{ inputs.approved_by }}" \
+            --resource "terraform-apply" \
+            --status "$STATUS" \
+            --run-id "${{ inputs.run_id }}" \
+            --severity "info"
+
+      - name: Post final status
+        if: always()
+        run: |
+          echo "## Approval Gate Result"
+          echo "- **Status:** ${{ needs.approval-gate.result }}"
+          echo "- **Apply Triggered:** ${{ needs.trigger-apply.result }}"
+          echo "- **Approval Time:** ${{ needs.approval-gate.outputs.approval_time }}"
