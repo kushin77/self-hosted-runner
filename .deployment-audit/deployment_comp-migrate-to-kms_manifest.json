@@ -1,0 +1,43 @@
+{
+  "deployment_id": "comp-migrate-to-kms",
+  "timestamp": "2026-03-08T23:01:52.811246",
+  "components": {
+    "deployed": [],
+    "failed": [
+      "migrate-to-kms"
+    ]
+  },
+  "summary": {
+    "deployment_id": "comp-migrate-to-kms",
+    "timestamp": "2026-03-08T23:01:52.811246",
+    "total_events": 3,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:01:52.811967",
+        "event_type": "deployment_start",
+        "component_id": "migrate-to-kms",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:02:02.874115",
+        "event_type": "step_failed",
+        "component_id": "migrate-to-kms",
+        "status": "failed",
+        "details": {
+          "step": "setup-aws-kms"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:02:02.874867",
+        "event_type": "deployment_failed",
+        "component_id": "migrate-to-kms",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: setup-aws-kms"
+      }
+    ]
+  }
+}

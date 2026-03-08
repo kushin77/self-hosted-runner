@@ -1,0 +1,78 @@
+{
+  "deployment_id": "deploy-2026-03-08T23-04-14.245254",
+  "timestamp": "2026-03-08T23:04:14.245474",
+  "components": {
+    "deployed": [
+      "migrate-to-gsm",
+      "migrate-to-vault"
+    ],
+    "failed": [
+      "migrate-to-kms"
+    ]
+  },
+  "summary": {
+    "deployment_id": "deploy-2026-03-08T23-04-14.245254",
+    "timestamp": "2026-03-08T23:04:14.245474",
+    "total_events": 7,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:04:14.246020",
+        "event_type": "deployment_start",
+        "component_id": "migrate-to-gsm",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:14.369313",
+        "event_type": "deployment_success",
+        "component_id": "migrate-to-gsm",
+        "status": "completed",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:14.369841",
+        "event_type": "deployment_start",
+        "component_id": "migrate-to-vault",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:14.505681",
+        "event_type": "deployment_success",
+        "component_id": "migrate-to-vault",
+        "status": "completed",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:14.506348",
+        "event_type": "deployment_start",
+        "component_id": "migrate-to-kms",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:24.616933",
+        "event_type": "step_failed",
+        "component_id": "migrate-to-kms",
+        "status": "failed",
+        "details": {
+          "step": "setup-wif"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:04:24.617267",
+        "event_type": "deployment_failed",
+        "component_id": "migrate-to-kms",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: setup-wif"
+      }
+    ]
+  }
+}

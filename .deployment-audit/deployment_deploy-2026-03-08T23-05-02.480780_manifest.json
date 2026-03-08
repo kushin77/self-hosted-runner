@@ -1,0 +1,84 @@
+{
+  "deployment_id": "deploy-2026-03-08T23-05-02.480780",
+  "timestamp": "2026-03-08T23:05:02.481003",
+  "components": {
+    "deployed": [
+      "migrate-to-kms",
+      "activate-rca-autohealer",
+      "setup-dynamic-credential-retrieval",
+      "setup-credential-rotation"
+    ],
+    "failed": []
+  },
+  "summary": {
+    "deployment_id": "deploy-2026-03-08T23-05-02.480780",
+    "timestamp": "2026-03-08T23:05:02.481003",
+    "total_events": 8,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:05:02.481528",
+        "event_type": "deployment_start",
+        "component_id": "migrate-to-kms",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:02.619181",
+        "event_type": "deployment_success",
+        "component_id": "migrate-to-kms",
+        "status": "completed",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:02.619561",
+        "event_type": "deployment_start",
+        "component_id": "activate-rca-autohealer",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:02.902483",
+        "event_type": "deployment_success",
+        "component_id": "activate-rca-autohealer",
+        "status": "completed",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:02.903154",
+        "event_type": "deployment_start",
+        "component_id": "setup-dynamic-credential-retrieval",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:03.007343",
+        "event_type": "deployment_success",
+        "component_id": "setup-dynamic-credential-retrieval",
+        "status": "completed",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:03.008048",
+        "event_type": "deployment_start",
+        "component_id": "setup-credential-rotation",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:05:03.086455",
+        "event_type": "deployment_success",
+        "component_id": "setup-credential-rotation",
+        "status": "completed",
+        "details": {},
+        "error": null
+      }
+    ]
+  }
+}

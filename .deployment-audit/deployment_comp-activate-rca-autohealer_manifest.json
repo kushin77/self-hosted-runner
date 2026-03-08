@@ -1,0 +1,33 @@
+{
+  "deployment_id": "comp-activate-rca-autohealer",
+  "timestamp": "2026-03-08T23:02:22.911197",
+  "components": {
+    "deployed": [
+      "activate-rca-autohealer"
+    ],
+    "failed": []
+  },
+  "summary": {
+    "deployment_id": "comp-activate-rca-autohealer",
+    "timestamp": "2026-03-08T23:02:22.911197",
+    "total_events": 2,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:02:22.912343",
+        "event_type": "deployment_start",
+        "component_id": "activate-rca-autohealer",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:02:23.193038",
+        "event_type": "deployment_success",
+        "component_id": "activate-rca-autohealer",
+        "status": "completed",
+        "details": {},
+        "error": null
+      }
+    ]
+  }
+}
