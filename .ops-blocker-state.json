@@ -12,14 +12,14 @@
       "secrets_detected": false
     },
     "aws_spot": {
-      "status": "pending",
+      "status": "ready",
       "last_check": null,
-      "secrets_detected": false
+      "secrets_detected": true
     },
     "staging_kubeconfig": {
       "status": "ready",
       "last_check": null,
-      "secret_exists": true
+      "secret_exists": false
     }
   },
   "automations": {
