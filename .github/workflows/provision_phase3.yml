@@ -68,8 +68,8 @@ jobs:
           helm upgrade --install vault hashicorp/vault --namespace vault --create-namespace
 
       - name: Trigger orchestrator & health workflows
+        if: ${{ github.event.inputs.deploy_vault == 'true' }}
         run: |
           gh workflow run secrets-orchestrator-multi-layer.yml --ref main || true
           sleep 180
           gh workflow run secrets-health-multi-layer.yml --ref main || true
-              if: ${{ github.event.inputs.deploy_vault == 'true' }}
