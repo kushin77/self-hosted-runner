@@ -17,8 +17,7 @@ Steps
 ```bash
 export VAULT_ADDR="https://vault.your.domain:8200"
 # Option A: short-lived operator token
-export VAULT_TOKEN="s.xxxxx"
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Option B: AppRole (preferred for automation)
 # export VAULT_ROLE_ID="<role_id>"
 # export VAULT_SECRET_ID="<secret_id>"  # or file /run/secrets/vault_secret_id

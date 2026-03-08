@@ -25,7 +25,7 @@ variable "vault_addr" {
   type        = string
 }
 
-variable "vault_token" {
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   description = "Vault admin token"
   type        = string
   sensitive   = true

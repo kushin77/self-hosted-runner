@@ -1,0 +1,334 @@
+name: Observability - Slack Failure Notifications (Phase 3)
+
+on:
+  workflow_run:
+    workflows:
+      - 'E2E Validate & Hands-off Deploy'
+      - 'deploy-rotation-staging'
+      - 'Auto-Promotion with Guardrails'
+    types: [completed]
+  schedule:
+    # Daily health check report
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+    inputs:
+      force_report:
+        description: 'Force generate health report'
+        required: false
+        default: 'false'
+
+concurrency:
+  group: observability-${{ github.ref || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  # Ephemeral: Single-run health assessment
+  health-assessment:
+    name: Assess CI/CD Health
+    runs-on: ubuntu-latest
+    outputs:
+      health_status: ${{ steps.assess.outputs.health_status }}
+      critical_issues: ${{ steps.assess.outputs.critical_issues }}
+      incident_summary: ${{ steps.assess.outputs.incident_summary }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+      - name: Get last E2E run
+        id: e2e_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          e2e_run=$(retry_command 5 10 sh -c "gh run list --workflow=\"E2E Validate & Hands-off Deploy\" --limit 1 --json status,conclusion,number --jq '.[0]'" || echo '{}')
+          status=$(echo "$e2e_run" | jq -r '.status // "unknown"')
+          conclusion=$(echo "$e2e_run" | jq -r '.conclusion // "unknown"')
+          run_num=$(echo "$e2e_run" | jq -r '.number // "unknown"')
+
+          echo "e2e_status=$status" >> $GITHUB_OUTPUT
+          echo "e2e_conclusion=$conclusion" >> $GITHUB_OUTPUT
+          echo "e2e_run=$run_num" >> $GITHUB_OUTPUT
+
+          echo "📊 Last E2E Run #$run_num: status=$status, conclusion=$conclusion"
+
+      - name: Get last Deploy run
+        id: deploy_run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          deploy_run=$(retry_command 5 10 sh -c "gh run list --workflow=\"deploy-rotation-staging\" --limit 1 --json status,conclusion,number --jq '.[0]'" || echo '{}')
+          status=$(echo "$deploy_run" | jq -r '.status // "unknown"')
+          conclusion=$(echo "$deploy_run" | jq -r '.conclusion // "unknown"')
+          run_num=$(echo "$deploy_run" | jq -r '.number // "unknown"')
+
+          echo "deploy_status=$status" >> $GITHUB_OUTPUT
+          echo "deploy_conclusion=$conclusion" >> $GITHUB_OUTPUT
+          echo "deploy_run=$run_num" >> $GITHUB_OUTPUT
+
+          echo "📊 Last Deploy Run #$run_num: status=$status, conclusion=$conclusion"
+
+      - name: Get failed workflow runs (last 24h)
+        id: failures
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get failed runs in last 24h
+          failed_runs=$(retry_command 5 10 sh -c "gh run list --status=failed --created=\">$(date -u -d '24 hours ago' '+%Y-%m-%dT%H:%M:%SZ')\" --limit 10 --json name,number,conclusion --jq '.'" || echo '[]')
+          failed_count=$(echo "$failed_runs" | jq 'length')
+
+          echo "failed_runs=$failed_runs" >> $GITHUB_OUTPUT
+          echo "failed_count=$failed_count" >> $GITHUB_OUTPUT
+
+          echo "⚠️ Failed runs (24h): $failed_count"
+          echo "$failed_runs" | jq '.'
+
+      - name: Assess overall health
+        id: assess
+        env:
+          E2E_CONCLUSION: ${{ steps.e2e_run.outputs.e2e_conclusion }}
+          DEPLOY_CONCLUSION: ${{ steps.deploy_run.outputs.deploy_conclusion }}
+          FAILED_COUNT: ${{ steps.failures.outcomes.failed_count }}
+        run: |
+          critical_issues=0
+          incident_summary=""
+          health_status="healthy"
+
+          # Check E2E health
+          if [ "$E2E_CONCLUSION" != "success" ] && [ "$E2E_CONCLUSION" != "skipped" ]; then
+            critical_issues=$((critical_issues + 1))
+            incident_summary="$incident_summary\n❌ E2E Validation failing ($E2E_CONCLUSION)"
+            health_status="degraded"
+          fi
+
+          # Check Deploy health
+          if [ "$DEPLOY_CONCLUSION" != "success" ] && [ "$DEPLOY_CONCLUSION" != "skipped" ]; then
+            critical_issues=$((critical_issues + 1))
+            incident_summary="$incident_summary\n❌ Deploy failing ($DEPLOY_CONCLUSION)"
+            health_status="degraded"
+          fi
+
+          # Check recent failures
+          failed_count=${FAILED_COUNT:-0}
+          if [ "$failed_count" -gt 3 ]; then
+            critical_issues=$((critical_issues + 1))
+            incident_summary="$incident_summary\n⚠️ High failure rate: $failed_count failed runs in 24h"
+            health_status="degraded"
+          fi
+
+          if [ "$critical_issues" -eq 0 ]; then
+            health_status="healthy"
+            incident_summary="✅ All systems nominal"
+          fi
+
+          echo "health_status=$health_status" >> $GITHUB_OUTPUT
+          echo "critical_issues=$critical_issues" >> $GITHUB_OUTPUT
+          echo "incident_summary=$incident_summary" >> $GITHUB_OUTPUT
+
+          echo "🏥 Health Assessment:"
+          echo "  Status: $health_status"
+          echo "  Critical issues: $critical_issues"
+          echo "  Summary: $incident_summary"
+
+  # Independent: Notify on failures (no blocking)
+  slack-notify-failures:
+    name: Slack Notify on Failure
+    needs: health-assessment
+    runs-on: ubuntu-latest
+    if: |
+      always() &&
+      needs.health-assessment.result == 'success' &&
+      needs.health-assessment.outputs.health_status == 'degraded'
+    continue-on-error: true
+    steps:
+      - name: Get failure details
+        id: details
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get most recent failure details
+          recent_fail=$(gh run list --status=failed --limit 1 --json number,name,conclusion,updatedAt --jq '.[0]')
+          fail_num=$(echo "$recent_fail" | jq -r '.number // "unknown"')
+          fail_name=$(echo "$recent_fail" | jq -r '.name // "unknown"')
+
+          echo "fail_num=$fail_num" >> $GITHUB_OUTPUT
+          echo "fail_name=$fail_name" >> $GITHUB_OUTPUT
+
+      - name: Send Slack failure alert
+        if: env.SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          HEALTH_STATUS: ${{ needs.health-assessment.outputs.health_status }}
+          INCIDENT_SUMMARY: ${{ needs.health-assessment.outputs.incident_summary }}
+          CRITICAL_ISSUES: ${{ needs.health-assessment.outputs.critical_issues }}
+          FAIL_NUM: ${{ steps.details.outputs.fail_num }}
+          FAIL_NAME: ${{ steps.details.outputs.fail_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          payload=$(cat <<'EOF'
+          {
+            "attachments": [
+              {
+                "color": "danger",
+                "title": "🚨 CI/CD Health Alert",
+                "fields": [
+                  {
+                    "title": "Status",
+                    "value": "⚠️ DEGRADED",
+                    "short": true
+                  },
+                  {
+                    "title": "Critical Issues",
+                    "value": "${{ env.CRITICAL_ISSUES }}",
+                    "short": true
+                  },
+                  {
+                    "title": "Summary",
+                    "value": "${{ env.INCIDENT_SUMMARY }}",
+                    "short": false
+                  },
+                  {
+                    "title": "Recent Failure",
+                    "value": "[Run #${{ env.FAIL_NUM }}](${{ github.server_url }}/${{ env.REPO }}/actions/runs/${{ env.FAIL_NUM }}) — ${{ env.FAIL_NAME }}",
+                    "short": false
+                  }
+                ],
+                "footer": "Hands-Off CI/CD Observability",
+                "ts": $(date +%s)
+              }
+            ]
+          }
+          EOF
+)
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$payload" \
+            "$SLACK_WEBHOOK_URL"
+
+  # Immutable: Daily health report (audit trail)
+  daily-health-report:
+    name: Generate Daily Health Report
+    needs: health-assessment
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || inputs.force_report == 'true'
+    permissions:
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get workflow statistics
+        id: stats
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Get stats for last 30 days
+          thirty_days_ago=$(date -u -d '30 days ago' '+%Y-%m-%dT%H:%M:%SZ')
+
+          total_runs=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq 'length')
+          successful=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq "[.[] | select(.conclusion==\"success\")] | length")
+          failed=$(gh run list --created=">$thirty_days_ago" --limit 100 --json conclusion --jq "[.[] | select(.conclusion==\"failure\")] | length")
+
+          if [ "$total_runs" -gt 0 ]; then
+            success_pct=$((successful * 100 / total_runs))
+          else
+            success_pct=0
+          fi
+
+          echo "total_runs=$total_runs" >> $GITHUB_OUTPUT
+          echo "successful=$successful" >> $GITHUB_OUTPUT
+          echo "failed=$failed" >> $GITHUB_OUTPUT
+          echo "success_pct=$success_pct" >> $GITHUB_OUTPUT
+
+      - name: Create health report issue comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEALTH: ${{ needs.health-assessment.outputs.health_status }}
+          ISSUES: ${{ needs.health-assessment.outputs.critical_issues }}
+          TOTAL: ${{ steps.stats.outputs.total_runs }}
+          SUCCESSFUL: ${{ steps.stats.outputs.successful }}
+          FAILED: ${{ steps.stats.outputs.failed }}
+          SUCCESS_PCT: ${{ steps.stats.outputs.success_pct }}
+        run: |
+          report_body="## 📊 Daily CI/CD Health Report — $(date -u +'%Y-%m-%d')
+
+### Overall Status: \`$HEALTH\`
+- Critical Issues: $ISSUES
+- Workflow Success Rate (30d): $SUCCESS_PCT%
+
+### Statistics
+| Metric | Count |
+|--------|-------|
+| Total Runs (30d) | $TOTAL |
+| Successful | $SUCCESSFUL |
+| Failed | $FAILED |
+| Success Rate | $SUCCESS_PCT% |
+
+### Key Workflows
+- **E2E Validation:** $([ \"$HEALTH\" == \"healthy\" ] && echo \"✅ Healthy\" || echo \"⚠️ Degraded\")
+- **Auto-Promotion:** $([ \"$HEALTH\" == \"healthy\" ] && echo \"✅ Healthy\" || echo \"⚠️ Degraded\")
+- **Deploy Pipeline:** $([ \"$HEALTH\" == \"healthy\" ] && echo \"✅ Healthy\" || echo \"⚠️ Degraded\")
+
+---
+**Generated:** $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+**Workflow Run:** [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+
+          # Find or create health tracking issue
+          health_issue=$(gh issue list --label hands-off-health-report --state open --search "sort:created-asc" --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -z "$health_issue" ]; then
+            health_issue=$(gh issue create \
+              --title "🏥 CI/CD Health: Daily Reports" \
+              --label "hands-off-health-report,observability" \
+              --body "$report_body" 2>/dev/null | grep -oP '#\K[0-9]+' || echo "")
+          else
+            gh issue comment "$health_issue" --body "$report_body"
+          fi
+
+  # Slack: Daily summary (optional)
+  slack-daily-summary:
+    name: Slack Daily Summary
+    needs: [health-assessment, daily-health-report]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || inputs.force_report == 'true'
+    continue-on-error: true
+    steps:
+      - name: Send daily summary to Slack
+        if: env.SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          HEALTH: ${{ needs.health-assessment.outputs.health_status }}
+          ISSUES: ${{ needs.health-assessment.outputs.critical_issues }}
+        run: |
+          color=$( [ "$HEALTH" == "healthy" ] && echo "good" || echo "warning" )
+          status_emoji=$( [ "$HEALTH" == "healthy" ] && echo "✅" || echo "⚠️" )
+
+          payload=$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "$color",
+                "title": "$status_emoji Daily CI/CD Health Report",
+                "fields": [
+                  { "title": "Overall Status", "value": "$(echo $HEALTH | tr 'a-z' 'A-Z')", "short": true },
+                  { "title": "Critical Issues", "value": "$ISSUES", "short": true }
+                ],
+                "footer": "Hands-Off Observability — Daily Digest",
+                "ts": $(date +%s)
+              }
+            ]
+          }
+          EOF
+)
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$payload" \
+            "$SLACK_WEBHOOK_URL"

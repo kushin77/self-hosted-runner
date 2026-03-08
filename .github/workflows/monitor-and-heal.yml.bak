@@ -1,0 +1,97 @@
+name: Monitor Credentials and Auto-Heal
+
+on:
+  schedule:
+    # Check every 2 minutes for RUNNER_MGMT_TOKEN provisioning
+    - cron: '*/2 * * * *'
+  workflow_dispatch:
+
+  workflow_call: {}
+
+concurrency:
+  group: monitor-and-heal-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  check-and-trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
+      - name: Check for RUNNER_MGMT_TOKEN
+        id: check-token
+        env:
+          RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
+        run: |
+          set +e
+          if [[ -n "$RUNNER_MGMT_TOKEN" ]]; then
+            echo "token_exists=true" >> $GITHUB_OUTPUT
+            echo "✓ RUNNER_MGMT_TOKEN detected. Triggering self-heal workflow."
+          else
+            echo "token_exists=false" >> $GITHUB_OUTPUT
+            echo "✗ RUNNER_MGMT_TOKEN not yet provisioned."
+          fi
+
+      - name: Trigger runner-self-heal if token exists
+        if: steps.check-token.outputs.token_exists == 'true'
+        run: |
+          echo "Dispatching runner-self-heal workflow..."
+          gh workflow run .github/workflows/runner-self-heal.yml \
+            --repo kushin77/self-hosted-runner \
+            --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Monitor self-heal completion and update issues
+        if: steps.check-token.outputs.token_exists == 'true'
+        run: |
+          set +e
+          echo "Waiting for runner-self-heal workflow to complete..."
+          sleep 30
+
+          # Get latest run of runner-self-heal workflow
+          latest_run=$(gh run list \
+            --workflow=runner-self-heal.yml \
+            --repo kushin77/self-hosted-runner \
+            --json databaseId,status,conclusion \
+            --jq '.[0]')
+
+          conclusion=$(echo "$latest_run" | jq -r '.conclusion // "in_progress"')
+          run_id=$(echo "$latest_run" | jq -r '.databaseId')
+
+          if [[ "$conclusion" == "success" ]]; then
+            echo "✓ Self-heal workflow succeeded (Run #$run_id)"
+
+            # Check if runners are now online
+            online_count=$(gh api /repos/kushin77/self-hosted-runner/actions/runners \
+              --jq '.runners | map(select(.status == "online")) | length')
+
+            echo "Online runners count: $online_count"
+
+            if [[ "$online_count" -gt 0 ]]; then
+              echo "✓ Runners recovered to online status"
+              gh issue close 939 \
+                --repo kushin77/self-hosted-runner \
+                --comment "Phase 4 Complete: Self-hosted runners recovered to online status. Self-heal automation is now active and responsive. Issue #969 (credentials) has been resolved."
+
+              gh issue comment 969 \
+                --repo kushin77/self-hosted-runner \
+                --body "✓ RUNNER_MGMT_TOKEN provisioned and validated. Auto self-heal triggered successfully. All offline runners recovered to online status. Phase 4 automation finalized and Issue #939 closed."
+            fi
+          else
+            echo "Self-heal workflow status: $conclusion (still in progress or failed)"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

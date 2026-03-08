@@ -1,0 +1,53 @@
+[0;34m[INFO][0m === Phase P2 Production Deployment Orchestrator ===
+[0;34m[INFO][0m Stage: stage2 | Deployment Method: docker | Dry-Run: 0
+[0;34m[INFO][0m Log file: /tmp/p2-deployment.log
+[0;34m[INFO][0m === Stage 2: Vault AppRole Configuration ===
+[0;31m[ERROR][0m Vault CLI not found. Please install it from https://www.vaultproject.io
+[0;34m[INFO][0m === Phase P2 Production Deployment Orchestrator ===
+[0;34m[INFO][0m Stage: stage2 | Deployment Method: docker | Dry-Run: 0
+[0;34m[INFO][0m Log file: /tmp/p2-deployment.log
+[0;34m[INFO][0m === Stage 2: Vault AppRole Configuration ===
+[0;32m[✓][0m Vault CLI found: Vault v1.15.4 (9b61934559ba31150860e618cf18e816cbddc630), built 2023-12-04T17:45:28Z
+[0;34m[INFO][0m Testing Vault connectivity...
+[0;34m[INFO][0m === Phase P2 Production Deployment Orchestrator ===
+[0;34m[INFO][0m Stage: stage2 | Deployment Method: docker | Dry-Run: 0
+[0;34m[INFO][0m Log file: /tmp/p2-deployment.log
+[0;34m[INFO][0m === Stage 2: Vault AppRole Configuration ===
+[0;32m[✓][0m Vault CLI found: Vault v1.15.4 (9b61934559ba31150860e618cf18e816cbddc630), built 2023-12-04T17:45:28Z
+[0;34m[INFO][0m Testing Vault connectivity...
+[0;32m[✓][0m Vault reachable
+[0;34m[INFO][0m Vault AppRole credentials not found in env variables.
+[0;34m[INFO][0m Please provide the existing AppRole credentials or create new ones.
+[0;34m[INFO][0m 
+[0;34m[INFO][0m To generate AppRole (Vault admin):
+[0;34m[INFO][0m   vault auth enable approle
+[0;34m[INFO][0m   vault write auth/approle/role/provisioner-worker policies=provisioner-worker
+[0;34m[INFO][0m   vault read auth/approle/role/provisioner-worker/role-id
+[0;34m[INFO][0m   vault write -f auth/approle/role/provisioner-worker/secret-id
+[0;34m[INFO][0m 
+[0;34m[INFO][0m === Phase P2 Production Deployment Orchestrator ===
+[0;34m[INFO][0m Stage: stage2 | Deployment Method: docker | Dry-Run: 0
+[0;34m[INFO][0m Log file: /tmp/p2-deployment.log
+[0;34m[INFO][0m === Stage 2: Vault AppRole Configuration ===
+[0;32m[✓][0m Vault CLI found: Vault v1.15.4 (9b61934559ba31150860e618cf18e816cbddc630), built 2023-12-04T17:45:28Z
+[0;34m[INFO][0m Testing Vault connectivity...
+[0;32m[✓][0m Vault reachable
+[0;34m[INFO][0m Vault AppRole credentials not found in env variables.
+[0;34m[INFO][0m Please provide the existing AppRole credentials or create new ones.
+[0;34m[INFO][0m 
+[0;34m[INFO][0m To generate AppRole (Vault admin):
+[0;34m[INFO][0m   vault auth enable approle
+[0;34m[INFO][0m   vault write auth/approle/role/provisioner-worker policies=provisioner-worker
+[0;34m[INFO][0m   vault read auth/approle/role/provisioner-worker/role-id
+[0;34m[INFO][0m   vault write -f auth/approle/role/provisioner-worker/secret-id
+[0;34m[INFO][0m 
+[0;34m[INFO][0m === Phase P2 Production Deployment Orchestrator ===
+[0;34m[INFO][0m Stage: stage2 | Deployment Method: docker | Dry-Run: 0
+[0;34m[INFO][0m Log file: /tmp/p2-deployment.log
+[0;34m[INFO][0m === Stage 2: Vault AppRole Configuration ===
+[0;32m[✓][0m Vault CLI found: Vault v1.15.4 (9b61934559ba31150860e618cf18e816cbddc630), built 2023-12-04T17:45:28Z
+[0;34m[INFO][0m Testing Vault connectivity...
+[0;32m[✓][0m Vault reachable
+[0;34m[INFO][0m Validating AppRole authentication...
+[0;32m[✓][0m AppRole authentication successful (token exported to VAULT_TOKEN)
+[0;32m[✓][0m Vault credentials stored in /tmp/provisioner-worker-creds/env-vault.sh

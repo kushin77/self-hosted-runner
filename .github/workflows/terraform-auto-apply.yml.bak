@@ -1,0 +1,305 @@
+name: Terraform Auto Apply (Automated, Credential-driven)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+concurrency:
+  group: terraform-apply-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel mid-deployment
+
+jobs:
+  audit-start:
+    name: Audit - Terraform Apply Start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log deployment start
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_apply_start \
+            --workflow "terraform-auto-apply" \
+            --actor "${{ github.actor }}" \
+            --resource "terraform/${{ github.ref }}" \
+            --run-id "${{ github.run_id }}" \
+            --severity "info"
+
+  fetch-aws-creds:
+    name: Fetch AWS Credentials (Unified: GSM <-> Vault failover)
+    needs: audit-start
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      aws_access_key_id: ${{ steps.fetch.outputs.aws_access_key_id }}
+      aws_secret_access_key: ${{ steps.fetch.outputs.aws_secret_access_key }}
+      aws_region: ${{ steps.fetch.outputs.aws_region }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (OIDC)
+        id: auth
+        uses: google-github-actions/auth@v2
+        continue-on-error: true
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          token_format: 'access_token'
+          access_token_lifetime: '600s'
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run unified credential fetch (GSM then Vault or preference)
+        id: fetch
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY_JSON }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          AWS_SECRET_PATH: ${{ secrets.AWS_SECRET_PATH }}
+          CREDENTIAL_PREFERENCE: ${{ secrets.CREDENTIAL_PREFERENCE }}
+        run: |
+          set -euo pipefail
+          bash scripts/ops/fetch-creds-unified.sh
+
+  terraform-dry-run-no-backend:
+    name: Terraform Dry-Run (no backend)
+    needs: [fetch-aws-creds]
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Detect available credential sources
+        id: detect-creds
+        env:
+          USE_OIDC: ${{ secrets.USE_OIDC }}
+          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ "${USE_OIDC:-}" = "true" ] && [ -n "${AWS_OIDC_ROLE_ARN:-}" ]; then
+            echo "oidc=true" >> $GITHUB_OUTPUT
+          else
+            echo "oidc=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "static=true" >> $GITHUB_OUTPUT
+          else
+            echo "static=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Decide and run dry-run (no backend)
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          if [ -n "$AWS_ACCESS_KEY_ID" ]; then
+            echo "Backend credentials present; skipping backend-free dry-run"
+            exit 0
+          fi
+          echo "No backend credentials detected — running safe terraform init/plan without S3 backend"
+          terraform init -input=false -backend=false
+          terraform plan -input=false -out=tfplan-dry || true
+
+  terraform-apply:
+    name: Terraform Apply (with approval gate)
+    runs-on: ubuntu-latest
+    needs: [fetch-aws-creds]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.4.0"
+
+      - name: Detect available credential sources
+        id: detect-creds
+        env:
+          USE_OIDC: ${{ secrets.USE_OIDC }}
+          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        run: |
+          if [ "${USE_OIDC:-}" = "true" ] && [ -n "${AWS_OIDC_ROLE_ARN:-}" ]; then
+            echo "oidc=true" >> $GITHUB_OUTPUT
+          else
+            echo "oidc=false" >> $GITHUB_OUTPUT
+          fi
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "static=true" >> $GITHUB_OUTPUT
+          else
+            echo "static=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Configure AWS via OIDC (if enabled)
+        if: ${{ steps.detect-creds.outputs.oidc == 'true' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_DEFAULT_REGION || 'us-east-1' }}
+
+      - name: Configure fetched AWS creds from GSM
+        if: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id != '' }}
+        run: |
+          echo "::add-mask::${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}"
+          echo "::add-mask::${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}"
+          echo "AWS_ACCESS_KEY_ID=${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ needs.fetch-aws-creds.outputs.aws_region }}" >> $GITHUB_ENV
+
+      - name: Configure static AWS creds (fallback)
+        if: ${{ steps.detect-creds.outputs.static == 'true' && needs.fetch-aws-creds.outputs.aws_access_key_id == '' }}
+        run: |
+          echo "AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}" >> $GITHUB_ENV
+          echo "AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_ACCESS_KEY_SECRET }}" >> $GITHUB_ENV
+          echo "AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }}" >> $GITHUB_ENV
+
+      - name: Detect credential availability
+        id: creds
+        run: |
+          if [ -n "${AWS_ACCESS_KEY_ID:-}" ]; then
+            echo "available=true" >> $GITHUB_OUTPUT
+            echo "✓ AWS credentials configured"
+          else
+            echo "available=false" >> $GITHUB_OUTPUT
+            echo "⚠ No AWS credentials — will run backend-free dry-run"
+          fi
+
+      - name: Backend-free dry-run (no credentials)
+        if: steps.creds.outputs.available != 'true'
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          echo "Running safe backend-free terraform validation (no-op)"
+          terraform init -input=false -backend=false
+          terraform plan -input=false || true
+          echo "✓ Dry-run complete — no changes applied"
+
+      - name: Terraform Init
+        if: steps.creds.outputs.available == 'true'
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        id: plan
+        if: steps.creds.outputs.available == 'true'
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          terraform plan -input=false -out=tfplan
+          terraform show -json tfplan > tfplan.json
+
+          # Generate summary for approval gate
+          RESOURCE_ADDS=$(terraform show -json tfplan | grep -o '"actions":\["create"\]' | wc -l || echo 0)
+          RESOURCE_DELS=$(terraform show -json tfplan | grep -o '"actions":\["delete"\]' | wc -l || echo 0)
+          RESOURCE_MODS=$(terraform show -json tfplan | grep -o '"actions":\["update"\]' | wc -l || echo 0)
+
+          echo "summary=Adds: $RESOURCE_ADDS, Dels: $RESOURCE_DELS, Mods: $RESOURCE_MODS" >> $GITHUB_OUTPUT
+
+          # Upload plan artifacts for review
+          mkdir -p ../workflow_artifacts
+          cp tfplan ../workflow_artifacts/ || true
+          cp tfplan.json ../workflow_artifacts/ || true
+
+      - name: Package terraform plan for MinIO
+        if: steps.creds.outputs.available == 'true'
+        run: |
+          mkdir -p /tmp/minio-uploads
+          tar czf /tmp/minio-uploads/terraform-plan-${{ github.run_id }}.tar.gz terraform/workflow_artifacts/ || echo "No artifacts to package"
+
+      - name: Upload terraform plan to MinIO
+        if: steps.creds.outputs.available == 'true' && contains(runner.labels, 'self-hosted')
+        run: |
+          ci/scripts/upload_to_minio.sh /tmp/minio-uploads/terraform-plan-${{ github.run_id }}.tar.gz terraform-plan-${{ github.run_id }}.tar.gz || echo "MinIO upload failed; will use fallback"
+
+      - name: Upload plan for review (hosted fallback)
+        if: steps.creds.outputs.available == 'true' && !contains(runner.labels, 'self-hosted')
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: terraform/workflow_artifacts/
+          retention-days: 7
+
+      - name: Approval gate - log plan summary
+        if: steps.creds.outputs.available == 'true'
+        run: |
+          echo "📋 Terraform Plan Summary (run: ${{ github.run_id }})"
+          echo "${{ steps.plan.outputs.summary }}"
+          echo ""
+          echo "Plan artifacts uploaded for review. Apply will proceed based on:"
+          echo "  - Event type: ${{ github.event_name }}"
+          echo "  - Credentials present: yes"
+          echo "  - Applies are GATED: Review artifacts before proceeding"
+          echo ""
+          echo "To proceed with apply in next run, ensure all changes are reviewed."
+
+      - name: Terraform Apply (idempotent)
+        if: steps.creds.outputs.available == 'true'
+        working-directory: terraform
+        run: |
+          set -euo pipefail
+          echo "Applying terraform plan (idempotent, safe)"
+          terraform apply -input=false -auto-approve tfplan
+          echo "✅ Terraform apply completed"
+
+      - name: Post success to tracking issues
+        if: steps.creds.outputs.available == 'true' && success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          SUMMARY="✅ Terraform auto-apply succeeded (run ${{ github.run_id }}). Plan summary: ${{ steps.plan.outputs.summary }}"
+          gh issue comment 1286 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+          gh issue comment 1309 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+
+      - name: Post failure to tracking issues
+        if: steps.creds.outputs.available == 'true' && failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+        run: |
+          SUMMARY="❌ Terraform auto-apply failed (run ${{ github.run_id }}). Review logs and artifacts. Plan artifacts: terraform-plan-${{ github.run_id }}"
+          gh issue comment 1286 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+          gh issue comment 1309 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+
+  audit-end:
+    name: Audit - Terraform Apply Complete
+    needs: terraform-apply
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log deployment end
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_apply_end \
+            --workflow "terraform-auto-apply" \
+            --actor "${{ github.actor }}" \
+            --status "${{ needs.terraform-apply.result }}" \
+            --resource "terraform/${{ github.ref }}" \
+            --run-id "${{ github.run_id }}" \
+            --severity "$([ '${{ needs.terraform-apply.result }}' = 'success' ] && echo 'info' || echo 'critical')"

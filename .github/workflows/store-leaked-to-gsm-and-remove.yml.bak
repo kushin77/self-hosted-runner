@@ -1,0 +1,101 @@
+name: Secure: Store leaked credentials in GSM and remove file
+
+on:
+  workflow_dispatch:
+  workflow_call: {}
+
+concurrency:
+  group: store-leaked-to-gsm-and-remove-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+
+jobs:
+  store-and-remove:
+    runs-on: ubuntu-latest
+    env:
+      FILE_PATH: .github/workflows/tmp
+      SECRET_ID_PREFIX: leaked-slack-app-credentials
+    steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account_email: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          install_components: 'gke-gcloud-auth-plugin'
+
+      - name: Ensure file exists and prepare secret payload
+        id: prepare
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$FILE_PATH" ]]; then
+            echo "file_missing=true" >> $GITHUB_OUTPUT
+            echo "File $FILE_PATH not found; aborting storage step"
+            exit 0
+          fi
+          # copy file to temp location; do not print contents
+          cp "$FILE_PATH" /tmp/leaked_secret || true
+          echo "file_missing=false" >> $GITHUB_OUTPUT
+
+      - name: Create or update GSM secret (idempotent)
+        if: steps.prepare.outputs.file_missing == 'false'
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          SECRET_NAME: ${{ env.SECRET_ID_PREFIX }}-$(date +"%Y%m%d%H%M%S")
+        run: |
+          set -euo pipefail
+          if [[ -z "${PROJECT_ID:-}" ]]; then
+            echo "GCP_PROJECT_ID not configured; cannot store secret" >&2
+            gh issue create --title "Security: leaked Slack app credentials - manual action required" --body "Automated attempt to store leaked credentials failed because GCP_PROJECT_ID is not configured in repo secrets. Please provide project and run the `store-leaked-to-gsm-and-remove` workflow." || true
+            exit 1
+          fi
+
+          # create secret resource (if it doesn't exist) then add a new version from file
+          set +e
+          gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" >/dev/null 2>&1
+          exists=$?
+          set -e
+          if [ $exists -ne 0 ]; then
+            gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID" >/dev/null
+          fi
+          # add new secret version from the file; this will store the leaked file content in GSM
+          gcloud secrets versions add "$SECRET_NAME" --data-file=/tmp/leaked_secret --project="$PROJECT_ID" >/dev/null
+          gh issue create --title "Security: leaked Slack app credentials stored in GSM" --body "Leaked Slack app file at `${{ env.FILE_PATH }}` was stored as Secret Manager secret `${SECRET_NAME}` in project `${PROJECT_ID}` by CI. A PR to remove the file has been opened. Please rotate credentials immediately and review access." || true
+
+      - name: Create branch and remove sensitive file
+        if: steps.prepare.outputs.file_missing == 'false'
+        env:
+          BRANCH_NAME: remove-leaked-file-$(date +"%Y%m%d%H%M%S")
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH_NAME"
+          git rm --ignore-unmatch "${FILE_PATH}"
+          if git diff --staged --quiet; then
+            echo "No changes staged; file likely already removed.";
+          else
+            git commit -m "chore(security): remove leaked Slack app credentials file ${FILE_PATH} (stored in GSM)" || true
+            git push --set-upstream origin "$BRANCH_NAME"
+            gh pr create --title "chore(security): remove leaked Slack app credentials file" --body "This automated PR removes the leaked Slack app credentials file (${FILE_PATH}). The file's contents were stored in GCP Secret Manager by CI; rotate and revoke the exposed app credentials immediately." --base main --head "$BRANCH_NAME" || true
+          fi
+
+      - name: Final note
+        run: |
+          echo "Completed automated steps: secret stored in GSM and removal PR opened (if applicable). Review PR and rotate credentials immediately."

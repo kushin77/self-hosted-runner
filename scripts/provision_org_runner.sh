@@ -34,7 +34,7 @@ echo "Fetching registration token for ${ORG_NAME}..."
 REG_TOKEN=$(gh api --method POST /orgs/"${ORG_NAME}"/actions/runners/registration-token -q .token)
 
 if [ -z "$REG_TOKEN" ] || [ "$REG_TOKEN" == "null" ]; then
-    echo "Failed to get registration token via GitHub CLI. Check GITHUB_TOKEN permissions."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     exit 1
 fi
 

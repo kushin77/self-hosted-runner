@@ -1,83 +1,75 @@
-name: GSM -> Repo Secrets Sync
-permissions:
-  contents: read
-  id-token: write
-  actions: read
-
-on:
-  workflow_dispatch:
-    inputs:
-      project:
-        description: 'GCP project id (optional, falls back to repo secret)'
-        required: false
-      secrets:
-        description: 'Comma-separated list of secret names to fetch from GSM'
-        required: false
-
-jobs:
-  sync:
-    runs-on: ubuntu-latest
-    env:
-      # prefer explicit input, then repo secrets GCP_PROJECT or GCP_PROJECT_ID
-      GCP_PROJECT: ${{ github.event.inputs.project || secrets.GCP_PROJECT || secrets.GCP_PROJECT_ID }}
-      REPO: ${{ github.repository }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Authenticate to GCP
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GOOGLE_CREDENTIALS }}
-
-      - name: Setup gcloud
-        uses: google-github-actions/setup-gcloud@v1
-        with:
-          project_id: ${{ env.GCP_PROJECT }}
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y jq
-          # gh CLI is available in runner images; ensure it's the latest
-          gh --version || true
-
-      - name: Fetch secrets from GSM and set repo secrets
-        env:
-          GCP_PROJECT: ${{ env.GCP_PROJECT }}
-          REPO: ${{ env.REPO }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          SECRETS_INPUT="${{ github.event.inputs.secrets }}"
-          if [ -z "$SECRETS_INPUT" ]; then
-            SECRETS_INPUT="AWS_ROLE_TO_ASSUME,MINIO_ENDPOINT,MINIO_ACCESS_KEY,MINIO_SECRET_KEY,STAGING_KUBECONFIG,PROD_TFVARS"
-          fi
-          echo "Using GCP project: ${GCP_PROJECT}"
-          echo "Logging into gh with GITHUB_TOKEN"
-          echo "$GITHUB_TOKEN" | gh auth login --with-token || true
-
-          IFS=',' read -ra NAMES <<< "$SECRETS_INPUT"
-          for name in "${NAMES[@]}"; do
-            secret_name=$(echo "$name" | xargs)
-            echo "Attempting GSM -> $secret_name"
-            # fetch base64 payload (payload.data) then decode
-            value_b64=$(gcloud secrets versions access latest --secret="$secret_name" --project="$GCP_PROJECT" --format='get(payload.data)' 2>/dev/null || true)
-            if [ -z "$value_b64" ]; then
-              echo "Secret $secret_name not found in GSM; skipping"
-              continue
-            fi
-            printf '%s' "$value_b64" | base64 --decode > /tmp/secret_value
-            gh secret set "$secret_name" --repo "$REPO" --body "$(cat /tmp/secret_value)"
-            rm -f /tmp/secret_value
-            echo "Set repo secret: $secret_name"
-          done
-
-      - name: Post completion comment
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const issue = 1384
-            const repo = context.repo
-            const body = `Automated GSM sync completed for project: ${process.env.GCP_PROJECT}.\n\nSecrets synced (requested list or defaults). If any secrets were missing in GSM they were skipped. The automation is idempotent — re-run to rotate/replace secrets.`
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
             await github.issues.createComment({owner: repo.owner, repo: repo.repo, issue_number: issue, body})

@@ -213,7 +213,7 @@
 1. Supply GCP credentials:
    ```bash
    gh secret set GCP_PROJECT_ID --body "your-id"
-   gh secret set GCP_SERVICE_ACCOUNT_KEY < key.json
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
    ```
 
 ### Activation Actions (< 1 minute)
