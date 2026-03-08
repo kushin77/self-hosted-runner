@@ -83,7 +83,7 @@ echo "[provision] Running e2e script..."
 ./scripts/ci/run-e2e-self-hosted-with-vault.sh
 
 echo "[provision] Cleaning up: revoke secret_id and delete AppRole"
-vault write -force auth/approle/role/${APPROLE_NAME}/secret-id ( >/dev/null 2>&1 ) || true
+vault write -force auth/approle/role/${APPROLE_NAME}/secret-id >/dev/null 2>&1 || true
 vault delete auth/approle/role/${APPROLE_NAME} >/dev/null 2>&1 || true
 vault policy delete ${POLICY_NAME} >/dev/null 2>&1 || true
 

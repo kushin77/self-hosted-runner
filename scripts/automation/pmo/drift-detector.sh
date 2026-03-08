@@ -249,7 +249,7 @@ Kernel: $(uname -r)
 System Status:
   Runner Process: $(systemctl is-active actions-runner || echo "unknown")
   Health Monitor: $(systemctl is-active elevatediq-runner-health-monitor.timer || echo "unknown")
-  
+
 Recent Drifts (last 10):
 EOF
   
@@ -260,9 +260,10 @@ EOF
   # Send report if webhook configured
   if [ -n "$CRITICAL_DRIFT_WEBHOOK" ]; then
     log "INFO" "Sending drift report to webhook..."
+    drifts_count=$(wc -l < "$DRIFT_LOG" 2>/dev/null || echo 0)
     curl -X POST "$CRITICAL_DRIFT_WEBHOOK" \
       -H "Content-Type: application/json" \
-      -d "{\"hostname\": \"$(hostname)\", \"drifts\": $(wc -l < "$DRIFT_LOG\")}" \
+      -d "{\"hostname\":\"$(hostname)\",\"drifts\":$drifts_count}" \
       2>/dev/null || log "WARN" "Failed to send webhook"
   fi
 }

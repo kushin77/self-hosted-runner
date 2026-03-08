@@ -1,0 +1,43 @@
+name: Observability E2E Failure Notifier
+
+on:
+  workflow_run:
+    workflows:
+      - "Scheduled Observability E2E (real receivers)"
+      - "Observability E2E Run (Real Receivers)"
+    types: [completed]
+
+jobs:
+  create-issue-on-failure:
+    name: Create GitHub Issue on Failure
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create failure issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const run = context.payload.workflow_run
+            const title = `Observability E2E failed: ${run.name} (${run.head_branch || run.head_sha})`
+            const body = `The Observability E2E workflow has failed.\n\n- Workflow: ${run.name}\n- Status: ${run.conclusion}\n- Head SHA: ${run.head_sha}\n- URL: ${run.html_url}\n\nPlease investigate the failure and attach logs/artifacts.`
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title,
+              body,
+              labels: ['observability','automation','failed-run']
+            })
+
+      - name: Send Slack notification (if webhook available)
+        if: always() && env.SLACK_WEBHOOK != ''
+        env:
+          SLACK_WEBHOOK: ${{ secrets.OBSERVABILITY_SLACK_WEBHOOK }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+        run: |
+          set +e
+          if [ -n "$SLACK_WEBHOOK" ]; then
+            curl -X POST -H 'Content-type: application/json' \
+              --data "{\"text\":\"🚨 Observability E2E Failure\",\"blocks\":[{\"type\":\"section\",\"text\":{\"type\":\"mrkdwn\",\"text\":\"*Observability E2E Workflow Failed*\n*Workflow:* $WORKFLOW_NAME\n*Status:* failure\n<$RUN_URL|View Details>\"}}]}" \
+              "$SLACK_WEBHOOK" || echo "⚠ Slack notification failed (webhook may not be configured)"
+          fi

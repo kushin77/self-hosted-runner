@@ -44,6 +44,7 @@ jobs:
       - name: Check and run PagerDuty test
         env:
           PAGERDUTY_SERVICE_KEY: ${{ secrets.PAGERDUTY_SERVICE_KEY }}
+          PAGERDUTY_API_TOKEN: ${{ secrets.PAGERDUTY_API_TOKEN }}
         run: |
           set -euo pipefail
           if [ -n "${PAGERDUTY_SERVICE_KEY:-}" ]; then
@@ -52,9 +53,17 @@ jobs:
             echo -n "$PAGERDUTY_SERVICE_KEY" > "$PD_FILE"
             PD_KEY=$(cat "$PD_FILE")
             rm "$PD_FILE"
+            # read PagerDuty API token if present
+            if [ -n "${PAGERDUTY_API_TOKEN:-}" ]; then
+              PD_API_FILE=$(mktemp)
+              echo -n "$PAGERDUTY_API_TOKEN" > "$PD_API_FILE"
+              PD_API_KEY=$(cat "$PD_API_FILE")
+              rm "$PD_API_FILE"
+              export PAGERDUTY_API_TOKEN="$PD_API_KEY"
+            fi
             cd scripts/automation/pmo/prometheus
             chmod +x run_e2e_ephemeral_test.sh
-            ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
+            PAGERDUTY_SERVICE_KEY="$PD_KEY" ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
           else
             echo "PAGERDUTY_SERVICE_KEY not set - skipping PagerDuty test"
           fi
