@@ -1,0 +1,7 @@
+{
+  "auto_merge_enabled": "true",
+  "npm_locks_fixed": "0",
+  "oidc_provisioned": "true",
+  "gcp_workload_identity": "unknown",
+  "aws_oidc_arn": "unknown"
+}
