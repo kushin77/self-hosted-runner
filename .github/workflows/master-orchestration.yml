@@ -22,6 +22,11 @@ on:
       - gsm-sync
       - credential-change
       - remediation-request
+      - self-heal-request
+      - self-heal-retry
+      - self-heal-detect
+      - phase3-auto-continue
+      - secrets-resolved
   
   # Trigger 2: Scheduled checks (health + validation only, not deployment)
   schedule:

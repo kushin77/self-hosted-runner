@@ -5,9 +5,15 @@ on:
     types: [closed]
     paths:
       - '.github/workflows/minio-validate-github.yml'
-  schedule:
-    - cron: '*/5 * * * *'  # Check every 5 minutes for blocker resolution
+  # Converted to event-driven: replaced frequent polling with repository_dispatch
   workflow_dispatch:
+    inputs:
+      force_continue:
+        description: 'Force continuation bypassing blocker checks'
+        required: false
+        default: 'false'
+  repository_dispatch:
+    types: [phase3-check, phase3-auto-continue]
     inputs:
       force_continue:
         description: 'Force continuation bypassing blocker checks'

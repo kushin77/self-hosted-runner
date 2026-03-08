@@ -1,9 +1,10 @@
 name: Runner Diagnostic Auto
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch: {}
+  repository_dispatch:
+    types: [runner-diagnostic-check, runner-diagnostic-trigger]
 
 jobs:
   diagnose:
