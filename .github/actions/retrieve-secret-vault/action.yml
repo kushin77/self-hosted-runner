@@ -1,0 +1,75 @@
+name: "Retrieve Secret from HashiCorp Vault"
+description: "Dynamically retrieve secret from HashiCorp Vault using JWT auth"
+
+inputs:
+  secret-path:
+    description: "Path to the secret in Vault (e.g., secret/data/my-secret)"
+    required: true
+  vault-addr:
+    description: "Vault server address (e.g., https://vault.example.com)"
+    required: true
+  jwt-token:
+    description: "JWT token for Vault authentication (from GitHub OIDC)"
+    required: true
+
+outputs:
+  secret-value:
+    description: "The retrieved secret value"
+    value: ${{ steps.retrieve.outputs.secret-value }}
+
+runs:
+  using: "composite"
+  steps:
+    - id: auth
+      shell: bash
+      env:
+        VAULT_ADDR: ${{ inputs.vault-addr }}
+        JWT_TOKEN: ${{ inputs.jwt-token }}
+      run: |
+        # Authenticate with Vault using JWT
+        echo "[INFO] Authenticating with Vault via JWT..."
+        AUTH_RESPONSE=$(curl -s -X POST \
+          "$VAULT_ADDR/v1/auth/jwt/login" \
+          -d "{\"role\":\"github-actions\",\"jwt\":\"$JWT_TOKEN\"}")
+        
+        VAULT_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.auth.client_token // empty')
+        if [ -z "$VAULT_TOKEN" ]; then
+          echo "[ERROR] Failed to obtain Vault token" >&2
+          echo "$AUTH_RESPONSE" | jq '.' >&2
+          exit 1
+        fi
+        
+        echo "::add-mask::$VAULT_TOKEN"
+        echo "vault_token=$VAULT_TOKEN" >> $GITHUB_ENV
+        echo "[INFO] Vault authentication successful"
+
+    - id: retrieve
+      shell: bash
+      env:
+        VAULT_ADDR: ${{ inputs.vault-addr }}
+        SECRET_PATH: ${{ inputs.secret-path }}
+      run: |
+        # Retrieve secret from Vault
+        echo "[INFO] Retrieving secret: $SECRET_PATH"
+        SECRET_RESPONSE=$(curl -s -X GET \
+          -H "X-Vault-Token: $vault_token" \
+          "$VAULT_ADDR/v1/$SECRET_PATH")
+        
+        SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.value // .data.data // empty')
+        if [ -z "$SECRET_VALUE" ]; then
+          echo "[ERROR] Failed to retrieve secret from Vault" >&2
+          echo "$SECRET_RESPONSE" | jq '.' >&2
+          exit 1
+        fi
+        
+        # Output as masked value
+        echo "::add-mask::$SECRET_VALUE"
+        echo "secret-value=$SECRET_VALUE" >> $GITHUB_OUTPUT
+        echo "[INFO] Secret retrieved successfully (length: ${#SECRET_VALUE})"
+
+    - shell: bash
+      run: |
+        # Ephemeral cleanup: unset sensitive variables
+        unset vault_token
+        unset SECRET_VALUE
+        echo "[INFO] Ephemeral cleanup completed"
