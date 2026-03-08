@@ -1,36 +1,3 @@
-# elasticache-params.tfvars — branch PR placeholder for operator to fill
-# This file is a candidate tfvars to be merged via PR to trigger an idempotent apply.
-
-aws_region = "us-east-1"
-
-# REQUIRED: set your VPC ID (example: "vpc-0123456789abcdef0")
-vpc_id = "vpc-0a1b2c3d4e5f67890"
-
-# REQUIRED: set your private subnet IDs (at least 1, recommended 2-3+ across AZs)
-subnet_ids = [
-  "subnet-0a1b2c3d",
-  "subnet-1b2c3d4e",
-]
-
-# Optional security settings — prefer allowed_security_groups over CIDR
-allowed_security_groups = [
-  # "sg-0123456789abcdef0"
-]
-
-allowed_cidr_blocks = [
-  # "10.0.0.0/16"
-]
-
-# If you want to provide a static auth token, set it here (32-128 alphanumeric)
-auth_token = ""
-
-tags = {
-  Project     = "elevatediq-runners"
-  Environment = "prod"
-  ManagedBy   = "Terraform"
-  Owner       = "Platform Team"
-}
-
-# IMPORTANT:
-# - Do not merge until `vpc_id` and `subnet_ids` are updated with real values.
-# - After merge I will run `terraform init && terraform plan -out=tfplan && terraform apply tfplan` and post outputs (sensitive values redacted).
+version https://git-lfs.github.com/spec/v1
+oid sha256:e390c5987fba12284f416f503fdd050b7a6742a06272dd84bdf6a5050865194b
+size 1071
