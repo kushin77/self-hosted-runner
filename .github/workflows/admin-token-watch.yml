@@ -1,4 +1,8 @@
 name: Auto-Rerun on Admin Grant
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   issue_comment:
