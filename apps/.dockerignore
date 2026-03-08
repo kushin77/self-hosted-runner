@@ -1,0 +1,68 @@
+# Portal application .dockerignore
+
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+.pnpm-store
+.pnp
+.pnp.js
+
+# Git
+.git
+.gitignore
+.github
+.gitattributes
+
+# Development & IDE
+.vscode
+.idea
+.DS_Store
+.env
+.env.local
+.env.*.local
+*.swp
+*.swo
+*~
+
+# Testing
+test
+tests
+coverage
+.test
+__tests__
+cypress
+e2e
+
+# Build
+build
+dist
+out
+.build
+
+# Documentation
+*.md
+docs
+examples
+README*
+
+# CI/CD
+.gitlab-ci.yml
+.circleci
+.travis.yml
+
+# Temporary
+tmp
+temp
+.tmp
+*.bak
+*.log
+logs
+
+# Other
+LICENSE
+CONTRIBUTING.md
+.prettierrc
+.eslintrc*
+tsconfig*.json
+webpack.config.js
