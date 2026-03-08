@@ -77,7 +77,7 @@ jobs:
         run: |
           jq '.last_updated = "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"' metadata/items.json > metadata/items.json.tmp
           mv metadata/items.json.tmp metadata/items.json
-          
+
           jq '.last_updated = "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'"' metadata/dependencies.json > metadata/dependencies.json.tmp
           mv metadata/dependencies.json.tmp metadata/dependencies.json
 
