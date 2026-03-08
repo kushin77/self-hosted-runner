@@ -1,5 +1,5 @@
-# State-Based Recovery Implementation
+# Automatic Rollback & Recovery Implementation
 
-Idempotent workflow checkpointing with automatic TTL cleanup and skip logic.
+Zero-downtime rollback with health check orchestration.
 
 See main README for full framework overview.
