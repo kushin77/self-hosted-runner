@@ -25,6 +25,13 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Write GCP keyfile and set GOOGLE_APPLICATION_CREDENTIALS
+        env:
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: |
+          printf '%s' "$GOOGLE_CREDENTIALS" > /tmp/gcloud_key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcloud_key.json" >> $GITHUB_ENV
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
