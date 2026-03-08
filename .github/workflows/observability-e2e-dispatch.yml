@@ -85,6 +85,7 @@ jobs:
         if: needs.secret-check.outputs.pagerduty_available == 'true' && (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
         env:
           PAGERDUTY_SERVICE_KEY: ${{ secrets.PAGERDUTY_SERVICE_KEY }}
+          PAGERDUTY_API_TOKEN: ${{ secrets.PAGERDUTY_API_TOKEN }}
           DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
         run: |
           set -euo pipefail
@@ -95,9 +96,17 @@ jobs:
           rm "$PD_FILE"
           echo "DEBUG: PAGERDUTY key length after read: ${#PD_KEY}"
           [ -z "$PD_KEY" ] && { echo "ERROR: PAGERDUTY key is empty after read"; exit 1; }
+          # Read PagerDuty API token into a temp file and export for script
+          if [ -n "${PAGERDUTY_API_TOKEN:-}" ]; then
+            PD_API_FILE=$(mktemp)
+            echo -n "$PAGERDUTY_API_TOKEN" > "$PD_API_FILE"
+            PD_API_KEY=$(cat "$PD_API_FILE")
+            rm "$PD_API_FILE"
+            export PAGERDUTY_API_TOKEN="$PD_API_KEY"
+          fi
           cd scripts/automation/pmo/prometheus
           chmod +x run_e2e_ephemeral_test.sh
-          ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
+          PAGERDUTY_SERVICE_KEY="$PD_KEY" ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
 
       - name: Collect mock logs artifact
         if: always()

@@ -28,9 +28,6 @@ while [ $(date +%s) -lt $END_TIME ]; do
       continue
     fi
   fi
-    sleep $INTERVAL
-    continue
-  fi
 
   # extract relevant fields safely using jq if available
   if command -v jq >/dev/null 2>&1; then
@@ -59,11 +56,11 @@ while [ $(date +%s) -lt $END_TIME ]; do
           # secret and inject it at runtime (GitHub Actions / runner env). Do not hardcode it
           # in files. The payload is constructed locally and sent directly; the webhook
           # value is never written to disk or logs to avoid accidental leakage.
-          cat <<-JSON | curl -sS -X POST -H 'Content-Type: application/json' --data @- "${SLACK_WEBHOOK}" >/dev/null 2>&1 || true
+          cat <<JSON | curl -sS -X POST -H 'Content-Type: application/json' --data @- "${SLACK_WEBHOOK}" >/dev/null 2>&1 || true
           {
             "text": "KEDA smoke test run ${run_id} completed with conclusion=${conclusion}"
           }
-          JSON
+JSON
         fi
     fi
   fi
