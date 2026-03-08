@@ -17,7 +17,7 @@ resource "google_iam_workload_identity_pool" "github_actions_pool" {
   project  = var.project_id
   location = "global"
   workload_identity_pool_id = var.pool_id
-  display_name = "GitHub Actions Workload Identity Pool"
+  display_name = "GitHub Actions WIP"
 }
 
 resource "google_iam_workload_identity_pool_provider" "github_actions_provider" {
@@ -29,5 +29,12 @@ resource "google_iam_workload_identity_pool_provider" "github_actions_provider" 
   display_name = "GitHub Actions Provider"
   oidc {
     issuer_uri = "https://token.actions.githubusercontent.com"
+  }
+  # Map OIDC assertion fields to GCP attributes. Use attribute.* for custom attributes.
+  attribute_mapping = {
+    "google.subject"     = "assertion.sub"
+    "attribute.repository" = "assertion.repository"
+    "attribute.ref"      = "assertion.ref"
+    "attribute.actor"    = "assertion.actor"
   }
 }
