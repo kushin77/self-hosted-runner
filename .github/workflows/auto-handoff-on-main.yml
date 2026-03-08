@@ -1,0 +1,42 @@
+name: Auto Handoff on Main
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-handoff-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create or update deployment handoff issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const title = '✅ DEPLOYMENT HANDOFF — Automated (main)';
+            const labels = ['deployment','automation'];
+
+            let body = '';
+            try {
+              body = fs.readFileSync('PHASE_P4_HANDOFF.md', 'utf8');
+            } catch (e) {
+              body = 'Deployment handoff file not found in repository.';
+            }
+
+            const issues = await github.rest.issues.listForRepo({ owner, repo, state: 'open', per_page: 100 });
+            const existing = issues.data.find(i => i.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: existing.number, body });
+            } else {
+              await github.rest.issues.create({ owner, repo, title, body, labels });
+            }
