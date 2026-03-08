@@ -5,6 +5,7 @@ SHELL := /bin/bash
 .PHONY: docker-build docker-run docker-clean docker-push
 .PHONY: dev-setup dev-clean dev-logs
 .PHONY: deploy-rotation-check deploy-rotation-dry-run deploy-rotation deploy-rotation-verbose
+.PHONY: quality quality-fix quality-pre-commit
 
 # Default target
 .DEFAULT_GOAL := help
@@ -15,11 +16,16 @@ HELP_SPACING = 20
 help: ## Display this help message
 	@echo "Self-Hosted Runner Development - Available targets:"
 	@echo ""
+	@echo "Quality & Code Standards:"
+	@echo "  make quality          # Run unified quality gates (all checks)"
+	@echo "  make quality-fix      # Attempt to auto-fix quality violations"
+	@echo ""
 	@echo "Development Setup:"
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-$(HELP_SPACING)s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "Examples:"
 	@echo "  make bootstrap        # Initialize dev environment"
+	@echo "  make quality          # Check code quality"
 	@echo "  make docker-build     # Build self-hosted runner image"
 	@echo "  make docker-run       # Run self-hosted runner locally"
 	@echo "  make test             # Run all tests"
@@ -110,3 +116,24 @@ deploy-rotation: ## Full deployment to staging environment
 deploy-rotation-verbose: ## Deployment with verbose logging
 	@echo "Deploy Rotation Automation: with verbose logging"
 	./scripts/deploy-rotation-staging.sh --verbose
+
+# Quality Gate targets
+quality: ## Run unified quality gates (yanllint, shellcheck, actionlint, pre-commit)
+	@echo "🔍 Running Quality Gate..."
+	chmod +x scripts/quality-gate.sh
+	./scripts/quality-gate.sh
+
+quality-fix: quality-pre-commit ## Auto-fix quality violations where possible
+	@echo "🔧 Auto-fixing quality violations..."
+	@echo "  1. EditorConfig - no auto-fix available"
+	@echo "  2. YAML - running prettier for YAML files..."
+	find .github/workflows -name "*.yml" -o -name "*.yaml" | xargs -I {} npx prettier --write {} 2>/dev/null || true
+	@echo "  3. Shell scripts - running shfmt..."
+	find scripts -name "*.sh" | xargs -I {} shfmt -i 2 -w {} 2>/dev/null || true
+	@echo "✓ Auto-fix complete. Run 'make quality' to verify."
+
+quality-pre-commit: ## Install and run pre-commit hooks
+	@echo "Setting up pre-commit hooks..."
+	pip install -e . 2>/dev/null || pip install pre-commit 2>/dev/null || true
+	pre-commit install 2>/dev/null || true
+	@echo "✓ Pre-commit hooks installed"
