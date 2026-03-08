@@ -1,0 +1,68 @@
+name: Intelligent Branch Cleanup (Enhanced)
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily 2 AM UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup git config
+        run: |
+          git config --global user.email "automation@github.com"
+          git config --global user.name "Automated Cleanup"
+
+      - name: Create cleanup log
+        run: |
+          mkdir -p .cleanup-logs
+          LOG_FILE=".cleanup-logs/cleanup-$(date +%Y%m%d-%H%M%S).log"
+          touch "$LOG_FILE"
+          echo "Cleanup started at $(date)" > "$LOG_FILE"
+
+      - name: Identify and clean stale branches
+        run: |
+          STALE_DAYS=60
+          CUTOFF_DATE=$(date -d "$STALE_DAYS days ago" +%s)
+          ARCHIVE_BRANCH="archive/cleaned-branches"
+          
+          echo "🧹 Cleaning branches with no commits for >$STALE_DAYS days..."
+          
+          # Create archive branch if it doesn't exist
+          git rev-parse --verify $ARCHIVE_BRANCH >/dev/null 2>&1 || \
+            git checkout --orphan $ARCHIVE_BRANCH && \
+            git commit --allow-empty -m "Archive of cleaned branches"
+          
+          DELETED_COUNT=0
+          
+          git for-each-ref --sort=-committerdate refs/remotes/origin/ |
+          while read hash type ref; do
+            COMMIT_DATE=$(git log -1 --format=%ct $hash 2>/dev/null || echo 0)
+            BRANCH=${ref#refs/remotes/origin/}
+            
+            # Skip protected branches
+            if [[ "$BRANCH" =~ ^(main|master|develop|release/.*)$ ]]; then
+              echo "⊘ Protected: $BRANCH"
+              continue
+            fi
+            
+            if [[ $COMMIT_DATE -lt $CUTOFF_DATE ]] && [[ $COMMIT_DATE -gt 0 ]]; then
+              DAYS_AGO=$(( ($CUTOFF_DATE - $COMMIT_DATE) / 86400 ))
+              echo "🗑️  Deleting stale branch: $BRANCH (inactive $DAYS_AGO days)"
+              
+              git push origin --delete "$BRANCH" 2>/dev/null || true
+              ((DELETED_COUNT++))
+            fi
+          done
+          
+          echo "✅ Cleanup complete: $DELETED_COUNT branches deleted"
+
+      - name: Commit changelog
+        run: |
+          git add .cleanup-logs/
+          git commit -m "chore: cleanup stale branches [automated]" || true
+          git push origin main || git push origin master || true
