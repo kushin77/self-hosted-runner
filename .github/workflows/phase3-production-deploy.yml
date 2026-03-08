@@ -51,13 +51,20 @@ jobs:
           # Fallback to service account key if OIDC fails
           if [[ "$OIDC_SUCCESS" != "true" ]]; then
             echo "⚠️  OIDC not available, using service account key..."
-            if [[ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]]; then
-              echo "${{ secrets.GOOGLE_CREDENTIALS }}" > /tmp/gcp-sa-key.json
-              gcloud auth activate-service-account --key-file=/tmp/gcp-sa-key.json
-              rm /tmp/gcp-sa-key.json
-              echo "✅ Service account authentication successful"
+            if [[ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]]; then
+              # Use GCP_SERVICE_ACCOUNT_KEY (JSON key file)
+              echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-sa-key.json
+              # Verify file was created with content
+              if [[ -s /tmp/gcp-sa-key.json ]]; then
+                gcloud auth activate-service-account --key-file=/tmp/gcp-sa-key.json
+                rm -f /tmp/gcp-sa-key.json
+                echo "✅ Service account authentication successful"
+              else
+                echo "❌ Failed to write service account key file"
+                exit 1
+              fi
             else
-              echo "❌ No GCP credentials available"
+              echo "❌ No GCP service account key available"
               exit 1
             fi
           else
