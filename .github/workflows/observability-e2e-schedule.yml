@@ -81,3 +81,12 @@ jobs:
         if: always()
         run: |
           echo "Scheduled Observability E2E run complete. Artifacts: observability-e2e-metrics"
+      
+      - name: Debug: list workspace for metrics
+        if: always()
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Listing workflow_artifacts (root)"
+          ls -la "$GITHUB_WORKSPACE" | sed -n '1,120p' || true
+          echo "Searching for metrics.json files (root..4)"
+          find "$GITHUB_WORKSPACE" -maxdepth 4 -type f -name metrics.json -print || true
