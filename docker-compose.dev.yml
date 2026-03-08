@@ -1,0 +1,274 @@
+version: '3.8'
+
+# Local development stack - all services
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # ===== Infrastructure Services =====
+  
+  vault:
+    image: vault:1.15.0
+    container_name: runner-vault-dev
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: "dev-token-12345"
+      VAULT_SKIP_VERIFY: "true"
+    ports:
+      - "8200:8200"
+    volumes:
+      - vault-data:/vault/data
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: runner-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: runner-postgres-dev
+    environment:
+      POSTGRES_DB: runner_db
+      POSTGRES_USER: runner_user
+      POSTGRES_PASSWORD: runner_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U runner_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  minio:
+    image: minio/minio:latest
+    container_name: runner-minio-dev
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: runner-prometheus-dev
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  pushgateway:
+    image: prom/pushgateway:latest
+    container_name: runner-pushgateway-dev
+    ports:
+      - "9091:9091"
+    networks:
+      - runner-dev
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: runner-grafana-dev
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    networks:
+      - runner-dev
+
+  # ===== Application Services =====
+
+  vault-shim:
+    build:
+      context: ./services/vault-shim
+      dockerfile: Dockerfile
+    container_name: runner-vault-shim-dev
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token-12345
+      PORT: 8080
+      NODE_ENV: development
+    ports:
+      - "8080:8080"
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./services/vault-shim:/app
+      - /app/node_modules
+    networks:
+      - runner-dev
+
+  provisioner-worker:
+    build:
+      context: ./services/provisioner-worker
+      dockerfile: Dockerfile
+    container_name: runner-provisioner-dev
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token-12345
+      REDIS_URL: redis://redis:6379
+      PORT: 8000
+      NODE_ENV: development
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-dev-token}
+      RUNNER_REGISTRATION_URL: ${RUNNER_REGISTRATION_URL:-https://github.com}
+    ports:
+      - "8000:8000"
+    depends_on:
+      vault:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./services/provisioner-worker:/app
+      - /app/node_modules
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - runner-dev
+
+  ai-oracle:
+    build:
+      context: ./services/ai-oracle
+      dockerfile: Dockerfile
+    container_name: runner-ai-oracle-dev
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token-12345
+      PORT: 8001
+      NODE_ENV: development
+    ports:
+      - "8001:8001"
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./services/ai-oracle:/app
+      - /app/node_modules
+    networks:
+      - runner-dev
+
+  managed-auth:
+    build:
+      context: ./services/managed-auth
+      dockerfile: Dockerfile
+    container_name: runner-managed-auth-dev
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token-12345
+      PORT: 8002
+      NODE_ENV: development
+    ports:
+      - "8002:8002"
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./services/managed-auth:/app
+      - /app/node_modules
+    networks:
+      - runner-dev
+
+  pipeline-repair:
+    build:
+      context: ./services/pipeline-repair
+      dockerfile: Dockerfile
+    container_name: runner-pipeline-repair-dev
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-token-12345
+      PORT: 8003
+      NODE_ENV: development
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-dev-token}
+    ports:
+      - "8003:8003"
+    depends_on:
+      vault:
+        condition: service_healthy
+    volumes:
+      - ./services/pipeline-repair:/app
+      - /app/node_modules
+    networks:
+      - runner-dev
+
+  portal:
+    build:
+      context: ./ElevatedIQ-Mono-Repo/apps/portal
+      dockerfile: Dockerfile
+    container_name: runner-portal-dev
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+      REACT_APP_VAULT_URL: http://localhost:8080
+      NODE_ENV: development
+    ports:
+      - "3000:3000"
+    depends_on:
+      provisioner-worker:
+        condition: service_healthy
+    volumes:
+      - ./ElevatedIQ-Mono-Repo/apps/portal:/app
+      - /app/node_modules
+    networks:
+      - runner-dev
+
+volumes:
+  vault-data:
+  redis-data:
+  postgres-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  runner-dev:
+    driver: bridge
