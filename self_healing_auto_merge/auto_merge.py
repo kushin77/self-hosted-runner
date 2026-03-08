@@ -1,37 +1,44 @@
-"""AutoMergeManager scaffold: risk tiers + schedule/rollback hooks."""
-from typing import Callable, Dict, Optional
+import time
+import threading
+from typing import Callable, Any, Dict, Optional
+
+
+class MergeRejected(Exception):
+    pass
+
 
 class AutoMergeManager:
-    def __init__(self):
-        # risk_tiers could map PR properties to allowed auto-merge policies
-        self.risk_tiers: Dict[str, Dict] = {
-            'low': {'enabled': True},
-            'medium': {'enabled': False},
-            'high': {'enabled': False},
-        }
-        self._schedule_hook: Optional[Callable] = None
-        self._rollback_hook: Optional[Callable] = None
+    """AutoMergeManager performs risk-based decisions. This is a safely
+    pluggable manager: actual GitHub/Git operations should be implemented in
+    integration adapters that call into this manager.
+    """
 
-    def set_schedule_hook(self, fn: Callable):
-        self._schedule_hook = fn
+    def __init__(self, risk_classifier: Optional[Callable[[Dict], str]] = None):
+        # risk_classifier receives PR metadata and returns 'CRITICAL'|'MEDIUM'|'LOW'
+        self.risk_classifier = risk_classifier or (lambda pr: "NORMAL")
+        self._locks = {}
 
-    def set_rollback_hook(self, fn: Callable):
-        self._rollback_hook = fn
+    def assess(self, pr: Dict) -> str:
+        return self.risk_classifier(pr)
 
-    def evaluate_risk(self, pr_metadata: Dict) -> str:
-        # stub: always returns 'low' for now
-        return 'low'
+    def schedule_merge(self, pr: Dict, merge_func: Callable[[Dict], Any], delay_seconds: float = 0):
+        tier = self.assess(pr)
+        if tier == "CRITICAL":
+            raise MergeRejected("CRITICAL PRs require manual review")
 
-    def schedule_merge(self, pr_metadata: Dict):
-        tier = self.evaluate_risk(pr_metadata)
-        policy = self.risk_tiers.get(tier, {})
-        if not policy.get('enabled'):
-            return {'scheduled': False, 'reason': 'policy_disabled', 'tier': tier}
-        if self._schedule_hook:
-            return self._schedule_hook(pr_metadata)
-        return {'scheduled': True, 'tier': tier}
+        def worker():
+            if delay_seconds:
+                time.sleep(delay_seconds)
+            # Execute merge function provided by integration layer
+            return merge_func(pr)
 
-    def rollback_merge(self, pr_metadata: Dict):
-        if self._rollback_hook:
-            return self._rollback_hook(pr_metadata)
-        return {'rolled_back': True}
+        t = threading.Thread(target=worker, daemon=True)
+        t.start()
+        return t
+
+    def rollback_hook(self, pr: Dict, rollback_func: Callable[[Dict], Any]):
+        # Placeholder: in production, this would ensure idempotent rollback
+        return rollback_func(pr)
+
+
+__all__ = ["AutoMergeManager", "MergeRejected"]
