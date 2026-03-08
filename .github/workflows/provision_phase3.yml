@@ -107,7 +107,10 @@ jobs:
                               if isinstance(sa_key, str):
                                   result = try_format(str(sa_key), f"Vault:{path}")
                                   if result:
-                                      print(result)
+                                      # Save directly to file
+                                      with open('/tmp/gcp-sa-key.json', 'w') as f:
+                                          f.write(result)
+                                      print("✅ Credentials saved to /tmp/gcp-sa-key.json", file=sys.stderr)
                                       sys.exit(0)
                       except:
                           continue
@@ -123,7 +126,10 @@ jobs:
               if value:
                   result = try_format(value, secret_name)
                   if result:
-                      print(result)
+                      # Save directly to file
+                      with open('/tmp/gcp-sa-key.json', 'w') as f:
+                          f.write(result)
+                      print("✅ Credentials saved to /tmp/gcp-sa-key.json", file=sys.stderr)
                       sys.exit(0)
           
           # No valid credentials found
@@ -138,7 +144,6 @@ jobs:
 
       - name: Save credentials to file
         run: |
-          echo '${{ steps.creds.outputs.stdout }}' > /tmp/gcp-sa-key.json
           # Validate saved file
           jq -e '.type=="service_account"' /tmp/gcp-sa-key.json || {
             echo "❌ Failed to validate credentials"
@@ -148,9 +153,15 @@ jobs:
           jq -r '.client_email' /tmp/gcp-sa-key.json
 
       - name: Authenticate to Google Cloud
+        id: read_creds
+        run: |
+          # Read and output credentials for subsequent actions
+          echo "credentials=$(cat /tmp/gcp-sa-key.json | jq -c '.')" >> $GITHUB_OUTPUT
+
+      - name: Setup Google Cloud Auth
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ steps.creds.outputs.stdout }}
+          credentials_json: ${{ steps.read_creds.outputs.credentials }}
           cleanup_credentials: true
 
       - name: Set up Google Cloud SDK
