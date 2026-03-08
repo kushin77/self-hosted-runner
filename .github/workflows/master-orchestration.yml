@@ -1,4 +1,8 @@
 name: Master Orchestration (Fully Automated, Hands-Off, Idempotent)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 # ════════════════════════════════════════════════════════════════════════════════
 # Purpose: Single source of truth for all CI/CD orchestration

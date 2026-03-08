@@ -1,37 +1,3 @@
-replicaCount: 1
+REPLACED BY SECURITY POLICY - SECRET REMOVED
 
-image:
-  core:
-    repository: goharbor/harbor-core
-    tag: v2.6.0
-  portal:
-    repository: goharbor/harbor-portal
-    tag: v2.6.0
-
-persistence:
-  enabled: true
-  storageClass: ""
-  size: 200Gi
-
-database:
-  type: "postgres"
-  host: ""
-  user: "harbor"
-  passwordSecret: "harbor-db-password"
-
-redis:
-  enabled: false
-  host: ""
-
-trivy:
-  enabled: false
-
-service:
-  type: ClusterIP
-  corePort: 8080
-
-resources: {}
-
-tls:
-  enabled: false
-  secretName: "harbor-tls"
+This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.
