@@ -35,27 +35,29 @@ jobs:
           terraform_version: '1.14.6'
 
       - name: Authenticate to Google Cloud
+        shell: bash
         run: |
+          set -e
           echo "🔐 Attempting authentication methods..."
           
+          OIDC_SUCCESS="false"
+          
           # Try ephemeral OIDC first (preferred)
-          if [[ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]]; then
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
             echo "📝 Using ephemeral OIDC authentication..."
-            gcloud iam service-accounts get-id-token \
-              --audiences="${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" \
-              --include-email 2>/dev/null && OIDC_SUCCESS=true || OIDC_SUCCESS=false
-          else
-            OIDC_SUCCESS=false
+            if gcloud iam service-accounts get-id-token --audiences="${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" --include-email 2>/dev/null; then
+              OIDC_SUCCESS="true"
+            fi
           fi
           
           # Fallback to service account key if OIDC fails
-          if [[ "$OIDC_SUCCESS" != "true" ]]; then
+          if [ "$OIDC_SUCCESS" != "true" ]; then
             echo "⚠️  OIDC not available, using service account key..."
-            if [[ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]]; then
-              # Use GCP_SERVICE_ACCOUNT_KEY (JSON key file)
+            if [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
               echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > /tmp/gcp-sa-key.json
+              
               # Verify file was created with content
-              if [[ -s /tmp/gcp-sa-key.json ]]; then
+              if [ -s /tmp/gcp-sa-key.json ]; then
                 gcloud auth activate-service-account --key-file=/tmp/gcp-sa-key.json
                 rm -f /tmp/gcp-sa-key.json
                 echo "✅ Service account authentication successful"
@@ -64,7 +66,7 @@ jobs:
                 exit 1
               fi
             else
-              echo "❌ No GCP service account key available"
+              echo "❌ No GCP service account key available in secrets"
               exit 1
             fi
           else
