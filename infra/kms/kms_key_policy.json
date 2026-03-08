@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Id": "key-default-1",
+  "Statement": [
+    {
+      "Sid": "Allow account admins full access",
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::ACCOUNT_ID:root" },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow-CI-Role-Use",
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::ACCOUNT_ID:role/github-actions-oidc-role" },
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:GenerateDataKey",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
