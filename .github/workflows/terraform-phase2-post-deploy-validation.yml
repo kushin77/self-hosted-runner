@@ -1,4 +1,8 @@
 name: "Terraform Phase 2: Post-Deploy Validation & Smoke Tests"
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_run:

@@ -1,4 +1,8 @@
 name: Audit Validation - Weekly
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 # Weekly validation of all systems - fully automated, hands-off
 on:
