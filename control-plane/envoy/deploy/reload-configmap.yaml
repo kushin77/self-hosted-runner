@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: control-plane-envoy-reload-script
+data:
+  envoy_reload_watcher.sh: |
+    #!/usr/bin/env sh
+    exec /opt/envoy/reload/envoy_reload_watcher.sh
