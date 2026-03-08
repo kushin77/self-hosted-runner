@@ -1,4 +1,4 @@
-name: Provision Phase 3 (GCP WIF + Vault)
+name: Provision Phase 3 (GCP WIF + Vault) - Backend-Driven
 
 on:
   workflow_dispatch:
@@ -7,10 +7,10 @@ on:
         description: 'Deploy Vault (helm)'
         required: false
         default: 'false'
-      cred_source:
-        description: 'Credential source (vault|gsm|github)'
+      use_backend:
+        description: 'Credential backend (vault|github-direct)'
         required: false
-        default: 'vault'
+        default: 'github-direct'
 
 jobs:
   provision:
@@ -24,96 +24,133 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fetch GCP credentials from secret backend
-        id: fetch_creds
+      - name: Setup Python for credential fetching
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install credential helpers
+        run: |
+          pip install -q google-cloud-secret-manager hvac || true
+          echo "✅ Credential helpers installed"
+
+      - name: Fetch GCP credentials from Vault or GitHub Secrets
+        id: creds
         env:
+          USE_BACKEND: ${{ github.event.inputs.use_backend }}
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
-          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
-          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          CRED_SOURCE: ${{ github.event.inputs.cred_source }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          TF_VAR_SERVICE_ACCOUNT_KEY: ${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}
         run: |
-          #!/bin/bash
-          set -eo pipefail
+          python3 << 'PYTHON_EOF'
+          import json
+          import os
+          import sys
+          import base64
           
-          CRED_SOURCE="${CRED_SOURCE:-vault}"
+          def validate_sa_key(data):
+              """Validate GCP service account JSON"""
+              if not isinstance(data, dict):
+                  return False
+              required_fields = ['type', 'project_id', 'private_key', 'client_email']
+              return all(field in data for field in required_fields) and data.get('type') == 'service_account'
           
-          # Strategy 1: Vault OIDC (Ephemeral - No long-lived secrets)
-          if [[ "$CRED_SOURCE" == "vault" && -n "$VAULT_ADDR" ]]; then
-            echo "📦 Fetching GCP credentials from Vault via OIDC..."
-            
-            # Get GitHub OIDC token
-            GITHUB_TOKEN=$(curl -s -L -X POST \
-              -H "Authorization: bearer ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: application/json" \
-              -d "{\"audience\":\"vault\"}" \
-              "https://token.actions.githubusercontent.com/.well-known/openid-configuration" 2>/dev/null || \
-              echo "X-GitHub-Token: ${{ secrets.GITHUB_TOKEN }}" | grep -i token || true)
-            
-            # Try Vault OIDC authentication
-            VAULT_TOKEN=$(curl -s -X POST \
-              -d "role=github&jwt=$GITHUB_TOKEN" \
-              "$VAULT_ADDR/v1/auth/jwt/login" | jq -r '.auth.client_token // empty' 2>/dev/null || true)
-            
-            if [[ -n "$VAULT_TOKEN" ]]; then
-              echo "✅ Authenticated to Vault via OIDC"
-              # Fetch GCP key from Vault
-              GCP_SA_KEY=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
-                "$VAULT_ADDR/v1/secret/data/gcp/terraform-sa-key" | \
-                jq -r '.data.data.key // empty')
+          def try_format(value, name):
+              """Try raw JSON first, then base64-decoded"""
+              if not value:
+                  return None
               
-              if [[ -n "$GCP_SA_KEY" ]]; then
-                echo "$GCP_SA_KEY" > /tmp/gcp-sa-key.json
-                echo "✅ GCP credentials fetched from Vault"
-                echo "creds_source=vault" >> "$GITHUB_OUTPUT"
-                exit 0
-              fi
-            fi
-          fi
+              # Try raw JSON
+              try:
+                  data = json.loads(value)
+                  if validate_sa_key(data):
+                      print(f"✅ {name}: Raw JSON (valid)", file=sys.stderr)
+                      return json.dumps(data)
+              except:
+                  pass
+              
+              # Try base64-decoded JSON
+              try:
+                  decoded = base64.b64decode(value).decode('utf-8')
+                  data = json.loads(decoded)
+                  if validate_sa_key(data):
+                      print(f"✅ {name}: Base64-decoded JSON (valid)", file=sys.stderr)
+                      return json.dumps(data)
+              except:
+                  pass
+              
+              return None
           
-          # Fallback: Try GitHub secret (will be base64-decoded if needed)
-          if [[ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]]; then
-            echo "📦 Using GitHub secret for GCP credentials (fallback)..."
-            SECRET_VALUE="${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
-            
-            # Check if base64-encoded (no spaces/newlines)
-            if [[ ! "$SECRET_VALUE" =~ $'\n' ]]; then
-              echo "🔐 Decoding base64-encoded secret..."
-              echo "$SECRET_VALUE" | base64 -d > /tmp/gcp-sa-key.json
-            else
-              echo "✅ Using raw JSON secret"
-              echo "$SECRET_VALUE" > /tmp/gcp-sa-key.json
-            fi
-            
-            echo "creds_source=github" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          # Attempt credential retrieval
+          backend = os.getenv('USE_BACKEND', 'github-direct')
           
-          echo "❌ No credential source available. Vault: $VAULT_ADDR, GitHub Secret: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
-          exit 1
+          if backend == 'vault' and os.getenv('VAULT_ADDR'):
+              print("📦 Attempting Vault credential retrieval...", file=sys.stderr)
+              try:
+                  import hvac
+                  client = hvac.Client(
+                      url=os.getenv('VAULT_ADDR'),
+                      namespace=os.getenv('VAULT_NAMESPACE', ''),
+                      token=os.getenv('VAULT_TOKEN')
+                  )
+                  
+                  # Fetch from multiple possible paths
+                  for path in ['secret/data/gcp/terraform-sa', 'kv/gcp/terraform-sa-key', 'secret/gcp/terraform']:
+                      try:
+                          response = client.secrets.kv.read_secret_version(path=path)
+                          if 'data' in response:
+                              sa_key = response['data']['data'].get('key') or response['data']['data']
+                              if isinstance(sa_key, str):
+                                  result = try_format(str(sa_key), f"Vault:{path}")
+                                  if result:
+                                      print(result)
+                                      sys.exit(0)
+                      except:
+                          continue
+                  
+                  print("⚠️ No valid credential found in Vault paths. Falling back to GitHub secrets.", file=sys.stderr)
+              except Exception as e:
+                  print(f"⚠️ Vault retrieval failed: {e}. Falling back to GitHub secrets.", file=sys.stderr)
+          
+          # Fallback: Try GitHub secrets
+          print("📦 Attempting GitHub secret retrieval...", file=sys.stderr)
+          for secret_name in ['GOOGLE_CREDENTIALS', 'GCP_SERVICE_ACCOUNT_KEY', 'TF_VAR_SERVICE_ACCOUNT_KEY']:
+              value = os.getenv(secret_name)
+              if value:
+                  result = try_format(value, secret_name)
+                  if result:
+                      print(result)
+                      sys.exit(0)
+          
+          # No valid credentials found
+          print("❌ FAILURE: No valid GCP service account credentials found in any backend", file=sys.stderr)
+          print("Attempted:", file=sys.stderr)
+          print("  1. Vault (multiple paths) - if VAULT_ADDR, VAULT_NAMESPACE, VAULT_TOKEN available", file=sys.stderr)
+          print("  2. GOOGLE_CREDENTIALS secret (raw or base64)", file=sys.stderr)
+          print("  3. GCP_SERVICE_ACCOUNT_KEY secret (raw or base64)", file=sys.stderr)
+          print("  4. TF_VAR_SERVICE_ACCOUNT_KEY secret (raw or base64)", file=sys.stderr)
+          sys.exit(1)
+          PYTHON_EOF
 
-      - name: Validate GCP credentials
+      - name: Save credentials to file
         run: |
-          #!/bin/bash
-          if [[ ! -f /tmp/gcp-sa-key.json ]]; then
-            echo "❌ Credentials file not found"
-            exit 1
-          fi
-          
-          # Validate JSON format
-          jq -e '.type=="service_account"' /tmp/gcp-sa-key.json > /dev/null || {
-            echo "❌ Invalid service account JSON"
+          echo '${{ steps.creds.outputs.stdout }}' > /tmp/gcp-sa-key.json
+          # Validate saved file
+          jq -e '.type=="service_account"' /tmp/gcp-sa-key.json || {
+            echo "❌ Failed to validate credentials"
             exit 1
           }
-          
-          echo "✅ Credentials validated successfully"
+          echo "✅ Credentials saved and validated"
           jq -r '.client_email' /tmp/gcp-sa-key.json
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ steps.fetch_creds.outputs.creds_file || '/tmp/gcp-sa-key.json' }}
+          credentials_json: ${{ steps.creds.outputs.stdout }}
           cleanup_credentials: true
 
       - name: Set up Google Cloud SDK
@@ -133,7 +170,10 @@ jobs:
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
         run: |
           terraform init
-          terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="github_repo_owner=${{ github.repository_owner }}" -var="github_repo_name=${{ github.event.repository.name }}"
+          terraform apply -auto-approve \
+            -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" \
+            -var="github_repo_owner=${{ github.repository_owner }}" \
+            -var="github_repo_name=${{ github.event.repository.name }}"
 
       - name: Capture Terraform outputs
         working-directory: infra
@@ -148,7 +188,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           jq -r 'to_entries|map("- " + .key + ": " + (.value.value|tostring))|.[]' /tmp/terraform_outputs.json > /tmp/tf_summary.txt || true
-          echo "\nTerraform outputs:\n" >> /tmp/PHASE3_READY_SUMMARY.txt || true
+          echo -e "\n## Terraform Outputs\n" >> /tmp/PHASE3_READY_SUMMARY.txt || true
           cat /tmp/tf_summary.txt >> /tmp/PHASE3_READY_SUMMARY.txt || true
           chmod +x ./scripts/phase3_generate_issue.sh
           CLOSE_INCIDENTS=true GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} REPO=${{ github.repository }} ./scripts/phase3_generate_issue.sh
