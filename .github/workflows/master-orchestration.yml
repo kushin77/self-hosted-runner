@@ -51,13 +51,6 @@ on:
         required: false
         default: 'false'
 
-permissions:
-  contents: read
-  id-token: write
-  actions: write
-  issues: write
-  pull-requests: read
-
 concurrency:
   # CRITICAL: All master orchestration runs serialize on this group
   group: master-orchestration
