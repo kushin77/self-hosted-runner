@@ -1,0 +1,61 @@
+name: 'Debug: OIDC / WIF Token Check (Hosted Runner)'
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  debug-oidc:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print minimal context
+        run: |
+          echo "timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL=${ACTIONS_ID_TOKEN_REQUEST_URL:-<missing>}"
+          echo "ACTIONS_ID_TOKEN_REQUEST_TOKEN=${ACTIONS_ID_TOKEN_REQUEST_TOKEN:+present}"
+
+      - name: Request OIDC id-token (defensive)
+        id: oidc
+        run: |
+          set -euo pipefail
+          RESP=""
+          TOK=""
+          for i in 1 2 3; do
+            RESP=$(curl -sS "${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=https://iamcredentials.googleapis.com" -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" 2>/dev/null || true)
+            if [[ -n "${RESP:-}" ]]; then
+              echo "$RESP" > /tmp/oidc_resp.txt || true
+              TOK=$(echo "$RESP" | jq -r '.token // empty' 2>/dev/null || echo "")
+              if [[ -n "$TOK" ]]; then
+                echo "token_present=true" > /tmp/oidc_token_present.txt || true
+                echo "token_len=$(echo -n "$TOK" | wc -c)" > /tmp/oidc_token_len.txt || true
+                break
+              fi
+            fi
+            sleep $((i*2))
+          done
+          if [[ -z "${TOK:-}" ]]; then
+            echo "No token obtained after retries" >&2
+            echo '{"status":"no_token"}' > /tmp/oidc_resp.txt || true
+          fi
+
+      - name: Upload debug artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: oidc-debug
+          path: |
+            /tmp/oidc_resp.txt
+            /tmp/oidc_token_present.txt
+            /tmp/oidc_token_len.txt
+
+      - name: Output summary
+        run: |
+          echo "--- Debug Summary ---"
+          if [[ -f /tmp/oidc_token_present.txt ]]; then echo "OIDC token issued on this runner"; else echo "OIDC token NOT issued"; fi
+          if [[ -f /tmp/oidc_token_len.txt ]]; then cat /tmp/oidc_token_len.txt; fi
+          echo "Artifact 'oidc-debug' uploaded."
