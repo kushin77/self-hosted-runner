@@ -1,0 +1,46 @@
+name: Runner Diagnostic Auto
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      actions: read
+    steps:
+      - name: Runner diagnostics and issue update
+        uses: actions/github-script@v6
+        env:
+          MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
+        with:
+          script: |
+            const token = process.env.MGMT_TOKEN || process.env.GITHUB_TOKEN;
+            const octokit = github.getOctokit(token);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = 1406;
+
+            const res = await octokit.rest.actions.listSelfHostedRunnersForRepo({ owner, repo });
+            const runners = res.data.runners || [];
+            const offline = runners.filter(r => r.status !== 'online');
+            const ts = new Date().toISOString();
+
+            if (offline.length === 0) {
+              const body = `[Automated] Runner diagnostic (${ts})\n\nAll self-hosted runners are online.`;
+              await octokit.rest.issues.createComment({ owner, repo, issue_number, body });
+              // Close the issue if open
+              try {
+                await octokit.rest.issues.update({ owner, repo, issue_number, state: 'closed' });
+              } catch (e) {
+                core.info('Issue close attempted; it may already be closed.');
+              }
+            } else {
+              const names = offline.map(r => `${r.name}(${r.id})`).join(', ');
+              const body = `[Automated] Runner diagnostic (${ts})\n\nOffline runners detected: ${names}\n\nSuggested actions:\n- SSH to runner hosts and inspect runner service logs\n- Restart the runner service or re-register the runner\n- Verify outbound connectivity to github.com:443`;
+              await octokit.rest.issues.createComment({ owner, repo, issue_number, body });
+              await octokit.rest.issues.addLabels({ owner, repo, issue_number, labels: ['runner','ops'] }).catch(()=>{});
+            }
