@@ -1,0 +1,43 @@
+{
+  "deployment_id": "phase-2-alacarte-complete",
+  "timestamp": "2026-03-08T22:54:13.857883",
+  "components": {
+    "deployed": [],
+    "failed": [
+      "remove-embedded-secrets"
+    ]
+  },
+  "summary": {
+    "deployment_id": "phase-2-alacarte-complete",
+    "timestamp": "2026-03-08T22:54:13.857883",
+    "total_events": 3,
+    "events": [
+      {
+        "timestamp": "2026-03-08T22:54:13.858588",
+        "event_type": "deployment_start",
+        "component_id": "remove-embedded-secrets",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T22:54:24.045824",
+        "event_type": "step_failed",
+        "component_id": "remove-embedded-secrets",
+        "status": "failed",
+        "details": {
+          "step": "verify-removal"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T22:54:24.046442",
+        "event_type": "deployment_failed",
+        "component_id": "remove-embedded-secrets",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: verify-removal"
+      }
+    ]
+  }
+}
