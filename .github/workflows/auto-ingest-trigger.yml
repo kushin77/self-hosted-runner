@@ -1,5 +1,9 @@
 ---
 name: "Auto: Verify and DR tests after GCP secret ingestion"
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   issue_comment:

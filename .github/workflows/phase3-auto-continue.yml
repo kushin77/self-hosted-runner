@@ -1,4 +1,8 @@
 name: Phase 3 Auto-Continuation (Blocker Monitor)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   pull_request:
