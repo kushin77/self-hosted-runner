@@ -333,6 +333,32 @@ EOF
 # Main Deployment Orchestrator
 ###############################################################################
 main() {
+  # Parse command-line arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --phase)
+        PHASE="$2"
+        shift 2
+        ;;
+      --dry-run)
+        DRY_RUN="true"
+        shift
+        ;;
+      --help)
+        echo "Usage: $0 [options]"
+        echo "Options:"
+        echo "  --phase P0|P1|P2|P3|ALL  Deployment phase (default: ALL)"
+        echo "  --dry-run                 Preview changes without applying them"
+        echo "  --help                    Show this help message"
+        exit 0
+        ;;
+      *)
+        log_error "Unknown option: $1"
+        exit 1
+        ;;
+    esac
+  done
+
   echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${BLUE}║  10X Enterprise Enhancements - À La Carte Deployment       ║${NC}"
   echo -e "${BLUE}║  Generated: $TIMESTAMP                         ║${NC}"
@@ -346,6 +372,17 @@ main() {
   log_info "  Log: $LOG_FILE"
   echo ""
   
+  # Validate phase
+  case "$PHASE" in
+    P0|P1|P2|P3|ALL)
+      # Valid phase
+      ;;
+    *)
+      log_error "Invalid phase: $PHASE. Must be P0|P1|P2|P3|ALL"
+      exit 1
+      ;;
+  esac
+
   # Parse phase argument
   case "$PHASE" in
     P0)
