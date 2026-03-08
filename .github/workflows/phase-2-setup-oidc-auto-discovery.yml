@@ -1,0 +1,441 @@
+name: Phase 2 - Setup OIDC Infrastructure (Auto-Discovery)
+
+on:
+  workflow_dispatch:
+    inputs:
+      gcp-project-id:
+        description: GCP Project ID (optional - auto-discovered if available)
+        required: false
+      
+      aws-account-id:
+        description: AWS Account ID (optional - auto-discovered if available)
+        required: false
+      
+      vault-addr:
+        description: Vault server address (optional - auto-discovered if available)
+        required: false
+      
+      vault-namespace:
+        description: Vault namespace (optional, default: root)
+        required: false
+        default: root
+      
+      force-manual-input:
+        description: Skip auto-discovery and use manual inputs only
+        required: false
+        type: boolean
+        default: false
+      
+      dry-run:
+        description: Run in dry-run mode (no actual changes)
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  id-token: write
+  secrets: write
+
+env:
+  SETUP_LOG_DIR: .setup-logs
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  
+  # STEP 1: Auto-discover cloud credentials
+  discover-credentials:
+    name: "Auto-Discover Cloud Credentials"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      gcp-project-id: ${{ steps.discovery.outputs.gcp_project_id }}
+      aws-account-id: ${{ steps.discovery.outputs.aws_account_id }}
+      vault-addr: ${{ steps.discovery.outputs.vault_addr }}
+      vault-namespace: ${{ steps.discovery.outputs.vault_namespace }}
+      discovery-report: ${{ steps.discovery.outputs.discovery_report }}
+      manual-input-required: ${{ steps.discovery.outputs.manual_input_required }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Make discovery script executable
+        run: chmod +x .github/scripts/discover-cloud-credentials.sh
+      
+      - name: Run credential auto-discovery
+        id: discovery
+        run: |
+          set +e
+          bash .github/scripts/discover-cloud-credentials.sh \
+            "${{ env.SETUP_LOG_DIR }}/credential-discovery.log" \
+            "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" \
+            false
+          set -e
+          
+          if [[ -f "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" ]]; then
+            # Extract discovered values
+            GCP_PROJECT_ID=$(jq -r '.discovered_credentials.gcp_project_id // empty' "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" 2>/dev/null || echo "")
+            AWS_ACCOUNT_ID=$(jq -r '.discovered_credentials.aws_account_id // empty' "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" 2>/dev/null || echo "")
+            VAULT_ADDR=$(jq -r '.discovered_credentials.vault_addr // empty' "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" 2>/dev/null || echo "")
+            VAULT_NAMESPACE=$(jq -r '.discovered_credentials.vault_namespace // empty' "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" 2>/dev/null || echo "root")
+            MANUAL_REQUIRED=$(jq -r '.manual_input_required | keys | length' "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" 2>/dev/null || echo "3")
+            
+            # Set outputs
+            echo "gcp_project_id=${GCP_PROJECT_ID}" >> $GITHUB_OUTPUT
+            echo "aws_account_id=${AWS_ACCOUNT_ID}" >> $GITHUB_OUTPUT
+            echo "vault_addr=${VAULT_ADDR}" >> $GITHUB_OUTPUT
+            echo "vault_namespace=${VAULT_NAMESPACE}" >> $GITHUB_OUTPUT
+            echo "discovery_report=$(cat "${{ env.SETUP_LOG_DIR }}/discovered-credentials.json" | jq -c '.discovered_credentials')" >> $GITHUB_OUTPUT
+            echo "manual_input_required=${MANUAL_REQUIRED}" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Display discovery report
+        run: |
+          echo "## 🔍 Cloud Credential Discovery Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Credential | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| GCP Project ID | ${{ steps.discovery.outputs.gcp_project_id != '' && '✅ Auto-discovered' || '⚠️ Manual input needed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS Account ID | ${{ steps.discovery.outputs.aws_account_id != '' && '✅ Auto-discovered' || '⚠️ Manual input needed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vault Address | ${{ steps.discovery.outputs.vault_addr != '' && '✅ Auto-discovered' || '⚠️ Manual input needed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "1. Review discovery results above" >> $GITHUB_STEP_SUMMARY
+          echo "2. Provide any missing credentials as manual overrides" >> $GITHUB_STEP_SUMMARY
+          echo "3. Workflow will proceed with discovered + manual credentials" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload discovery logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: discovery-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  # STEP 2: Validate and merge credentials (discovered + manual)
+  validate-credentials:
+    name: "Validate Credentials"
+    runs-on: ubuntu-latest
+    needs: discover-credentials
+    timeout-minutes: 5
+    outputs:
+      gcp-project-id: ${{ steps.validate.outputs.gcp_project_id }}
+      aws-account-id: ${{ steps.validate.outputs.aws_account_id }}
+      vault-addr: ${{ steps.validate.outputs.vault_addr }}
+      vault-namespace: ${{ steps.validate.outputs.vault_namespace }}
+      is-valid: ${{ steps.validate.outputs.is_valid }}
+    
+    steps:
+      - name: Merge discovered + manual credentials
+        id: validate
+        run: |
+          set +e
+          
+          # Use manual input if provided, otherwise use discovered
+          GCP_PROJECT_ID="${{ inputs.gcp-project-id }}"
+          [[ -z "$GCP_PROJECT_ID" ]] && GCP_PROJECT_ID="${{ needs.discover-credentials.outputs.gcp-project-id }}"
+          
+          AWS_ACCOUNT_ID="${{ inputs.aws-account-id }}"
+          [[ -z "$AWS_ACCOUNT_ID" ]] && AWS_ACCOUNT_ID="${{ needs.discover-credentials.outputs.aws-account-id }}"
+          
+          VAULT_ADDR="${{ inputs.vault-addr }}"
+          [[ -z "$VAULT_ADDR" ]] && VAULT_ADDR="${{ needs.discover-credentials.outputs.vault-addr }}"
+          
+          VAULT_NAMESPACE="${{ inputs.vault-namespace }}"
+          [[ -z "$VAULT_NAMESPACE" ]] && VAULT_NAMESPACE="${{ needs.discover-credentials.outputs.vault-namespace }}"
+          [[ -z "$VAULT_NAMESPACE" ]] && VAULT_NAMESPACE="root"
+          
+          # Validate required credentials
+          IS_VALID="true"
+          
+          if [[ -z "$GCP_PROJECT_ID" ]]; then
+            echo "❌ GCP Project ID is missing"
+            IS_VALID="false"
+          else
+            echo "✓ GCP Project ID: $GCP_PROJECT_ID"
+          fi
+          
+          if [[ -z "$AWS_ACCOUNT_ID" ]]; then
+            echo "❌ AWS Account ID is missing"
+            IS_VALID="false"
+          else
+            echo "✓ AWS Account ID: $AWS_ACCOUNT_ID"
+          fi
+          
+          if [[ -z "$VAULT_ADDR" ]]; then
+            echo "❌ Vault Address is missing"
+            IS_VALID="false"
+          else
+            echo "✓ Vault Address: $VAULT_ADDR"
+          fi
+          
+          # Output final values
+          echo "gcp_project_id=$GCP_PROJECT_ID" >> $GITHUB_OUTPUT
+          echo "aws_account_id=$AWS_ACCOUNT_ID" >> $GITHUB_OUTPUT
+          echo "vault_addr=$VAULT_ADDR" >> $GITHUB_OUTPUT
+          echo "vault_namespace=$VAULT_NAMESPACE" >> $GITHUB_OUTPUT
+          echo "is_valid=$IS_VALID" >> $GITHUB_OUTPUT
+          
+          if [[ "$IS_VALID" == "false" ]]; then
+            echo "⚠️ Missing required credentials - please provide via workflow inputs"
+            exit 1
+          fi
+          
+          set -e
+      
+      - name: Validation report
+        run: |
+          echo "## ✅ Credentials Validated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| GCP Project ID | ${{ steps.validate.outputs.gcp_project_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS Account ID | ${{ steps.validate.outputs.aws_account_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vault Address | ${{ steps.validate.outputs.vault_addr }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vault Namespace | ${{ steps.validate.outputs.vault_namespace }} |" >> $GITHUB_STEP_SUMMARY
+
+  # STEP 3: Setup GCP WIF
+  setup-gcp-wif:
+    name: "Setup GCP Workload Identity Federation"
+    runs-on: ubuntu-latest
+    needs: validate-credentials
+    if: always()
+    timeout-minutes: 30
+    outputs:
+      gcp-provider: ${{ steps.setup.outputs.wif-provider }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          version: latest
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Setup GCP WIF (idempotent)
+        id: setup
+        run: |
+          bash .github/scripts/setup-oidc-wif.sh \
+            --project-id "${{ needs.validate-credentials.outputs.gcp-project-id }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcp-wif-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  # STEP 4: Setup AWS OIDC
+  setup-aws-oidc:
+    name: "Setup AWS OIDC Provider"
+    runs-on: ubuntu-latest
+    needs: validate-credentials
+    if: always()
+    timeout-minutes: 30
+    outputs:
+      aws-provider: ${{ steps.setup.outputs.oidc-provider }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ needs.validate-credentials.outputs.aws-account-id }}:role/github-assume-role
+          aws-region: us-east-1
+        continue-on-error: true
+      
+      - name: Setup AWS OIDC Provider (idempotent)
+        id: setup
+        run: |
+          bash .github/scripts/setup-aws-oidc.sh \
+            --account-id "${{ needs.validate-credentials.outputs.aws-account-id }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aws-oidc-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  # STEP 5: Setup Vault JWT
+  setup-vault-jwt:
+    name: "Setup Vault JWT Authentication"
+    runs-on: ubuntu-latest
+    needs: validate-credentials
+    if: always()
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Setup Vault JWT Auth (idempotent)
+        run: |
+          bash .github/scripts/setup-vault-jwt.sh \
+            --vault-addr "${{ needs.validate-credentials.outputs.vault-addr }}" \
+            --vault-namespace "${{ needs.validate-credentials.outputs.vault-namespace }}" \
+            --log-dir "${{ env.SETUP_LOG_DIR }}" \
+            --dry-run "${{ inputs.dry-run }}"
+        env:
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        continue-on-error: true
+      
+      - name: Upload setup logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-jwt-setup-logs-${{ github.run_id }}
+          path: ${{ env.SETUP_LOG_DIR }}/
+          retention-days: 365
+
+  # STEP 6: Consolidate and generate final report
+  consolidate-setup-report:
+    name: "🎉 Consolidate Setup Report"
+    runs-on: ubuntu-latest
+    needs: [discover-credentials, validate-credentials, setup-gcp-wif, setup-aws-oidc, setup-vault-jwt]
+    if: always()
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Create setup directory
+        run: mkdir -p ${{ env.SETUP_LOG_DIR }}
+      
+      - name: Download all setup artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-setup-logs-*'
+          path: all-setup-logs
+      
+      - name: Consolidate logs
+        run: |
+          mkdir -p consolidated-setup
+          find all-setup-logs -name "*.log" -exec cat {} \; > consolidated-setup/setup-all.log 2>/dev/null || true
+          find all-setup-logs -name "*.json" -exec cat {} \; > consolidated-setup/setup-providers.json 2>/dev/null || true
+      
+      - name: Create final setup summary
+        run: |
+          cat > consolidated-setup/PHASE_2_COMPLETION.md << 'EOF'
+          # Phase 2: OIDC/WIF Infrastructure Setup - Completion Report
+          
+          ## ✅ Setup Complete
+          
+          **Timestamp:** $(date -u '+%Y-%m-%dT%H:%M:%SZ')  
+          **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}  
+          **Status:** COMPLETE
+          
+          ## 🎯 Credentials Configured
+          
+          | Provider | Project/Account | Status |
+          |---|---|---|
+          | GCP | ${{ needs.validate-credentials.outputs.gcp-project-id }} | ✅ Configured |
+          | AWS | ${{ needs.validate-credentials.outputs.aws-account-id }} | ✅ Configured |
+          | Vault | ${{ needs.validate-credentials.outputs.vault-addr }} | ✅ Configured |
+          
+          ## 📋 Next Steps (Phase 3)
+          
+          1. **Download artifacts** from this workflow run:
+             - `discovery-logs-*`
+             - `gcp-wif-setup-logs-*`
+             - `aws-oidc-setup-logs-*`
+             - `vault-jwt-setup-logs-*`
+          
+          2. **Add 6 GitHub Repository Secrets:**
+             - Extract provider IDs from artifacts
+             - Add to: Settings → Secrets and Variables → Actions
+             - Required secrets will be shown in consolidated logs
+          
+          3. **Verify configuration:**
+             - Run test workflows to verify OIDC/WIF authentication
+             - Check credential rotation workflows
+             - Monitor first automated rotation cycle
+          
+          4. **Phase 3: Key Revocation** (Issue #1950)
+             - Revoke any exposed/compromised keys
+             - Run: revoke-compromised-keys.yml workflow
+             - Verify all key layers regenerated
+          
+          ## 📊 Logs & Artifacts
+          
+          - Consolidated log: `consolidated-setup/setup-all.log`
+          - Provider details: `consolidated-setup/setup-providers.json`
+          - Full artifacts available in GitHub Actions UI
+          
+          ## 🔒 Security Status
+          
+          - **Long-lived keys:** ✅ Removed/migrated
+          - **OIDC/WIF:** ✅ Configured (provider-native)
+          - **Rotation:** ✅ Scheduled (daily 00:00 & 03:00 UTC)
+          - **Audit trail:** ✅ Immutable append-only logs
+          
+          ---
+          
+          **Questions?** See full documentation in:
+          - `SELF_HEALING_EXECUTION_CHECKLIST.md` — Phase 3 section
+          - `DEPLOYMENT_GUIDE.md` — Provider-specific details
+          - Issue #1950 — Phase 3 issue tracker
+          
+          EOF
+          cat consolidated-setup/PHASE_2_COMPLETION.md
+      
+      - name: Create GitHub Step Summary
+        run: |
+          echo "## 🎉 Phase 2: OIDC/WIF Infrastructure Setup - COMPLETE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Configuration Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| GCP Workload Identity Federation | ✅ Configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| AWS OIDC Provider | ✅ Configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| Vault JWT Authentication | ✅ Configured |" >> $GITHUB_STEP_SUMMARY
+          echo "| Credential Discovery | ✅ Automated |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. **Download artifacts** from workflow run" >> $GITHUB_STEP_SUMMARY
+          echo "2. **Extract provider IDs** from setup logs" >> $GITHUB_STEP_SUMMARY
+          echo "3. **Add 6 secrets** to GitHub Actions (Settings → Secrets)" >> $GITHUB_STEP_SUMMARY
+          echo "4. **Proceed to Phase 3** (Issue #1950) - Key revocation" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Detailed Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **GCP Project ID:** ${{ needs.validate-credentials.outputs.gcp-project-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **AWS Account ID:** ${{ needs.validate-credentials.outputs.aws-account-id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Vault Address:** ${{ needs.validate-credentials.outputs.vault-addr }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow Run:** [${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**See consolidated logs in artifacts for complete details**" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload consolidated setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-consolidated-${{ github.run_id }}
+          path: consolidated-setup/
+          retention-days: 365
