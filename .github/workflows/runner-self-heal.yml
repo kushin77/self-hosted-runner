@@ -1,9 +1,10 @@
 name: Runner Self-Heal
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  # Converted to event-driven: removed 5-minute polling
   workflow_dispatch:
+  repository_dispatch:
+    types: [self-heal-request, self-heal-trigger]
 
 concurrency:
   group: runner-self-heal
