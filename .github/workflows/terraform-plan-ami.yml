@@ -1,4 +1,8 @@
 name: Terraform Plan (consume Packer AMI)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_run:

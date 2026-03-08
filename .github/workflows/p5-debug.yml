@@ -1,4 +1,8 @@
 name: P5 Debug - Runner Diagnostics
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:
