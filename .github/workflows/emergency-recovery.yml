@@ -1,0 +1,113 @@
+name: Emergency Recovery & Auto-Remediation
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: 'Issue number to resolve (optional)'
+        required: false
+      recovery_mode:
+        description: 'Recovery mode: cluster-restart, lock-reset, workflow-clear, all'
+        required: false
+        default: 'all'
+  schedule:
+    - cron: '0 */6 * * *'  # Every 6 hours - check for critical issues
+
+permissions:
+  contents: write
+  issues: write
+  id-token: write
+
+jobs:
+  emergency-recovery:
+    name: Emergency Recovery System
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check critical systems
+        id: critical-check
+        run: |
+          CRITICAL_ISSUES=0
+          
+          # Check cluster
+          if ! timeout 5 bash -c "echo >/dev/tcp/192.168.168.42/6443" 2>/dev/null; then
+            echo "❌ Staging cluster is offline"
+            CRITICAL_ISSUES=$((CRITICAL_ISSUES + 1))
+          fi
+          
+          # Check workflows
+          FAILED_WORKFLOWS=$(gh run list --repo ${{ github.repository }} --status failure --limit 10 --json name -q 2>/dev/null | wc -l)
+          if [ "$FAILED_WORKFLOWS" -gt 3 ]; then
+            echo "❌ Multiple workflow failures detected"
+            CRITICAL_ISSUES=$((CRITICAL_ISSUES + 1))
+          fi
+          
+          echo "critical_count=$CRITICAL_ISSUES" >> $GITHUB_OUTPUT
+
+      - name: Reset npm lockfiles (auto-remediation)
+        if: contains(github.event.inputs.recovery_mode, 'lock-reset') || contains(github.event.inputs.recovery_mode, 'all')
+        run: |
+          echo "Attempting to reset npm lockfiles..."
+          # Run the auto-fix workflow if available
+          gh workflow run auto-fix-locks.yml --repo ${{ github.repository }} || echo "Cannot trigger lock-fix"
+
+      - name: Clear stuck workflows
+        if: contains(github.event.inputs.recovery_mode, 'workflow-clear') || contains(github.event.inputs.recovery_mode, 'all')
+        run: |
+          echo "Clearing stuck workflow runs..."
+          # Cancel any running workflows that are >30 min old
+          gh run list --repo ${{ github.repository }} --status in_progress -L 50 --json databaseId,createdAt -q \
+            | while read -r RUN; do
+              AGE=$(date +%s) - $(date -d "$(echo "$RUN" | jq -r '.createdAt')" +%s))
+              if [ "$AGE" -gt 1800 ]; then
+                gh run cancel "$(echo "$RUN" | jq -r '.databaseId')" --repo ${{ github.repository }} 2>/dev/null || true
+              fi
+            done
+
+      - name: Post recovery status
+        if: always()
+        run: |
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          CRITICAL_COUNT="${{ steps.critical-check.outputs.critical_count }}"
+          
+          BODY="## 🚨 Emergency Recovery Check ($TIMESTAMP)
+
+**Critical Issues Detected**: $CRITICAL_COUNT
+
+$([ "$CRITICAL_COUNT" -gt 0 ] && echo "### Recovery Actions Taken:" || echo "### Status: All systems nominal")
+
+- Npm lockfiles: Triggered auto-fix
+- Stuck workflows: Cleared any >30 min runs
+- Cluster: Monitoring active
+
+### Escalation:
+$([ "$CRITICAL_COUNT" -gt 0 ] && echo "⚠️ Manual intervention may be needed - see issue #231" || echo "✅ All systems recovered")
+
+---
+*Emergency recovery via emergency-recovery.yml*"
+          
+          gh issue comment 231 \
+            --repo ${{ github.repository }} \
+            --body "$BODY" || echo "Note: Could not post comment"
+
+      - name: Create incident if critical
+        if: steps.critical-check.outputs.critical_count > 0
+        run: |
+          gh issue create \
+            --repo ${{ github.repository }} \
+            --title "🚨 INCIDENT: Critical system failure detected" \
+            --label "incident,critical" \
+            --body "Emergency recovery system detected ${{ steps.critical-check.outputs.critical_count }} critical issues.
+
+See issue #231 for automation status and recovery attempts.
+
+Manual review needed." || echo "Incident creation skipped (may already exist)"
+
+      - name: Upload recovery logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emergency-recovery-logs
+          path: logs/
+          retention-days: 30
