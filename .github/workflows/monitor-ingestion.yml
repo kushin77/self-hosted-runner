@@ -1,9 +1,10 @@
 name: Monitor Ingestion & Workflow Progress
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch:
+  repository_dispatch:
+    types: [ingestion-detected, ingestion-check]
 
 permissions:
   issues: write
