@@ -2,60 +2,36 @@ name: Force Terraform Plan
 
 on:
   workflow_dispatch:
-            const workflow_id = 'terraform-plan.yml';
-            const ref = (context.payload && context.payload.inputs && context.payload.inputs.ref) || context.ref || 'main';
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id,
-              ref
-            });
+    inputs:
+      ref:
         description: 'Branch or ref to run terraform-plan on'
         required: false
         default: 'main'
 
 permissions:
-            const runRef = (context.payload && context.payload.inputs && context.payload.inputs.ref) || context.ref || 'main';
-            const body = `Triggered terraform-plan on ref: ${runRef}`;
+  contents: read
   actions: write
   issues: write
 
 jobs:
   dispatch-plan:
-    name: Dispatch Terraform Plan
+    name: Dispatch Terraform Plan (API)
     runs-on: ubuntu-latest
     steps:
-      - name: Dispatch terraform-plan workflow on target ref
-        uses: actions/github-script@v6
-        with:
-          script: |
-<<<<<<< HEAD
-            const repo = context.repo.owner + '/' + context.repo.repo;
-            const workflow_id = 'terraform-plan.yml';
-            const ref = core.getInput('ref') || github.context.payload.ref || 'main';
-=======
-            const workflow_id = 'terraform-plan.yml';
-            const ref = (context.payload && context.payload.inputs && context.payload.inputs.ref) || context.ref || 'main';
->>>>>>> 5bf5925a1 (ci: fix force-terraform-plan github-script usage)
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id,
-              ref
-            });
+      - name: Dispatch terraform-plan via REST API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REF="${{ github.event.inputs.ref || github.ref || 'main' }}"
+          echo "Dispatching terraform-plan.yml on ref: $REF"
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-plan.yml/dispatches \
+            -d "{\"ref\": \"$REF\"}" || true
       - name: Post note to ops issue
-        uses: actions/github-script@v6
-        with:
-          script: |
-<<<<<<< HEAD
-            const runRef = core.getInput('ref') || github.context.payload.ref || 'main';
-=======
-            const runRef = (context.payload && context.payload.inputs && context.payload.inputs.ref) || context.ref || 'main';
->>>>>>> 5bf5925a1 (ci: fix force-terraform-plan github-script usage)
-            const body = `Triggered terraform-plan on ref: ${runRef}`;
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: 1384,
-              body
-            });
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REF="${{ github.event.inputs.ref || github.ref || 'main' }}"
+          gh issue comment 1384 --repo ${{ github.repository }} --body "Triggered terraform-plan on ref: $REF" || true
