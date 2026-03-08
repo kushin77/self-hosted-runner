@@ -1,6 +1,28 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mkdir -p build/provenance
+
+PROV_FILE=build/provenance/sample-provenance.json
+
+cat > "$PROV_FILE" <<EOF
+{
+  "provenance": {
+    "builder": "sample-ci",
+    "buildType": "example/build",
+    "source": {
+      "type": "git",
+      "url": "https://github.com/example/repo",
+      "commit": "0000000000000000000000000000000000000000"
+    }
+  }
+}
+EOF
+
+echo "✓ Provenance generated: $PROV_FILE"
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Generate a simple SLSA-like provenance JSON for each image listed in manifest.
 # Optionally attest (sign) the provenance using cosign if COSIGN_KEY is provided.
 # Usage: ./generate_provenance.sh manifest.yml sbom-dir out-dir [--sign]
