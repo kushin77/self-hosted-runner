@@ -37,6 +37,16 @@ jobs:
             cd scripts/automation/pmo/prometheus
             chmod +x run_e2e_ephemeral_test.sh
             ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_URL"
+
+      - name: Upload metrics artifact (guaranteed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            workflow_artifacts/metrics.json
+            **/workflow_artifacts/metrics.json
+            /tmp/observability-e2e.*/metrics.json
           else
             echo "SLACK_WEBHOOK_URL not set - skipping Slack test"
           fi
@@ -64,6 +74,16 @@ jobs:
             cd scripts/automation/pmo/prometheus
             chmod +x run_e2e_ephemeral_test.sh
             PAGERDUTY_SERVICE_KEY="$PD_KEY" ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
+
+      - name: Upload metrics artifact (guaranteed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            workflow_artifacts/metrics.json
+            **/workflow_artifacts/metrics.json
+            /tmp/observability-e2e.*/metrics.json
           else
             echo "PAGERDUTY_SERVICE_KEY not set - skipping PagerDuty test"
           fi
