@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: control-plane-envoy-vault-config
+data:
+  vault-agent.hcl: |
+{{- "" }}
+    auto_auth {
+      method "kubernetes" {
+        mount_path = "auth/kubernetes"
+        config = { role = "control-plane-role" }
+      }
+      sink "file" { config = { path = "/var/run/vault/token" } }
+    }
+
+    template {
+      source = "/etc/vault/templates/cert.tpl"
+      destination = "/etc/envoy/tls/server.crt"
+      perms = "0640"
+    }
+    template {
+      source = "/etc/vault/templates/key.tpl"
+      destination = "/etc/envoy/tls/server.key"
+      perms = "0640"
+    }
+    template {
+      source = "/etc/vault/templates/ca.tpl"
+      destination = "/etc/envoy/tls/ca.crt"
+      perms = "0640"
+    }
+  cert.tpl: |
+{{- "" }}
+    {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
+    {{ .Data.certificate }}
+    {{ end }}
+  key.tpl: |
+{{- "" }}
+    {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
+    {{ .Data.private_key }}
+    {{ end }}
+  ca.tpl: |
+{{- "" }}
+    {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
+    {{ .Data.issuing_ca }}
+    {{ end }}
