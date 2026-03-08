@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/bin/bash
+
 """
 Security: Validate no secrets remain in repository.
 Part of Phase 1 deployment - Remove-Embedded-Secrets validation step.
