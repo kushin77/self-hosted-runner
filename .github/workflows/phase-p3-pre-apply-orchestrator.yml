@@ -535,7 +535,7 @@ jobs:
       - name: Close Issues on Full Success
         if: |
           github.event.inputs.auto_close_issues == 'true' &&
-          needs.stage2-e2e-test.outputs.result == 'success' &&
+          (needs.initialization.outputs.skip_e2e == 'true' || needs.stage2-e2e-test.outputs.result == 'success') &&
           needs.stage4a-terraform-validation.outputs.plan_valid == 'true' &&
           needs.stage4b-gcp-permission.outputs.gcp_verified == 'true'
         run: |
