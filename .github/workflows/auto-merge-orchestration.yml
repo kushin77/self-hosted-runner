@@ -45,17 +45,12 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Authenticate with Vault (OIDC)
-        uses: hashicorp/vault-action@v2
-        id: vault-auth
-        with:
-          url: ${{ secrets.VAULT_ADDR || 'https://vault.example.com' }}
-          role: github-automation
-          path: jwt
-          jwtAudience: github-actions
-          secrets: |
-            secret/github/automation github_token;
-            secret/gcp/serviceaccounts gsa_json
+      - name: Configure Authentication
+        run: |
+          # Use GitHub built-in token for merges
+          echo "Using GitHub Actions default token for PR merges"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure Git
         run: |
@@ -177,7 +172,7 @@ jobs:
           echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ steps.vault-auth.outputs.github_token || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Execute Phase 2 - Phase 3 Vault & P0-P3 Features
         id: phase2
@@ -247,7 +242,7 @@ jobs:
           echo "conflicts=$CONFLICTS" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ steps.vault-auth.outputs.github_token || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Execute Phase 3 - Infrastructure Hardening (Batch Groups)
         id: phase3
@@ -334,8 +329,6 @@ jobs:
           gh issue comment 1805 \
             --repo ${{ github.repository }} \
             --body "$(cat /tmp/phase_result.md 2>/dev/null || echo 'Phase execution summary')" 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push Merged Changes to main
         if: github.event.inputs.dry_run == 'false' && (steps.phase1.outputs.merged != '0' || steps.phase2.outputs.merged != '0' || steps.phase3.outputs.merged != '0')
