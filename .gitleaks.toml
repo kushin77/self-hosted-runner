@@ -1,0 +1,18 @@
+# Gitleaks configuration for allowlisting known false positives
+# This is used by the gitleaks-scan.yml workflow to avoid flagging legitimate code examples
+
+[allowlist]
+# Allowlist comment patterns and examples in workflow files that are not actual secrets
+paths = [
+  '''.github/workflows/security-scan-reusable\.yml''',  # Workflow contains pattern examples
+  '''\.gitleaks\.toml''',  # This config file itself
+]
+
+# Allowlist specific commit hashes (optional, if needed in future)
+commits = []
+
+# Allowlist specific regex patterns that match false positives
+regexes = [
+  '''# (RSA|EC) private key''',  # Comments explaining key types
+  '''# Private key comment''',   # Generic private key comments
+]
