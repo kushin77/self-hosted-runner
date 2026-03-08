@@ -23,20 +23,21 @@ spec:
             - name: tls
               mountPath: /etc/envoy/tls
               readOnly: true
-      initContainers:
-        - name: fetch-cert
+        - name: vault-agent
           image: hashicorp/vault:1.13.0
-          command: ["/bin/sh","-c","/bin/get_cert.sh"]
+          command: ["/bin/vault","agent","-config=/etc/vault/vault-agent.hcl"]
           env:
             - name: VAULT_ADDR
               value: "https://vault.example.local"
-            - name: ROLE
-              value: "control-plane-role"
-            - name: COMMON_NAME
-              value: "control-plane.example.local"
           volumeMounts:
             - name: tls
               mountPath: /etc/envoy/tls
+            - name: vault-config
+              mountPath: /etc/vault
+      initContainers: []
       volumes:
         - name: tls
           emptyDir: {}
+        - name: vault-config
+          configMap:
+            name: control-plane-envoy-vault-config
