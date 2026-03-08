@@ -1,11 +1,6 @@
 name: Operational Health Dashboard & Metrics
 
 on:
-  schedule:
-    # Daily health report at 04:00 UTC
-    - cron: "0 4 * * *"
-    # Hourly metrics collection
-    - cron: "0 * * * *"
   workflow_dispatch:
     inputs:
       report_type:
