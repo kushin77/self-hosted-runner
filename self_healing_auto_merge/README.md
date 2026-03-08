@@ -1,6 +1,18 @@
-# Self-Healing Auto Merge
+Self-Healing Auto Merge
+======================
 
-Scaffold for `AutoMergeManager` (P0).
+Risk-based auto-merge manager. Integration adapters should implement the
+actual GitHub operations and pass `merge_func`/`rollback_func` callables.
 
-- `auto_merge.py`: `AutoMergeManager` with risk tiers stub and schedule/rollback hooks.
-- `test_auto_merge.py`: basic pytest tests.
+Design goals: idempotent merges, risk tiers, schedule/rollback hooks, and
+safe-by-default behavior (CRITICAL requires manual review).
+>>>>>>> 1379a4e11 (feat(auto-merge): implementation + package init)
+Self-Healing Auto Merge
+======================
+
+Risk-based auto-merge manager. Integration adapters should implement the
+actual GitHub operations and pass `merge_func`/`rollback_func` callables.
+
+Design goals: idempotent merges, risk tiers, schedule/rollback hooks, and
+safe-by-default behavior (CRITICAL requires manual review).
+>>>>>>> 1379a4e11 (feat(auto-merge): implementation + package init)
