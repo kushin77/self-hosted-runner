@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+  title: Runner Registration API
+  version: 0.1.0
+  description: API for centralized registration of self-hosted runners (PoC). Designed for mTLS in production.
+servers:
+  - url: https://control-plane.example.local
+paths:
+  /v1/register:
+    post:
+      summary: Register a runner instance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instance_id:
+                  type: string
+                metadata:
+                  type: object
+      responses:
+        '200':
+          description: Registered
+        '400':
+          description: Bad request
+security:
+  - mTLS: []
+components:
+  securitySchemes:
+    mTLS:
+      type: mutualTLS
