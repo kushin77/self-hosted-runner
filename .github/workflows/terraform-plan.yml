@@ -40,6 +40,43 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ secrets.AWS_REGION }}
 
+      - name: Preflight checks for automation prerequisites
+        run: |
+          set -euo pipefail
+          MISSING=()
+
+          # GCP credentials check
+          if [ -z "${{ secrets.GOOGLE_CREDENTIALS }}" ] && [ -z "${{ secrets.TF_VAR_SERVICE_ACCOUNT_KEY }}" ] && [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
+            MISSING+=("GCP_CREDENTIALS")
+          fi
+
+          # Terraform variables check
+          if [ -z "${{ secrets.PROD_TFVARS }}" ] && [ -z "${{ secrets.TFVARS_PROD }}" ] && [ ! -f terraform/environments/production/terraform.tfvars ]; then
+            MISSING+=("PROD_TFVARS")
+          fi
+
+          # Backend bucket check (approximate)
+          BUCKET=""
+          if [ -n "${{ secrets.TFSTATE_BUCKET }}" ]; then
+            BUCKET="${{ secrets.TFSTATE_BUCKET }}"
+          elif [ -n "${{ secrets.PROD_TFVARS }}" ] && echo '${{ secrets.PROD_TFVARS }}' | jq -e . >/dev/null 2>&1; then
+            BUCKET=$(echo '${{ secrets.PROD_TFVARS }}' | jq -r '.bucket // empty') || true
+          elif [ -f terraform/environments/production/terraform.tfvars ]; then
+            BUCKET=$(awk -F'=' '/^[[:space:]]*bucket[[:space:]]*=/{gsub(/"|\047/,"",$2); gsub(/ /,"",$2); print $2; exit}' terraform/environments/production/terraform.tfvars || true)
+          fi
+          if [ -z "$BUCKET" ]; then
+            MISSING+=("TFSTATE_BUCKET")
+          fi
+
+          if [ ${#MISSING[@]} -gt 0 ]; then
+            echo "::warning::Missing prerequisites: ${MISSING[*]} - marking SKIP_TERRAFORM"
+            echo "SKIP_TERRAFORM=true" >> $GITHUB_ENV
+            DETAIL="Missing prerequisites: ${MISSING[*]}. Ensure repository secrets: PROD_TFVARS (or TFVARS_PROD), TFSTATE_BUCKET, and GCP service account (GOOGLE_CREDENTIALS or TF_VAR_SERVICE_ACCOUNT_KEY)."
+            gh issue comment 1384 --repo ${{ github.repository }} --body "Automation: terraform-plan skipped (no-op). $DETAIL" || true
+          else
+            echo "All preflight checks passed"
+          fi
+
       - name: Setup GCP Credentials
         run: |
           # Decode and setup GCP service account from any known secret name
