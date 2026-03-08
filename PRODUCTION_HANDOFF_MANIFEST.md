@@ -48,7 +48,7 @@ export KMS_KEY_ID="your-key-id"
 
 **GitHub Secrets to Configure** (all auto-managed):
 - `GCP_WIF_PROVIDER`: OIDC workload identity provider
-- `GCP_SERVICE_ACCOUNT`: Service account email
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - `GCP_PROJECT_ID`: GCP project ID
 - `VAULT_ADDR`: Vault server address (optional)
 - `KMS_KEY_ID`: KMS key ID for backup (optional)

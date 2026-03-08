@@ -1,0 +1,171 @@
+name: Issue 231 Auto Apply
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  auto-apply:
+    name: Auto Apply Terraform (Issue 231)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Authenticate to GCP via Workload Identity
+        id: auth
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Install Terraform
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gnupg software-properties-common curl
+          curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt-get update -y && sudo apt-get install -y terraform
+
+      - name: Debug - Check workspace and terraform directory
+        run: |
+          echo "Current working directory:"
+          pwd
+          echo "Repository contents:"
+          ls -la
+          echo "Terraform directory contents:"
+          ls -la terraform/ || echo "terraform/ directory not found"
+          echo "Checking terraform config files:"
+          find terraform -name "*.tf" -type f 2>/dev/null | head -20 || echo "No .tf files found"
+
+      - name: Fetch AWS credentials from GCP Secret Manager
+        id: aws-creds
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          echo "Attempting to fetch AWS credentials from GSM..."
+          # Try to get AWS credentials from GSM, but don't fail if they don't exist
+          AWS_ACCESS_KEY=$(gcloud secrets versions access latest --secret="aws-access-key-id" 2>/dev/null || echo "")
+          AWS_SECRET_KEY=$(gcloud secrets versions access latest --secret="aws-secret-access-key" 2>/dev/null || echo "")
+          AWS_REGION=$(gcloud secrets versions access latest --secret="aws-region" 2>/dev/null || echo "us-east-1")
+          
+          if [ -z "$AWS_ACCESS_KEY" ] || [ -z "$AWS_SECRET_KEY" ]; then
+            echo "ℹ️  AWS credentials not found in GSM, checking AWS OIDC availability..."
+            echo "has_credentials=false" >> $GITHUB_OUTPUT
+          else
+            echo "✓ AWS credentials retrieved from GSM"
+            echo "has_credentials=true" >> $GITHUB_OUTPUT
+            echo "::add-mask::${AWS_ACCESS_KEY}"
+            echo "::add-mask::${AWS_SECRET_KEY}"
+            echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY}" >> $GITHUB_ENV
+            echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_KEY}" >> $GITHUB_ENV
+            echo "AWS_REGION=${AWS_REGION}" >> $GITHUB_ENV
+          fi
+
+      - name: Configure AWS credentials via OIDC
+        id: aws-oidc
+        uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          mask-aws-account-id: false
+
+      - name: Check AWS credentials availability
+        id: check-creds
+        continue-on-error: true
+        run: |
+          set +euo pipefail
+          if aws sts get-caller-identity &>/dev/null; then
+            echo "✓ AWS credentials available"
+            echo "has_credentials=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No AWS credentials available"
+            echo "has_credentials=false" >> $GITHUB_OUTPUT
+          fi
+          set -euo pipefail
+
+      - name: Terraform Init & Apply
+        id: tfapply
+        if: ${{ steps.check-creds.outputs.has_credentials == 'true' }}
+        env:
+          TF_IN_AUTOMATION: 1
+        run: |
+          set -euo pipefail
+          # Change directory to where terraform code lives (adjust if needed)
+          if [ -d "terraform" ]; then
+            cd terraform
+          fi
+          echo "🔍 Running Terraform init..."
+          terraform init -input=false
+          echo "📋 Generating plan..."
+          terraform plan -out=tfplan -input=false
+          echo "✅ Applying plan..."
+          terraform apply -input=false tfplan
+
+      - name: Terraform Plan (Dry-run - No credentials)
+        id: tfplan
+        if: ${{ steps.check-creds.outputs.has_credentials != 'true' }}
+        env:
+          TF_IN_AUTOMATION: 1
+        run: |
+          set -euo pipefail
+          echo "⚠️  AWS credentials not available in GSM. Running in dry-run mode (plan only)..."
+          if [ -d "terraform" ]; then
+            cd terraform
+          fi
+          terraform init -input=false
+          terraform plan -input=false
+          echo "plan_only=true" >> $GITHUB_OUTPUT
+
+      - name: Post success comment and close issues
+        if: ${{ success() && steps.check-creds.outputs.has_credentials == 'true' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const ownerRepo = process.env.GITHUB_REPOSITORY.split('/')
+            const owner = ownerRepo[0]
+            const repo = ownerRepo[1]
+            const issuesToClose = [231, 220, 228]
+            const runUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
+            const body = `✅ **Auto-apply completed successfully**\n\nTerraform apply executed and resources provisioned.\n\nWorkflow run: ${runUrl}`
+            for (const num of issuesToClose) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: num, body })
+              await github.rest.issues.update({ owner, repo, issue_number: num, state: 'closed' })
+            }
+
+      - name: Post plan-only comment (dry-run)
+        if: ${{ success() && steps.check-creds.outputs.has_credentials != 'true' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const ownerRepo = process.env.GITHUB_REPOSITORY.split('/')
+            const owner = ownerRepo[0]
+            const repo = ownerRepo[1]
+            const runUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
+            const body = `⚠️ **Terraform Plan (Dry-run)**\n\nAWS credentials not found in GCP Secret Manager. Ran plan only (no apply).\n\nTo enable full apply:\n1. Store AWS credentials in GCP Secret Manager\n2. Re-run this workflow\n\nWorkflow run: ${runUrl}`
+            await github.rest.issues.createComment({ owner, repo, issue_number: 231, body })
+
+      - name: Post failure comment
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const ownerRepo = process.env.GITHUB_REPOSITORY.split('/')
+            const owner = ownerRepo[0]
+            const repo = ownerRepo[1]
+            const issuesToNotify = [231]
+            const runUrl = process.env.GITHUB_SERVER_URL + '/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + process.env.GITHUB_RUN_ID
+            const body = `❌ **Auto-apply failed**\n\nSee workflow run for details: ${runUrl}`
+            for (const num of issuesToNotify) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: num, body })
+            }

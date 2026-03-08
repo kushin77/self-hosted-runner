@@ -1,0 +1,53 @@
+name: Auto-run E2E on Ops confirmation
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-e2e-on-ops-confirmation:
+    name: Run E2E when Ops confirms Vault provisioning
+    if: github.event.issue.number == 764
+    concurrency:
+      group: auto-run-on-ops-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/ci/run-e2e-self-hosted-with-vault.sh || true
+          chmod +x scripts/ci/provision-approle-and-run-e2e.sh || true
+
+      - name: Parse comment and run appropriate flow
+        env:
+          COMMENT_BODY: "${{ github.event.comment.body }}"
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        run: |
+          set -euo pipefail
+          echo "Received comment: $COMMENT_BODY"
+          # Normalize to lower-case for matching
+          lc_comment=$(echo "$COMMENT_BODY" | tr '[:upper:]' '[:lower:]')
+
+          if echo "$lc_comment" | grep -q "vault credentials provisioned"; then
+            echo "Detected 'Vault credentials provisioned' -> running non-admin run flow"
+            ./scripts/ci/run-e2e-self-hosted-with-vault.sh || exit 1
+          elif echo "$lc_comment" | grep -E "provision|admin" >/dev/null; then
+            echo "Detected admin/provision keyword -> running admin provision flow"
+            ./scripts/ci/provision-approle-and-run-e2e.sh || exit 1
+          else
+            echo "Comment does not match expected trigger phrase; ignoring." >&2
+            exit 78
+          fi

@@ -1,0 +1,43 @@
+name: Portal Sync Reconcile (nightly)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily at 02:00 UTC
+  workflow_dispatch: {}
+  workflow_run:
+    workflows: ["Portal Metadata Validate"]
+    types: [completed]
+
+jobs:
+  reconcile:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: portal-sync-reconcile-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: python -m pip install --upgrade pip && pip install pyyaml requests
+      - name: Generate metadata artifact
+        run: python3 scripts/generate_function_metadata.py --output portal-artifact.json
+      - name: Reconcile and create issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 scripts/reconcile_and_create_issues.py --create-issues --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name || github.repository }}
+      - name: Upload portal artifact to MinIO
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          retry_command 3 5 scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"

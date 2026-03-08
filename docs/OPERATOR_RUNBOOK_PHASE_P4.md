@@ -30,8 +30,7 @@ Store outputs as GitHub Actions secrets:
 ```bash
 # Configure Vault provider credentials
 export VAULT_ADDR=https://vault.example.local
-export VAULT_TOKEN=<your-token>
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Provision PKI
 cd infra/vault/pki
 terraform init -backend-config="bucket=$TF_BACKEND_S3_BUCKET" ...

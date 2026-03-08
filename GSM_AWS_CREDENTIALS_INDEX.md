@@ -68,7 +68,7 @@ GSM_AWS_CREDENTIALS_INDEX.md                 This file
 
 **In GitHub (Repository Secrets):**
 - `GCP_WORKLOAD_IDENTITY_PROVIDER` → OIDC provider resource name
-- `GCP_SERVICE_ACCOUNT_EMAIL` → Service account email
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - `GCP_PROJECT_ID` → GCP project ID
 
 **In GCP (IAM):**
@@ -351,7 +351,7 @@ Share these files with your team:
 
 ### Phase 4: GitHub
 - ☐ Set GCP_WORKLOAD_IDENTITY_PROVIDER secret
-- ☐ Set GCP_SERVICE_ACCOUNT_EMAIL secret
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - ☐ Set GCP_PROJECT_ID secret
 
 ### Phase 5: Testing
