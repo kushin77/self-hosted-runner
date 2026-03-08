@@ -108,6 +108,19 @@ jobs:
           chmod +x run_e2e_ephemeral_test.sh
           PAGERDUTY_SERVICE_KEY="$PD_KEY" ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
 
+      - name: Stage metrics for upload (ensure path exists)
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "Staging metrics into repository-root workflow_artifacts for reliable upload"
+          if [ -n "${GITHUB_WORKSPACE:-}" ] && [ -f "$GITHUB_WORKSPACE/workflow_artifacts/metrics.json" ]; then
+            mkdir -p workflow_artifacts
+            cp "$GITHUB_WORKSPACE/workflow_artifacts/metrics.json" workflow_artifacts/metrics.json || true
+            echo "Staged metrics into $(pwd)/workflow_artifacts/metrics.json"
+          else
+            echo "No workspace-staged metrics file found to stage"
+          fi
+
       - name: Collect mock logs artifact
         if: always()
         uses: actions/upload-artifact@v4
