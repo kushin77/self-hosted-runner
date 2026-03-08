@@ -66,12 +66,12 @@ jobs:
         id: hash
         run: |
           set -euo pipefail
-          
+
           if [ ! -f "${{ inputs.artifact_path }}" ]; then
             echo "❌ Artifact not found: ${{ inputs.artifact_path }}"
             exit 1
           fi
-          
+
           HASH=$(sha256sum "${{ inputs.artifact_path }}" | awk '{print $1}')
           echo "artifact_hash=$HASH" >> $GITHUB_OUTPUT
           echo "Artifact SHA256: $HASH"
@@ -80,9 +80,9 @@ jobs:
         id: provenance
         run: |
           set -euo pipefail
-          
+
           PROVENANCE_FILE="${{ inputs.artifact_path }}.slsa.json"
-          
+
           cat > "$PROVENANCE_FILE" << EOF
           {
             "version": 1,
@@ -115,7 +115,7 @@ jobs:
             }
           }
           EOF
-          
+
           echo "✅ SLSA provenance created: $PROVENANCE_FILE"
           echo "provenance_file=$PROVENANCE_FILE" >> $GITHUB_OUTPUT
 
@@ -123,15 +123,15 @@ jobs:
         id: sign
         run: |
           set -euo pipefail
-          
+
           ARTIFACT_FILE="${{ inputs.artifact_path }}"
           SIGNATURE_FILE="${ARTIFACT_FILE}.sig"
           PROVENANCE_FILE="${{ steps.provenance.outputs.provenance_file }}"
-          
+
           echo "🔐 Signing artifact with AWS KMS..."
           echo "  Key ID: ${{ inputs.kms_key_id }}"
           echo "  Algorithm: RSASSA_PSS_SHA_256"
-          
+
           # Sign the artifact
           aws kms sign \
             --key-id "${{ inputs.kms_key_id }}" \
@@ -140,7 +140,7 @@ jobs:
             --signing-algorithm RSASSA_PSS_SHA_256 \
             --output text \
             --query 'Signature' > "$SIGNATURE_FILE"
-          
+
           # Also sign the provenance file
           PROVENANCE_SIG_FILE="${PROVENANCE_FILE}.sig"
           aws kms sign \
@@ -150,38 +150,38 @@ jobs:
             --signing-algorithm RSASSA_PSS_SHA_256 \
             --output text \
             --query 'Signature' > "$PROVENANCE_SIG_FILE"
-          
+
           echo "✅ Artifact signed: $SIGNATURE_FILE"
           echo "✅ Provenance signed: $PROVENANCE_SIG_FILE"
-          
+
           echo "signature_file=$SIGNATURE_FILE" >> $GITHUB_OUTPUT
           echo "artifact_hash=${{ steps.hash.outputs.artifact_hash }}" >> $GITHUB_OUTPUT
 
       - name: Upload signed artifact & provenance (immutable archive)
         run: |
           set -euo pipefail
-          
+
           ARTIFACT_FILE="${{ inputs.artifact_path }}"
           SIGNATURE_FILE="${ARTIFACT_FILE}.sig"
           PROVENANCE_FILE="${{ steps.provenance.outputs.provenance_file }}"
           PROVENANCE_SIG="${PROVENANCE_FILE}.sig"
-          
+
           # Upload to S3 (versioned, immutable)
           S3_BUCKET="${{ secrets.ARTIFACT_BUCKET }}"
-          
+
           aws s3 cp "$ARTIFACT_FILE" "s3://${S3_BUCKET}/artifacts/$(basename $ARTIFACT_FILE)" \
             --sse aws:kms --sse-kms-key-id ${{ inputs.kms_key_id }} \
             --metadata "immutable=true,created=$(date -u +%Y-%m-%dT%H:%M:%SZ),run-id=${{ github.run_id }}" \
             || echo "⚠️  S3 upload skipped (optional)"
-          
+
           aws s3 cp "$SIGNATURE_FILE" "s3://${S3_BUCKET}/signatures/$(basename $SIGNATURE_FILE)" \
             --sse aws:kms --sse-kms-key-id ${{ inputs.kms_key_id }} \
             || echo "⚠️  Signature upload skipped (optional)"
-          
+
           aws s3 cp "$PROVENANCE_FILE" "s3://${S3_BUCKET}/provenance/$(basename $PROVENANCE_FILE)" \
             --sse aws:kms --sse-kms-key-id ${{ inputs.kms_key_id }} \
             || echo "⚠️  Provenance upload skipped (optional)"
-          
+
           echo "✅ Artifacts uploaded to S3 (KMS-encrypted, immutable, versioned)"
 
       - name: Audit signing completion
@@ -218,24 +218,24 @@ jobs:
         id: verify
         run: |
           set -euo pipefail
-          
+
           ARTIFACT_FILE="${{ inputs.artifact_path }}"
           SIGNATURE_FILE="${ARTIFACT_FILE}.sig"
-          
+
           if [ ! -f "$SIGNATURE_FILE" ]; then
             echo "❌ Signature file not found: $SIGNATURE_FILE"
             echo "verified=false" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           echo "🔍 Verifying signature with AWS KMS public key..."
-          
+
           # Get public key from KMS
           PUBLIC_KEY=$(aws kms get-public-key \
             --key-id "${{ inputs.kms_key_id }}" \
             --query 'PublicKey' \
             --output text | base64 -d)
-          
+
           # Verify using KMS (or openssl with extracted public key)
           aws kms verify \
             --key-id "${{ inputs.kms_key_id }}" \
@@ -245,9 +245,9 @@ jobs:
             --signing-algorithm RSASSA_PSS_SHA_256 \
             --output text \
             --query 'SignatureValid' > /tmp/verify_result.txt
-          
+
           RESULT=$(cat /tmp/verify_result.txt)
-          
+
           if [ "$RESULT" = "True" ]; then
             echo "✅ Signature verification PASSED"
             echo "verified=true" >> $GITHUB_OUTPUT

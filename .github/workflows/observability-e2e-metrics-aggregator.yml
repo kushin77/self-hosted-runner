@@ -35,7 +35,7 @@ jobs:
           echo "Status: ${{ github.event.workflow_run.conclusion }}"
           echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo ""
-          
+
           # Find all metrics files and aggregate
           METRICS_FOUND=0
           for metrics_file in $(find ./artifacts -name "metrics.json" 2>/dev/null); do
@@ -46,7 +46,7 @@ jobs:
               echo ""
             fi
           done
-          
+
           if [ $METRICS_FOUND -eq 0 ]; then
             echo "ℹ No metrics JSON files found in artifacts"
           else
@@ -80,7 +80,7 @@ jobs:
           script: |
             const run = context.payload.workflow_run
             const body = `✅ **Observability E2E Test Passed**\n\n- Workflow: ${run.name}\n- Status: ${run.conclusion}\n- Timestamp: ${new Date().toISOString()}\n\nMetrics and artifacts available in the workflow run.`
-            
+
             // Post comment only if this is a scheduled run
             if (run.name.includes('Scheduled')) {
               await github.rest.issues.createComment({
