@@ -7,6 +7,11 @@ on:
   repository_dispatch:
     types: [observability-poll, observability-trigger]
 
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
 concurrency:
   group: enhanced-observability-${{ github.ref }}
   cancel-in-progress: false
