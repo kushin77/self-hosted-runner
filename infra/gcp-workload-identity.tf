@@ -31,7 +31,7 @@ variable "github_repo_name" {
 # Workload Identity Pool
 resource "google_iam_workload_identity_pool" "github" {
   workload_identity_pool_id = "github-pool"
-  location                  = "global"
+  project                   = var.gcp_project_id
   display_name              = "GitHub Actions"
   description               = "Workload Identity Pool for GitHub Actions OIDC"
   disabled                  = false
@@ -41,7 +41,7 @@ resource "google_iam_workload_identity_pool" "github" {
 resource "google_iam_workload_identity_pool_provider" "github_provider" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-oidc"
-  location                           = "global"
+  project                            = var.gcp_project_id
   display_name                       = "GitHub OIDC Provider"
   disabled                           = false
 
@@ -69,9 +69,13 @@ resource "google_project_iam_member" "gsm_admin" {
   member  = "serviceAccount:${google_service_account.github_secrets.email}"
 }
 
-# Data source
+# Data source for project info
 data "google_client_config" "current" {}
 
+data "google_projects" "project" {
+  filter = "projectId:${var.gcp_project_id}"
+}
+
 output "gcp_workload_identity_provider" {
-  value = "projects/${data.google_client_config.current.project_number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.github.workload_identity_pool_id}/providers/${google_iam_workload_identity_pool_provider.github_provider.workload_identity_pool_provider_id}"
+  value = "projects/${data.google_projects.project.projects[0].number}/locations/global/workloadIdentityPools/${google_iam_workload_identity_pool.github.workload_identity_pool_id}/providers/${google_iam_workload_identity_pool_provider.github_provider.workload_identity_pool_provider_id}"
 }
