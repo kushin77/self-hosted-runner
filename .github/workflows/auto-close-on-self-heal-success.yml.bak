@@ -1,0 +1,44 @@
+name: Auto-close tracking issues on self-heal success
+
+on:
+  workflow_run:
+    workflows: ["runner-self-heal.yml"]
+    types: [completed]
+
+permissions:
+  issues: write
+
+jobs:
+  close-issues:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+      - name: Close admin/tracking issues (idempotent)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          TO_CLOSE=(969 939)
+          for issue_num in "${TO_CLOSE[@]}"; do
+            if gh issue view ${issue_num} --repo ${REPO} >/dev/null 2>&1; then
+              state=$(gh issue view ${issue_num} --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "OPEN")
+              if [ "$state" = "OPEN" ]; then
+                # Idempotent comment: check if already posted before adding new one
+                EXISTING=$(gh api "/repos/${REPO}/issues/${issue_num}/comments" --jq ".[] | select(.body | contains(\"Automated: self-heal completed\")) | .id" 2>/dev/null | head -1 || true)
+                if [ -z "$EXISTING" ]; then
+                  gh issue comment ${issue_num} --repo ${REPO} --body "Automated: self-heal completed successfully — closing this tracking issue." || true
+                fi
+                # Close the issue (idempotent — state already checked)
+                gh issue update ${issue_num} --repo ${REPO} --state closed --state_reason completed || true
+              fi
+            fi
+          done

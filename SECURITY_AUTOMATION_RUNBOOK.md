@@ -238,7 +238,7 @@ gh run list --repo kushin77/self-hosted-runner --workflow security-audit-polling
 ### Problem: Missing Secrets, DR Tests Fail
 **Diagnosis**: Look for error messages in workflow logs:
 ```
-"Required secrets GCP_SERVICE_ACCOUNT_KEY or GCP_PROJECT_ID are not set"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ```
 **Solution**: Provision secrets per PR #1181 and issue #969
 

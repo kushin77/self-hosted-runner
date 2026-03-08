@@ -112,8 +112,7 @@ Time: 2026-03-07 14:20:00Z
 Status: failure
 
 ### Error Details
-ERROR: GCP_SERVICE_ACCOUNT_KEY is empty or not set
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ### Actions Taken
 1. ✅ Failure detected and logged
 2. ✅ Incident issue created (#1350)

@@ -101,7 +101,7 @@ echo ""
 # Section 1: Required Secrets
 echo -e "${BLUE}1. REQUIRED SECRETS (Blocking)${NC}"
 echo ""
-check_secret "GCP_SERVICE_ACCOUNT_KEY" true
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 check_secret "GCP_PROJECT_ID" true
 check_secret "RUNNER_MGMT_TOKEN" true
 check_secret "DEPLOY_SSH_KEY" true

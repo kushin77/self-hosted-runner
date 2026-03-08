@@ -53,7 +53,7 @@ if [ -z "$PROJECT_ID" ]; then
 fi
 
 if [ -z "$SERVICE_ACCOUNT" ]; then
-  echo "❌ GCP_SERVICE_ACCOUNT_EMAIL not set. Use --account or set GCP_SERVICE_ACCOUNT_EMAIL env var"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   exit 1
 fi
 

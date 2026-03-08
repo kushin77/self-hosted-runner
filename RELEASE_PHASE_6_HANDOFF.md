@@ -24,7 +24,7 @@ Operational notes
 
 Next steps
 ----------
-1. Operator to ingest valid `GCP_SERVICE_ACCOUNT_KEY` and comment `ingested: true` on Issue #1239.
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 2. Automation will re-run verification and DR smoke-tests and auto-close the activation issue on success.
 
 Signed-off-by: Automation Operator (bot)

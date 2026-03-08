@@ -3,7 +3,7 @@
 This document describes a helper to decrypt ciphertext using GCP KMS and write the plaintext to a GitHub Actions repository secret.
 
 Prerequisites
-- `gcloud` and `gh` CLIs installed and authenticated. For automated runs, configure Workload Identity and set `GCP_WORKLOAD_IDENTITY_PROVIDER` and `GCP_SERVICE_ACCOUNT_EMAIL` as repo secrets.
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - The ciphertext to decrypt must be available on the runner, e.g., stored temporarily in the repo workspace or fetched by a prior step (artifact or GSM retrieval).
 
 Quick local usage:
