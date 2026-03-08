@@ -1,0 +1,63 @@
+{
+  "rules": [
+    {
+      "name": "Auth SLA Below Target",
+      "condition": "auth_sla < 99.9",
+      "severity": "HIGH",
+      "action": "escalate_to_sre",
+      "description": "Authentication SLA has fallen below 99.9% target"
+    },
+    {
+      "name": "Rotation SLA Below Target",
+      "condition": "rotation_sla < 100",
+      "severity": "MEDIUM",
+      "action": "investigate_rotation_failures",
+      "description": "Credential rotation success rate below 100%"
+    },
+    {
+      "name": "Exposed Credentials Detected",
+      "condition": "exposed_credentials > 0",
+      "severity": "CRITICAL",
+      "action": "immediate_revocation",
+      "description": "Active exposed credentials detected in repository"
+    },
+    {
+      "name": "Stale Credentials Detected",
+      "condition": "stale_credentials > 10",
+      "severity": "MEDIUM",
+      "action": "schedule_rotation",
+      "description": "Multiple credentials over 30 days old"
+    },
+    {
+      "name": "Audit Trail Gap Detected",
+      "condition": "audit_gap_hours > 1",
+      "severity": "HIGH",
+      "action": "investigate_audit_system",
+      "description": "Gap detected in audit trail logging"
+    },
+    {
+      "name": "Workflow Failure Rate High",
+      "condition": "workflow_failure_rate > 5",
+      "severity": "MEDIUM",
+      "action": "review_workflow_logs",
+      "description": "More than 5% of workflows failing"
+    }
+  ],
+  "escalation_chain": [
+    {
+      "level": 1,
+      "delay_minutes": 0,
+      "recipients": ["on-call-primary"]
+    },
+    {
+      "level": 2,
+      "delay_minutes": 15,
+      "recipients": ["on-call-secondary", "engineering-lead"]
+    },
+    {
+      "level": 3,
+      "delay_minutes": 30,
+      "recipients": ["infrastructure-lead", "cto"]
+    }
+  ]
+}
