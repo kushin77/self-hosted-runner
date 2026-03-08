@@ -13,6 +13,10 @@ on:
         description: "Enable verbose logging"
         required: false
         default: "false"
+      dry_run:
+        description: "Perform a dry-run (skip secrets and actual recovery)"
+        required: false
+        default: "false"
 
 env:
   DOCKER_HUB_NAMESPACE: elevatediq
@@ -39,6 +43,27 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
+      - name: Debug — dump event inputs and key env
+        run: |
+          echo "--- DEBUG: github.event.inputs ---"
+          echo '${{ toJson(github.event.inputs) }}'
+          echo "--- DEBUG: ENV GCP_PROJECT_ID ---"
+          echo "${GCP_PROJECT_ID}"
+          echo "--- END DEBUG ---"
+      
+      - name: Preflight — verify required secrets
+        run: |
+          # Allow explicit dry-run to skip secret checks for safe testing
+          DRY_RUN="${{ github.event.inputs.dry_run }}"
+          if [ "${DRY_RUN}" = "true" ]; then
+            echo "::warning::Dry-run mode enabled — skipping secret requirement checks. No destructive actions will run."
+          else
+            if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ] || [ -z "${{ secrets.GCP_PROJECT_ID }}" ]; then
+              echo "::error::Required secrets GCP_SERVICE_ACCOUNT_KEY or GCP_PROJECT_ID are not set for this run. Ensure secrets are available for manual dispatch and repository-level workflows."
+              exit 1
+            fi
+          fi
+      
       - name: Authenticate to Google Cloud
         if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: google-github-actions/auth@v2
@@ -52,12 +77,17 @@ jobs:
       - name: Fetch Docker Hub PAT from Secret Manager
         id: docker-secret
         run: |
-          # Retry loop for Secret Manager access to handle intermittent setup failures
-          for i in {1..3}; do
-            DOCKER_HUB_PAT=$(gcloud secrets versions access latest \
-              --secret="docker-hub-pat" \
-              --project="${GCP_PROJECT_ID}") && break || sleep 10
-          done
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "Dry-run: skipping secret fetch; setting placeholder"
+            DOCKER_HUB_PAT="dry-run"
+          else
+            # Retry loop for Secret Manager access to handle intermittent setup failures
+            for i in {1..3}; do
+              DOCKER_HUB_PAT=$(gcloud secrets versions access latest \
+                --secret="docker-hub-pat" \
+                --project="${GCP_PROJECT_ID}") && break || sleep 10
+            done
+          fi
           
           if [ -z "$DOCKER_HUB_PAT" ]; then
             echo "::error::Failed to fetch secret after 3 attempts"
@@ -68,7 +98,6 @@ jobs:
           echo "docker_hub_pat=$DOCKER_HUB_PAT" >> $GITHUB_OUTPUT
       
       - name: Authenticate to Docker Hub
-        if: ${{ github.event.inputs.dry_run != 'true' }}
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
@@ -84,7 +113,7 @@ jobs:
         continue-on-error: true
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
-            echo "Dry-run: skipping actual recovery"
+            echo "Dry-run: skipping actual recovery" 
             echo "recovery_status=skipped" >> $GITHUB_OUTPUT
             echo "recovery_exit_code=0" >> $GITHUB_OUTPUT
             exit 0
@@ -218,6 +247,12 @@ jobs:
           
           cat dr-test-summary.txt
           
+          # If this run was a dry-run, mark overall as PASS
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "overall_status=PASS" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
           # Determine overall test status
           if [[ "${{ steps.dr-recovery.outputs.recovery_status }}" == "success" || "${{ steps.dr-recovery.outputs.recovery_status }}" == "skipped" ]] && \
                 ( "${{ steps.verify.outputs.verify_status }}" == "success" || "${{ steps.verify.outputs.verify_status }}" == "skipped" ) && \
@@ -244,7 +279,7 @@ jobs:
           
           ### Recovery Results
           - **Status**: ${{ steps.dr-recovery.outputs.recovery_status }}
-          - **Elapsed Time**: ${{ steps.rto-check.outputs.recovery_exit_code }} seconds
+          - **Elapsed Time**: ${{ steps.rto-check.outputs.elapsed_seconds }} seconds
           - **RTO Target**: ${TEST_TIMEOUT_SECONDS} seconds
           
           ### Verification Results
