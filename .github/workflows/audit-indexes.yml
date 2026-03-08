@@ -1,0 +1,35 @@
+name: Audit Indexes
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 3 * * 1' # Weekly on Monday at 03:00 UTC
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make audit scripts executable
+        run: |
+          chmod +x scripts/audit-*.sh || true
+
+      - name: Validate scripts
+        run: bash scripts/audit-scripts.sh --validate
+
+      - name: Validate workflows
+        run: bash scripts/audit-workflows.sh --validate
+
+      - name: Validate secrets
+        run: bash scripts/audit-secrets.sh --validate
+
+      - name: Upload audit JSON (optional)
+        if: always()
+        run: |
+          bash scripts/audit-scripts.sh --json > scripts.json || true
+          bash scripts/audit-workflows.sh --json > workflows.json || true
+          bash scripts/audit-secrets.sh --json > secrets.json || true
+        # Artifacts could be uploaded here if desired

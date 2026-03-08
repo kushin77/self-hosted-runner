@@ -170,11 +170,14 @@ if [ $ALERTMANAGER_READY -ne 1 ]; then
   exit 3
 fi
 
-# build a synthetic alert payload
-cat > "$TMPDIR/alert.json" <<'ALERT'
+# generate a unique test id for this run to aid external verification
+TEST_ID="e2e-$(date +%s%N)-$RANDOM"
+
+# build a synthetic alert payload (include test_id in annotations for tracing)
+cat > "$TMPDIR/alert.json" <<ALERT
 [{
   "labels": {"alertname": "TestAlert", "severity": "critical"},
-  "annotations": {"summary": "E2E test alert"},
+  "annotations": {"summary": "E2E test alert", "test_id": "${TEST_ID}"},
   "startsAt": "2020-01-01T00:00:00Z"
 }]
 ALERT
@@ -203,6 +206,97 @@ if echo "$WEBHOOK_LOGS" | grep -q "TestAlert"; then
   echo "✓ Test alert payload found in webhook logs"
 else
   echo "⚠ Test alert payload NOT found in webhook logs - delivery may have failed"
+fi
+
+# Optional: verify PagerDuty delivery when API token and PD receiver are configured
+METRICS_FILE="${TMPDIR}/metrics.json"
+cat > "$METRICS_FILE" <<'METRICS'
+{
+  "test_id": "",
+  "test_type": "pagerduty",
+  "alert_posted_at": "",
+  "incident_found": false,
+  "incident_id": "",
+  "incident_status": "",
+  "delivery_latency_seconds": 0,
+  "verification_passed": false
+}
+METRICS
+
+if [ -n "${PAGERDUTY_API_TOKEN:-}" ] && [ -n "$PAGERDUTY_KEY" ]; then
+  ALERT_TIME=$(date +%s)
+  if [ "${DEBUG_MODE:-false}" = "true" ]; then
+    echo "Attempting PagerDuty verification (masked token length: ${#PAGERDUTY_API_TOKEN})"
+  else
+    echo "Attempting PagerDuty verification"
+  fi
+
+  # Poll PagerDuty incidents for the test_id for up to 60 seconds
+  SINCE=$(date -u -d '2 minutes ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)
+  FOUND=0
+  INCIDENT_ID=""
+  INCIDENT_STATUS=""
+  for i in $(seq 1 12); do
+    RESP=$(curl -sS -H "Authorization: Token token=${PAGERDUTY_API_TOKEN}" -H "Accept: application/vnd.pagerduty+json;version=2" "https://api.pagerduty.com/incidents?since=${SINCE}&time_zone=UTC&limit=25") || true
+    if [ -n "$RESP" ] && echo "$RESP" | grep -q "$TEST_ID"; then
+      # Extract incident ID and status
+      INCIDENT_ID=$(echo "$RESP" | grep -o '"id":"[^"]*"' | grep -v "service_id" | head -1 | cut -d'"' -f4)
+      INCIDENT_STATUS=$(echo "$RESP" | grep -o '"status":"[^"]*"' | head -1 | cut -d'"' -f4)
+      INCIDENT_CREATED=$(echo "$RESP" | grep -o '"created_at":"[^"]*"' | head -1 | cut -d'"' -f4)
+      
+      echo "✓ PagerDuty incident found for test_id $TEST_ID"
+      echo "  - Incident ID: $INCIDENT_ID"
+      echo "  - Status: $INCIDENT_STATUS"
+      
+      # Calculate delivery latency
+      if [ -n "$INCIDENT_CREATED" ]; then
+        INCIDENT_TIME=$(date -d "$INCIDENT_CREATED" +%s 2>/dev/null || echo "$ALERT_TIME")
+        LATENCY=$((INCIDENT_TIME - ALERT_TIME))
+        echo "  - Delivery latency: ${LATENCY}s"
+      fi
+      
+      FOUND=1
+      break
+    fi
+    [ "${DEBUG_MODE:-false}" = "true" ] && echo "  [$i/12] Polling... (no incident yet)"
+    sleep 5
+  done
+  
+  if [ $FOUND -eq 1 ]; then
+    # Update metrics with success
+    cat > "$METRICS_FILE" <<METRICS
+{
+  "test_id": "$TEST_ID",
+  "test_type": "pagerduty",
+  "alert_posted_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "incident_found": true,
+  "incident_id": "$INCIDENT_ID",
+  "incident_status": "$INCIDENT_STATUS",
+  "delivery_latency_seconds": $LATENCY,
+  "verification_passed": true
+}
+METRICS
+  else
+    echo "⚠ PagerDuty verification failed: no incident found for test_id $TEST_ID"
+    cat > "$METRICS_FILE" <<METRICS
+{
+  "test_id": "$TEST_ID",
+  "test_type": "pagerduty",
+  "alert_posted_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "incident_found": false,
+  "incident_id": "",
+  "incident_status": "",
+  "delivery_latency_seconds": 0,
+  "verification_passed": false
+}
+METRICS
+  fi
+fi
+
+echo "E2E run complete"
+if [ -f "$METRICS_FILE" ]; then
+  echo "Metrics (JSON):"
+  cat "$METRICS_FILE"
 fi
 
 echo "E2E run complete"
