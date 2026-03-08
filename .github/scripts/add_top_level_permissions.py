@@ -57,7 +57,7 @@ def main() -> int:
         return 0
 
     modified = []
-    for p in sorted(WORKFLOWS_DIR.glob('*.yml')) + sorted(WORKFLOWS_DIR.glob('*.yaml')):
+    for p in sorted(WORKFLOWS_DIR.rglob('*.yml')) + sorted(WORKFLOWS_DIR.rglob('*.yaml')):
         try:
             changed = process_file(p)
             if changed:
