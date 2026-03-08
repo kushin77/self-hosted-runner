@@ -106,9 +106,19 @@ jobs:
           }
 
           # Create backup (script expects terraform/ path relative to repo root)
-          BACKUP_FILE=$(bash ci/scripts/terraform-backup.sh)
-          echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
-          echo "✓ State backup created: $BACKUP_FILE"
+          # Run backup script but don't fail the job if no state exists
+          set +e
+          BACKUP_FILE=$(bash ci/scripts/terraform-backup.sh 2>&1)
+          BACKUP_EXIT=$?
+          set -e
+
+          if [ $BACKUP_EXIT -ne 0 ] || [ -z "$BACKUP_FILE" ]; then
+            echo "backup_file=none" >> $GITHUB_OUTPUT
+            echo "::warning::State backup did not create a file or returned non-zero ($BACKUP_EXIT)"
+          else
+            echo "backup_file=$BACKUP_FILE" >> $GITHUB_OUTPUT
+            echo "✓ State backup created: $BACKUP_FILE"
+          fi
 
       - name: Upload state backup artifact
         uses: actions/upload-artifact@v4
@@ -144,38 +154,35 @@ jobs:
           terraform_version: "1.4.0"
 
       - name: Terraform Init
-        working-directory: terraform
-        run: terraform init -input=false
+        run: terraform -chdir=terraform init -input=false
 
       - name: Analyze planned changes
         id: analyze
-        working-directory: terraform
         run: |
           set -euo pipefail
-          
+
           PLAN_FILE="${{ inputs.apply_plan_file }}"
-          
+          echo "Analyzing plan file: $PLAN_FILE"
+
           if [ ! -f "$PLAN_FILE" ]; then
             echo "Plan file not found: $PLAN_FILE"
             exit 1
           fi
-          
-          echo "Analyzing plan file: $PLAN_FILE"
-          
-          # Extract metrics
+
+          # Extract metrics from plan JSON (terraform show can read plan without chdir)
           TOTAL=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '.resource_changes | length' || echo "0")
           CREATES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["create"]) ] | length' || echo "0")
           UPDATES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["update"]) ] | length' || echo "0")
           DELETES=$(terraform show -json "$PLAN_FILE" 2>/dev/null | jq '[.resource_changes[] | select(.change.actions == ["delete"]) ] | length' || echo "0")
-          
+
           SUMMARY="Phase P2/P3 Plan Summary - Resources: $TOTAL (Create: $CREATES, Update: $UPDATES, Delete: $DELETES)"
-          
+
           echo "summary=$SUMMARY" >> $GITHUB_OUTPUT
           echo "resource_count=$TOTAL" >> $GITHUB_OUTPUT
           echo "creates=$CREATES" >> $GITHUB_OUTPUT
           echo "updates=$UPDATES" >> $GITHUB_OUTPUT
           echo "deletes=$DELETES" >> $GITHUB_OUTPUT
-          
+
           echo "✓ Plan Analysis:"
           echo "  Total Resources: $TOTAL"
           echo "  Creates: $CREATES"
@@ -229,28 +236,31 @@ jobs:
           terraform_version: "1.4.0"
 
       - name: Terraform Init
-        working-directory: terraform
-        run: terraform init -input=false
+        run: terraform -chdir=terraform init -input=false
 
       - name: Execute terraform apply
         id: apply
-        working-directory: terraform
         timeout-minutes: 30
         run: |
-          set +e  # Don't exit on error; capture status
-          
+          set -euo pipefail
           PLAN_FILE="${{ inputs.apply_plan_file }}"
-          
-          echo "Applying plan: $PLAN_FILE"
-          echo ""
-          echo "🚀 Starting terraform apply..."
-          
+
+          # Ensure plan file is available inside terraform working directory
+          BASENAME=$(basename "$PLAN_FILE")
+          if [ ! -f "terraform/$BASENAME" ]; then
+            if [ -f "$PLAN_FILE" ]; then
+              cp "$PLAN_FILE" "terraform/$BASENAME" || true
+            fi
+          fi
+
+          # Run apply inside terraform dir using the basename
+          echo "Applying plan: terraform/$BASENAME"
           START_TIME=$(date +%s)
-          terraform apply -input=false -auto-approve "$PLAN_FILE" 2>&1 | tee apply-output.log
-          APPLY_EXIT_CODE=$?
+          terraform -chdir=terraform apply -input=false -auto-approve "$BASENAME" 2>&1 | tee terraform/apply-output.log
+          APPLY_EXIT_CODE=${PIPESTATUS[0]}
           END_TIME=$(date +%s)
           DURATION=$((END_TIME - START_TIME))
-          
+
           if [ $APPLY_EXIT_CODE -eq 0 ]; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "summary=Terraform apply completed successfully in ${DURATION}s" >> $GITHUB_OUTPUT
@@ -260,7 +270,7 @@ jobs:
             echo "summary=Terraform apply failed with exit code $APPLY_EXIT_CODE" >> $GITHUB_OUTPUT
             echo "✗ Apply failed"
           fi
-          
+
           exit $APPLY_EXIT_CODE
 
       - name: Capture apply output
