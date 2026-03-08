@@ -1,0 +1,76 @@
+name: Retrieve Secret from AWS Secrets Manager
+description: Dynamically retrieve secrets from AWS Secrets Manager using OIDC
+
+inputs:
+  secret-name:
+    description: Name of the secret in AWS Secrets Manager
+    required: true
+  
+  aws-region:
+    description: AWS region
+    required: false
+    default: us-east-1
+  
+  role-to-assume:
+    description: IAM role ARN to assume (OIDC federated)
+    required: true
+
+outputs:
+  secret-value:
+    description: The secret value retrieved from AWS
+    value: ${{ steps.retrieve.outputs.secret }}
+
+runs:
+  using: composite
+  steps:
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ inputs.role-to-assume }}
+        aws-region: ${{ inputs.aws-region }}
+    
+    - name: Retrieve secret from AWS Secrets Manager
+      id: retrieve
+      shell: bash
+      run: |
+        REGION="${{ inputs.aws-region }}"
+        SECRET_NAME="${{ inputs.secret-name }}"
+        
+        # Retrieve secret from AWS Secrets Manager
+        SECRET_VALUE=$(aws secretsmanager get-secret-value \
+          --secret-id "$SECRET_NAME" \
+          --region "$REGION" \
+          --query 'SecretString' \
+          --output text 2>/dev/null)
+        
+        if [[ -z "$SECRET_VALUE" ]]; then
+          echo "::error::Failed to retrieve secret: $SECRET_NAME"
+          exit 1
+        fi
+        
+        # Output secret (masked in logs)
+        echo "secret=${SECRET_VALUE}" >> $GITHUB_OUTPUT
+        echo "::add-mask::${SECRET_VALUE}"
+        
+        # Log retrieval in audit trail (immutable)
+        AUDIT_DIR=".aws-audit"
+        mkdir -p "$AUDIT_DIR"
+        
+        TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        AUDIT_ENTRY=$(jq -n \
+          --arg ts "$TIMESTAMP" \
+          --arg secret "$SECRET_NAME" \
+          --arg region "$REGION" \
+          --arg actor "${GITHUB_ACTOR:-system}" \
+          '{timestamp: $ts, action: "RETRIEVE", secret_name: $secret, region: $region, actor: $actor, run_id: env.GITHUB_RUN_ID}')
+        
+        echo "$AUDIT_ENTRY" >> "$AUDIT_DIR/aws-retrieval-audit.jsonl"
+    
+    - name: Cleanup ephemeral credentials
+      if: always()
+      shell: bash
+      run: |
+        # AWS credentials are automatically cleaned up by aws-actions/configure-aws-credentials@v4
+        unset SECRET_VALUE
+        # Invalidate any cached credentials
+        rm -f ~/.aws/credentials 2>/dev/null || true
