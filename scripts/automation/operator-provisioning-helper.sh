@@ -1,0 +1,330 @@
+#!/bin/bash
+#
+# operator-provisioning-helper.sh - Operator action execution helper
+# Purpose: Guide operators through provisioning, validate inputs, auto-set GitHub secrets
+# Properties: Immutable (Git) | Ephemeral (no state) | Idempotent (safe re-run)
+#
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LOG_FILE="logs/operator-provisioning-$(date +%Y%m%d_%H%M%S).log"
+mkdir -p "$(dirname "$LOG_FILE")"
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+log() { echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $*" | tee -a "$LOG_FILE"; }
+info() { echo -e "${GREEN}✓${NC} $*" | tee -a "$LOG_FILE"; }
+warn() { echo -e "${YELLOW}⚠${NC} $*" | tee -a "$LOG_FILE"; }
+error() { echo -e "${RED}✗${NC} $*" | tee -a "$LOG_FILE"; }
+success() { echo -e "${GREEN}✅${NC} $*" | tee -a "$LOG_FILE"; }
+
+log "=================================================="
+log "OPERATOR PROVISIONING HELPER"
+log "=================================================="
+
+# Show menu
+show_menu() {
+  echo ""
+  echo "Select provisioning task:"
+  echo "  1) Bring staging cluster online (K3s)"
+  echo "  2) Provision GCP Workload Identity (OIDC)"
+  echo "  3) Provision AWS OIDC Role"
+  echo "  4) Set GitHub secrets for provisioning"
+  echo "  5) Verify all provisioning steps"
+  echo "  6) Full provisioning flow (all steps)"
+  echo "  0) Exit"
+  echo ""
+}
+
+# 1. STAGING CLUSTER RECOVERY
+recover_staging_cluster() {
+  log "Starting staging cluster recovery..."
+  
+  read -p "Enter staging cluster hostname or IP [default: 192.168.168.42]: " CLUSTER_HOST
+  CLUSTER_HOST="${CLUSTER_HOST:-192.168.168.42}"
+  
+  echo "This will:"
+  echo "  ssh admin@$CLUSTER_HOST systemctl status k3s"
+  echo "  ssh admin@$CLUSTER_HOST systemctl start k3s  # if stopped"
+  echo ""
+  read -p "Continue? (y/n): " CONTINUE
+  [ "$CONTINUE" = "y" ] || return 1
+  
+  log "Checking cluster connectivity..."
+  if timeout 5 bash -c "echo >/dev/tcp/$CLUSTER_HOST/6443" 2>/dev/null; then
+    success "Staging cluster is already online!"
+  else
+    log "Attempting to start k3s service..."
+    ssh admin@"$CLUSTER_HOST" systemctl start k3s || {
+      error "Failed to start k3s - manual intervention may be needed"
+      return 1
+    }
+    log "Waiting for cluster to start..."
+    sleep 10
+    if timeout 5 bash -c "echo >/dev/tcp/$CLUSTER_HOST/6443" 2>/dev/null; then
+      success "Staging cluster is now online!"
+    else
+      error "Cluster still not responding - check logs on the host"
+      return 1
+    fi
+  fi
+}
+
+# 2. GCP WORKLOAD IDENTITY PROVISIONING
+provision_gcp_oidc() {
+  log "GCP Workload Identity provisioning helper..."
+  
+  echo ""
+  echo "This guides you through GCP OIDC setup. You will need:"
+  echo "  - GCP project with Compute Engine access"
+  echo "  - gcloud CLI installed and authenticated"
+  echo ""
+  read -p "Continue? (y/n): " CONTINUE
+  [ "$CONTINUE" = "y" ] || return 1
+  
+  read -p "Enter GCP Project ID: " GCP_PROJECT_ID
+  read -p "Enter GCP Service Account Email: " GCP_SERVICE_ACCOUNT
+  
+  log "Creating Workload Identity Provider..."
+  
+  cat > /tmp/gcp_oidc_commands.sh << 'EOFGCP'
+#!/bin/bash
+# GCP Workload Identity provisioning commands
+PROJECT_ID="$1"
+SERVICE_ACCOUNT="$2"
+
+echo "Step 1: Enable required APIs..."
+gcloud services enable iamcredentials.googleapis.com \
+  cloudresourcemanager.googleapis.com \
+  --project="$PROJECT_ID"
+
+echo "Step 2: Create Workload Identity Pool..."
+POOL_ID="github-actions"
+gcloud iam workload-identity-pools create "$POOL_ID" \
+  --project="$PROJECT_ID" \
+  --location="global" \
+  --display-name="GitHub Actions" || echo "Pool may already exist"
+
+POOL_RESOURCE="projects/$PROJECT_ID/locations/global/workloadIdentityPools/$POOL_ID"
+
+echo "Step 3: Create Workload Identity Provider..."
+PROVIDER_ID="github-provider"
+gcloud iam workload-identity-pools providers create-oidc "$PROVIDER_ID" \
+  --project="$PROJECT_ID" \
+  --location="global" \
+  --workload-identity-pool="$POOL_ID" \
+  --display-name="GitHub Provider" \
+  --attribute-mapping="google.subject=assertion.sub,attribute.aud=assertion.aud" \
+  --issuer-uri="https://token.actions.githubusercontent.com" || echo "Provider may already exist"
+
+PROVIDER_RESOURCE="$POOL_RESOURCE/providers/$PROVIDER_ID"
+
+echo "Step 4: Grant service account permissions..."
+gcloud iam service-accounts add-iam-policy-binding "$SERVICE_ACCOUNT" \
+  --project="$PROJECT_ID" \
+  --role="roles/iam.workloadIdentityUser" \
+  --member="principalSet://iam.googleapis.com/$PROVIDER_RESOURCE/attribute.aud/*"
+
+echo ""
+echo "✓ GCP setup complete!"
+echo ""
+echo "GitHub secret to set:"
+echo "GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER_RESOURCE"
+EOFGCP
+  
+  chmod +x /tmp/gcp_oidc_commands.sh
+  bash /tmp/gcp_oidc_commands.sh "$GCP_PROJECT_ID" "$GCP_SERVICE_ACCOUNT" | tee -a "$LOG_FILE"
+  
+  # Extract provider URL
+  PROVIDER_URL=$(gcloud iam workload-identity-pools describe github-actions \
+    --project="$GCP_PROJECT_ID" \
+    --location="global" \
+    --format="value(name)" 2>/dev/null | head -1)
+  
+  if [ -n "$PROVIDER_URL" ]; then
+    info "GCP Workload Identity Provider created: $PROVIDER_URL"
+    read -p "Set GitHub secret now? (y/n): " SET_SECRET
+    if [ "$SET_SECRET" = "y" ]; then
+      echo "$PROVIDER_URL" | gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --repo kushin77/self-hosted-runner
+      success "GitHub secret set: GCP_WORKLOAD_IDENTITY_PROVIDER"
+    fi
+  fi
+}
+
+# 3. AWS OIDC ROLE PROVISIONING
+provision_aws_oidc() {
+  log "AWS OIDC Role provisioning helper..."
+  
+  echo ""
+  echo "This guides you through AWS OIDC setup. You will need:"
+  echo "  - AWS account with IAM permissions"
+  echo "  - AWS CLI installed and configured"
+  echo ""
+  read -p "Continue? (y/n): " CONTINUE
+  [ "$CONTINUE" = "y" ] || return 1
+  
+  read -p "Enter AWS Account ID: " AWS_ACCOUNT_ID
+  read -p "Enter GitHub repository (owner/repo): " GITHUB_REPO
+  
+  cat > /tmp/aws_oidc_commands.sh << 'EOFAWS'
+#!/bin/bash
+# AWS OIDC provisioning commands
+ACCOUNT_ID="$1"
+GITHUB_REPO="$2"
+
+echo "Step 1: Create OIDC Provider (if not exists)..."
+PROVIDER_URL="token.actions.githubusercontent.com"
+THUMBPRINT="6938fd4d98bab03faadb97b34396831e3780aea1"  # GitHub OIDC thumbprint
+
+aws iam create-open-id-connect-provider \
+  --url "https://$PROVIDER_URL" \
+  --client-id-list "sts.amazonaws.com" \
+  --thumbprint-list "$THUMBPRINT" || echo "Provider may already exist"
+
+echo "Step 2: Create IAM role for GitHub Actions..."
+ROLE_NAME="github-actions-terraform"
+
+cat > /tmp/trust-policy.json << 'EOFTRUST'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": "repo:GITHUB_REPO:ref:refs/heads/main"
+        }
+      }
+    }
+  ]
+}
+EOFTRUST
+
+sed -i "s/ACCOUNT_ID/$ACCOUNT_ID/g" /tmp/trust-policy.json
+sed -i "s|GITHUB_REPO|$GITHUB_REPO|g" /tmp/trust-policy.json
+
+aws iam create-role \
+  --role-name "$ROLE_NAME" \
+  --assume-role-policy-document file:///tmp/trust-policy.json || echo "Role may already exist"
+
+echo "Step 3: Attach required policies..."
+aws iam attach-role-policy \
+  --role-name "$ROLE_NAME" \
+  --policy-arn "arn:aws:iam::aws:policy/AdministratorAccess" || echo "Policy may already be attached"
+
+echo ""
+echo "✓ AWS setup complete!"
+echo ""
+echo "GitHub secret to set:"
+echo "AWS_OIDC_ROLE_ARN=arn:aws:iam::$ACCOUNT_ID:role/$ROLE_NAME"
+echo ""
+echo "Also set:"
+echo "USE_OIDC=true"
+EOFAWS
+  
+  chmod +x /tmp/aws_oidc_commands.sh
+  bash /tmp/aws_oidc_commands.sh "$AWS_ACCOUNT_ID" "$GITHUB_REPO" | tee -a "$LOG_FILE"
+  
+  AWS_ROLE_ARN="arn:aws:iam::${AWS_ACCOUNT_ID}:role/github-actions-terraform"
+  
+  read -p "Set GitHub secrets now? (y/n): " SET_SECRETS
+  if [ "$SET_SECRETS" = "y" ]; then
+    echo "$AWS_ROLE_ARN" | gh secret set AWS_OIDC_ROLE_ARN --repo kushin77/self-hosted-runner
+    echo "true" | gh secret set USE_OIDC --repo kushin77/self-hosted-runner
+    success "GitHub secrets set: AWS_OIDC_ROLE_ARN + USE_OIDC"
+  fi
+}
+
+# 4. SET GITHUB SECRETS MANUALLY
+set_github_secrets() {
+  log "GitHub secrets provisioning..."
+  
+  echo ""
+  echo "Enter secrets to set (press Enter to skip):"
+  echo ""
+  
+  read -p "AWS_ROLE_TO_ASSUME (optional): " AWS_ROLE
+  if [ -n "$AWS_ROLE" ]; then
+    echo "$AWS_ROLE" | gh secret set AWS_ROLE_TO_ASSUME --repo kushin77/self-hosted-runner
+    success "Set: AWS_ROLE_TO_ASSUME"
+  fi
+  
+  read -p "AWS_REGION (optional): " AWS_REGION
+  if [ -n "$AWS_REGION" ]; then
+    echo "$AWS_REGION" | gh secret set AWS_REGION --repo kushin77/self-hosted-runner
+    success "Set: AWS_REGION"
+  fi
+  
+  read -p "STAGING_KUBECONFIG (optional, file path): " KUBECONFIG_PATH
+  if [ -n "$KUBECONFIG_PATH" ] && [ -f "$KUBECONFIG_PATH" ]; then
+    cat "$KUBECONFIG_PATH" | gh secret set STAGING_KUBECONFIG --repo kushin77/self-hosted-runner
+    success "Set: STAGING_KUBECONFIG"
+  fi
+}
+
+# 5. VERIFY ALL PROVISIONING
+verify_provisioning() {
+  log "Verifying provisioning status..."
+  echo ""
+  
+  # Check clusters
+  if timeout 5 bash -c "echo >/dev/tcp/192.168.168.42/6443" 2>/dev/null; then
+    success "Staging cluster: ONLINE"
+  else
+    warn "Staging cluster: OFFLINE"
+  fi
+  
+  # Check secrets
+  echo ""
+  echo "GitHub Secrets Status:"
+  gh secret list --repo kushin77/self-hosted-runner | grep -E "OIDC|AWS|KUBECONFIG" || echo "  (none found)"
+  
+  echo ""
+  info "Verification complete"
+}
+
+# 6. FULL PROVISIONING FLOW
+full_provisioning_flow() {
+  log "Starting full provisioning flow..."
+  
+  recover_staging_cluster || warn "Staging cluster recovery skipped"
+  provision_gcp_oidc || warn "GCP OIDC provisioning skipped"
+  provision_aws_oidc || warn "AWS OIDC provisioning skipped"
+  set_github_secrets || warn "Manual secret setting skipped"
+  verify_provisioning
+  
+  success "Full provisioning flow complete!"
+}
+
+# MAIN MENU
+main() {
+  while true; do
+    show_menu
+    read -p "Select (0-6): " CHOICE
+    
+    case "$CHOICE" in
+      1) recover_staging_cluster ;;
+      2) provision_gcp_oidc ;;
+      3) provision_aws_oidc ;;
+      4) set_github_secrets ;;
+      5) verify_provisioning ;;
+      6) full_provisioning_flow ;;
+      0) info "Exiting"; exit 0 ;;
+      *) error "Invalid selection" ;;
+    esac
+  done
+}
+
+main "$@"
