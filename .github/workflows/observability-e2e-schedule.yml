@@ -68,7 +68,15 @@ jobs:
             echo "PAGERDUTY_SERVICE_KEY not set - skipping PagerDuty test"
           fi
 
+      - name: Collect metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            /tmp/observability-e2e.*/metrics.json
+
       - name: Summary
         if: always()
         run: |
-          echo "Scheduled Observability E2E run complete"
+          echo "Scheduled Observability E2E run complete. Artifacts: observability-e2e-metrics"
