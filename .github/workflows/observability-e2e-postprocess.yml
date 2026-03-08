@@ -4,8 +4,16 @@ on:
   workflow_run:
     workflows:
       - "Observability E2E Scheduled Run"
+      - "Observability E2E Run (Real Receivers)"
+      - "Observability E2E Run (Mock Receivers)"
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Optional run id to postprocess (bypasses workflow_run trigger)'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -27,8 +35,16 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-          RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
+          set -euo pipefail
+          # Prefer the workflow_run id when triggered by workflow_run; otherwise accept manual input
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          RUN_ID="${RUN_ID:-${{ github.event.inputs.run_id }}}"
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: no run id supplied (neither workflow_run nor inputs.run_id)" >&2
+            exit 1
+          fi
+          echo "Using run id: $RUN_ID"
           set -euo pipefail
           echo "Looking up artifacts for run $RUN_ID"
           ART_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
