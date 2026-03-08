@@ -90,6 +90,7 @@ jobs:
             workflow_artifacts/metrics.json
             **/workflow_artifacts/metrics.json
             /tmp/observability-e2e.*/metrics.json
+          overwrite: true
 
       - name: Run real endpoint test (PagerDuty)
         if: needs.secret-check.outputs.pagerduty_available == 'true' && (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
@@ -127,6 +128,7 @@ jobs:
             workflow_artifacts/metrics.json
             **/workflow_artifacts/metrics.json
             /tmp/observability-e2e.*/metrics.json
+          overwrite: true
 
       - name: Stage metrics for upload (ensure path exists)
         if: always()
@@ -166,6 +168,7 @@ jobs:
           path: |
             **/workflow_artifacts/metrics.json
             /tmp/observability-e2e.*/metrics.json
+          overwrite: true
 
       - name: Summary
         if: always()
