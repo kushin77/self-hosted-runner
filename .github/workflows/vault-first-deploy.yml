@@ -35,74 +35,117 @@ jobs:
           VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
           VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
         run: |
-          set -euo pipefail
-          echo "::group::Vault AppRole authentication"
+          set +euo pipefail  # Disable strict error handling to capture diagnostics
+          trap 'echo "Script failed at line $LINENO"' ERR
           
-          # Validate inputs
-          if [ -z "${VAULT_ADDR}" ] || [ -z "${VAULT_NAMESPACE}" ] || [ -z "${VAULT_ROLE_ID}" ] || [ -z "${VAULT_SECRET_ID}" ]; then
+          echo "::group::Vault Connectivity Check"
+          echo "Testing Vault connectivity..."
+          
+          # Basic connectivity test
+          if command -v curl &> /dev/null; then
+            echo "curl is available"
+          else
+            echo "ERROR: curl is not available" >&2
+            exit 1
+          fi
+          
+          if command -v jq &> /dev/null; then
+            echo "jq is available"
+          else
+            echo "ERROR: jq is not available" >&2
+            exit 1
+          fi
+          
+          # Validate inputs exist (but don't echo them)
+          VAULT_ADDR_LEN=${#VAULT_ADDR}
+          VAULT_NS_LEN=${#VAULT_NAMESPACE}
+          VAULT_RID_LEN=${#VAULT_ROLE_ID}
+          VAULT_SID_LEN=${#VAULT_SECRET_ID}
+          
+          echo "Vault config lengths: ADDR=$VAULT_ADDR_LEN NS=$VAULT_NS_LEN RID=$VAULT_RID_LEN SID=$VAULT_SID_LEN"
+          
+          if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_NAMESPACE" ] || [ -z "$VAULT_ROLE_ID" ] || [ -z "$VAULT_SECRET_ID" ]; then
             echo "ERROR: Missing Vault configuration secrets" >&2
             exit 1
           fi
+          echo "::endgroup::"
           
-          echo "Vault Endpoint: ${VAULT_ADDR}"
-          echo "Vault Namespace: ${VAULT_NAMESPACE}"
+          echo "::group::Vault AppRole Authentication"
           
-          # Authenticate with Vault using AppRole
-          AUTH_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+          # Try a simple curl first to test connectivity
+          TEST_CURL=$(curl -s -w "\n%{http_code}" -X POST \
             "${VAULT_ADDR}/v1/auth/approle/login" \
+            --connect-timeout 10 \
+            --max-time 30 \
             -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
-            -d "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}")
+            -H "Content-Type: application/json" \
+            -d "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}" 2>&1)
           
-          HTTP_CODE=$(echo "$AUTH_RESPONSE" | tail -1)
-          RESPONSE_BODY=$(echo "$AUTH_RESPONSE" | sed '$d')
+          TEST_EXIT=$?
+          echo "Debug: curl exit code was $TEST_EXIT"
           
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "ERROR: Vault authentication failed with HTTP $HTTP_CODE" >&2
-            echo "Response: $RESPONSE_BODY" >&2
+          AUTH_HTTP_CODE=$(echo "$TEST_CURL" | tail -1)
+          AUTH_BODY=$(echo "$TEST_CURL" | sed '$d')
+          
+          echo "Debug: HTTP code = $AUTH_HTTP_CODE"
+          echo "Debug: Response body length = ${#AUTH_BODY}"
+          
+          if [ "$AUTH_HTTP_CODE" = "000" ] || [ -z "$AUTH_HTTP_CODE" ]; then
+            echo "ERROR: Vault connection failed (HTTP code: $AUTH_HTTP_CODE)" >&2
+            echo "Curl output (last 5 lines): $(echo \"$TEST_CURL\" | tail -5)" >&2
+            exit 1
+          elif [ "$AUTH_HTTP_CODE" != "200" ]; then
+            echo "ERROR: Vault authentication failed with HTTP $AUTH_HTTP_CODE" >&2
+            echo "Response body: $AUTH_BODY" >&2
             exit 1
           fi
           
-          VAULT_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.auth.client_token // empty')
+          VAULT_TOKEN=$(echo "$AUTH_BODY" | jq -r '.auth.client_token // empty' 2>/dev/null)
           
           if [ -z "$VAULT_TOKEN" ]; then
-            echo "ERROR: Failed to extract Vault token from response" >&2
-            echo "Response: $RESPONSE_BODY" >&2
+            echo "ERROR: Failed to extract Vault token" >&2
             exit 1
           fi
+          
           echo "✓ Vault AppRole authentication successful"
           echo "::endgroup::"
           
-          # Fetch AWS credentials from Vault
-          echo "::group::Fetching AWS credentials from Vault"
-          CREDS_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
+          echo "::group::Fetching AWS Credentials"
+          
+          AWS_CURL=$(curl -s -w "\n%{http_code}" -X GET \
             "${VAULT_ADDR}/v1/aws/creds/terraform-role" \
+            --connect-timeout 10 \
+            --max-time 30 \
             -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
-            -H "X-Vault-Token: ${VAULT_TOKEN}")
+            -H "X-Vault-Token: ${VAULT_TOKEN}" 2>&1)
           
-          HTTP_CODE=$(echo "$CREDS_RESPONSE" | tail -1)
-          RESPONSE_BODY=$(echo "$CREDS_RESPONSE" | sed '$d')
+          AWS_HTTP_CODE=$(echo "$AWS_CURL" | tail -1)
+          AWS_BODY=$(echo "$AWS_CURL" | sed '$d')
           
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "ERROR: Failed to fetch AWS credentials with HTTP $HTTP_CODE" >&2
-            echo "Response: $RESPONSE_BODY" >&2
+          if [ "$AWS_HTTP_CODE" != "200" ]; then
+            echo "ERROR: Failed to fetch AWS credentials with HTTP $AWS_HTTP_CODE" >&2
+            echo "Response body: $AWS_BODY" >&2
             exit 1
           fi
           
-          AWS_ACCESS_KEY_ID=$(echo "$RESPONSE_BODY" | jq -r '.data.access_key // empty')
-          AWS_SECRET_ACCESS_KEY=$(echo "$RESPONSE_BODY" | jq -r '.data.secret_key // empty')
+          AWS_ACCESS_KEY_ID=$(echo "$AWS_BODY" | jq -r '.data.access_key // empty' 2>/dev/null)
+          AWS_SECRET_ACCESS_KEY=$(echo "$AWS_BODY" | jq -r '.data.secret_key // empty' 2>/dev/null)
           
           if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "ERROR: Failed to extract AWS credentials from Vault response" >&2
+            echo "ERROR: Failed to extract AWS credentials" >&2
             exit 1
           fi
-          echo "✓ AWS credentials fetched from Vault"
+          
+          echo "✓ AWS credentials fetched successfully"
           echo "::endgroup::"
           
-          # Export credentials securely as GitHub Actions masked outputs
+          # Export credentials securely
           echo "::add-mask::${AWS_ACCESS_KEY_ID}"
           echo "::add-mask::${AWS_SECRET_ACCESS_KEY}"
           echo "aws_access_key_id=${AWS_ACCESS_KEY_ID}" >> $GITHUB_OUTPUT
           echo "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}" >> $GITHUB_OUTPUT
+          
+          exit 0
 
       - name: Terraform Init
         env:
