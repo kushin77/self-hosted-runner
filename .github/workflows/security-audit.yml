@@ -33,7 +33,7 @@ jobs:
         continue-on-error: true
         uses: zricethezav/gitleaks-action@v1
         with:
-          args: --path=. --report-format=json --report-path=gitleaks-report.json
+          args: --path=. --config=.gitleaks.toml --report-format=json --report-path=gitleaks-report.json
 
       - name: Run Trivy vulnerability scan
         continue-on-error: true
