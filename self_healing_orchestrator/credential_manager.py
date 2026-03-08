@@ -1,15 +1,21 @@
-"""Credential Manager abstraction and placeholder providers for GSM/VAULT/KMS.
+"""Credential Manager with real SDK-backed providers for GSM/VAULT/AWS.
 
-This module provides a small, testable interface for secret retrieval and
-rotation. Backends are implemented as placeholders that can be extended to
-call real provider SDKs. The implementation is intentionally minimal and
-safe — no secrets are logged and calls raise clear errors when unimplemented.
+This module provides a cache-aware secret manager that supports multiple backends:
+- Google Secret Manager (via google-cloud-secret-manager)
+- HashiCorp Vault (via HTTP client)
+- AWS Secrets Manager (via boto3)
+
+Secrets are cached with TTL and never logged directly.
 """
 from __future__ import annotations
 
 import time
 from typing import Dict, Optional
 import threading
+
+from .providers.vault_provider import VaultProvider
+from .providers.gsm_provider import GoogleSecretManagerProvider
+from .providers.aws_provider import AWSSecretsManagerProvider
 
 
 class SecretProvider:
@@ -23,49 +29,6 @@ class SecretProvider:
 
     def rotate_secret(self, name: str) -> str:
         raise NotImplementedError()
-
-
-class GoogleSecretManagerProvider(SecretProvider):
-    def __init__(self, project: Optional[str] = None):
-        self.project = project
-
-    def get_secret(self, name: str) -> str:
-        raise NotImplementedError("Google Secret Manager provider not implemented")
-
-    def put_secret(self, name: str, value: str) -> None:
-        raise NotImplementedError("Google Secret Manager provider not implemented")
-
-    def rotate_secret(self, name: str) -> str:
-        raise NotImplementedError("Google Secret Manager provider not implemented")
-
-
-class HashiCorpVaultProvider(SecretProvider):
-    def __init__(self, url: Optional[str] = None, token: Optional[str] = None):
-        self.url = url
-        self.token = token
-
-    def get_secret(self, name: str) -> str:
-        raise NotImplementedError("HashiCorp Vault provider not implemented")
-
-    def put_secret(self, name: str, value: str) -> None:
-        raise NotImplementedError("HashiCorp Vault provider not implemented")
-
-    def rotate_secret(self, name: str) -> str:
-        raise NotImplementedError("HashiCorp Vault provider not implemented")
-
-
-class AWSSecretsManagerProvider(SecretProvider):
-    def __init__(self, region: Optional[str] = None):
-        self.region = region
-
-    def get_secret(self, name: str) -> str:
-        raise NotImplementedError("AWS Secrets Manager provider not implemented")
-
-    def put_secret(self, name: str, value: str) -> None:
-        raise NotImplementedError("AWS Secrets Manager provider not implemented")
-
-    def rotate_secret(self, name: str) -> str:
-        raise NotImplementedError("AWS Secrets Manager provider not implemented")
 
 
 class CredentialManager:
@@ -86,9 +49,16 @@ class CredentialManager:
 
     def _init_provider(self, provider: str, config: Dict) -> SecretProvider:
         if provider in ("gcp", "gsm", "gcp_sm"):
-            return GoogleSecretManagerProvider(config.get("project"))
+            return GoogleSecretManagerProvider(config.get("project_id"))
         if provider in ("vault", "hashicorp"):
-            return HashiCorpVaultProvider(config.get("url"), config.get("token"))
+            return VaultProvider(
+                url=config.get("url"),
+                token=config.get("token"),
+                auth_method=config.get("auth_method", "token"),
+                auth_path=config.get("auth_path", "auth/jwt/login"),
+                secret_path=config.get("secret_path", "secret/data"),
+                verify_tls=config.get("verify_tls", True),
+            )
         if provider in ("aws", "secretsmanager"):
             return AWSSecretsManagerProvider(config.get("region"))
         raise ValueError(f"Unknown provider: {provider}")
@@ -120,7 +90,4 @@ class CredentialManager:
 __all__ = [
     "CredentialManager",
     "SecretProvider",
-    "GoogleSecretManagerProvider",
-    "HashiCorpVaultProvider",
-    "AWSSecretsManagerProvider",
 ]
