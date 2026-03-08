@@ -1,0 +1,41 @@
+name: KMS Decrypt and Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+  kms-decrypt:
+    name: Decrypt with GCP KMS and set GitHub secret
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      secrets: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP using Workload Identity
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Install gcloud
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Run KMS decrypt script
+        run: |
+          chmod +x scripts/ops/kms_decrypt.sh
+          # Expected inputs are passed via workflow_dispatch inputs; for manual runs, set these environment variables as repo secrets or workflow inputs
+          ./scripts/ops/kms_decrypt.sh --project "$PROJECT" --location "$LOCATION" --keyring "$KEYRING" --key "$KEY" --ciphertext-file "$CIPHERTEXT_FILE" --repo "$GH_REPO" --secret-name "$SECRET_NAME"
+        env:
+          PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          LOCATION: ${{ secrets.GCP_KMS_LOCATION }}
+          KEYRING: ${{ secrets.GCP_KMS_KEYRING }}
+          KEY: ${{ secrets.GCP_KMS_KEY }}
+          CIPHERTEXT_FILE: ${{ secrets.KMS_CIPHERTEXT_PATH }}
+          GH_REPO: kushin77/self-hosted-runner
+          SECRET_NAME: SLACK_WEBHOOK_URL
