@@ -1,4 +1,8 @@
 name: Runner Pool Optimizer
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 # Phase 5 enhancement: Dynamically optimize self-hosted runner allocation
 # based on queue depth, job duration trends, and resource utilization
 

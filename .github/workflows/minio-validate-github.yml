@@ -1,4 +1,8 @@
 name: MinIO Artifact Smoke Test (GitHub-hosted Debug)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:

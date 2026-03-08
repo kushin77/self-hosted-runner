@@ -1,4 +1,8 @@
 name: Portal Sync Reconcile (nightly)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:

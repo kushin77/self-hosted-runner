@@ -1,4 +1,8 @@
 name: Terraform Apply (manual)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch: {}

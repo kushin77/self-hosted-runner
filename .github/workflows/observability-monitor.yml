@@ -1,4 +1,8 @@
 name: Observability E2E Monitor
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_run:

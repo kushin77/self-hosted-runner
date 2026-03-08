@@ -1,4 +1,8 @@
 name: "Terraform Phase 2: State Backup & Audits"
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:

@@ -1,4 +1,8 @@
 name: Hands-Off Health Check
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 on:
   schedule:
     - cron: '*/30 * * * *'  # Every 30 minutes
@@ -33,4 +37,3 @@ jobs:
               repo: context.repo.repo,
               body: '⚠️ Health check failed. See artifacts for details.'
             })
-

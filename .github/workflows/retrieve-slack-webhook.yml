@@ -1,4 +1,8 @@
 name: Retrieve SLACK_WEBHOOK from Runner
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_dispatch:

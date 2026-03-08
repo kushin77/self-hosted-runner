@@ -1,4 +1,8 @@
 name: Terraform DNS Apply
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 # sequencing-protection: workflow_run (placeholder) — add real guard or concurrency block
 
 on:

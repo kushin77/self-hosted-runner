@@ -1,4 +1,8 @@
 name: Audit Validation - PR
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 # Runs on every PR to validate indices are up-to-date
 on:

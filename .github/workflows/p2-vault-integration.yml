@@ -1,4 +1,8 @@
 name: P2 Vault Integration
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 on:
   push:
     branches: [ main ]
