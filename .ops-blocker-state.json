@@ -14,7 +14,7 @@
     "aws_spot": {
       "status": "ready",
       "last_check": null,
-      "secrets_detected": false
+      "secrets_detected": true
     },
     "staging_kubeconfig": {
       "status": "ready",
