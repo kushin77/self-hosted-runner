@@ -116,6 +116,15 @@ jobs:
           path: |
             scripts/automation/pmo/prometheus/*.log
 
+      - name: Debug: list workspace for metrics
+        if: always()
+        run: |
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Listing workflow_artifacts (root)"
+          ls -la "$GITHUB_WORKSPACE" | sed -n '1,120p' || true
+          echo "Searching for metrics.json files (root..4)"
+          find "$GITHUB_WORKSPACE" -maxdepth 4 -type f -name metrics.json -print || true
+
       - name: Collect metrics artifact
         if: always()
         uses: actions/upload-artifact@v4
