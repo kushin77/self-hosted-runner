@@ -300,5 +300,13 @@ if [ -f "$METRICS_FILE" ]; then
 fi
 
 echo "E2E run complete"
+# If running in GitHub Actions, copy metrics to workspace so upload-artifact can pick it up
+if [ -n "${GITHUB_WORKSPACE:-}" ]; then
+  mkdir -p "$GITHUB_WORKSPACE/workflow_artifacts"
+  if [ -f "$METRICS_FILE" ]; then
+    cp "$METRICS_FILE" "$GITHUB_WORKSPACE/workflow_artifacts/metrics.json" || true
+    echo "Copied metrics to $GITHUB_WORKSPACE/workflow_artifacts/metrics.json"
+  fi
+fi
 
 exit 0
