@@ -1,9 +1,10 @@
 name: Staging Cluster Health & Auto-Heal
 
 on:
-  schedule:
-    - cron: '*/15 * * * *'
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch: {}
+  repository_dispatch:
+    types: [staging-health-check, staging-heal-trigger]
 
 permissions:
   contents: read
