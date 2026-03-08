@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/bin/bash
+
 """
 Security: Validate secret removal and remediate.
 Part of Phase 1 deployment - Remove-Embedded-Secrets component.
