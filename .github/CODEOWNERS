@@ -48,6 +48,29 @@ docs/ @kushin77
 
 # AI Agent Safety & Approval Framework
 services/pipeline-repair/lib/approval*.js @kushin77
+
+# 🛡️ GOVERNANCE & COMPLIANCE (10X Enhancements)
+# All governance changes require multi-party approval
+.github/governance/ @kushin77
+.github/workflows/policy-enforcement-gate.yml @kushin77
+.github/workflows/governance-audit-report.yml @kushin77
+.github/workflows/reusable-guards.yml @kushin77
+.github/workflows/branch-protection-enforcer.yml @kushin77
+.github/GOVERNANCE_ALLOWLIST.yaml @kushin77
+
+# Sensitive credential operations
+.github/workflows/credential-rotation-enforce.yml @kushin77
+.github/workflows/terraform-approval-gate.yml @kushin77
+scripts/audit-log.sh @kushin77
+scripts/validate-governance.sh @kushin77
+
+# Deployment gates & approval workflows
+.github/workflows/*-approval*.yml @kushin77
+.github/workflows/*-gate*.yml @kushin77
+
+# Root-level policy changes
+.gitignore @kushin77
+Dockerfile @kushin77
 docs/AI_AGENT_SAFETY_FRAMEWORK.md @kushin77
 
 # Config & Monitoring
