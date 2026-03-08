@@ -49,21 +49,21 @@ jobs:
 
       - name: Fetch AWS credentials from GCP Secret Manager
         id: aws-creds
+        continue-on-error: true
         run: |
           set -euo pipefail
-          echo "Fetching AWS credentials from GSM..."
-          # Fetch AWS credentials from GCP Secret Manager
+          echo "Attempting to fetch AWS credentials from GSM..."
+          # Try to get AWS credentials from GSM, but don't fail if they don't exist
           AWS_ACCESS_KEY=$(gcloud secrets versions access latest --secret="aws-access-key-id" 2>/dev/null || echo "")
           AWS_SECRET_KEY=$(gcloud secrets versions access latest --secret="aws-secret-access-key" 2>/dev/null || echo "")
           AWS_REGION=$(gcloud secrets versions access latest --secret="aws-region" 2>/dev/null || echo "us-east-1")
           
           if [ -z "$AWS_ACCESS_KEY" ] || [ -z "$AWS_SECRET_KEY" ]; then
-            echo "⚠️  WARNING: AWS credentials not found in GSM"
+            echo "ℹ️  AWS credentials not found in GSM, checking AWS OIDC availability..."
             echo "has_credentials=false" >> $GITHUB_OUTPUT
           else
             echo "✓ AWS credentials retrieved from GSM"
             echo "has_credentials=true" >> $GITHUB_OUTPUT
-            # Export credentials to environment for next step
             echo "::add-mask::${AWS_ACCESS_KEY}"
             echo "::add-mask::${AWS_SECRET_KEY}"
             echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY}" >> $GITHUB_ENV
@@ -71,9 +71,33 @@ jobs:
             echo "AWS_REGION=${AWS_REGION}" >> $GITHUB_ENV
           fi
 
+      - name: Configure AWS credentials via OIDC
+        id: aws-oidc
+        uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          mask-aws-account-id: false
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' && steps.aws-creds.outputs.has_credentials != 'true' }}
+
+      - name: Check AWS credentials availability
+        id: check-creds
+        continue-on-error: true
+        run: |
+          set +euo pipefail
+          if aws sts get-caller-identity &>/dev/null; then
+            echo "✓ AWS credentials available"
+            echo "has_credentials=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️  No AWS credentials available"
+            echo "has_credentials=false" >> $GITHUB_OUTPUT
+          fi
+          set -euo pipefail
+
       - name: Terraform Init & Apply
         id: tfapply
-        if: ${{ steps.aws-creds.outputs.has_credentials == 'true' }}
+        if: ${{ steps.check-creds.outputs.has_credentials == 'true' }}
         env:
           TF_IN_AUTOMATION: 1
         run: |
@@ -91,7 +115,7 @@ jobs:
 
       - name: Terraform Plan (Dry-run - No credentials)
         id: tfplan
-        if: ${{ steps.aws-creds.outputs.has_credentials != 'true' }}
+        if: ${{ steps.check-creds.outputs.has_credentials != 'true' }}
         env:
           TF_IN_AUTOMATION: 1
         run: |
@@ -105,7 +129,7 @@ jobs:
           echo "plan_only=true" >> $GITHUB_OUTPUT
 
       - name: Post success comment and close issues
-        if: ${{ success() && steps.aws-creds.outputs.has_credentials == 'true' }}
+        if: ${{ success() && steps.check-creds.outputs.has_credentials == 'true' }}
         uses: actions/github-script@v6
         with:
           script: |
@@ -121,7 +145,7 @@ jobs:
             }
 
       - name: Post plan-only comment (dry-run)
-        if: ${{ success() && steps.aws-creds.outputs.has_credentials != 'true' }}
+        if: ${{ success() && steps.check-creds.outputs.has_credentials != 'true' }}
         uses: actions/github-script@v6
         with:
           script: |
