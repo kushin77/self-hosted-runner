@@ -50,6 +50,7 @@ jobs:
             workflow_artifacts/metrics.json
             **/workflow_artifacts/metrics.json
             /tmp/observability-e2e.*/metrics.json
+          overwrite: true
           
       - name: Check and run PagerDuty test
         env:
@@ -100,6 +101,7 @@ jobs:
           path: |
             **/workflow_artifacts/metrics.json
             /tmp/observability-e2e.*/metrics.json
+          overwrite: true
 
       - name: Summary
         if: always()
