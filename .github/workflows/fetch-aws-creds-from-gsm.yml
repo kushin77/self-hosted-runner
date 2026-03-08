@@ -1,4 +1,8 @@
 name: Fetch AWS Credentials from GSM (OIDC)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_call:
