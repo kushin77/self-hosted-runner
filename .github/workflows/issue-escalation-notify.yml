@@ -32,16 +32,12 @@ jobs:
           echo "Not a critical escalation; exiting."
       - name: Avoid duplicate notifications
         id: already
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const issue_number = parseInt(core.getInput('issue_number') || context.issue.number || 0);
-            const comments = await github.rest.issues.listComments({ owner: context.repo.owner, repo: context.repo.repo, issue_number });
-            const notified = comments.data.some(c => c.body && c.body.includes('PD_INCIDENT:'));
-            if (notified) core.setOutput('already','true'); else core.setOutput('already','false');
-        with_inputs:
-          issue_number: ${{ steps.check_label.outputs.issue_number }}
+        run: |
+          issue_number=${{ steps.check_label.outputs.issue_number }}
+          comments=$(gh issue view $issue_number --repo ${{ github.repository }} --json comments --jq '.comments[].body' 2>/dev/null || true)
+          echo "$comments" | grep -q "PD_INCIDENT:" && echo "already=true" >> $GITHUB_OUTPUT || echo "already=false" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Exit if already notified
         if: steps.already.outputs.already == 'true'
         run: echo "Notification already sent for this issue."
