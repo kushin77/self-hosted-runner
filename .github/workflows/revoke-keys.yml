@@ -15,7 +15,6 @@ on:
 permissions:
   contents: write
   id-token: write
-  secrets: read
 
 env:
   KEY_ROTATION_AUDIT_DIR: .key-rotation-audit
