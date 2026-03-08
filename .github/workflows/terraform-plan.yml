@@ -1,0 +1,176 @@
+name: Terraform Plan
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      terraform_version:
+        description: 'Terraform version to use'
+        required: false
+        default: '1.7.0'
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+env:
+  TERRAFORM_VERSION: ${{ inputs.terraform_version || '1.7.0' }}
+  TF_IN_AUTOMATION: 'true'
+  TF_LOG: 'INFO'
+
+jobs:
+  terraform-plan:
+    name: Generate Terraform Plan
+    runs-on: ubuntu-latest
+    environment: prod-terraform-apply
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup GCP Credentials
+        run: |
+          # Decode and setup GCP service account
+          echo "${{ secrets.GOOGLE_CREDENTIALS }}" | base64 -d > /tmp/gcp-credentials.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-credentials.json" >> $GITHUB_ENV
+          
+          # Verify credentials
+          gcloud auth activate-service-account --key-file=/tmp/gcp-credentials.json
+          gcloud config set project $(jq -r .project_id /tmp/gcp-credentials.json)
+          echo "✅ GCP credentials configured"
+
+      - name: Setup Terraform Variables
+        run: |
+          # Decode and write terraform.tfvars from secret
+          echo "${{ secrets.PROD_TFVARS }}" > terraform/environments/production/terraform.tfvars
+          echo "✅ Terraform variables loaded"
+
+      - name: Terraform Format Check
+        run: |
+          cd terraform
+          terraform fmt -check -recursive . || {
+            echo "❌ Terraform format check failed"
+            exit 1
+          }
+          echo "✅ Terraform format valid"
+
+      - name: Terraform Init
+        run: |
+          cd terraform/environments/production
+          terraform init \
+            -backend-config="bucket=$(jq -r '.bucket' <<< '${{ secrets.PROD_TFVARS }}')" \
+            -upgrade
+          echo "✅ Terraform initialized"
+
+      - name: Terraform Validate
+        run: |
+          cd terraform
+          terraform validate
+          echo "✅ Terraform validation passed"
+
+      - name: Terraform Plan
+        run: |
+          cd terraform/environments/production
+          terraform plan \
+            -out=tfplan \
+            -input=false \
+            -lock=true
+          echo "✅ Terraform plan generated"
+
+      - name: Convert Plan to JSON
+        run: |
+          cd terraform/environments/production
+          terraform show -json tfplan > tfplan.json
+          echo "✅ Plan converted to JSON"
+
+      - name: Save Plan Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan
+          path: |
+            terraform/environments/production/tfplan
+            terraform/environments/production/tfplan.json
+          retention-days: 1
+
+      - name: Generate Plan Summary
+        id: summary
+        run: |
+          cd terraform/environments/production
+          
+          # Extract resource changes from plan
+          ADDITIONS=$(jq '[.resource_changes[] | select(.change.actions[] == "create")] | length' tfplan.json)
+          MODIFICATIONS=$(jq '[.resource_changes[] | select(.change.actions[] == "update")] | length' tfplan.json)
+          DELETIONS=$(jq '[.resource_changes[] | select(.change.actions[] == "delete")] | length' tfplan.json)
+          
+          echo "additions=$ADDITIONS" >> $GITHUB_OUTPUT
+          echo "modifications=$MODIFICATIONS" >> $GITHUB_OUTPUT
+          echo "deletions=$DELETIONS" >> $GITHUB_OUTPUT
+          
+          cat > /tmp/plan_summary.txt <<EOF
+          Resources to be created: $ADDITIONS
+          Resources to be modified: $MODIFICATIONS
+          Resources to be deleted: $DELETIONS
+          EOF
+
+      - name: Post Plan Summary to Issue
+        run: |
+          PLAN_COMMENT="## 📋 Terraform Plan Results
+
+### Summary
+- **Created:** ${{ steps.summary.outputs.additions }}
+- **Modified:** ${{ steps.summary.outputs.modifications }}
+- **Deleted:** ${{ steps.summary.outputs.deletions }}
+
+### Resources
+\`\`\`
+$(cd terraform/environments/production && terraform plan -json -input=false 2>/dev/null | jq -r 'select(.type == \"resource_drift\") | .address' | head -20)
+\`\`\`
+
+### Next Steps
+To approve and apply this plan:
+1. Review the changes above
+2. Comment with: \`⏳ Plan approved\`
+3. Terraform apply will auto-execute
+
+### Artifacts
+- Plan file: Available in [artifacts](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+- For details: Run \`terraform show tfplan\`
+
+---
+*Plan generated by GitHub Actions at $(date -u)*"
+          
+          # Post comment to issue #1384
+          gh issue comment 1384 \
+            --repo ${{ github.repository }} \
+            --body "$PLAN_COMMENT" || echo "Warning: Failed to post to issue"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Report Status
+        run: |
+          echo "## ✅ Terraform Plan Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Resources to Create:** ${{ steps.summary.outputs.additions }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Resources to Modify:** ${{ steps.summary.outputs.modifications }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Resources to Delete:** ${{ steps.summary.outputs.deletions }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next Step:** Approve plan in [issue #1384](https://github.com/${{ github.repository }}/issues/1384)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Cleanup Secrets
+        if: always()
+        run: |
+          rm -f /tmp/gcp-credentials.json
+          rm -f terraform/environments/production/terraform.tfvars
+          echo "✅ Secrets cleaned up"

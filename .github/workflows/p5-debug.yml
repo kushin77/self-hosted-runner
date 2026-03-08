@@ -1,0 +1,42 @@
+name: P5 Debug - Runner Diagnostics
+
+on:
+  push:
+    branches: [ 'release/p5-final-2026-03-08' ]
+  workflow_dispatch: {}
+
+jobs:
+  debug:
+    name: P5 Debug - Runner diagnostics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Print context and runner info
+        run: |
+          set -euxo pipefail
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+          echo "GITHUB_RUN_NUMBER=$GITHUB_RUN_NUMBER"
+          echo "HEAD_BRANCH=${GITHUB_REF##*/}"
+          uname -a || true
+          cat /etc/os-release || true
+          echo "PATH=$PATH"
+          which terraform || echo "terraform: not found"
+          terraform version 2>&1 || true
+          df -h || true
+          free -m || true
+          echo "=== Repo root listing ==="
+          ls -la || true
+
+      - name: Create debug marker
+        run: |
+          echo "debug-run: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" > debug_marker.txt
+          ls -la debug_marker.txt || true
+
+      - name: Always succeed
+        run: |
+          echo "Debug workflow completed (non-fatal)"
+          exit 0
