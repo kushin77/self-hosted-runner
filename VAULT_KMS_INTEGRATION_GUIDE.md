@@ -202,8 +202,7 @@ export VAULT_NAMESPACE="admin"
 
 ```bash
 export VAULT_ADDR="https://your-vault-address"
-export VAULT_TOKEN="<root-token>"
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # 1. Enable JWT auth method
 vault auth enable jwt
 

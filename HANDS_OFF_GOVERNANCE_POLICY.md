@@ -219,7 +219,7 @@ Auto-merge on success
 **Expected**: ✅ JSON valid, service_account type present
 
 #### STEP 2: Update Secret
-- Settings → Secrets → GCP_SERVICE_ACCOUNT_KEY
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - Paste full valid JSON
 - Click "Update secret"
 

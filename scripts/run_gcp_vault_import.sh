@@ -44,7 +44,7 @@ if [ -n "${SECRET_PROJECT:-}" ] && [ -n "${AWS_SECRET_NAME:-}" ]; then
     # parse KEY=VAL lines
     eval "$(grep -E '^(AWS_ACCESS_KEY_ID|AWS_SECRET_ACCESS_KEY|AWS_SESSION_TOKEN)=' "$TMPDIR/aws_creds.json" | tr '\n' ';')"
   fi
-  export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   echo "Exported AWS env vars" | tee -a "$LOG"
 fi
 

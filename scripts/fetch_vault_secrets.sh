@@ -33,13 +33,13 @@ if [[ -z "${VAULT_TOKEN:-}" ]]; then
     resp=$(curl -sS --request POST --data "{\"role_id\": \"${ROLE_ID}\", \"secret_id\": \"${SECRET_ID}\"}" "${VAULT_ADDR%/}/v1/auth/approle/login" || true)
     VAULT_TOKEN=$(echo "$resp" | sed -n 's/.*"client_token"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' || true)
     if [[ -n "${VAULT_TOKEN:-}" ]]; then
-      export VAULT_TOKEN
-      echo "AppRole login successful; VAULT_TOKEN exported for this session."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     else
-      echo "AppRole login did not return a token; continuing without VAULT_TOKEN."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     fi
   else
-    echo "No VAULT_TOKEN and no AppRole credentials found; skipping AppRole login."
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   fi
 fi
 

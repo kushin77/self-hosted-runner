@@ -1,0 +1,267 @@
+name: Auto-Promotion with Guardrails (Phase 2)
+
+on:
+  workflow_run:
+    workflows: ['E2E Validate & Hands-off Deploy']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      min_success_rate:
+        description: 'Minimum E2E success rate required (%)'
+        default: '85'
+      last_n_runs:
+        description: 'Number of recent runs to analyze'
+        default: '10'
+
+concurrency:
+  group: auto-promotion-${{ github.ref || github.run_id }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  # Sovereign: Independently analyzes E2E success rate
+  e2e-rate-analyzer:
+    name: Analyze E2E Success Rate
+    runs-on: ubuntu-latest
+    outputs:
+      success_rate: ${{ steps.calculate.outputs.success_rate }}
+      total_runs: ${{ steps.calculate.outputs.total_runs }}
+      successful_runs: ${{ steps.calculate.outputs.successful_runs }}
+      rate_meets_threshold: ${{ steps.calculate.outputs.meets_threshold }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
+      - name: Get E2E Validate workflow ID
+        id: workflow_id
+        run: |
+          workflow_id=$(gh workflow list --all | grep "E2E Validate" | head -1 | awk '{print $NF}' | tr -d '(' | tr -d ')')
+          echo "workflow_id=$workflow_id" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Fetch recent E2E runs
+        id: fetch_runs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_ID: ${{ steps.workflow_id.outputs.workflow_id }}
+          LAST_N: ${{ inputs.last_n_runs || 10 }}
+        run: |
+          # Get recent E2E validate runs
+          gh run list --workflow="$WORKFLOW_ID" --limit "$LAST_N" --json status,conclusion,updatedAt --jq '.' > /tmp/e2e_runs.json
+          echo "Fetched E2E runs:"
+          cat /tmp/e2e_runs.json | head -20
+
+      - name: Calculate success rate
+        id: calculate
+        env:
+          MIN_SUCCESS_RATE: ${{ inputs.min_success_rate || 85 }}
+        run: |
+          # Parse runs and calculate success rate
+          total=$(jq 'length' /tmp/e2e_runs.json)
+          successful=$(jq '[.[] | select(.conclusion=="success")] | length' /tmp/e2e_runs.json)
+
+          if [ "$total" -eq 0 ]; then
+            success_rate=0
+          else
+            success_rate=$((successful * 100 / total))
+          fi
+
+          # Check if meets threshold
+          meets_threshold=false
+          if [ "$success_rate" -ge "$MIN_SUCCESS_RATE" ]; then
+            meets_threshold=true
+          fi
+
+          echo "success_rate=$success_rate" >> $GITHUB_OUTPUT
+          echo "total_runs=$total" >> $GITHUB_OUTPUT
+          echo "successful_runs=$successful" >> $GITHUB_OUTPUT
+          echo "meets_threshold=$meets_threshold" >> $GITHUB_OUTPUT
+
+          echo "📊 E2E Success Analysis:"
+          echo "  Total runs analyzed: $total"
+          echo "  Successful runs: $successful"
+          echo "  Success rate: ${success_rate}%"
+          echo "  Threshold: ${MIN_SUCCESS_RATE}%"
+          echo "  Meets threshold: $meets_threshold"
+
+  # Ephemeral: Performs one-time promotion decision (no state carried forward)
+  promotion-decision:
+    name: Make Promotion Decision
+    needs: e2e-rate-analyzer
+    runs-on: ubuntu-latest
+    outputs:
+      should_promote: ${{ steps.decision.outputs.should_promote }}
+      reason: ${{ steps.decision.outputs.reason }}
+    steps:
+      - name: Decide promotion eligibility
+        id: decision
+        env:
+          RATE_MEETS: ${{ needs.e2e-rate-analyzer.outputs.rate_meets_threshold }}
+          SUCCESS_RATE: ${{ needs.e2e-rate-analyzer.outputs.success_rate }}
+        run: |
+          if [ "$RATE_MEETS" == "true" ]; then
+            echo "should_promote=true" >> $GITHUB_OUTPUT
+            echo "reason=E2E success rate (${SUCCESS_RATE}%) meets threshold" >> $GITHUB_OUTPUT
+            echo "✅ Promotion eligible: E2E health check passed"
+          else
+            echo "should_promote=false" >> $GITHUB_OUTPUT
+            echo "reason=E2E success rate (${SUCCESS_RATE}%) below threshold; blocking promotion for safety" >> $GITHUB_OUTPUT
+            echo "⚠️ Promotion blocked: E2E health check failed"
+          fi
+
+  # Independent: Automatically promotes if healthy (no manual gate)
+  auto-promote-deploy:
+    name: Auto-Promote to Staging
+    needs: promotion-decision
+    runs-on: ubuntu-latest
+    if: needs.promotion-decision.outputs.should_promote == 'true'
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get current commit SHA
+        id: commit
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> $GITHUB_OUTPUT
+
+      - name: Dispatch rotation-staging deploy
+        id: dispatch
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          COMMIT_SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          dispatch_response=$(curl -s -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${REPO}/actions/workflows/deploy-rotation-staging.yml/dispatches \
+            -d "{\"ref\":\"main\",\"inputs\":{\"hands_off\":\"true\",\"commit_sha\":\"${COMMIT_SHA}\"}}")
+
+          echo "📤 Deploy promotion dispatched:"
+          echo "$dispatch_response" | jq '.' || echo "$dispatch_response"
+          echo "dispatch_status=success" >> $GITHUB_OUTPUT
+
+  # Immutable: Records decision in issue for audit trail
+  record-decision:
+    name: Record Promotion Decision
+    needs: [e2e-rate-analyzer, promotion-decision]
+    runs-on: ubuntu-latest
+    if: always()
+    permissions:
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Find or create tracking issue
+        id: tracking_issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Search for existing tracking issue
+          issue_num=$(gh issue list --label "hands-off-automation" --state open --limit 1 --json number --jq '.[0].number' 2>/dev/null || echo "")
+
+          if [ -z "$issue_num" ]; then
+            # Create new tracking issue
+            create_response=$(gh issue create \
+              --title "🤖 Hands-Off Auto-Promotion: Daily Tracking" \
+              --label "hands-off-automation,guardails-tracking" \
+              --body "# Daily Auto-Promotion Log\n\nTracking E2E health and promotion decisions." 2>/dev/null || echo "")
+
+            issue_num=$(echo "$create_response" | grep -oP '#\K[0-9]+' || echo "")
+          fi
+
+          echo "issue_num=$issue_num" >> $GITHUB_OUTPUT
+
+      - name: Comment promotion result
+        if: steps.tracking_issue.outputs.issue_num
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUM: ${{ steps.tracking_issue.outputs.issue_num }}
+          SUCCESS_RATE: ${{ needs.e2e-rate-analyzer.outputs.success_rate }}
+          TOTAL_RUNS: ${{ needs.e2e-rate-analyzer.outputs.total_runs }}
+          REASON: ${{ needs.promotion-decision.outputs.reason }}
+          SHOULD_PROMOTE: ${{ needs.promotion-decision.outputs.should_promote }}
+        run: |
+          status_emoji="✅"
+          if [ "$SHOULD_PROMOTE" == "false" ]; then
+            status_emoji="⛔"
+          fi
+
+          comment_body=$(cat <<EOF
+
+## 🔄 Promotion Decision — $(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+$status_emoji **Decision:** $SHOULD_PROMOTE
+
+### Metrics
+- **E2E Success Rate:** ${SUCCESS_RATE}% (threshold: 85%)
+- **Runs Analyzed:** $TOTAL_RUNS recent
+- **Reason:** $REASON
+
+### Outcome
+$([ "$SHOULD_PROMOTE" == "true" ] && echo "✅ Auto-dispatched deploy-rotation-staging workflow" || echo "⛔ Promotion blocked for safety; manual review required")
+
+---
+**Timestamp:** $(date -u +'%Y-%m-%dT%H:%M:%SZ')
+**Workflow Run:** [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+EOF
+)
+
+          gh issue comment "$ISSUE_NUM" --body "$comment_body"
+
+  # Independent: Slack notification (optional, fails gracefully)
+  notify-slack:
+    name: Notify Slack (Optional)
+    needs: [e2e-rate-analyzer, promotion-decision]
+    runs-on: ubuntu-latest
+    if: always()
+    continue-on-error: true
+    steps:
+      - name: Send Slack notification
+        if: env.SLACK_WEBHOOK_URL
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SUCCESS_RATE: ${{ needs.e2e-rate-analyzer.outputs.success_rate }}
+          SHOULD_PROMOTE: ${{ needs.promotion-decision.outputs.should_promote }}
+          REASON: ${{ needs.promotion-decision.outputs.reason }}
+        run: |
+          status_color=$( [ "$SHOULD_PROMOTE" == "true" ] && echo "good" || echo "danger" )
+          status_text=$( [ "$SHOULD_PROMOTE" == "true" ] && echo "✅ Promotion Eligible" || echo "⛔ Promotion Blocked" )
+
+          payload=$(cat <<EOF
+          {
+            "attachments": [
+              {
+                "color": "$status_color",
+                "title": "🤖 Hands-Off Auto-Promotion Decision",
+                "fields": [
+                  { "title": "Status", "value": "$status_text", "short": true },
+                  { "title": "E2E Success Rate", "value": "${SUCCESS_RATE}%", "short": true },
+                  { "title": "Reason", "value": "$REASON", "short": false }
+                ],
+                "timestamp": $(date +%s)
+              }
+            ]
+          }
+          EOF
+)
+
+          curl -X POST -H 'Content-type: application/json' \
+            --data "$payload" \
+            "$SLACK_WEBHOOK_URL"
