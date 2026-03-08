@@ -79,7 +79,6 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
           mask-aws-account-id: false
-        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' && steps.aws-creds.outputs.has_credentials != 'true' }}
 
       - name: Check AWS credentials availability
         id: check-creds
