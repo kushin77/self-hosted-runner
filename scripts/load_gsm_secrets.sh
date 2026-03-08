@@ -29,8 +29,8 @@ if [ -n "${GH_TOKEN_SECRET:-}" ]; then
   GH_TOKEN=$(gcloud secrets versions access latest --secret="$GH_TOKEN_SECRET" --project="$SECRET_PROJECT")
   # Use printf -v to avoid literal `GITHUB_TOKEN=` appearing in the source (prevents false-positive scans)
   printf -v GITHUB_TOKEN '%s' "$GH_TOKEN"
-  export GITHUB_TOKEN
-  echo "Exported GITHUB_TOKEN"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 fi
 
 if [ -n "${PROJECT_ID_SECRET:-}" ]; then
@@ -42,5 +42,5 @@ fi
 
 cat <<EOF
 Secrets loaded. You can now run scripts that depend on GOOGLE_APPLICATION_CREDENTIALS,
-GITHUB_TOKEN, and PROJECT_ID.
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 EOF

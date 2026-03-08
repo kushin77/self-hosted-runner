@@ -40,7 +40,7 @@ Manual Tasks:            🟢 ZERO REQUIRED
 ### Layer 1: Google Secret Manager (Primary)
 ```
 Status: ✅ OPERATIONAL
-Secrets Provisioned: GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_KEY, GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_PROVIDER
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 Encryption: Cloud KMS (at-rest)
 Health Check: Every 15 minutes ✅
 Rotation: Daily 2:00 AM UTC ✅
@@ -63,7 +63,7 @@ Last Updated: 2026-03-08T17:37:32Z
 ### Layer 3: AWS KMS (Tertiary)
 ```
 Status: ✅ OPERATIONAL
-Secrets Provisioned: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_KMS_KEY_ID, AWS_ROLE_TO_ASSUME
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 Encryption: Envelope encryption
 Regional Redundancy: Configured ✅
 Key Rotation: 90-day automatic ✅

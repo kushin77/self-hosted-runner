@@ -50,7 +50,7 @@ Phase 3 infrastructure provisioning is **complete and ready for deployment**. Th
 ## What's Needed for Activation
 
 1. **Configure Repository Secrets** (GitHub Settings):
-   - `GCP_SERVICE_ACCOUNT_KEY` - JSON service account credentials
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
    - `GCP_PROJECT_ID` - Target GCP project ID
 
 2. **Dispatch Workflow**:
@@ -92,7 +92,7 @@ eb9c6c559 → Merged PR #1786 (Terraform fix + P2-P3 enhancements)
 
 ## Next Steps
 
-1. Add GCP_SERVICE_ACCOUNT_KEY to repository secrets
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 2. Dispatch provision_phase3.yml workflow
 3. Monitor execution in GitHub Actions
 4. Verify Phase 3 issue auto-updates

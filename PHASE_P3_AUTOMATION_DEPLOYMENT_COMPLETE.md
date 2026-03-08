@@ -108,7 +108,7 @@ STAGE 4A: TERRAFORM VALIDATION (Parallel)
     
 
 STAGE 4B: GCP PERMISSION CHECK (Parallel)
-    ├─ Check for GCP_SERVICE_ACCOUNT_EMAIL secret
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     ├─ Check for GCP_PROJECT_ID secret
     ├─ Verify Workload Identity (optional)
     ├─ Document required IAM roles
@@ -203,7 +203,7 @@ COMPLETION
 ```bash
 # Check that secrets are configured
 # (This should already be done from issues #225, #226)
-# • GCP_SERVICE_ACCOUNT_EMAIL
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # • GCP_PROJECT_ID  
 # • SLACK_WEBHOOK_URL (optional for E2E)
 # • PAGERDUTY_SERVICE_KEY (optional for E2E)

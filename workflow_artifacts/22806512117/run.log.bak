@@ -1,0 +1,1387 @@
+Generate SBOMs (CycloneDX)	Set up job	﻿2026-03-07T20:20:44.7500854Z Current runner version: '2.332.0'
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7525103Z ##[group]Runner Image Provisioner
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7526116Z Hosted Compute Agent
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7526613Z Version: 20260213.493
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7527225Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7527874Z Build Date: 2026-02-13T00:28:41Z
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7528429Z Worker ID: {b03d7b24-33d0-4e0f-a2b3-cd8b5e78991f}
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7529060Z Azure Region: westus3
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7529564Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7530869Z ##[group]Operating System
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7531451Z Ubuntu
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7531839Z 24.04.3
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7532252Z LTS
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7532640Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7533116Z ##[group]Runner Image
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7533584Z Image: ubuntu-24.04
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7534044Z Version: 20260302.42.1
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7534921Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7536572Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7537317Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7538236Z ##[group]GITHUB_TOKEN Permissions
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7540030Z Contents: read
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7540500Z Metadata: read
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7540895Z Packages: write
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7541430Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7543424Z Secret source: Actions
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7544063Z Prepare workflow directory
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7905647Z Prepare all required actions
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:44.7944271Z Getting action download info
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:45.1695710Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:45.3459886Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Generate SBOMs (CycloneDX)	Set up job	2026-03-07T20:20:45.5741629Z Complete job name: Generate SBOMs (CycloneDX)
+Generate SBOMs (CycloneDX)	Checkout	﻿2026-03-07T20:20:45.6344118Z ##[group]Run actions/checkout@v4
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6345039Z with:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6345580Z   ref: refs/heads/main
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6346086Z   repository: kushin77/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6346853Z   token: ***
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6347273Z   ssh-strict: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6347704Z   ssh-user: git
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6348125Z   persist-credentials: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6348632Z   clean: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6349053Z   sparse-checkout-cone-mode: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6349579Z   fetch-depth: 1
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6349983Z   fetch-tags: false
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6350442Z   show-progress: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6350903Z   lfs: false
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6351302Z   submodules: false
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6351744Z   set-safe-directory: true
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.6352409Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.7383953Z Syncing repository: kushin77/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.7386075Z ##[group]Getting Git version info
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.7386853Z Working directory is '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.7388099Z [command]/usr/bin/git version
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8415577Z git version 2.53.0
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8445938Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8461022Z Temporarily overriding HOME='/home/runner/work/_temp/f31c4604-4620-4e5e-b345-292e5ec0eb39' before making global git config changes
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8463257Z Adding repository directory to the temporary git global config as a safe directory
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8475804Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8560148Z Deleting the contents of '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8563833Z ##[group]Initializing the repository
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.8568964Z [command]/usr/bin/git init /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9113696Z hint: Using 'master' as the name for the initial branch. This default branch name
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9115226Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9117050Z hint: to use in all of your new repositories, which will suppress this warning,
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9117904Z hint: call:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9118347Z hint:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9119055Z hint: 	git config --global init.defaultBranch <name>
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9119726Z hint:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9120392Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9121439Z hint: 'development'. The just-created branch can be renamed via this command:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9122287Z hint:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9122750Z hint: 	git branch -m <name>
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9123377Z hint:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9124098Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9156495Z Initialized empty Git repository in /home/runner/work/self-hosted-runner/self-hosted-runner/.git/
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9170037Z [command]/usr/bin/git remote add origin https://github.com/kushin77/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9254055Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9255886Z ##[group]Disabling automatic garbage collection
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9260380Z [command]/usr/bin/git config --local gc.auto 0
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9286482Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9287761Z ##[group]Setting up auth
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9293960Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:45.9320302Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1029089Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1057439Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1234359Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1270615Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1542804Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1546039Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1547145Z ##[group]Fetching the repository
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:46.1549030Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5432717Z From https://github.com/kushin77/self-hosted-runner
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5433819Z  * [new branch]      main       -> origin/main
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5506980Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5507842Z ##[group]Determining the checkout info
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5508945Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5513456Z [command]/usr/bin/git sparse-checkout disable
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5594018Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5616982Z ##[group]Checking out the ref
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.5620858Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.6644253Z Switched to a new branch 'main'
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.6645753Z branch 'main' set up to track 'origin/main'.
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.6655249Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.6690378Z [command]/usr/bin/git log -1 --format=%H
+Generate SBOMs (CycloneDX)	Checkout	2026-03-07T20:20:47.6709815Z 091f82afe9837fb2e961bef641c3079a5c1e2adc
+Generate SBOMs (CycloneDX)	Discover images to scan	﻿2026-03-07T20:20:47.6872397Z ##[group]Run set -euo pipefail
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6873124Z [36;1mset -euo pipefail[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6873600Z [36;1m[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6874082Z [36;1m# Find all service directories with Dockerfiles[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6874866Z [36;1mimages=$(find services -name Dockerfile -type f | \[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6875634Z [36;1m  sed 's|/Dockerfile||' | \[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6876426Z [36;1m  jq -R -s -c 'split("\n") | map(select(length > 0))')[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6877026Z [36;1m[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6877436Z [36;1mcount=$(echo "$images" | jq 'length')[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6878084Z [36;1mmatrix=$(echo "$images" | jq -c '{service: .}')[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6878645Z [36;1m[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6879610Z [36;1mecho "matrix=$matrix" >> "$GITHUB_OUTPUT"[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6880241Z [36;1mecho "count=$count" >> "$GITHUB_OUTPUT"[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6880963Z [36;1mecho "🔍 Discovered $count service(s) for SBOM generation"[0m
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6912328Z shell: /usr/bin/bash -e {0}
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.6912969Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Discover images to scan	2026-03-07T20:20:47.7079277Z 🔍 Discovered 3 service(s) for SBOM generation
+Generate SBOMs (CycloneDX)	Create sboms directory	﻿2026-03-07T20:20:47.7137421Z ##[group]Run mkdir -p build/sboms
+Generate SBOMs (CycloneDX)	Create sboms directory	2026-03-07T20:20:47.7138010Z [36;1mmkdir -p build/sboms[0m
+Generate SBOMs (CycloneDX)	Create sboms directory	2026-03-07T20:20:47.7165632Z shell: /usr/bin/bash -e {0}
+Generate SBOMs (CycloneDX)	Create sboms directory	2026-03-07T20:20:47.7166155Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Upload sboms artifact	﻿2026-03-07T20:20:47.7332762Z ##[group]Run actions/upload-artifact@v4
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7333366Z with:
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7333740Z   name: sboms
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7334118Z   path: build/sboms/
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7334661Z   if-no-files-found: warn
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7335108Z   compression-level: 6
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7335744Z   overwrite: false
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7336177Z   include-hidden-files: false
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.7336636Z ##[endgroup]
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.9335075Z With the provided path, there will be 1 file uploaded
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.9340343Z Artifact name is valid!
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:47.9341442Z Root directory input is valid!
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.1604160Z Beginning upload of artifact content to blob storage
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.3800663Z Uploaded bytes 161
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.4383784Z Finished uploading artifact content to blob storage!
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.4388684Z SHA256 digest of uploaded artifact zip is 759818f653af1d5297bb690f9abd0904294a562264166e00a15bf00a4c102fc8
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.4392034Z Finalizing artifact upload
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.5880588Z Artifact sboms.zip successfully finalized. Artifact ID 5813306034
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.5884439Z Artifact sboms has been successfully uploaded! Final size is 161 bytes. Artifact ID is 5813306034
+Generate SBOMs (CycloneDX)	Upload sboms artifact	2026-03-07T20:20:48.5889593Z Artifact download URL: https://github.com/kushin77/self-hosted-runner/actions/runs/22806512117/artifacts/5813306034
+Generate SBOMs (CycloneDX)	Post Checkout	﻿2026-03-07T20:20:48.6179312Z Post job cleanup.
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7079902Z [command]/usr/bin/git version
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7112309Z git version 2.53.0
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7151163Z Temporarily overriding HOME='/home/runner/work/_temp/d60ee2a1-d52d-4a29-b882-c079c3063eb7' before making global git config changes
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7154263Z Adding repository directory to the temporary git global config as a safe directory
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7158041Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7197193Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7292918Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7534600Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7553397Z http.https://github.com/.extraheader
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7568191Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7600710Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7783155Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Generate SBOMs (CycloneDX)	Post Checkout	2026-03-07T20:20:48.7815194Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Generate SBOMs (CycloneDX)	Complete job	﻿2026-03-07T20:20:48.8104351Z Evaluate and set job outputs
+Generate SBOMs (CycloneDX)	Complete job	2026-03-07T20:20:48.8112847Z Set output 'sbom-matrix'
+Generate SBOMs (CycloneDX)	Complete job	2026-03-07T20:20:48.8115596Z Set output 'sbom-count'
+Generate SBOMs (CycloneDX)	Complete job	2026-03-07T20:20:48.8117546Z Cleaning up orphan processes
+Generate SLSA v1.0 Provenance	Set up job	﻿2026-03-07T20:20:54.6971726Z Current runner version: '2.332.0'
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.6999151Z ##[group]Runner Image Provisioner
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7000493Z Hosted Compute Agent
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7001277Z Version: 20260213.493
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7001859Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7002560Z Build Date: 2026-02-13T00:28:41Z
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7003367Z Worker ID: {2a4bfadc-832c-44f1-b901-e571fe2f4859}
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7004058Z Azure Region: westcentralus
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7004645Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7006211Z ##[group]Operating System
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7006857Z Ubuntu
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7007322Z 24.04.3
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7007884Z LTS
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7008348Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7008879Z ##[group]Runner Image
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7009572Z Image: ubuntu-24.04
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7010309Z Version: 20260302.42.1
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7011343Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7013035Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7014002Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7015173Z ##[group]GITHUB_TOKEN Permissions
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7017093Z Contents: read
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7017756Z Metadata: read
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7018280Z Packages: write
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7018808Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7021245Z Secret source: Actions
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7022164Z Prepare workflow directory
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7381165Z Prepare all required actions
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:54.7422406Z Getting action download info
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:55.1451655Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:55.3166431Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:55.9414073Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Generate SLSA v1.0 Provenance	Set up job	2026-03-07T20:20:56.1739585Z Complete job name: Generate SLSA v1.0 Provenance
+Generate SLSA v1.0 Provenance	Checkout	﻿2026-03-07T20:20:56.2552004Z ##[group]Run actions/checkout@v4
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2552926Z with:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2553330Z   ref: refs/heads/main
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2553802Z   repository: kushin77/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2554606Z   token: ***
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2555004Z   ssh-strict: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2555403Z   ssh-user: git
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2555819Z   persist-credentials: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2556259Z   clean: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2556664Z   sparse-checkout-cone-mode: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2557152Z   fetch-depth: 1
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2557549Z   fetch-tags: false
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2558016Z   show-progress: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2558438Z   lfs: false
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2558810Z   submodules: false
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2559223Z   set-safe-directory: true
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.2560216Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3738375Z Syncing repository: kushin77/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3741019Z ##[group]Getting Git version info
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3741976Z Working directory is '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3743150Z [command]/usr/bin/git version
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3814496Z git version 2.53.0
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3843096Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3859215Z Temporarily overriding HOME='/home/runner/work/_temp/404f69de-d1ad-47da-9b18-d785d909d049' before making global git config changes
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3861644Z Adding repository directory to the temporary git global config as a safe directory
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3874160Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3920898Z Deleting the contents of '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3924323Z ##[group]Initializing the repository
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.3928949Z [command]/usr/bin/git init /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4069412Z hint: Using 'master' as the name for the initial branch. This default branch name
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4071504Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4073062Z hint: to use in all of your new repositories, which will suppress this warning,
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4074228Z hint: call:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4075204Z hint:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4075980Z hint: 	git config --global init.defaultBranch <name>
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4076702Z hint:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4077264Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4078192Z hint: 'development'. The just-created branch can be renamed via this command:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4078904Z hint:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4079286Z hint: 	git branch -m <name>
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4079738Z hint:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4080575Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4082180Z Initialized empty Git repository in /home/runner/work/self-hosted-runner/self-hosted-runner/.git/
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4088558Z [command]/usr/bin/git remote add origin https://github.com/kushin77/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4129622Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4130710Z ##[group]Disabling automatic garbage collection
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4134235Z [command]/usr/bin/git config --local gc.auto 0
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4168390Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4169479Z ##[group]Setting up auth
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4175951Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4211700Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4606985Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4643568Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4902533Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.4949992Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.5206985Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.5246434Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.5247260Z ##[group]Fetching the repository
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:56.5256027Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7093487Z From https://github.com/kushin77/self-hosted-runner
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7095582Z  * [new branch]      main       -> origin/main
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7132857Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7134824Z ##[group]Determining the checkout info
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7136895Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7141788Z [command]/usr/bin/git sparse-checkout disable
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7192543Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7225596Z ##[group]Checking out the ref
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.7230663Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.8534698Z Switched to a new branch 'main'
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.8536754Z branch 'main' set up to track 'origin/main'.
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.8553807Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.8597696Z [command]/usr/bin/git log -1 --format=%H
+Generate SLSA v1.0 Provenance	Checkout	2026-03-07T20:20:57.8625333Z 091f82afe9837fb2e961bef641c3079a5c1e2adc
+Generate SLSA v1.0 Provenance	Download SBOMs	﻿2026-03-07T20:20:57.8917627Z ##[group]Run actions/download-artifact@v4
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8918915Z with:
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8919681Z   name: sboms
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8920674Z   path: build/sboms/
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8921615Z   merge-multiple: false
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8923111Z   repository: kushin77/self-hosted-runner
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8924308Z   run-id: 22806512117
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:57.8925198Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.1004322Z Downloading single artifact
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.3103271Z Preparing to download the following artifacts:
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.3107294Z - sboms (ID: 5813306034, Size: 161, Expected Digest: sha256:759818f653af1d5297bb690f9abd0904294a562264166e00a15bf00a4c102fc8)
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.4530902Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/f9805113-4978-44c1-9fc6-c65e2c88417a/workflow-job-run-b2faae6d-5970-5c5b-8b37-53e19909d643/artifacts/85bda11b50292e3c00f95b950866e6a667ea1821b6601fd62d58211a61cc2969.zip
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.4538431Z Starting download of artifact to: /home/runner/work/self-hosted-runner/self-hosted-runner/build/sboms
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6561534Z (node:2316) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6568176Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6603569Z SHA256 digest of downloaded artifact is 759818f653af1d5297bb690f9abd0904294a562264166e00a15bf00a4c102fc8
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6607339Z Artifact download completed successfully.
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6609338Z Total of 1 artifact(s) downloaded
+Generate SLSA v1.0 Provenance	Download SBOMs	2026-03-07T20:20:58.6611532Z Download artifact has finished successfully
+Generate SLSA v1.0 Provenance	Set builder identity	﻿2026-03-07T20:20:58.6788520Z ##[group]Run builder_id="github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main"
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6792614Z [36;1mbuilder_id="github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main"[0m
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6795186Z [36;1mecho "id=$builder_id" >> "$GITHUB_OUTPUT"[0m
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6796501Z [36;1mecho "🏗️ Builder ID: $builder_id"[0m
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6856880Z shell: /usr/bin/bash -e {0}
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6857929Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Set builder identity	2026-03-07T20:20:58.6974816Z 🏗️ Builder ID: github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	﻿2026-03-07T20:20:58.7077449Z ##[group]Run set -euo pipefail
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7078639Z [36;1mset -euo pipefail[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7079544Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7080531Z [36;1mmkdir -p build/provenance[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7081588Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7082530Z [36;1m# Discover all images built in this workflow[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7083999Z [36;1mimages=$(find services -name Dockerfile -type f | \[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7085331Z [36;1m  sed 's|/Dockerfile||' | \[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7086595Z [36;1m  sed "s|^|ghcr.io/kushin77/self-hosted-runner/|" | \[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7088129Z [36;1m  sed "s|$|:091f82afe9837fb2e961bef641c3079a5c1e2adc|")[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7089384Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7090362Z [36;1mcount=0[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7091209Z [36;1mfor img in $images; do[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7092229Z [36;1m  count=$((count + 1))[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7093417Z [36;1m  safe=$(echo "$img" | sed -E 's/[^a-zA-Z0-9._-]/-/g')[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7094954Z [36;1m  prov_file="build/provenance/${safe}-provenance.json"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7096287Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7097066Z [36;1m  cat > "$prov_file" << 'PROVEOF'[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7098099Z [36;1m{[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7099011Z [36;1m  "_type": "https://in-toto.io/Statement/v1",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7100414Z [36;1m  "subject": [[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7101261Z [36;1m    {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7102060Z [36;1m      "name": "IMAGE",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7103036Z [36;1m      "digest": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7175827Z [36;1m        "sha256": "DIGEST"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7177024Z [36;1m      }[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7177859Z [36;1m    }[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7178625Z [36;1m  ],[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7179715Z [36;1m  "predicateType": "https://slsa.dev/provenance/v1.0",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7181661Z [36;1m  "predicate": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7182625Z [36;1m    "buildDefinition": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7184508Z [36;1m      "buildType": "https://github.com/slsa-framework/slsa-github-generator/workflows/builder/v0",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7186504Z [36;1m      "externalParameters": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7187580Z [36;1m        "workflow": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7188922Z [36;1m          "path": ".github/workflows/slsa-provenance-release.yml",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7190501Z [36;1m          "ref": "GITHUB_REF",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7191664Z [36;1m          "repository": "REPOSITORY"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7192761Z [36;1m        },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7193585Z [36;1m        "inputs": {}[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7194502Z [36;1m      },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7195336Z [36;1m      "internalParameters": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7196470Z [36;1m        "builderId": "BUILDER_ID"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7197517Z [36;1m      },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7198391Z [36;1m      "resolvedDependencies": [][0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7199458Z [36;1m    },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7200359Z [36;1m    "runDetails": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7201297Z [36;1m      "builder": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7202245Z [36;1m        "id": "BUILDER_ID"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7203222Z [36;1m      },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7204010Z [36;1m      "metadata": {[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7205027Z [36;1m        "invocationId": "GITHUB_RUN_ID",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7206235Z [36;1m        "startedOn": "STARTED_ON",[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7207491Z [36;1m        "finishedOn": "FINISHED_ON"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7208582Z [36;1m      },[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7209398Z [36;1m      "byproducts": [][0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7210644Z [36;1m    }[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7211404Z [36;1m  }[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7212131Z [36;1m}[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7212864Z [36;1mPROVEOF[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7213638Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7214424Z [36;1m  # Replace placeholders[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7215542Z [36;1m  sed -i "s|IMAGE|$img|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7217172Z [36;1m  sed -i "s|DIGEST|091f82afe9837fb2e961bef641c3079a5c1e2adc|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7219300Z [36;1m  sed -i "s|GITHUB_REF|refs/heads/main|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7221246Z [36;1m  sed -i "s|REPOSITORY|kushin77/self-hosted-runner|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7224164Z [36;1m  sed -i "s|BUILDER_ID|github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7226901Z [36;1m  sed -i "s|GITHUB_RUN_ID|22806512117|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7228531Z [36;1m  sed -i "s|STARTED_ON|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7230444Z [36;1m  sed -i "s|FINISHED_ON|$(date -u +%Y-%m-%dT%H:%M:%SZ)|g" "$prov_file"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7231891Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7232840Z [36;1m  echo "✅ Generated provenance for image #$count"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7234082Z [36;1mdone[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7234826Z [36;1m[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7235669Z [36;1mecho "count=$count" >> "$GITHUB_OUTPUT"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7236965Z [36;1mecho "📋 Total provenance files: $count"[0m
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7293896Z shell: /usr/bin/bash -e {0}
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7294870Z env:
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7296213Z   GH_TOKEN: ***
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7296997Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7628337Z ✅ Generated provenance for image #1
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.7820441Z ✅ Generated provenance for image #2
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.8010640Z ✅ Generated provenance for image #3
+Generate SLSA v1.0 Provenance	Generate SLSA v1.0 provenance	2026-03-07T20:20:58.8012946Z 📋 Total provenance files: 3
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	﻿2026-03-07T20:20:58.8137400Z ##[group]Run actions/upload-artifact@v4
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8138513Z with:
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8139215Z   name: provenance
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8140336Z   path: build/provenance/
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8141279Z   if-no-files-found: warn
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8142170Z   compression-level: 6
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8143239Z   overwrite: false
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8144086Z   include-hidden-files: false
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:58.8145005Z ##[endgroup]
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.0492245Z With the provided path, there will be 4 files uploaded
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.0499153Z Artifact name is valid!
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.0501061Z Root directory input is valid!
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.2782305Z Beginning upload of artifact content to blob storage
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.5157317Z Uploaded bytes 2734
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.5747178Z Finished uploading artifact content to blob storage!
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.5751296Z SHA256 digest of uploaded artifact zip is f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.5752674Z Finalizing artifact upload
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.7066941Z Artifact provenance.zip successfully finalized. Artifact ID 5813306909
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.7068433Z Artifact provenance has been successfully uploaded! Final size is 2734 bytes. Artifact ID is 5813306909
+Generate SLSA v1.0 Provenance	Upload provenance artifacts	2026-03-07T20:20:59.7076623Z Artifact download URL: https://github.com/kushin77/self-hosted-runner/actions/runs/22806512117/artifacts/5813306909
+Generate SLSA v1.0 Provenance	Post Checkout	﻿2026-03-07T20:20:59.7248077Z Post job cleanup.
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8244320Z [command]/usr/bin/git version
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8285317Z git version 2.53.0
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8330993Z Temporarily overriding HOME='/home/runner/work/_temp/3243ad85-2e13-41eb-be15-49e51b7341ba' before making global git config changes
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8332063Z Adding repository directory to the temporary git global config as a safe directory
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8336888Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8379602Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8417867Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8686201Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8712488Z http.https://github.com/.extraheader
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8727030Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.8763494Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.9020242Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Generate SLSA v1.0 Provenance	Post Checkout	2026-03-07T20:20:59.9058093Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Generate SLSA v1.0 Provenance	Complete job	﻿2026-03-07T20:20:59.9433115Z Evaluate and set job outputs
+Generate SLSA v1.0 Provenance	Complete job	2026-03-07T20:20:59.9439065Z Set output 'provenance-count'
+Generate SLSA v1.0 Provenance	Complete job	2026-03-07T20:20:59.9441508Z Set output 'builder-id'
+Generate SLSA v1.0 Provenance	Complete job	2026-03-07T20:20:59.9442817Z Cleaning up orphan processes
+Sign Images with Cosign	Set up job	﻿2026-03-07T20:21:06.4031154Z Current runner version: '2.332.0'
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4056600Z ##[group]Runner Image Provisioner
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4057399Z Hosted Compute Agent
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4058123Z Version: 20260213.493
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4058742Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4059407Z Build Date: 2026-02-13T00:28:41Z
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4060575Z Worker ID: {b62459f3-6f7f-457c-9bc9-7cd3c6540d7f}
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4061321Z Azure Region: westus
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4061812Z ##[endgroup]
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4063389Z ##[group]Operating System
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4064047Z Ubuntu
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4064517Z 24.04.3
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4065078Z LTS
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4065521Z ##[endgroup]
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4066014Z ##[group]Runner Image
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4066684Z Image: ubuntu-24.04
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4067174Z Version: 20260302.42.1
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4068180Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4070089Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4071128Z ##[endgroup]
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4072192Z ##[group]GITHUB_TOKEN Permissions
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4074000Z Contents: read
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4074665Z Metadata: read
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4075209Z Packages: write
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4075705Z ##[endgroup]
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4078301Z Secret source: Actions
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4079066Z Prepare workflow directory
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4413424Z Prepare all required actions
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.4452803Z Getting action download info
+Sign Images with Cosign	Set up job	2026-03-07T20:21:06.8951708Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Sign Images with Cosign	Set up job	2026-03-07T20:21:07.0055307Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+Sign Images with Cosign	Set up job	2026-03-07T20:21:07.5591409Z Download action repository 'sigstore/cosign-installer@v3' (SHA:398d4b0eeef1380460a10c8013a76f728fb906ac)
+Sign Images with Cosign	Set up job	2026-03-07T20:21:08.1654018Z Complete job name: Sign Images with Cosign
+Sign Images with Cosign	Checkout	﻿2026-03-07T20:21:08.2502042Z ##[group]Run actions/checkout@v4
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2503369Z with:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2504282Z   repository: ***/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2505513Z   token: ***
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2506255Z   ssh-strict: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2507014Z   ssh-user: git
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2507789Z   persist-credentials: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2508661Z   clean: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2509424Z   sparse-checkout-cone-mode: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2510551Z   fetch-depth: 1
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2511317Z   fetch-tags: false
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2512094Z   show-progress: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2512877Z   lfs: false
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2513580Z   submodules: false
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2514393Z   set-safe-directory: true
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.2515505Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3604932Z Syncing repository: ***/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3607541Z ##[group]Getting Git version info
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3609104Z Working directory is '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3611776Z [command]/usr/bin/git version
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3672109Z git version 2.53.0
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3700716Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3716649Z Temporarily overriding HOME='/home/runner/work/_temp/49d9c3f0-4f14-414e-9cdd-3d03bb60e0b4' before making global git config changes
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3733399Z Adding repository directory to the temporary git global config as a safe directory
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3735775Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3782809Z Deleting the contents of '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3786167Z ##[group]Initializing the repository
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3792513Z [command]/usr/bin/git init /home/runner/work/self-hosted-runner/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3897015Z hint: Using 'master' as the name for the initial branch. This default branch name
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3900270Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3903169Z hint: to use in all of your new repositories, which will suppress this warning,
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3905648Z hint: call:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3906964Z hint:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3908529Z hint: 	git config --global init.defaultBranch <name>
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3910736Z hint:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3912643Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3915901Z hint: 'development'. The just-created branch can be renamed via this command:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3918329Z hint:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3919712Z hint: 	git branch -m <name>
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3921435Z hint:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3922672Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3924786Z Initialized empty Git repository in /home/runner/work/self-hosted-runner/self-hosted-runner/.git/
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3929331Z [command]/usr/bin/git remote add origin https://github.com/***/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3959754Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3962206Z ##[group]Disabling automatic garbage collection
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3964455Z [command]/usr/bin/git config --local gc.auto 0
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3996486Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.3998764Z ##[group]Setting up auth
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4004656Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4043041Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4395489Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4433033Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4680974Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4723142Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.4988853Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.5030913Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.5033340Z ##[group]Fetching the repository
+Sign Images with Cosign	Checkout	2026-03-07T20:21:08.5043805Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +091f82afe9837fb2e961bef641c3079a5c1e2adc:refs/remotes/origin/main
+Sign Images with Cosign	Checkout	2026-03-07T20:21:09.9983785Z From https://github.com/***/self-hosted-runner
+Sign Images with Cosign	Checkout	2026-03-07T20:21:09.9986214Z  * [new ref]         091f82afe9837fb2e961bef641c3079a5c1e2adc -> origin/main
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0363345Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0364260Z ##[group]Determining the checkout info
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0372157Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0375764Z [command]/usr/bin/git sparse-checkout disable
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0432033Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0466904Z ##[group]Checking out the ref
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.0471542Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.2473065Z Switched to a new branch 'main'
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.2480532Z branch 'main' set up to track 'origin/main'.
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.2496288Z ##[endgroup]
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.2542837Z [command]/usr/bin/git log -1 --format=%H
+Sign Images with Cosign	Checkout	2026-03-07T20:21:10.2579431Z 091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Download provenance	﻿2026-03-07T20:21:10.2923371Z ##[group]Run actions/download-artifact@v4
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2923972Z with:
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2924323Z   name: provenance
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2924694Z   path: build/provenance/
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2925055Z   merge-multiple: false
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2925663Z   repository: ***/self-hosted-runner
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2925922Z   run-id: 22806512117
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.2926123Z ##[endgroup]
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.5000501Z Downloading single artifact
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.7798849Z Preparing to download the following artifacts:
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.7800258Z - provenance (ID: 5813306909, Size: 2734, Expected Digest: sha256:f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8)
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.9676802Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/f9805113-4978-44c1-9fc6-c65e2c88417a/workflow-job-run-a68b646c-07c1-5bc7-9ab1-5431cccb2da3/artifacts/96d815328a42cb4ef89d5e0b7a1df6be43b484832c83a7b4596d8402c7c0b12b.zip
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:10.9679381Z Starting download of artifact to: /home/runner/work/self-hosted-runner/self-hosted-runner/build/provenance
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2435649Z (node:2300) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2436888Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2505499Z SHA256 digest of downloaded artifact is f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2510524Z Artifact download completed successfully.
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2511066Z Total of 1 artifact(s) downloaded
+Sign Images with Cosign	Download provenance	2026-03-07T20:21:11.2514553Z Download artifact has finished successfully
+Sign Images with Cosign	Install cosign	﻿2026-03-07T20:21:11.2829869Z ##[group]Run sigstore/cosign-installer@v3
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2830194Z with:
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2830391Z   cosign-release: v2.2.0
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2830621Z   install-dir: $HOME/.cosign
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2830853Z   use-sudo: false
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2831042Z ##[endgroup]
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2938737Z ##[group]Run #!/bin/bash
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2939432Z [36;1m#!/bin/bash[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2939818Z [36;1m# cosign install script[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2940066Z [36;1mshopt -s expand_aliases[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2940332Z [36;1mif [ -z "$NO_COLOR" ]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2940655Z [36;1m  alias log_info="echo -e \"\033[1;32mINFO\033[0m:\""[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2941043Z [36;1m  alias log_error="echo -e \"\033[1;31mERROR\033[0m:\""[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2941350Z [36;1melse[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2941568Z [36;1m  alias log_info="echo \"INFO:\""[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2941856Z [36;1m  alias log_error="echo \"ERROR:\""[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2942106Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2942312Z [36;1mset -e[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2942488Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2942671Z [36;1mmkdir -p $HOME/.cosign[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2942894Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2943071Z [36;1mif [[ v2.2.0 == "main" ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2943444Z [36;1m  log_info "installing cosign via 'go install' from its main version"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2943818Z [36;1m  GOBIN=$(go env GOPATH)/bin[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2944164Z [36;1m  go install github.com/sigstore/cosign/v2/cmd/cosign@main[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2944533Z [36;1m  ln -s $GOBIN/cosign $HOME/.cosign/cosign[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2944801Z [36;1m  exit 0[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2944980Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2945145Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2945304Z [36;1mshaprog() {[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2945500Z [36;1m  case Linux in[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2945706Z [36;1m    Linux|linux)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2945934Z [36;1m      sha256sum $1 | cut -d' ' -f1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2946169Z [36;1m      ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2946352Z [36;1m    macOS|macos)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2946613Z [36;1m      shasum -a256 $1 | cut -d' ' -f1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2946858Z [36;1m      ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2947034Z [36;1m    Windows|windows)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2947528Z [36;1m      powershell -command "(Get-FileHash $1 -Algorithm SHA256 | Select-Object -ExpandProperty Hash).ToLower()"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2948020Z [36;1m      ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2948189Z [36;1m    *)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2948583Z [36;1m      log_error "unsupported OS Linux"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2948845Z [36;1m      exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2949029Z [36;1m      ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2949199Z [36;1m  esac[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2949358Z [36;1m}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2949634Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2949813Z [36;1mbootstrap_version='v2.5.2'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2950264Z [36;1mbootstrap_linux_amd64_sha='bcfeae05557a9f313ee4392d2f335d0ff69ebbfd232019e3736fb04999fe1734'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2950918Z [36;1mbootstrap_linux_arm_sha='ecb5b9d8b6d7c8cec98363f0827456fa3207279e5f4690db6b4e6c77b10e45f9'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2951558Z [36;1mbootstrap_linux_arm64_sha='2cbcea1873ad76274c3f241ef175d204654e3aac3e73e6ec4504e5227015cb0a'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2952227Z [36;1mbootstrap_darwin_amd64_sha='0681abe20a482f4b9b3ed65b3debb8c6346591f2dc484b6bfa79609ff1318de4'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2952889Z [36;1mbootstrap_darwin_arm64_sha='51fdc6d8da8310d72df10065a52247b6bebfe990d4c946dd9f71e17588256011'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2953567Z [36;1mbootstrap_windows_amd64_sha='fef1c4731da9112d4cf2f6d93ae2a1551c73116a4f73fab7b0c15b38e95ff688'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2954045Z [36;1mcosign_executable_name=cosign[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2954279Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2954463Z [36;1mtrap "popd >/dev/null" EXIT[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2954701Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2954887Z [36;1mpushd $HOME/.cosign > /dev/null[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2955120Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2955288Z [36;1mcase Linux in[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2955665Z [36;1m  Linux|linux)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2955872Z [36;1m    case X64 in[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2956068Z [36;1m      X64|amd64)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2956327Z [36;1m        bootstrap_filename='cosign-linux-amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2956698Z [36;1m        bootstrap_sha=${bootstrap_linux_amd64_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2957074Z [36;1m        desired_cosign_filename='cosign-linux-amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2957480Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2957862Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2958214Z [36;1m          desired_cosign_filename='cosign_linux_amd64_0.6.0_linux_amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2958704Z [36;1m          desired_cosign_v060_signature='cosign_linux_amd64_0.6.0_linux_amd64.sig'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2959086Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2959269Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2959541Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2959717Z [36;1m      ARM|arm)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2959960Z [36;1m        bootstrap_filename='cosign-linux-arm'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2960281Z [36;1m        bootstrap_sha=${bootstrap_linux_arm_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2960624Z [36;1m        desired_cosign_filename='cosign-linux-arm'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2960925Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2961247Z [36;1m          log_error "linux-arm build not available at v0.6.0"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2961576Z [36;1m          exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2961780Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2961961Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2962136Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2962307Z [36;1m      ARM64|arm64)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2962559Z [36;1m        bootstrap_filename='cosign-linux-arm64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2962889Z [36;1m        bootstrap_sha=${bootstrap_linux_arm64_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2963228Z [36;1m        desired_cosign_filename='cosign-linux-arm64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2963546Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2963875Z [36;1m          log_error "linux-arm64 build not available at v0.6.0"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2964186Z [36;1m          exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2964385Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2964566Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2964734Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2964886Z [36;1m      *)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2965111Z [36;1m        log_error "unsupported architecture X64"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2965515Z [36;1m        exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2965701Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2965874Z [36;1m    esac[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2966047Z [36;1m    ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2966219Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2966384Z [36;1m  macOS|macos)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2966578Z [36;1m    case X64 in[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2966776Z [36;1m      X64|amd64)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2967021Z [36;1m        bootstrap_filename='cosign-darwin-amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2967363Z [36;1m        bootstrap_sha=${bootstrap_darwin_amd64_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2967705Z [36;1m        desired_cosign_filename='cosign-darwin-amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2968121Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2968495Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2968854Z [36;1m          desired_cosign_filename='cosign_darwin_amd64_0.6.0_darwin_amd64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2969350Z [36;1m          desired_cosign_v060_signature='cosign_darwin_amd64_0.6.0_darwin_amd64.sig'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2969900Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2970081Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2970255Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2970424Z [36;1m      ARM64|arm64)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2970683Z [36;1m        bootstrap_filename='cosign-darwin-arm64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2971023Z [36;1m        bootstrap_sha=${bootstrap_darwin_arm64_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2971516Z [36;1m        desired_cosign_filename='cosign-darwin-arm64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2971913Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2972274Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2972623Z [36;1m          desired_cosign_filename='cosign_darwin_arm64_0.6.0_darwin_arm64'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2973109Z [36;1m          desired_cosign_v060_signature='cosign_darwin_arm64_0.6.0_darwin_arm64.sig'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2973495Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2973675Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2973841Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2974000Z [36;1m      *)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2974229Z [36;1m        log_error "unsupported architecture X64"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2974509Z [36;1m        exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2974696Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2974876Z [36;1m    esac[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2975050Z [36;1m    ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2975230Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2975394Z [36;1m  Windows|windows)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2975608Z [36;1m    case X64 in[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2975810Z [36;1m      X64|amd64)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2976073Z [36;1m        bootstrap_filename='cosign-windows-amd64.exe'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2976416Z [36;1m        bootstrap_sha=${bootstrap_windows_amd64_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2976782Z [36;1m        desired_cosign_filename='cosign-windows-amd64.exe'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2977131Z [36;1m        cosign_executable_name=cosign.exe[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2977491Z [36;1m        # v0.6.0 had different filename structures from all other releases[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2977850Z [36;1m        if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2978217Z [36;1m          desired_cosign_filename='cosign_windows_amd64_0.6.0_windows_amd64.exe'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2978751Z [36;1m          desired_cosign_v060_signature='cosign_windows_amd64_0.6.0_windows_amd64.exe.sig'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2979158Z [36;1m        fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2979336Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2979642Z [36;1m      *)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2979860Z [36;1m        log_error "unsupported architecture X64"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2980135Z [36;1m        exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2980324Z [36;1m        ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2980498Z [36;1m    esac[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2980662Z [36;1m    ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2980831Z [36;1m  *)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2981153Z [36;1m    log_error "unsupported os Linux"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2981405Z [36;1m    exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2981575Z [36;1m    ;;[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2981745Z [36;1mesac[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2981907Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2982066Z [36;1mSUDO=[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2982321Z [36;1mif [[ "false" == "true" ]] && command -v sudo >/dev/null; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2982641Z [36;1m  SUDO=sudo[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2982824Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2982987Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2983220Z [36;1mexpected_bootstrap_version_digest=${bootstrap_sha}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2984127Z [36;1mlog_info "Downloading bootstrap version '${bootstrap_version}' of cosign to verify version to be installed...\n      https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename}"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2985327Z [36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/${bootstrap_version}/${bootstrap_filename} -o ${cosign_executable_name}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2986003Z [36;1mshaBootstrap=$(shaprog ${cosign_executable_name});[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2986411Z [36;1mif [[ $shaBootstrap != ${expected_bootstrap_version_digest} ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2986842Z [36;1m  log_error "Unable to validate cosign version: 'v2.2.0'"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2987149Z [36;1m  exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2987322Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2987525Z [36;1m$SUDO chmod +x ${cosign_executable_name}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2987900Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2988193Z [36;1m# If the bootstrap and specified `cosign` releases are the same, we're done.[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2988613Z [36;1mif [[ v2.2.0 == ${bootstrap_version} ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2989124Z [36;1m  log_info "bootstrap version successfully verified and matches requested version so nothing else to do"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2989708Z [36;1m  exit 0[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2989879Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2990043Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2990274Z [36;1msemver='^v([0-9]+\.){0,2}(\*|[0-9]+)(-?r?c?)(\.[0-9]+)$'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2990586Z [36;1mif [[ v2.2.0 =~ $semver ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2990892Z [36;1m  log_info "Custom cosign version 'v2.2.0' requested"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2991181Z [36;1melse[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2991462Z [36;1m  log_error "Unable to validate requested cosign version: 'v2.2.0'"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2991807Z [36;1m  exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2991977Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2992139Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2992312Z [36;1m# Download custom cosign[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2992976Z [36;1mlog_info "Downloading platform-specific version 'v2.2.0' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_filename}"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2993941Z [36;1m$SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_filename} -o cosign_v2.2.0[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2994497Z [36;1mshaCustom=$(shaprog cosign_v2.2.0);[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2994744Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2994935Z [36;1m# same hash means it is the same release[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2995237Z [36;1mif [[ $shaCustom != $shaBootstrap ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2995568Z [36;1m  if [[ v2.2.0 == 'v0.6.0' && Linux == 'Linux' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2995936Z [36;1m    # v0.6.0's linux release has a dependency on `libpcsclite1`[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2996350Z [36;1m    log_info "Installing libpcsclite1 package if necessary..."[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2996680Z [36;1m    set +e[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2996877Z [36;1m    sudo dpkg -s libpcsclite1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2997124Z [36;1m    if [ $? -eq 0 ]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2997428Z [36;1m        log_info "libpcsclite1 package is already installed"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2997736Z [36;1m    else[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2998034Z [36;1m         log_info "libpcsclite1 package is not installed, installing it now."[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2998550Z [36;1m         sudo apt-get update -q -q[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2998850Z [36;1m         sudo apt-get install -yq libpcsclite1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2999120Z [36;1m    fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2999290Z [36;1m    set -e[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2999570Z [36;1m  fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2999738Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.2999916Z [36;1m  if [[ v2.2.0 == 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3000653Z [36;1m    log_info "Downloading detached signature for platform-specific 'v2.2.0' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_v060_signature}"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3001762Z [36;1m    $SUDO curl -fsL https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_v060_signature} -o ${desired_cosign_filename}.sig[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3002362Z [36;1m  else[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3003021Z [36;1m    log_info "Downloading detached signature for platform-specific 'v2.2.0' of cosign...\n      https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_filename}.sig"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3004009Z [36;1m    $SUDO curl -fsLO https://github.com/sigstore/cosign/releases/download/v2.2.0/${desired_cosign_filename}.sig[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3004506Z [36;1m  fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3004665Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3004842Z [36;1m  if [[ v2.2.0 < 'v0.6.0' ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3005485Z [36;1m    log_info "Downloading cosign public key 'v2.2.0' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.2.0/.github/workflows/cosign.pub"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3006511Z [36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.2.0/.github/workflows/cosign.pub[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3007231Z [36;1m    RELEASE_COSIGN_PUB_KEY_SHA='4aa4bd19530a4929d758a9896255aef2c82f1a3a9f4b000034c6df4307c14f9e'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3007674Z [36;1m  else[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3008226Z [36;1m    log_info "Downloading cosign public key 'v2.2.0' of cosign...\n    https://raw.githubusercontent.com/sigstore/cosign/v2.2.0/release/release-cosign.pub"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3009108Z [36;1m    RELEASE_COSIGN_PUB_KEY=https://raw.githubusercontent.com/sigstore/cosign/v2.2.0/release/release-cosign.pub[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3009950Z [36;1m    RELEASE_COSIGN_PUB_KEY_SHA='f4cea466e5e887a45da5031757fa1d32655d83420639dc1758749b744179f126'[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3010389Z [36;1m  fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3010559Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3010796Z [36;1m  log_info "Verifying public key matches expected value"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3011196Z [36;1m  $SUDO curl -fsL $RELEASE_COSIGN_PUB_KEY -o public.key[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3011539Z [36;1m  sha_fetched_key=$(shaprog public.key)[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3011892Z [36;1m  if [[ $sha_fetched_key != $RELEASE_COSIGN_PUB_KEY_SHA ]]; then[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3012341Z [36;1m    log_error "Fetched public key does not match expected digest, exiting"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3012699Z [36;1m    exit 1[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3012886Z [36;1m  fi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3013090Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3013400Z [36;1m  log_info "Using bootstrap cosign to verify signature of desired cosign version"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3013993Z [36;1m  ./cosign verify-blob --key public.key --signature ${desired_cosign_filename}.sig cosign_v2.2.0[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3014436Z [36;1m[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3014603Z [36;1m  $SUDO rm cosign[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3014870Z [36;1m  $SUDO mv cosign_v2.2.0 ${cosign_executable_name}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3015195Z [36;1m  $SUDO chmod +x ${cosign_executable_name}[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3015491Z [36;1m  log_info "Installation complete!"[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3015743Z [36;1mfi[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3073559Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3073906Z ##[endgroup]
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3183255Z [1;32mINFO[0m: Downloading bootstrap version 'v2.5.2' of cosign to verify version to be installed...
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.3184127Z       https://github.com/sigstore/cosign/releases/download/v2.5.2/cosign-linux-amd64
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.8756296Z [1;32mINFO[0m: Custom cosign version 'v2.2.0' requested
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.8757264Z [1;32mINFO[0m: Downloading platform-specific version 'v2.2.0' of cosign...
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:11.8758185Z       https://github.com/sigstore/cosign/releases/download/v2.2.0/cosign-linux-amd64
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:12.4882063Z [1;32mINFO[0m: Downloading detached signature for platform-specific 'v2.2.0' of cosign...
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:12.4883306Z       https://github.com/sigstore/cosign/releases/download/v2.2.0/cosign-linux-amd64.sig
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:12.8423879Z [1;32mINFO[0m: Downloading cosign public key 'v2.2.0' of cosign...
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:12.8425083Z     https://raw.githubusercontent.com/sigstore/cosign/v2.2.0/release/release-cosign.pub
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:12.8426264Z [1;32mINFO[0m: Verifying public key matches expected value
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.0078843Z [1;32mINFO[0m: Using bootstrap cosign to verify signature of desired cosign version
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.6604875Z Verified OK
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.6926799Z [1;32mINFO[0m: Installation complete!
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.6984389Z ##[group]Run echo "$HOME/.cosign" >> $GITHUB_PATH
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.6984764Z [36;1mecho "$HOME/.cosign" >> $GITHUB_PATH[0m
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.7034994Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+Sign Images with Cosign	Install cosign	2026-03-07T20:21:13.7035334Z ##[endgroup]
+Sign Images with Cosign	Setup Cosign key (detect validity)	﻿2026-03-07T20:21:13.7151918Z ##[group]Run set -euo pipefail
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7152231Z [36;1mset -euo pipefail[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7152453Z [36;1m[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7152641Z [36;1mif [ -n "${COSIGN_KEY:-}" ]; then[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7153009Z [36;1m  if echo "$COSIGN_KEY" | base64 -d > /tmp/cosign.key 2>/dev/null; then[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7153376Z [36;1m    chmod 600 /tmp/cosign.key[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7153694Z [36;1m    echo "COSIGN_KEY_FILE=/tmp/cosign.key" >> "$GITHUB_ENV"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7154053Z [36;1m    echo "COSIGN_KEY_PRESENT=true" >> "$GITHUB_ENV"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7154481Z [36;1m    echo "✅ Valid COSIGN_PRIVATE_KEY detected; using key-based signing"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7154852Z [36;1m  else[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7155254Z [36;1m    echo "⚠️ COSIGN_PRIVATE_KEY present but invalid base64 PEM; falling back to keyless signing"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7155737Z [36;1m    rm -f /tmp/cosign.key || true[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7156055Z [36;1m    echo "COSIGN_KEY_PRESENT=false" >> "$GITHUB_ENV"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7156390Z [36;1m  fi[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7156561Z [36;1melse[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7156863Z [36;1m  echo "⏭️ COSIGN_PRIVATE_KEY not set; will attempt keyless signing (OIDC)"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7157291Z [36;1m  echo "COSIGN_KEY_PRESENT=false" >> "$GITHUB_ENV"[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7157572Z [36;1mfi[0m
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7206466Z shell: /usr/bin/bash -e {0}
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7206703Z env:
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7206864Z   COSIGN_KEY: 
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7207053Z ##[endgroup]
+Sign Images with Cosign	Setup Cosign key (detect validity)	2026-03-07T20:21:13.7273260Z ⏭️ COSIGN_PRIVATE_KEY not set; will attempt keyless signing (OIDC)
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	﻿2026-03-07T20:21:13.7298823Z ##[group]Run set -euo pipefail
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7299137Z [36;1mset -euo pipefail[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7299356Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7299937Z [36;1m# If no provenance produced, nothing to sign[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7300254Z [36;1mprov_dir=build/provenance[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7300598Z [36;1mif [ ! -d "$prov_dir" ] || [ -z "$(ls -A $prov_dir 2>/dev/null)" ]; then[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7301027Z [36;1m  echo "⏭️ No provenance files found; skipping signing"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7301350Z [36;1m  exit 0[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7301534Z [36;1mfi[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7301698Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7302028Z [36;1m# If registry credentials are not provided, warn but still attempt keyless signing[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7302472Z [36;1mif [ -z "${REGISTRY_USERNAME:-}" ]; then[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7302912Z [36;1m  echo "⚠️ Registry username not provided; attempting keyless signing where possible"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7303521Z [36;1mfi[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7303723Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7303945Z [36;1mfor prov in $prov_dir/*-provenance.json; do[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7304246Z [36;1m  [ -f "$prov" ] || continue[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7304481Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7304731Z [36;1m  name=$(jq -r '.subject[0].name // empty' "$prov" || true)[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7305146Z [36;1m  digest=$(jq -r '.subject[0].digest.sha256 // empty' "$prov" || true)[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7305490Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7305671Z [36;1m  if [ -n "$digest" ]; then[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7305948Z [36;1m    base=$(echo "$name" | sed 's/:.*$//')[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7306228Z [36;1m    img="$base@sha256:$digest"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7306475Z [36;1m  else[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7306662Z [36;1m    img="$name"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7306865Z [36;1m  fi[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7307035Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7307399Z [36;1m  [ -n "$img" ] || { echo "⚠️ Could not determine image reference from $prov; skipping"; continue; }[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7307848Z [36;1m[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7308068Z [36;1m  echo "🔐 Signing image from provenance: $img"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7308423Z [36;1m  if [ "${COSIGN_KEY_PRESENT:-false}" = "true" ]; then[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7308782Z [36;1m    cosign sign --key "$COSIGN_KEY_FILE" "$img" || {[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7309193Z [36;1m      echo "⚠️ Key signing failed for $img; attempting keyless signing"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7309960Z [36;1m      cosign sign --keyless "$img" || echo "⚠️ Keyless signing also failed for $img; continuing"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7310384Z [36;1m    }[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7310565Z [36;1m  else[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7310855Z [36;1m    echo "🔑 No valid key available; attempting keyless signing for $img"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7311394Z [36;1m    cosign sign --keyless "$img" || echo "⚠️ Keyless signing failed for $img; continuing"[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7311795Z [36;1m  fi[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7311980Z [36;1mdone[0m
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7356120Z shell: /usr/bin/bash -e {0}
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7356368Z env:
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7356545Z   COSIGN_KEY_PRESENT: false
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7356775Z   REGISTRY_HOST: ghcr.io
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7357134Z   REGISTRY_USERNAME: ***
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7357355Z   COSIGN_EXPERIMENTAL: 1
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7357577Z ##[endgroup]
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7506403Z ⚠️ Could not determine image reference from build/provenance/dummyimagelatest-provenance.json; skipping
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7592514Z 🔐 Signing image from provenance: ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7593946Z 🔑 No valid key available; attempting keyless signing for ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7882124Z Error: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7882772Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7902656Z ⚠️ Keyless signing failed for ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7993504Z 🔐 Signing image from provenance: ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.7994978Z 🔑 No valid key available; attempting keyless signing for ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8288122Z Error: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8288783Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8308568Z ⚠️ Keyless signing failed for ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8400052Z 🔐 Signing image from provenance: ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8401715Z 🔑 No valid key available; attempting keyless signing for ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8687120Z Error: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8687767Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Sign images (prefer digest from provenance; keyless fallback)	2026-03-07T20:21:13.8708555Z ⚠️ Keyless signing failed for ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Attest provenance	﻿2026-03-07T20:21:13.8735987Z ##[group]Run set -euo pipefail
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8736308Z [36;1mset -euo pipefail[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8736525Z [36;1m[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8736770Z [36;1mfor prov in build/provenance/*-provenance.json; do[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8737089Z [36;1m  [ -f "$prov" ] || continue[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8737325Z [36;1m[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8737647Z [36;1m  # Extract image name and digest from provenance (prefer digest for idempotency)[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8738169Z [36;1m  name=$(jq -r '.subject[0].name // empty' "$prov" 2>/dev/null || true)[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8738653Z [36;1m  digest=$(jq -r '.subject[0].digest.sha256 // empty' "$prov" 2>/dev/null || true)[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8739030Z [36;1m[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8739225Z [36;1m  if [ -n "$digest" ]; then[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8758135Z [36;1m    base=$(echo "$name" | sed 's/:.*$//')[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8758462Z [36;1m    img="$base@sha256:$digest"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8758720Z [36;1m  else[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8758945Z [36;1m    img="$name"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8759142Z [36;1m  fi[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8759314Z [36;1m[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8760119Z [36;1m  # Skip if image is empty or literal 'null'[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8760427Z [36;1m  [ -n "$img" ] || continue[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8760677Z [36;1m  [ "$img" != "null" ] || continue[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8760918Z [36;1m[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8761132Z [36;1m  echo "📝 Attesting provenance for $img"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8761499Z [36;1m  if [ "${COSIGN_KEY_PRESENT:-false}" = "true" ]; then[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8761914Z [36;1m    cosign attest --key "$COSIGN_KEY_FILE" --predicate "$prov" "$img" || {[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8762464Z [36;1m      echo "⚠️ Attestation failed for $img using key; attempting keyless attestation"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8762971Z [36;1m      cosign attest --keyless --predicate "$prov" "$img" || {[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8763409Z [36;1m        echo "⚠️ Keyless attestation also failed for $img; continuing"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8763769Z [36;1m      }[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8763940Z [36;1m    }[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8764109Z [36;1m  else[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8764419Z [36;1m    echo "🔑 No valid key available; attempting keyless attestation for $img"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8764880Z [36;1m    cosign attest --keyless --predicate "$prov" "$img" || {[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8765286Z [36;1m      echo "⚠️ Keyless attestation failed for $img; continuing"[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8765608Z [36;1m    }[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8765779Z [36;1m  fi[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8765949Z [36;1mdone[0m
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8815585Z shell: /usr/bin/bash -e {0}
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8815819Z env:
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8816006Z   COSIGN_KEY_PRESENT: false
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8816230Z   REGISTRY_HOST: ghcr.io
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.8816445Z ##[endgroup]
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9053793Z 📝 Attesting provenance for ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9056291Z 🔑 No valid key available; attempting keyless attestation for ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9365167Z Error: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9371000Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9392415Z ⚠️ Keyless attestation failed for ghcr.io/***/self-hosted-runner/services/managed-auth@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9486349Z 📝 Attesting provenance for ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9488776Z 🔑 No valid key available; attempting keyless attestation for ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9781705Z Error: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9782328Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9802083Z ⚠️ Keyless attestation failed for ghcr.io/***/self-hosted-runner/services/provisioner-worker@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9892944Z 📝 Attesting provenance for ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:13.9894378Z 🔑 No valid key available; attempting keyless attestation for ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:14.0175877Z Error: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:14.0176332Z main.go:74: error during command execution: unknown flag: --keyless
+Sign Images with Cosign	Attest provenance	2026-03-07T20:21:14.0195153Z ⚠️ Keyless attestation failed for ghcr.io/***/self-hosted-runner/services/vault-shim@sha256:091f82afe9837fb2e961bef641c3079a5c1e2adc; continuing
+Sign Images with Cosign	Cleanup key	﻿2026-03-07T20:21:14.0223875Z ##[group]Run rm -f /tmp/cosign.key || true
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0224217Z [36;1mrm -f /tmp/cosign.key || true[0m
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0224488Z [36;1mecho "Cleanup complete"[0m
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0272952Z shell: /usr/bin/bash -e {0}
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0273190Z env:
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0273374Z   COSIGN_KEY_PRESENT: false
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0273593Z ##[endgroup]
+Sign Images with Cosign	Cleanup key	2026-03-07T20:21:14.0352331Z Cleanup complete
+Sign Images with Cosign	Post Checkout	﻿2026-03-07T20:21:14.0412900Z Post job cleanup.
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1371213Z [command]/usr/bin/git version
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1408419Z git version 2.53.0
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1453815Z Temporarily overriding HOME='/home/runner/work/_temp/d959a521-1d7d-41ed-a6e7-3208fb044c94' before making global git config changes
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1455166Z Adding repository directory to the temporary git global config as a safe directory
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1460537Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1504732Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1540836Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1791504Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1814611Z http.https://github.com/.extraheader
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1827307Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.1860762Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.2103967Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Sign Images with Cosign	Post Checkout	2026-03-07T20:21:14.2137202Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Sign Images with Cosign	Complete job	﻿2026-03-07T20:21:14.2488370Z Cleaning up orphan processes
+Verify Provenance Quality	Set up job	﻿2026-03-07T20:21:05.7645269Z Current runner version: '2.332.0'
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7671032Z ##[group]Runner Image Provisioner
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7671957Z Hosted Compute Agent
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7672608Z Version: 20260213.493
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7673164Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7673902Z Build Date: 2026-02-13T00:28:41Z
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7674575Z Worker ID: {8d83c965-33c7-4ed9-bfe9-0c763f1ffc29}
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7675271Z Azure Region: northcentralus
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7675832Z ##[endgroup]
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7677298Z ##[group]Operating System
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7677936Z Ubuntu
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7678365Z 24.04.3
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7678889Z LTS
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7679313Z ##[endgroup]
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7679813Z ##[group]Runner Image
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7680351Z Image: ubuntu-24.04
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7680882Z Version: 20260302.42.1
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7682343Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7683986Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7684819Z ##[endgroup]
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7686015Z ##[group]GITHUB_TOKEN Permissions
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7688108Z Contents: read
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7688753Z Metadata: read
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7689209Z Packages: write
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7689705Z ##[endgroup]
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7692191Z Secret source: Actions
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.7693383Z Prepare workflow directory
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.8092245Z Prepare all required actions
+Verify Provenance Quality	Set up job	2026-03-07T20:21:05.8147094Z Getting action download info
+Verify Provenance Quality	Set up job	2026-03-07T20:21:06.1415381Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Verify Provenance Quality	Set up job	2026-03-07T20:21:06.3087406Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+Verify Provenance Quality	Set up job	2026-03-07T20:21:06.7082297Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+Verify Provenance Quality	Set up job	2026-03-07T20:21:06.9289208Z Complete job name: Verify Provenance Quality
+Verify Provenance Quality	Checkout	﻿2026-03-07T20:21:07.0037149Z ##[group]Run actions/checkout@v4
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0038075Z with:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0038556Z   repository: kushin77/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0039297Z   token: ***
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0039753Z   ssh-strict: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0040188Z   ssh-user: git
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0040637Z   persist-credentials: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0041112Z   clean: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0041811Z   sparse-checkout-cone-mode: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0042513Z   fetch-depth: 1
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0042949Z   fetch-tags: false
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0043390Z   show-progress: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0043838Z   lfs: false
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0044267Z   submodules: false
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0044708Z   set-safe-directory: true
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.0045512Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1138382Z Syncing repository: kushin77/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1140291Z ##[group]Getting Git version info
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1141204Z Working directory is '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1142727Z [command]/usr/bin/git version
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1218281Z git version 2.53.0
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1245385Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1261864Z Temporarily overriding HOME='/home/runner/work/_temp/b52d06ee-2f01-4731-abbd-a1dfdee91c62' before making global git config changes
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1264670Z Adding repository directory to the temporary git global config as a safe directory
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1276970Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1320185Z Deleting the contents of '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1323858Z ##[group]Initializing the repository
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1329323Z [command]/usr/bin/git init /home/runner/work/self-hosted-runner/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1457126Z hint: Using 'master' as the name for the initial branch. This default branch name
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1458786Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1460647Z hint: to use in all of your new repositories, which will suppress this warning,
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1461477Z hint: call:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1462458Z hint:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1463797Z hint: 	git config --global init.defaultBranch <name>
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1465046Z hint:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1466181Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1468045Z hint: 'development'. The just-created branch can be renamed via this command:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1469529Z hint:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1470288Z hint: 	git branch -m <name>
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1471160Z hint:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1472612Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1474898Z Initialized empty Git repository in /home/runner/work/self-hosted-runner/self-hosted-runner/.git/
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1478565Z [command]/usr/bin/git remote add origin https://github.com/kushin77/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1515670Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1517075Z ##[group]Disabling automatic garbage collection
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1520805Z [command]/usr/bin/git config --local gc.auto 0
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1553025Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1554460Z ##[group]Setting up auth
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1561199Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1596369Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.1966485Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2000553Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2237224Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2273827Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2515638Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2552325Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2553889Z ##[group]Fetching the repository
+Verify Provenance Quality	Checkout	2026-03-07T20:21:07.2563617Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +091f82afe9837fb2e961bef641c3079a5c1e2adc:refs/remotes/origin/main
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0144648Z From https://github.com/kushin77/self-hosted-runner
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0146515Z  * [new ref]         091f82afe9837fb2e961bef641c3079a5c1e2adc -> origin/main
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0179391Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0181059Z ##[group]Determining the checkout info
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0182814Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0186905Z [command]/usr/bin/git sparse-checkout disable
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0231474Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0259738Z ##[group]Checking out the ref
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.0263837Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.1529511Z Switched to a new branch 'main'
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.1531151Z branch 'main' set up to track 'origin/main'.
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.1548754Z ##[endgroup]
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.1586952Z [command]/usr/bin/git log -1 --format=%H
+Verify Provenance Quality	Checkout	2026-03-07T20:21:08.1610707Z 091f82afe9837fb2e961bef641c3079a5c1e2adc
+Verify Provenance Quality	Download provenance	﻿2026-03-07T20:21:08.1894389Z ##[group]Run actions/download-artifact@v4
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1895636Z with:
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1896425Z   name: provenance
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1897332Z   path: build/provenance/
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1898333Z   merge-multiple: false
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1899616Z   repository: kushin77/self-hosted-runner
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1900816Z   run-id: 22806512117
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.1901984Z ##[endgroup]
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.3894740Z Downloading single artifact
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.5107250Z Preparing to download the following artifacts:
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.5111496Z - provenance (ID: 5813306909, Size: 2734, Expected Digest: sha256:f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8)
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.5967714Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/f9805113-4978-44c1-9fc6-c65e2c88417a/workflow-job-run-a68b646c-07c1-5bc7-9ab1-5431cccb2da3/artifacts/96d815328a42cb4ef89d5e0b7a1df6be43b484832c83a7b4596d8402c7c0b12b.zip
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.5974949Z Starting download of artifact to: /home/runner/work/self-hosted-runner/self-hosted-runner/build/provenance
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.6940687Z (node:2323) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.6947293Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.7029743Z SHA256 digest of downloaded artifact is f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.7033892Z Artifact download completed successfully.
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.7035908Z Total of 1 artifact(s) downloaded
+Verify Provenance Quality	Download provenance	2026-03-07T20:21:08.7037701Z Download artifact has finished successfully
+Verify Provenance Quality	Validate SLSA structure	﻿2026-03-07T20:21:08.7189072Z ##[group]Run set -euo pipefail
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7190376Z [36;1mset -euo pipefail[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7191323Z [36;1m[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7192253Z [36;1mvalid=0[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7193068Z [36;1minvalid=0[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7193891Z [36;1m[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7194915Z [36;1mfor prov in build/provenance/*-provenance.json; do[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7196309Z [36;1m  [ -f "$prov" ] || continue[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7197349Z [36;1m[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7198177Z [36;1m  # Check required SLSA fields[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7200568Z [36;1m  if jq -e '._type and .predicateType and .predicate.buildDefinition and .predicate.runDetails' "$prov" > /dev/null 2>&1; then[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7203400Z [36;1m    echo "✅ Valid SLSA v1.0 structure: $(basename $prov)"[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7204812Z [36;1m    valid=$((valid + 1))[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7205799Z [36;1m  else[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7206807Z [36;1m    echo "❌ Invalid structure: $(basename $prov)"[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7208166Z [36;1m    invalid=$((invalid + 1))[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7209202Z [36;1m  fi[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7209970Z [36;1mdone[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7210754Z [36;1m[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7212031Z [36;1mecho "📊 Provenance validation: $valid valid, $invalid invalid"[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7213608Z [36;1m[ $invalid -eq 0 ] || exit 1[0m
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7270065Z shell: /usr/bin/bash -e {0}
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7271059Z ##[endgroup]
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7413549Z ❌ Invalid structure: dummyimagelatest-provenance.json
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7455266Z ✅ Valid SLSA v1.0 structure: ghcr.io-kushin77-self-hosted-runner-services-managed-auth-091f82afe9837fb2e961bef641c3079a5c1e2adc-provenance.json
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7497455Z ✅ Valid SLSA v1.0 structure: ghcr.io-kushin77-self-hosted-runner-services-provisioner-worker-091f82afe9837fb2e961bef641c3079a5c1e2adc-provenance.json
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7538032Z ✅ Valid SLSA v1.0 structure: ghcr.io-kushin77-self-hosted-runner-services-vault-shim-091f82afe9837fb2e961bef641c3079a5c1e2adc-provenance.json
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7541784Z 📊 Provenance validation: 3 valid, 1 invalid
+Verify Provenance Quality	Validate SLSA structure	2026-03-07T20:21:08.7554892Z ##[error]Process completed with exit code 1.
+Verify Provenance Quality	Post Checkout	﻿2026-03-07T20:21:08.7858288Z Post job cleanup.
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.8998398Z [command]/usr/bin/git version
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9035251Z git version 2.53.0
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9081513Z Temporarily overriding HOME='/home/runner/work/_temp/69b204c9-909b-4d2a-a33b-7c6f83318f0c' before making global git config changes
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9086000Z Adding repository directory to the temporary git global config as a safe directory
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9089669Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9125245Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9162142Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9416225Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9437894Z http.https://github.com/.extraheader
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9452879Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9488387Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9721242Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Verify Provenance Quality	Post Checkout	2026-03-07T20:21:08.9756006Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Verify Provenance Quality	Complete job	﻿2026-03-07T20:21:09.0116059Z Cleaning up orphan processes
+Store Provenance & SBOM Artifacts	Set up job	﻿2026-03-07T20:21:20.6301033Z Current runner version: '2.332.0'
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6324488Z ##[group]Runner Image Provisioner
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6325313Z Hosted Compute Agent
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6326029Z Version: 20260213.493
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6326598Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6327503Z Build Date: 2026-02-13T00:28:41Z
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6328178Z Worker ID: {3ac23e6b-e61f-4cf6-b6da-7d9acbcdc6fe}
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6328905Z Azure Region: westcentralus
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6329475Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6330911Z ##[group]Operating System
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6331543Z Ubuntu
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6331978Z 24.04.3
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6332509Z LTS
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6332949Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6333444Z ##[group]Runner Image
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6333942Z Image: ubuntu-24.04
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6334519Z Version: 20260302.42.1
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6335462Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6337521Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6338435Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6339554Z ##[group]GITHUB_TOKEN Permissions
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6341314Z Contents: read
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6341875Z Metadata: read
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6342474Z Packages: write
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6342979Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6344997Z Secret source: Actions
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6345833Z Prepare workflow directory
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6677116Z Prepare all required actions
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:20.6714873Z Getting action download info
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:21.0534731Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:21.4976799Z Download action repository 'actions/download-artifact@v4' (SHA:d3f86a106a0bac45b974a628896c90dbdf5c8093)
+Store Provenance & SBOM Artifacts	Set up job	2026-03-07T20:21:22.3079836Z Complete job name: Store Provenance & SBOM Artifacts
+Store Provenance & SBOM Artifacts	Checkout	﻿2026-03-07T20:21:22.3926161Z ##[group]Run actions/checkout@v4
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3927897Z with:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3928869Z   repository: kushin77/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3930342Z   token: ***
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3931211Z   ssh-strict: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3932111Z   ssh-user: git
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3933052Z   persist-credentials: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3934067Z   clean: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3934995Z   sparse-checkout-cone-mode: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3936107Z   fetch-depth: 1
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3937173Z   fetch-tags: false
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3938103Z   show-progress: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3939032Z   lfs: false
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3939877Z   submodules: false
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3940799Z   set-safe-directory: true
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.3942022Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5035117Z Syncing repository: kushin77/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5038015Z ##[group]Getting Git version info
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5039627Z Working directory is '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5041890Z [command]/usr/bin/git version
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5727126Z git version 2.53.0
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5755243Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5772221Z Temporarily overriding HOME='/home/runner/work/_temp/62fd39ed-22d3-4d95-b1ea-901ecd810e39' before making global git config changes
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5777390Z Adding repository directory to the temporary git global config as a safe directory
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5787350Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5858430Z Deleting the contents of '/home/runner/work/self-hosted-runner/self-hosted-runner'
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5862452Z ##[group]Initializing the repository
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.5867621Z [command]/usr/bin/git init /home/runner/work/self-hosted-runner/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6252731Z hint: Using 'master' as the name for the initial branch. This default branch name
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6254924Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6257405Z hint: to use in all of your new repositories, which will suppress this warning,
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6258935Z hint: call:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6259681Z hint:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6260646Z hint: 	git config --global init.defaultBranch <name>
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6261867Z hint:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6262994Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6264926Z hint: 'development'. The just-created branch can be renamed via this command:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6266423Z hint:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6267297Z hint: 	git branch -m <name>
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6268204Z hint:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6269434Z hint: Disable this message with "git config set advice.defaultBranchName false"
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6276642Z Initialized empty Git repository in /home/runner/work/self-hosted-runner/self-hosted-runner/.git/
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6289645Z [command]/usr/bin/git remote add origin https://github.com/kushin77/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6363038Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6365596Z ##[group]Disabling automatic garbage collection
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6367725Z [command]/usr/bin/git config --local gc.auto 0
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6396629Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6398290Z ##[group]Setting up auth
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6403552Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.6435615Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.7675643Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.7711419Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.7947793Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.7985457Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.8226452Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.8263149Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.8265623Z ##[group]Fetching the repository
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:22.8275191Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +091f82afe9837fb2e961bef641c3079a5c1e2adc:refs/remotes/origin/main
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8855907Z From https://github.com/kushin77/self-hosted-runner
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8857964Z  * [new ref]         091f82afe9837fb2e961bef641c3079a5c1e2adc -> origin/main
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8916671Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8917642Z ##[group]Determining the checkout info
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8925504Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.8926408Z [command]/usr/bin/git sparse-checkout disable
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.9014013Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.9043729Z ##[group]Checking out the ref
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:23.9049748Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:24.0366809Z Switched to a new branch 'main'
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:24.0368770Z branch 'main' set up to track 'origin/main'.
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:24.0382666Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:24.0424721Z [command]/usr/bin/git log -1 --format=%H
+Store Provenance & SBOM Artifacts	Checkout	2026-03-07T20:21:24.0449698Z 091f82afe9837fb2e961bef641c3079a5c1e2adc
+Store Provenance & SBOM Artifacts	Download all artifacts	﻿2026-03-07T20:21:24.0662275Z ##[group]Run actions/download-artifact@v4
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0662664Z with:
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0662879Z   path: artifacts/
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0663109Z   merge-multiple: false
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0663377Z   repository: kushin77/self-hosted-runner
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0663662Z   run-id: 22806512117
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.0663890Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5033305Z Found 2 artifact(s)
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5034308Z No input name, artifact-ids or pattern filtered specified, downloading all artifacts
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5035212Z An extra directory with the artifact name will be created for each download
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5035902Z Preparing to download the following artifacts:
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5036736Z - provenance (ID: 5813306909, Size: 2734, Expected Digest: sha256:f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8)
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.5037969Z - sboms (ID: 5813306034, Size: 161, Expected Digest: sha256:759818f653af1d5297bb690f9abd0904294a562264166e00a15bf00a4c102fc8)
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.6550669Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/f9805113-4978-44c1-9fc6-c65e2c88417a/workflow-job-run-a68b646c-07c1-5bc7-9ab1-5431cccb2da3/artifacts/96d815328a42cb4ef89d5e0b7a1df6be43b484832c83a7b4596d8402c7c0b12b.zip
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.6555158Z Starting download of artifact to: /home/runner/work/self-hosted-runner/self-hosted-runner/artifacts/provenance
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.7634115Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/f9805113-4978-44c1-9fc6-c65e2c88417a/workflow-job-run-b2faae6d-5970-5c5b-8b37-53e19909d643/artifacts/85bda11b50292e3c00f95b950866e6a667ea1821b6601fd62d58211a61cc2969.zip
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.7637084Z Starting download of artifact to: /home/runner/work/self-hosted-runner/self-hosted-runner/artifacts/sboms
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.8626790Z (node:2307) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.8628958Z (Use `node --trace-deprecation ...` to show where the warning was created)
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.8712585Z SHA256 digest of downloaded artifact is f76ede5235e46523b0e4d2ce8d9ef1f844e33af30a8853bc03ff6fdee67c2ba8
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.8713304Z Artifact download completed successfully.
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.9699478Z SHA256 digest of downloaded artifact is 759818f653af1d5297bb690f9abd0904294a562264166e00a15bf00a4c102fc8
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.9700145Z Artifact download completed successfully.
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.9700495Z Total of 2 artifact(s) downloaded
+Store Provenance & SBOM Artifacts	Download all artifacts	2026-03-07T20:21:24.9706091Z Download artifact has finished successfully
+Store Provenance & SBOM Artifacts	Create artifact manifest	﻿2026-03-07T20:21:24.9837173Z ##[group]Run set -euo pipefail
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9837572Z [36;1mset -euo pipefail[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9837807Z [36;1m[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9838031Z [36;1mcat > artifacts/MANIFEST.json << JSON[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9838308Z [36;1m{[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9838542Z [36;1m  "workflow": "SLSA Provenance & Release Gates",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9838847Z [36;1m  "run_id": "22806512117",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9839084Z [36;1m  "run_number": "16",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9839312Z [36;1m  "ref": "refs/heads/main",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9839619Z [36;1m  "commit": "091f82afe9837fb2e961bef641c3079a5c1e2adc",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9839951Z [36;1m  "actor": "kushin77",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9840253Z [36;1m  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9840895Z [36;1m  "builder": "github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9841443Z [36;1m  "artifacts": {[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9841698Z [36;1m    "provenance_count": "3",[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9841938Z [36;1m    "sbom_count": ""[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9842147Z [36;1m  }[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9842312Z [36;1m}[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9842477Z [36;1mJSON[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9842643Z [36;1m[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9842821Z [36;1mcat artifacts/MANIFEST.json[0m
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9894043Z shell: /usr/bin/bash -e {0}
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:24.9894318Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0013895Z {
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0014300Z   "workflow": "SLSA Provenance & Release Gates",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0014817Z   "run_id": "22806512117",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0015188Z   "run_number": "16",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0015771Z   "ref": "refs/heads/main",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0016051Z   "commit": "091f82afe9837fb2e961bef641c3079a5c1e2adc",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0016354Z   "actor": "kushin77",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0016581Z   "timestamp": "2026-03-07T20:21:24Z",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0017453Z   "builder": "github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0018582Z   "artifacts": {
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0018922Z     "provenance_count": "3",
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0019292Z     "sbom_count": ""
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0019566Z   }
+Store Provenance & SBOM Artifacts	Create artifact manifest	2026-03-07T20:21:25.0019732Z }
+Store Provenance & SBOM Artifacts	Upload to artifact storage	﻿2026-03-07T20:21:25.0045814Z ##[group]Run set -euo pipefail
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0046139Z [36;1mset -euo pipefail[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0046457Z [36;1mecho "📦 Uploading artifacts to secure storage..."[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0046787Z [36;1m# Example for GCS:[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0047253Z [36;1m# gsutil -m cp -r artifacts/* "gs:///22806512117/"[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0047639Z [36;1m# For now, artifact retention is via GitHub Artifacts[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0047989Z [36;1mecho "✅ Artifacts staged for secure storage"[0m
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0090709Z shell: /usr/bin/bash -e {0}
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0090944Z ##[endgroup]
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0153824Z 📦 Uploading artifacts to secure storage...
+Store Provenance & SBOM Artifacts	Upload to artifact storage	2026-03-07T20:21:25.0154415Z ✅ Artifacts staged for secure storage
+Store Provenance & SBOM Artifacts	Post Checkout	﻿2026-03-07T20:21:25.0323157Z Post job cleanup.
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1304951Z [command]/usr/bin/git version
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1342423Z git version 2.53.0
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1386522Z Temporarily overriding HOME='/home/runner/work/_temp/30dafee1-5cec-440b-bd1c-ff06ecb56447' before making global git config changes
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1388227Z Adding repository directory to the temporary git global config as a safe directory
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1401979Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/self-hosted-runner/self-hosted-runner
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1437543Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1471708Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1758315Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1783575Z http.https://github.com/.extraheader
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1800881Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.1838428Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.2095979Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Store Provenance & SBOM Artifacts	Post Checkout	2026-03-07T20:21:25.2127600Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Store Provenance & SBOM Artifacts	Complete job	﻿2026-03-07T20:21:25.2481572Z Cleaning up orphan processes
+Provenance Summary	Set up job	﻿2026-03-07T20:21:30.8204210Z Current runner version: '2.332.0'
+Provenance Summary	Set up job	2026-03-07T20:21:30.8233889Z ##[group]Runner Image Provisioner
+Provenance Summary	Set up job	2026-03-07T20:21:30.8234814Z Hosted Compute Agent
+Provenance Summary	Set up job	2026-03-07T20:21:30.8235356Z Version: 20260213.493
+Provenance Summary	Set up job	2026-03-07T20:21:30.8235998Z Commit: 5c115507f6dd24b8de37d8bbe0bb4509d0cc0fa3
+Provenance Summary	Set up job	2026-03-07T20:21:30.8236654Z Build Date: 2026-02-13T00:28:41Z
+Provenance Summary	Set up job	2026-03-07T20:21:30.8237385Z Worker ID: {6144810b-7ac6-47de-b1f7-1b4ae055f460}
+Provenance Summary	Set up job	2026-03-07T20:21:30.8238044Z Azure Region: northcentralus
+Provenance Summary	Set up job	2026-03-07T20:21:30.8238643Z ##[endgroup]
+Provenance Summary	Set up job	2026-03-07T20:21:30.8240819Z ##[group]Operating System
+Provenance Summary	Set up job	2026-03-07T20:21:30.8241474Z Ubuntu
+Provenance Summary	Set up job	2026-03-07T20:21:30.8242030Z 24.04.3
+Provenance Summary	Set up job	2026-03-07T20:21:30.8242518Z LTS
+Provenance Summary	Set up job	2026-03-07T20:21:30.8242976Z ##[endgroup]
+Provenance Summary	Set up job	2026-03-07T20:21:30.8243420Z ##[group]Runner Image
+Provenance Summary	Set up job	2026-03-07T20:21:30.8244082Z Image: ubuntu-24.04
+Provenance Summary	Set up job	2026-03-07T20:21:30.8244557Z Version: 20260302.42.1
+Provenance Summary	Set up job	2026-03-07T20:21:30.8245541Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260302.42/images/ubuntu/Ubuntu2404-Readme.md
+Provenance Summary	Set up job	2026-03-07T20:21:30.8247241Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260302.42
+Provenance Summary	Set up job	2026-03-07T20:21:30.8248203Z ##[endgroup]
+Provenance Summary	Set up job	2026-03-07T20:21:30.8249296Z ##[group]GITHUB_TOKEN Permissions
+Provenance Summary	Set up job	2026-03-07T20:21:30.8251946Z Contents: read
+Provenance Summary	Set up job	2026-03-07T20:21:30.8252647Z Metadata: read
+Provenance Summary	Set up job	2026-03-07T20:21:30.8253114Z Packages: write
+Provenance Summary	Set up job	2026-03-07T20:21:30.8253640Z ##[endgroup]
+Provenance Summary	Set up job	2026-03-07T20:21:30.8255889Z Secret source: Actions
+Provenance Summary	Set up job	2026-03-07T20:21:30.8256960Z Prepare workflow directory
+Provenance Summary	Set up job	2026-03-07T20:21:30.8608234Z Prepare all required actions
+Provenance Summary	Set up job	2026-03-07T20:21:30.8713339Z Complete job name: Provenance Summary
+Provenance Summary	Publish success	﻿2026-03-07T20:21:31.4777020Z ##[group]Run cat << 'SUMMARY'
+Provenance Summary	Publish success	2026-03-07T20:21:31.4777896Z [36;1mcat << 'SUMMARY'[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4778475Z [36;1m[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4779117Z [36;1m✅ SLSA PROVENANCE PIPELINE COMPLETE[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4780236Z [36;1m════════════════════════════════════════[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4780954Z [36;1m[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4782079Z [36;1mBuilder:        github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4783310Z [36;1mProvenance:     3 files[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4783950Z [36;1mSigned:         ✅ (cosign v2.2.0)[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4784602Z [36;1mVerified:       ✅ (SLSA v1.0 compliant)[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4785499Z [36;1mStored:         ✅ (GitHub Artifacts)[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4786149Z [36;1m[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4786652Z [36;1mRelease gates PASS. Ready for promotion.[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4787410Z [36;1m[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.4787866Z [36;1mSUMMARY[0m
+Provenance Summary	Publish success	2026-03-07T20:21:31.9239797Z shell: /usr/bin/bash -e {0}
+Provenance Summary	Publish success	2026-03-07T20:21:31.9241726Z ##[endgroup]
+Provenance Summary	Publish success	2026-03-07T20:21:31.9465221Z 
+Provenance Summary	Publish success	2026-03-07T20:21:31.9662966Z ✅ SLSA PROVENANCE PIPELINE COMPLETE
+Provenance Summary	Publish success	2026-03-07T20:21:31.9664524Z ════════════════════════════════════════
+Provenance Summary	Publish success	2026-03-07T20:21:31.9665187Z 
+Provenance Summary	Publish success	2026-03-07T20:21:31.9666446Z Builder:        github.com/kushin77/self-hosted-runner/.github/workflows/SLSA Provenance & Release Gates@refs/heads/main
+Provenance Summary	Publish success	2026-03-07T20:21:31.9668766Z Provenance:     3 files
+Provenance Summary	Publish success	2026-03-07T20:21:31.9670319Z Signed:         ✅ (cosign v2.2.0)
+Provenance Summary	Publish success	2026-03-07T20:21:31.9671426Z Verified:       ✅ (SLSA v1.0 compliant)
+Provenance Summary	Publish success	2026-03-07T20:21:31.9672555Z Stored:         ✅ (GitHub Artifacts)
+Provenance Summary	Publish success	2026-03-07T20:21:31.9673380Z 
+Provenance Summary	Publish success	2026-03-07T20:21:31.9673968Z Release gates PASS. Ready for promotion.
+Provenance Summary	Publish success	2026-03-07T20:21:31.9674886Z 
+Provenance Summary	Complete job	﻿2026-03-07T20:21:31.9950031Z Cleaning up orphan processes

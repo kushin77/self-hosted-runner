@@ -182,7 +182,7 @@ Export your valid GCP service account key as JSON:
 {
   "type": "service_account",
   "project_id": "your-project",
-  "private_key": "-----BEGIN PRIVATE KEY-----...",
+  "private_key": "[REDACTED_PRIVATE_KEY_EXAMPLE]",
   "client_email": "...",
   "client_id": "...",
   ...all required fields...
@@ -193,7 +193,7 @@ Required fields: `type`, `project_id`, `private_key`, `client_email`, `client_id
 
 ### Step 2: Update GitHub Secret
 1. Navigate to: Settings → Secrets and variables → Actions → Secrets
-2. Select the secret: `GCP_SERVICE_ACCOUNT_KEY`
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 3. Paste the full JSON (with outer braces)
 4. Click "Update secret"
 

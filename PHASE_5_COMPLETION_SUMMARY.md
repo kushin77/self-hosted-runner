@@ -103,7 +103,7 @@ gh secret set SLACK_WEBHOOK_URL --body "$SLACK_WEBHOOK_URL" --repo kushin77/self
 - VAULT_ADDR          # Vault server address
 - VAULT_ROLE_ID       # Vault AppRole Role ID
 - VAULT_SECRET_ID     # Vault AppRole Secret ID (rotated monthly)
-- GCP_SERVICE_ACCOUNT_KEY  # for GSM access
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - DOCKER_HUB_PAT      # Docker Hub token (optional for non-critical deployments)
 ```
 

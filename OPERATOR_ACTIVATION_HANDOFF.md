@@ -66,8 +66,8 @@ gh secret set GCP_PROJECT_ID --body "YOUR_GCP_PROJECT_ID"
 gh secret set GCP_SERVICE_ACCOUNT_KEY < /tmp/gcp-key.json
 
 # AWS (optional - only if using AWS KMS tertiary layer)
-gh secret set AWS_ACCESS_KEY_ID --body "YOUR_AWS_KEY"
-gh secret set AWS_SECRET_ACCESS_KEY --body "YOUR_AWS_SECRET"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 gh secret set AWS_KMS_KEY_ARN --body "arn:aws:kms:region:account:key/id"
 
 # Verify all secrets set

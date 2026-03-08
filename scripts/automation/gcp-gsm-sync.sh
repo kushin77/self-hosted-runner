@@ -172,15 +172,15 @@ sync_github_to_gsm() {
   
   # List of critical secrets to sync (configurable)
   local secrets_to_sync=(
-    "GCP_SERVICE_ACCOUNT_KEY:gcp-service-account"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     "GCP_PROJECT_ID:gcp-project-id"
     "GCP_WORKLOAD_IDENTITY_PROVIDER:gcp-workload-identity-provider"
-    "GCP_SERVICE_ACCOUNT_EMAIL:gcp-service-account-email"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     "AWS_OIDC_ROLE_ARN:aws-oidc-role-arn"
     "AWS_ROLE_TO_ASSUME:aws-role-to-assume"
     "SLACK_BOT_TOKEN:slack-bot-token"
     "VAULT_ADDR:vault-address"
-    "VAULT_TOKEN:vault-token"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   )
   
   for secret_mapping in "${secrets_to_sync[@]}"; do

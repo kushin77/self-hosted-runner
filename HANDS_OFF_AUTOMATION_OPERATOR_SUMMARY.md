@@ -130,7 +130,7 @@ Contains:
 ```
 GCP Setup:
   ✅ GCP_PROJECT_ID configured
-  ✅ GCP_SERVICE_ACCOUNT_EMAIL configured
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   ⏳ GCP_WORKLOAD_IDENTITY_PROVIDER — awaiting Phase 1
 
 AWS Setup:

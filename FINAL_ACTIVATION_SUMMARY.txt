@@ -90,11 +90,11 @@ Required: 5 GitHub Secrets
     Note: Must have Secret Manager admin permissions
 
 ⚙️  Command 3: AWS Access Key ID
-    gh secret set AWS_ACCESS_KEY_ID
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     Value: Your AWS access key (e.g., "AKIA...")
 
 ⚙️  Command 4: AWS Secret Access Key
-    gh secret set AWS_SECRET_ACCESS_KEY
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     Value: Your AWS secret key
 
 ⚙️  Command 5: AWS KMS Key ARN (Optional)
@@ -107,9 +107,9 @@ Run: gh secret list
 
 Expected Output:
     GCP_PROJECT_ID                SECRET
-    GCP_SERVICE_ACCOUNT_KEY       SECRET
-    AWS_ACCESS_KEY_ID             SECRET
-    AWS_SECRET_ACCESS_KEY         SECRET
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     AWS_KMS_KEY_ARN               SECRET
 
 ACTIVATION TRIGGER

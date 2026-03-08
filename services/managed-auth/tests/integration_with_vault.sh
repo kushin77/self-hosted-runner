@@ -4,7 +4,7 @@ set -euo pipefail
 echo "Running managed-auth integration test against Vault"
 
 if [ -z "${VAULT_ADDR:-}" ] || [ -z "${VAULT_TOKEN:-}" ]; then
-  echo "VAULT_ADDR and VAULT_TOKEN must be set for this integration test" >&2
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   exit 2
 fi
 
@@ -13,8 +13,7 @@ cd "$(dirname "$0")/.."
 
 export SECRETS_BACKEND=vault
 export VAULT_ADDR
-export VAULT_TOKEN
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 echo "Using VAULT_ADDR=$VAULT_ADDR"
 
 SIMULATE_OAUTH=1 PORT=$(python3 - <<'PY'
