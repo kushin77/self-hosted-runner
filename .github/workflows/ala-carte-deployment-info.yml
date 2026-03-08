@@ -1,0 +1,53 @@
+name: 🍽️ Ala Carte Deployment Info Generation
+on:
+  workflow_dispatch:
+  schedule:
+    # Generate every 15 minutes during business hours (7 AM - 7 PM UTC)
+    - cron: '*/15 7-19 * * *'
+    # Also check every hour off-hours for critical updates
+    - cron: '0 0-6,20-23 * * *'
+
+jobs:
+  generate-deployment-info:
+    runs-on: ubuntu-latest
+    name: Generate Ala Carte Deployment Information
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Generate deployment information
+        run: |
+          chmod +x ./scripts/ala-carte-deployment-info.sh
+          bash ./scripts/ala-carte-deployment-info.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Commit generated artifacts (if any changes)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Check if there are new deployment info files
+          if git status --porcelain | grep -q "^?? DEPLOYMENT_INFO_"; then
+            git add DEPLOYMENT_INFO_*.md
+            git commit -m "docs: Auto-generated deployment status ($(date -u '+%Y-%m-%d %H:%M UTC'))"
+            git push origin main
+          fi
+      
+      - name: Set job summary
+        if: always()
+        run: |
+          echo "## 🍽️ Ala Carte Deployment Info Generated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployment status analyzed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ GitHub issue updated (#1702)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Status comments posted" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Next manual steps** (if pending credentials):" >> $GITHUB_STEP_SUMMARY
+          echo "1. See issue #1816 for credential collection guide" >> $GITHUB_STEP_SUMMARY
+          echo "2. Supply GCP/AWS secrets" >> $GITHUB_STEP_SUMMARY
+          echo "3. Comment 'CREDENTIALS_SUPPLIED' to trigger provisioning" >> $GITHUB_STEP_SUMMARY
