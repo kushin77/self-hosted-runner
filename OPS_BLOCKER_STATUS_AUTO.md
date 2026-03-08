@@ -14,7 +14,7 @@
 - Status: pending
 
 ### AWS Spot (Blockers #325, #313)
-- Secrets Detected: true
+- Secrets Detected: false
 - Status: ready
 
 ### STAGING_KUBECONFIG (Blocker #326)
