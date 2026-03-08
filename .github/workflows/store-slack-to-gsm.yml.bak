@@ -1,0 +1,99 @@
+name: Store leaked Slack app credentials to GCP Secret Manager and remove file
+
+on:
+  workflow_dispatch:
+  workflow_call: {}
+
+concurrency:
+  group: store-slack-to-gsm-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+
+jobs:
+  store-and-remove:
+    runs-on: ubuntu-latest
+    env:
+      FILE_PATH: .github/workflows/tmp
+      GSM_SECRET_NAME: slack-app-credentials
+    steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (service account or OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account_email: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Verify file exists
+        run: |
+          if [[ ! -f "$FILE_PATH" ]]; then
+            echo "File $FILE_PATH does not exist; nothing to do.";
+            exit 0;
+          fi
+
+      - name: Create or update GSM secret (idempotent)
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          TMPFILE=$(mktemp)
+          cat "$FILE_PATH" > "$TMPFILE"
+          if gcloud secrets describe "$GSM_SECRET_NAME" --project="$GCP_PROJECT_ID" >/dev/null 2>&1; then
+            echo "Secret exists; adding new version"
+            gcloud secrets versions add "$GSM_SECRET_NAME" --data-file="$TMPFILE" --project="$GCP_PROJECT_ID"
+          else
+            echo "Creating secret $GSM_SECRET_NAME"
+            gcloud secrets create "$GSM_SECRET_NAME" --replication-policy="automatic" --data-file="$TMPFILE" --project="$GCP_PROJECT_ID"
+          fi
+          rm -f "$TMPFILE"
+
+      - name: Create branch and remove the leaked file
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          BRANCH=chore/remove-leaked-slack-creds-$(date +%s)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git rm -f "$FILE_PATH" || true
+          git commit -m "chore: remove leaked Slack app credentials and store in GSM" || true
+          git push --set-upstream origin "$BRANCH"
+          echo "BRANCH=$BRANCH" >> $GITHUB_ENV
+
+      - name: Open PR to remove file
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: remove leaked Slack app credentials"
+          title: "chore: remove leaked Slack app credentials"
+          body: |
+            This PR removes a file containing Slack app credentials and stores it securely in GCP Secret Manager under the secret name slack-app-credentials.
+          base: main
+          branch: ${{ env.BRANCH }}
+
+      - name: Comment Issue #480 and link PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prs = await github.rest.pulls.list({owner: context.repo.owner, repo: context.repo.repo, state: 'open'});
+            const pr = prs.data.find(p => p.title && p.title.includes('remove leaked Slack app credentials'));
+            const prUrl = pr ? pr.html_url : 'PR created';
+            await github.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: 480, body: `Moved leaked Slack app credentials into GCP Secret Manager as ${process.env.GSM_SECRET_NAME}. PR: ${prUrl}`});

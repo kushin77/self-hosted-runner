@@ -193,7 +193,7 @@ if nc -z 127.0.0.1 8200 2>/dev/null || vault status > /dev/null 2>&1; then
   
   if [[ -n "$VAULT_TOKEN" ]]; then
     export VAULT_ADDR="${VAULT_ADDR:-http://127.0.0.1:8200}"
-    export VAULT_TOKEN
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     
     # Vault auth latency
     echo -n "  Vault token lookup (mean of 10) ... "
@@ -235,7 +235,7 @@ if nc -z 127.0.0.1 8200 2>/dev/null || vault status > /dev/null 2>&1; then
     echo -e "${GREEN}${MEAN}µs${NC}"
     record_result "vault" "secret_read_mean_us" "$MEAN" "microseconds"
   else
-    echo "  ⊘ VAULT_TOKEN not set, skipping Vault benchmarks"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   fi
 else
   echo "  ⊘ Vault not running, skipping Vault benchmarks"

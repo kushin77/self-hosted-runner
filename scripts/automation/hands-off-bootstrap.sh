@@ -103,10 +103,10 @@ check_prerequisites() {
     done
     
     if [[ -z "${GITHUB_TOKEN}" ]]; then
-        log_error "GITHUB_TOKEN environment variable not set"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
         missing=$((missing + 1))
     else
-        log_success "GITHUB_TOKEN is set"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
     fi
     
     if [[ ${missing} -gt 0 ]]; then

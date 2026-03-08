@@ -45,7 +45,7 @@ Rotation policies
 
 Operational checklist for adding secrets
 
-1. Create repo or organization secrets: `AWS_ROLE_TO_ASSUME`, `AWS_REGION`, and optionally `VAULT_GITHUB_TOKEN` or `VAULT_ADDR` if using Vault.  
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 2. Configure the runner to fetch secrets (agent) or the workflow to fetch them (action).  
 3. Test in a non-prod environment (staging) and validate Terraform plan artifacts before guarded apply.
 

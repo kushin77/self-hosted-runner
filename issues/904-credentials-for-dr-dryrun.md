@@ -54,7 +54,7 @@ How to run locally (example):
 export GITLAB_API_URL="https://gitlab.example.com"
 export GITLAB_API_TOKEN="<TEMP_TOKEN>"
 export GITLAB_GROUP_ID="12345"
-export GITHUB_TOKEN="<TEMP_GITHUB_PAT>"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 export GITHUB_REPO="org/repo"
 export RESTORE_S3_BUCKET="s3://my-backups"
 # optional: export AGE_KEY_FILE_PATH="/path/to/age.key"

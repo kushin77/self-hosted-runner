@@ -57,7 +57,7 @@ Phase 3 infrastructure blocked despite valid credentials. 8 consecutive workflow
 ### Investigation Results
 
 **Finding 1: Credentials Exist** ✅
-- GitHub secret `GCP_SERVICE_ACCOUNT_KEY` present
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - Secret contains value (not empty)
 - RCA confirmed via `gh secret list`
 

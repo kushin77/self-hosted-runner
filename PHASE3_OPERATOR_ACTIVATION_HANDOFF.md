@@ -262,8 +262,8 @@ gh run view [latest RUN_ID] --log | tail -100
 # Check GitHub secrets are set
 gh secret list
 
-# Make sure GCP_SERVICE_ACCOUNT_KEY exists
-gh secret view GCP_SERVICE_ACCOUNT_KEY | head -5
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ```
 
 ---
