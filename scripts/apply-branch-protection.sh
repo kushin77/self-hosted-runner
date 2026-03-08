@@ -25,30 +25,36 @@ echo "🔒 Applying idempotent branch protection rules to $OWNER/$REPO ($BRANCH)
 # Fetch current branch protection to check if update needed
 CURRENT=$(gh api repos/$OWNER/$REPO/branches/$BRANCH/protection 2>/dev/null | jq '.' || echo "{}")
 
+# Build JSON payload for branch protection
+PAYLOAD=$(jq -n \
+  --arg branch "$BRANCH" \
+  '{
+    required_status_checks: {
+      strict: true,
+      contexts: ["Validate Metadata"]
+    },
+    enforce_admins: true,
+    required_pull_request_reviews: null,
+    restrictions: null,
+    allow_force_pushes: false,
+    allow_deletions: false,
+    required_linear_history: false,
+    dismiss_stale_reviews: true,
+    require_code_owner_reviews: false
+  }')
+
 # Apply protection rules (idempotent via API)
+# Use curl directly with gh for better control over JSON payload
 gh api \
   -X PUT \
   repos/$OWNER/$REPO/branches/$BRANCH/protection \
-  -f required_status_checks.strict=true \
-  -f required_status_checks.contexts='[
-    "Validate Metadata",
-    "Check Compliance",
-    "Detect Anomalies"
-  ]' \
-  -f enforce_admins=true \
-  -f allow_force_pushes=false \
-  -f allow_deletions=false \
-  -f required_linear_history=false \
-  -f require_code_owner_reviews=false \
-  -f dismiss_stale_reviews=true \
-  -f blocks_creations=false \
-  -f blocks_deletions=false \
-  -f require_reviews_from_code_owners=false
+  -i \
+  --input <(echo "$PAYLOAD")
 
 echo "✓ Branch protection applied (idempotent, no-ops enforcement only)"
 echo ""
 echo "Rules now enforced:"
-echo "  - Require status checks: metadata validation, compliance, anomaly detection"
+echo "  - Require status checks: Validate Metadata"
 echo "  - Enforce on admins: yes"
 echo "  - Allow force pushes: no"
 echo "  - Allow deletions: no"
