@@ -6,10 +6,10 @@ on:
       run_id:
         description: 'Run ID to monitor (e.g., 22790583296)'
         required: true
-  schedule:
-    - '*/15 * * * *' # every 15 minutes
-
+  # Converted to event-driven: removed frequent polling
   workflow_call: {}
+  repository_dispatch:
+    types: [dr-run-check, dr-reconciliation-trigger]
 
 concurrency:
   group: monitor-dr-reconciliation-${{ github.ref }}
