@@ -1,8 +1,6 @@
 name: GCP GSM Credential Rotation
 
 on:
-  schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC - off-peak rotation checks
   workflow_dispatch:
     inputs:
       secret_name:
@@ -25,10 +23,10 @@ jobs:
     name: Check credential rotation status
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    
+
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -81,7 +79,7 @@ jobs:
         with:
           script: |
             const summary = `${{ steps.rotation-summary.outputs.summary }}`;
-            
+
             try {
               const { data } = await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -105,7 +103,7 @@ ${summary}
                 labels: ['ops', 'gcp-gsm', 'credential-rotation'],
                 assignees: []
               });
-              
+
               console.log(\`Created issue #\${data.number} for rotation tracking\`);
             } catch(e) {
               console.log('Could not create rotation issue:', e.message);
@@ -122,11 +120,11 @@ ${summary}
               .filter(f => f.startsWith('gcp-gsm-rotation-audit-'))
               .sort()
               .reverse()[0];
-            
-            const auditContent = auditFile 
+
+            const auditContent = auditFile
               ? fs.readFileSync(`.github/workflows/logs/${auditFile}`, 'utf8')
               : 'No audit data available';
-            
+
             const comment = `**[${new Date().toISOString()}]** 🔄 Rotation Check
 
 \`\`\`
