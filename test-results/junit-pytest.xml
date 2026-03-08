@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.307" timestamp="2026-03-08T21:30:40.370126" hostname="dev-elevatediq-2"><testcase classname="" name="self_healing_auto_merge.test_auto_merge" time="0.000"><error message="collection failure">../.local/lib/python3.12/site-packages/_pytest/python.py:617: in _importtestmodule
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.307" timestamp="2026-03-08T21:31:13.610945" hostname="dev-elevatediq-2"><testcase classname="" name="self_healing_retry_engine.test_retry" time="0.000"><error message="collection failure">../.local/lib/python3.12/site-packages/_pytest/python.py:617: in _importtestmodule
     mod = import_path(self.path, mode=importmode, root=self.config.rootpath)
 ../.local/lib/python3.12/site-packages/_pytest/pathlib.py:567: in import_path
     importlib.import_module(module_name)
@@ -18,7 +18,7 @@
     tree = ast.parse(source, filename=strfn)
 /usr/lib/python3.12/ast.py:52: in parse
     return compile(source, filename, mode, flags,
-E     File "/home/akushnir/self-hosted-runner/self_healing_auto_merge/test_auto_merge.py", line 40
-E       &gt;&gt;&gt;&gt;&gt;&gt;&gt; 1379a4e11 (feat(auto-merge): implementation + package init)
-E                  ^
+E     File "/home/akushnir/self-hosted-runner/self_healing_retry_engine/test_retry.py", line 120
+E       &gt;&gt;&gt;&gt;&gt;&gt;&gt; 2e570800c (feat(retry): implement RetryEngine (backoff + circuit breaker) + tests)
+E                      ^
 E   SyntaxError: invalid decimal literal</error></testcase></testsuite></testsuites>
