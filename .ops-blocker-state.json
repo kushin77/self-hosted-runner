@@ -19,7 +19,7 @@
     "staging_kubeconfig": {
       "status": "ready",
       "last_check": null,
-      "secret_exists": true
+      "secret_exists": false
     }
   },
   "automations": {
