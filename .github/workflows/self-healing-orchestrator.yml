@@ -1,9 +1,10 @@
 ---
 name: 100X Self-Healing Orchestrator
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch:
+  repository_dispatch:
+    types: [self-heal-detect, self-heal-trigger]
 permissions:
   contents: read
   issues: write

@@ -1,9 +1,10 @@
 name: Ops Issue Completion Automation
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'  # Every 5 minutes
+  # Converted to event-driven: removed frequent polling
   workflow_dispatch:
+  repository_dispatch:
+    types: [ops-issue-check, ops-issue-trigger]
 
 concurrency:
   group: ops-issue-completion
