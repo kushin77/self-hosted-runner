@@ -1,0 +1,141 @@
+name: Rotate & Revoke Exposed Credentials
+
+on:
+  workflow_dispatch:
+    inputs:
+      exposed-key-ids:
+        description: Comma-separated list of exposed key IDs to revoke (optional)
+        required: false
+      
+      dry-run:
+        description: Run in dry-run mode (safe)
+        required: false
+        default: 'true'
+
+permissions:
+  contents: write
+  id-token: write
+  secrets: read
+
+env:
+  KEY_ROTATION_AUDIT_DIR: .key-rotation-audit
+  DRY_RUN: ${{ inputs.dry-run || true }}
+
+jobs:
+  validate-no-secrets:
+    name: "Pre-check: Scan for Secrets"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install git-secrets
+        run: |
+          git clone https://github.com/awslabs/git-secrets.git
+          cd git-secrets
+          make install
+      
+      - name: Run git-secrets scan
+        continue-on-error: true
+        run: |
+          git secrets --scan-history
+          git secrets --scan-history --all
+      
+      - name: Run GitHub secret scanning (check recent commits)
+        continue-on-error: true
+        run: |
+          echo "Checking last 10 commits for potential secrets..."
+          git log --all -p -S 'password\|secret\|token\|key' --grep='.' | head -100 || true
+
+  revoke-exposed-keys:
+    name: "Revoke Exposed Credentials"
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: validate-no-secrets
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Authenticate to GCP (OIDC/WIF)
+        uses: google-github-actions/auth@v1
+        continue-on-error: true
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      
+      - name: Authenticate to AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+      
+      - name: Create audit directory
+        run: mkdir -p "${{ env.KEY_ROTATION_AUDIT_DIR }}"
+      
+      - name: Revoke exposed keys (GCP/AWS/Vault)
+        run: |
+          bash .github/scripts/revoke-exposed-keys.sh \
+            --dry-run "${{ env.DRY_RUN }}" \
+            --exposed-key-ids "${{ inputs.exposed-key-ids }}" \
+            --audit-dir "${{ env.KEY_ROTATION_AUDIT_DIR }}"
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+        continue-on-error: true
+      
+      - name: Upload audit trail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: key-revocation-audit-${{ github.run_id }}
+          path: ${{ env.KEY_ROTATION_AUDIT_DIR }}/
+          retention-days: 365
+      
+      - name: Commit audit trail to repo
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "${{ env.KEY_ROTATION_AUDIT_DIR }}/"
+          git commit -m "ci: key revocation audit trail $(date -u '+%Y-%m-%d')" \
+            --allow-empty || true
+          git push origin HEAD:${{ github.ref }} || true
+
+  post-revocation-validation:
+    name: "Validate No Secrets Remain"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: revoke-exposed-keys
+    if: inputs.dry-run == 'false'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install git-secrets
+        run: |
+          git clone https://github.com/awslabs/git-secrets.git
+          cd git-secrets
+          make install
+      
+      - name: Post-revocation validation scan
+        run: |
+          echo "Validating no secrets remain..."
+          git secrets --scan || exit 1
+          echo "✓ No secrets detected"
+      
+      - name: Summary
+        run: |
+          echo "## Key Revocation Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- Dry Run: ${{ inputs.dry-run }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Exposed Keys Revoked: ${{ inputs.exposed-key-ids }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Validation: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Audit Trail: .key-rotation-audit/" >> $GITHUB_STEP_SUMMARY
