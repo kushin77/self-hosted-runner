@@ -9,6 +9,8 @@ on:
         required: true
       GCP_PROJECT_ID:
         required: true
+      GCP_SERVICE_ACCOUNT_KEY_JSON:
+        required: false
     outputs:
       aws_access_key_id:
         description: AWS Access Key ID
@@ -43,6 +45,7 @@ jobs:
       - name: Authenticate to Google Cloud (OIDC)
         id: auth
         uses: google-github-actions/auth@v2
+        continue-on-error: true
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
@@ -51,6 +54,29 @@ jobs:
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure auth or fallback to service-account-key
+        id: ensure-auth
+        run: |
+          set -euo pipefail
+          echo "🔍 Verifying Google Cloud authentication..."
+          if gcloud auth print-access-token >/dev/null 2>&1; then
+            echo "✅ OIDC authentication successful"
+          else
+            echo "⚠️ OIDC authentication failed (will attempt fallback if key available)"
+            if [ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY_JSON }}" ]; then
+              echo "Using provided service-account key (masked) to authenticate"
+              echo "::add-mask::${{ secrets.GCP_SERVICE_ACCOUNT_KEY_JSON }}"
+              echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY_JSON }}" > /tmp/gcp_sa.json
+              gcloud auth activate-service-account --key-file=/tmp/gcp_sa.json
+              echo "✅ Authenticated via service-account key fallback"
+            else
+              echo "❌ No fallback key available. Failing with diagnostic info."
+              echo "Provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}"
+              echo "Service Account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}"
+              exit 1
+            fi
+          fi
 
       - name: Fetch AWS Credentials from GSM
         id: fetch
