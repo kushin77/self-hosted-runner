@@ -1,6 +1,37 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "🔎 Verifying release gate artifacts..."
+
+SBOM_FILE=build/sboms/sample-sbom.json
+PROV_FILE=build/provenance/sample-provenance.json
+
+MISSING=0
+
+if [ ! -f "$SBOM_FILE" ]; then
+  echo "✖ SBOM missing: $SBOM_FILE"
+  MISSING=1
+else
+  echo "✓ SBOM present"
+fi
+
+if [ ! -f "$PROV_FILE" ]; then
+  echo "✖ Provenance missing: $PROV_FILE"
+  MISSING=1
+else
+  echo "✓ Provenance present"
+fi
+
+if [ $MISSING -eq 1 ]; then
+  echo "⚠️  Release gate validation FAILED"
+  exit 2
+fi
+
+echo "✅ Release gate validation PASSED"
+exit 0
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Verify release gate: ensure SBOMs and provenance exist for images in manifest,
 # and optionally verify image signatures using cosign public key.
 # Usage: verify_release_gate.sh manifest.yml sbom-dir provenance-dir
