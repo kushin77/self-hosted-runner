@@ -1,0 +1,43 @@
+{
+  "deployment_id": "deploy-2026-03-08T23-28-03.743226",
+  "timestamp": "2026-03-08T23:28:03.743439",
+  "components": {
+    "deployed": [],
+    "failed": [
+      "revoke-exposed-keys"
+    ]
+  },
+  "summary": {
+    "deployment_id": "deploy-2026-03-08T23-28-03.743226",
+    "timestamp": "2026-03-08T23:28:03.743439",
+    "total_events": 3,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:28:03.744316",
+        "event_type": "deployment_start",
+        "component_id": "revoke-exposed-keys",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:28:03.776236",
+        "event_type": "step_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {
+          "step": "revoke-github-tokens"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:28:03.776502",
+        "event_type": "deployment_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: revoke-github-tokens"
+      }
+    ]
+  }
+}
