@@ -1,0 +1,117 @@
+name: Vault-First Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      plan_only:
+        description: 'Run plan only (no apply)'
+        required: false
+        default: 'false'
+
+jobs:
+  vault_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      actions: read
+      checks: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.4.0
+
+      - name: Fetch credentials from Vault (AppRole)
+        id: vault_creds
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+        run: |
+          set -euo pipefail
+          echo "::group::Vault AppRole authentication"
+          
+          # Authenticate with Vault using AppRole
+          VAULT_TOKEN=$(curl -s -X POST \
+            "${VAULT_ADDR}/v1/auth/approle/login" \
+            -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
+            -d "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}" \
+            | jq -r '.auth.client_token')
+          
+          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" == "null" ]; then
+            echo "ERROR: Failed to obtain Vault token" >&2
+            exit 1
+          fi
+          echo "✓ Vault AppRole authentication successful"
+          echo "::endgroup::"
+          
+          # Fetch AWS credentials from Vault
+          echo "::group::Fetching AWS credentials from Vault"
+          AWS_CREDS=$(curl -s -X GET \
+            "${VAULT_ADDR}/v1/aws/creds/terraform-role" \
+            -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
+            -H "X-Vault-Token: ${VAULT_TOKEN}")
+          
+          AWS_ACCESS_KEY_ID=$(echo "$AWS_CREDS" | jq -r '.data.access_key')
+          AWS_SECRET_ACCESS_KEY=$(echo "$AWS_CREDS" | jq -r '.data.secret_key')
+          
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ "$AWS_ACCESS_KEY_ID" == "null" ]; then
+            echo "ERROR: Failed to fetch AWS credentials from Vault" >&2
+            exit 1
+          fi
+          echo "✓ AWS credentials fetched from Vault"
+          echo "::endgroup::"
+          
+          # Export credentials securely as GitHub Actions masked outputs
+          echo "::add-mask::${AWS_ACCESS_KEY_ID}"
+          echo "::add-mask::${AWS_SECRET_ACCESS_KEY}"
+          echo "aws_access_key_id=${AWS_ACCESS_KEY_ID}" >> $GITHUB_OUTPUT
+          echo "aws_secret_access_key=${AWS_SECRET_ACCESS_KEY}" >> $GITHUB_OUTPUT
+
+      - name: Terraform Init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.vault_creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.vault_creds.outputs.aws_secret_access_key }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          cd terraform
+          terraform init -input=false
+
+      - name: Terraform Plan
+        id: plan
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.vault_creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.vault_creds.outputs.aws_secret_access_key }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          cd terraform
+          terraform plan -out=tfplan -input=false 2>&1 | tee /tmp/tf_plan.log
+          echo "plan_exit_code=$?" >> $GITHUB_OUTPUT
+
+      - name: Terraform Apply
+        if: ${{ inputs.plan_only != 'true' }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ steps.vault_creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ steps.vault_creds.outputs.aws_secret_access_key }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan 2>&1 | tee /tmp/tf_apply.log
+          echo "apply_exit_code=$?"
+
+      - name: Upload plan and apply logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-logs
+          path: |
+            /tmp/tf_plan.log
+            /tmp/tf_apply.log
+          retention-days: 30
