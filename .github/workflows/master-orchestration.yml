@@ -48,8 +48,8 @@ on:
         default: 'validate'
       dry_run:
         description: 'Dry-run mode (no state changes)'
-  issues: write
-  pull-requests: read
+        required: false
+        default: 'false'
 
 concurrency:
   # CRITICAL: All master orchestration runs serialize on this group
