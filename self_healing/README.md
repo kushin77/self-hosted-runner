@@ -1,5 +1,5 @@
-# Automatic Rollback & Recovery Implementation
+# Multi-Layer Escalation Implementation
 
-Zero-downtime rollback with health check orchestration.
+Automatic incident escalation with de-duplication.
 
 See main README for full framework overview.
