@@ -150,7 +150,7 @@ gh run rerun <run-id>
 | Batch 1 merged to main | ⏳ Pending | No CI regressions |
 | Batch 2 PR created | ⏳ Post-B1 | Depend on B1 success |
 | Batch 2 CI green 100% | ⏳ Post-B1 | Transitive testing |
-| Batch 2 merged | ⏳ Post-B1 | VulnerabilityResolved |
+| Batch 2 merged | ⏳ Post-B1 | Vulnerability resolved |
 | Batch 3 PR created | ⏳ Post-B2 | Direct dep upgrades |
 | Batch 3 merged | ⏳ Post-B2 | Major version work done |
 
