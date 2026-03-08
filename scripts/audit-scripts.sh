@@ -361,10 +361,18 @@ validate_scripts() {
             ((errors++))
         fi
         
-        # Check syntax
-        if ! bash -n "$script" 2>/dev/null; then
-            echo "❌ Syntax error: $script"
-            ((errors++))
+        # Check syntax based on shebang
+        shebang=$(get_script_shebang "$script")
+        if [[ "$shebang" == *python* ]]; then
+            if ! python3 -m py_compile "$script" 2>/dev/null; then
+                echo "❌ Syntax error (python): $script"
+                ((errors++))
+            fi
+        else
+            if ! bash -n "$script" 2>/dev/null; then
+                echo "❌ Syntax error: $script"
+                ((errors++))
+            fi
         fi
         
         # Warn if no error handling

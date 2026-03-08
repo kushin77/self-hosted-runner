@@ -1,8 +1,4 @@
 name: Observability E2E On Completion
-permissions:
-  contents: read
-  id-token: write
-  actions: read
 
 on:
   workflow_run:
