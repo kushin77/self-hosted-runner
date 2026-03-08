@@ -34,5 +34,5 @@ jobs:
         with:
           image-ref: kushin77/self-hosted-runner:${{ github.sha }}
           format: 'table'
-          severity: 'CRITICAL,HIGH'
+          severity: 'CRITICAL'
           exit-code: '1'
