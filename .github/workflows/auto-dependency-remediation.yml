@@ -1,4 +1,8 @@
 name: auto-dependency-remediation
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:
