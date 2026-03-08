@@ -1,0 +1,234 @@
+name: Policy Enforcement Gate (Global Governance)
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+      - 'terraform/**'
+      - '.github/governance/**'
+      - '.github/scripts/**'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Check mode: strict, standard, or warn-only'
+        required: false
+        default: 'strict'
+      target_pr:
+        description: 'Optional PR number to check (if not auto-triggered)'
+        required: false
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  actions: read
+
+concurrency:
+  group: policy-enforcement-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-workflow-standards:
+    name: Validate Workflow Standards
+    runs-on: ubuntu-latest
+    outputs:
+      violations: ${{ steps.check.outputs.violations }}
+      failed: ${{ steps.check.outputs.failed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Identify changed workflow files
+        id: files
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.github/workflows/.*\.ya?ml$' || true)
+          else
+            FILES=$(find .github/workflows -name "*.yml" -o -name "*.yaml")
+          fi
+          echo "files<<EOF" >> $GITHUB_OUTPUT
+          echo "$FILES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Validate workflow standards
+        id: check
+        run: |
+          VIOLATIONS=0
+          DETAILS=""
+          
+          while IFS= read -r workflow; do
+            [ -z "$workflow" ] && continue
+            
+            echo "Checking: $workflow"
+            
+            # 1. Check for 'name:' field
+            if ! grep -q "^name:" "$workflow"; then
+              VIOLATIONS=$((VIOLATIONS+1))
+              DETAILS="${DETAILS}❌ $workflow: Missing 'name:' field\n"
+            fi
+            
+            # 2. Check for 'permissions:' block
+            if ! grep -q "^permissions:" "$workflow"; then
+              VIOLATIONS=$((VIOLATIONS+1))
+              DETAILS="${DETAILS}❌ $workflow: Missing explicit 'permissions:' block\n"
+            fi
+            
+            # 3. Check for 'concurrency:' in deploy-like workflows
+            if grep -q "apply\|deploy\|rotate\|release" "$workflow"; then
+              if ! grep -q "concurrency:" "$workflow"; then
+                VIOLATIONS=$((VIOLATIONS+1))
+                DETAILS="${DETAILS}❌ $workflow (deploy job): Missing 'concurrency:' to prevent concurrent runs\n"
+              fi
+            fi
+            
+            # 4. Check for hardcoded secrets (basic pattern)
+            if grep -E 'password|api_key|secret|token' "$workflow" | grep -v 'secrets\.' | grep -v '\${{' | grep -q -v '^  *#'; then
+              VIOLATIONS=$((VIOLATIONS+1))
+              DETAILS="${DETAILS}⚠️  $workflow: Possible hardcoded credential detected (manual review needed)\n"
+            fi
+            
+            # 5. Check for 'secrets: inherit' without justification comment
+            if grep -q "secrets: inherit" "$workflow"; then
+              if ! grep -B2 "secrets: inherit" "$workflow" | grep -q "# justification:"; then
+                VIOLATIONS=$((VIOLATIONS+1))
+                DETAILS="${DETAILS}❌ $workflow: 'secrets: inherit' used without justification comment\n"
+              fi
+            fi
+            
+            # 6. Check for overprivileged permissions
+            if grep -q "permissions:" "$workflow"; then
+              if grep -A10 "^permissions:" "$workflow" | grep -qE "write-all|contents: write"; then
+                if ! grep -q "terraform\|deploy" "$workflow"; then
+                  VIOLATIONS=$((VIOLATIONS+1))
+                  DETAILS="${DETAILS}⚠️  $workflow: May be overprivileged. Manual review needed.\n"
+                fi
+              fi
+            fi
+            
+            # 7. Check for proper trigger documentation
+            if grep -q "on:" "$workflow"; then
+              if ! grep -A30 "^on:" "$workflow" | grep -q "# trigger:"; then
+                VIOLATIONS=$((VIOLATIONS+1))
+                DETAILS="${DETAILS}⚠️  $workflow: Trigger lacks comment documentation\n"
+              fi
+            fi
+            
+          done <<< "${{ steps.files.outputs.files }}"
+          
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo -e "details<<EOF\n${DETAILS}\nEOF" >> $GITHUB_OUTPUT
+          
+          if [ $VIOLATIONS -gt 0 ] && [ "${{ inputs.mode }}" = "strict" ]; then
+            echo "failed=true" >> $GITHUB_OUTPUT
+          else
+            echo "failed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Post violation report to PR
+        if: github.event_name == 'pull_request' && steps.check.outputs.violations > 0
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const violations = `${{ steps.check.outputs.details }}`;
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🛡️ Policy Enforcement Report\n\n**Violations Found:** ${{ steps.check.outputs.violations }}\n\n${violations}\n\n**Mode:** ${{ inputs.mode || 'standard' }}\n\nPlease review and fix before merge. See [.github/governance/GOVERNANCE.md](.github/governance/GOVERNANCE.md) for details.`
+            });
+
+      - name: Fail if strict mode and violations present
+        if: steps.check.outputs.failed == 'true'
+        run: |
+          echo "❌ Policy validation failed. Fix violations above."
+          exit 1
+
+  validate-terraform-policy:
+    name: Validate Terraform Policy
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.files.*.filename, 'terraform/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Terraform standards
+        run: |
+          echo "Checking Terraform files for governance compliance..."
+          
+          # 1. Check for any inline resources (not using modules)
+          TF_FILES=$(find terraform -name "*.tf" -type f)
+          VIOLATIONS=0
+          
+          while IFS= read -r file; do
+            LINE_COUNT=$(grep -c "^resource\|^data\|^variable\|^output" "$file" || true)
+            if [ $LINE_COUNT -gt 10 ]; then
+              echo "⚠️  $file: Has many inline blocks. Consider using modules."
+              VIOLATIONS=$((VIOLATIONS+1))
+            fi
+            
+            # Check for 'sensitive' on password variables
+            if grep -q "password\|secret\|api_key" "$file"; then
+              if ! grep -q "sensitive = true" "$file"; then
+                echo "❌ $file: Sensitive variable detected but not marked sensitive = true"
+                VIOLATIONS=$((VIOLATIONS+1))
+              fi
+            fi
+          done <<< "$TF_FILES"
+          
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo "⚠️  Terraform policy issues found. Review recommended."
+          fi
+
+  check-secrets:
+    name: Check for Hardcoded Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks (secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+  validate-codeowners:
+    name: Validate CODEOWNERS Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check CODEOWNERS exists and is valid
+        run: |
+          if [ ! -f ".github/CODEOWNERS" ]; then
+            echo "❌ .github/CODEOWNERS file not found!"
+            exit 1
+          fi
+          
+          # Validate format
+          if ! grep -q "@" .github/CODEOWNERS; then
+            echo "❌ CODEOWNERS has no valid team/user entries"
+            exit 1
+          fi
+          
+          echo "✅ CODEOWNERS validation passed"
+
+  summary:
+    name: Governance Check Summary
+    runs-on: ubuntu-latest
+    needs: [validate-workflow-standards, check-secrets, validate-codeowners]
+    if: always()
+    steps:
+      - name: Report status
+        run: |
+          echo "## Governance Checks Complete"
+          echo "- Workflow Standards: ${{ needs.validate-workflow-standards.result }}"
+          echo "- Secrets Scan: ${{ needs.check-secrets.result }}"
+          echo "- CODEOWNERS: ${{ needs.validate-codeowners.result }}"
+          
+          if [ "${{ needs.validate-workflow-standards.result }}" = "failure" ]; then
+            exit 1
+          fi

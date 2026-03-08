@@ -13,9 +13,29 @@ permissions:
   id-token: write
   issues: write
 
+concurrency:
+  group: terraform-apply-${{ github.ref }}
+  cancel-in-progress: false  # Never cancel mid-deployment
+
 jobs:
+  audit-start:
+    name: Audit - Terraform Apply Start
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log deployment start
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_apply_start \
+            --workflow "terraform-auto-apply" \
+            --actor "${{ github.actor }}" \
+            --resource "terraform/${{ github.ref }}" \
+            --run-id "${{ github.run_id }}" \
+            --severity "info"
+
   fetch-aws-creds:
     name: Fetch AWS Credentials (Unified: GSM <-> Vault failover)
+    needs: audit-start
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -265,3 +285,21 @@ jobs:
           SUMMARY="❌ Terraform auto-apply failed (run ${{ github.run_id }}). Review logs and artifacts. Plan artifacts: terraform-plan-${{ github.run_id }}"
           gh issue comment 1286 --body "$SUMMARY" --repo "${{ github.repository }}" || true
           gh issue comment 1309 --body "$SUMMARY" --repo "${{ github.repository }}" || true
+
+  audit-end:
+    name: Audit - Terraform Apply Complete
+    needs: terraform-apply
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log deployment end
+        run: |
+          bash .github/scripts/audit-log.sh \
+            --action terraform_apply_end \
+            --workflow "terraform-auto-apply" \
+            --actor "${{ github.actor }}" \
+            --status "${{ needs.terraform-apply.result }}" \
+            --resource "terraform/${{ github.ref }}" \
+            --run-id "${{ github.run_id }}" \
+            --severity "$([ '${{ needs.terraform-apply.result }}' = 'success' ] && echo 'info' || echo 'critical')"
