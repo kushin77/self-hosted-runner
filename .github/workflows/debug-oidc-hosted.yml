@@ -31,6 +31,8 @@ jobs:
             RESP=$(curl -sS "${ACTIONS_ID_TOKEN_REQUEST_URL}?audience=https://iamcredentials.googleapis.com" -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" 2>/dev/null || true)
             echo "curl_resp_len=$(echo -n \"${RESP}\" | wc -c)" > /tmp/oidc_curl_len.txt || true
             if [[ -n "${RESP:-}" ]]; then
+              # save a sanitized copy of the response (remove token field) for safe debugging
+              echo "$RESP" | jq 'del(.token) // .' > /tmp/oidc_raw_resp.json 2>/dev/null || echo "{}" > /tmp/oidc_raw_resp.json || true
               echo "$RESP" > /tmp/oidc_resp.txt || true
               TOK=$(echo "$RESP" | jq -r '.token // empty' 2>/dev/null || echo "")
               if [[ -n "$TOK" ]]; then
@@ -43,7 +45,8 @@ jobs:
           done
           if [[ -z "${TOK:-}" ]]; then
             echo "No token obtained after retries" > /tmp/oidc_error.txt || true
-            echo '{"status":"no_token"}' > /tmp/oidc_resp.txt || true
+            # preserve raw response but indicate no token
+            jq '. + {status: "no_token"}' /tmp/oidc_raw_resp.json > /tmp/oidc_resp.txt 2>/dev/null || echo '{"status":"no_token"}' > /tmp/oidc_resp.txt || true
           fi
 
       - name: Upload debug artifact
@@ -51,6 +54,7 @@ jobs:
         with:
           name: oidc-hosted-debug
           path: |
+            /tmp/oidc_raw_resp.json
             /tmp/oidc_resp.txt
             /tmp/oidc_token_present.txt
             /tmp/oidc_token_len.txt
