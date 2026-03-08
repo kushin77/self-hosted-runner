@@ -169,8 +169,7 @@ Steps:
 4. Set repository secrets:
    - `GCP_PROJECT_ID`
    - `GCP_WORKLOAD_IDENTITY_PROVIDER`
-   - `GCP_SERVICE_ACCOUNT_EMAIL`
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 **Helper:** Run `infra/setup-secrets-orchestration.sh` (idempotent) or follow Terraform template `infra/gcp-workload-identity.tf`
 
 ### Task 2: Deploy & Configure Vault

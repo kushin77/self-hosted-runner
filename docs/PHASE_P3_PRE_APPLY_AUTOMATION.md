@@ -123,7 +123,7 @@ This document describes the fully automated Phase P3 pre-apply verification syst
 - Can be integrated with terraform apply workflow
 
 **Validation Checks**:
-1. ✅ `GCP_SERVICE_ACCOUNT_EMAIL` secret set
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 2. ✅ `GCP_PROJECT_ID` secret set  
 3. ✅ `GCP_WORKLOAD_IDENTITY_PROVIDER` optional check
 4. ✅ Service account format valid
@@ -329,7 +329,7 @@ STAGE 4A: Terraform Validation
   ✅ --> Orchestrator logs show "valid=true"
 
 STAGE 4B: GCP Permissions
-  ☐ GCP_SERVICE_ACCOUNT_EMAIL secret set
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
   ☐ GCP_PROJECT_ID secret set
   ☐ Service account exists in GCP
   ☐ IAM roles verified (manual in GCP Console)

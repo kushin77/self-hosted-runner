@@ -126,11 +126,11 @@ Actions:
 │                        GitHub Repository                        │
 │ ┌──────────────────────────────────────────────────────────┐  │
 │ │ GitHub Secrets Tab                                       │  │
-│ │ - GCP_SERVICE_ACCOUNT_KEY                                │  │
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 │ │ - GCP_PROJECT_ID                                         │  │
 │ │ - AWS_OIDC_ROLE_ARN                                      │  │
 │ │ - SLACK_BOT_TOKEN                                        │  │
-│ │ - VAULT_TOKEN                                            │  │
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 │ └────────┬──────────────────────────────────────────────────┘  │
 │          │ Every 15 min (sync workflow)                        │
 │          ↓                                                      │
@@ -274,7 +274,7 @@ gh secret set SLACK_BOT_TOKEN --body "xoxb-your-token"
 
 # Vault (if using Vault integration)
 gh secret set VAULT_ADDR --body "https://vault.example.com"
-gh secret set VAULT_TOKEN --body "your-vault-token"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ```
 
 ### Step 3: Verify Setup

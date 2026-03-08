@@ -34,5 +34,5 @@ Operational notes
 - Consider using Vault Agent or AppRole login in your runtime environment for more secure token handling.
 
 Troubleshooting
-- If `vault-handoff.sh` fails, verify Vault connectivity and that `VAULT_TOKEN` for an admin user is present.
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - See `scripts/automation/pmo/vault-handoff.sh` for CLI logic and explicit commands used.
