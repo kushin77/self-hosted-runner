@@ -14,8 +14,9 @@ lightweight circuit breaker. Designed to be idempotent and safe for
 automation use. Secrets/credentials are not stored here; integration points
 for GSM/VAULT/KMS should be added by the deployment layer.
 
-Key features:
+- Key features:
 - Exponential backoff with jitter
 - Pluggable transient/permanent error classifier
 - Circuit breaker with reset timeout
+
 >>>>>>> 2e570800c (feat(retry): implement RetryEngine (backoff + circuit breaker) + tests)
