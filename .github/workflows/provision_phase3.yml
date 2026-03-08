@@ -155,19 +155,17 @@ jobs:
       - name: Authenticate to Google Cloud
         id: read_creds
         run: |
-          # Read and output credentials for subsequent actions
-          echo "credentials=$(cat /tmp/gcp-sa-key.json | jq -c '.')" >> $GITHUB_OUTPUT
-
-      - name: Setup Google Cloud Auth
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ steps.read_creds.outputs.credentials }}
-          cleanup_credentials: true
+          # Read and output credentials for cleanup if needed
+          GCP_EMAIL=$(jq -r '.client_email' /tmp/gcp-sa-key.json)
+          echo "✅ Using service account: $GCP_EMAIL"
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          version: 'latest'
+          install_components: 'gke-gcloud-auth-plugin'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-sa-key.json
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
