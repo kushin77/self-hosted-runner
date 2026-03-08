@@ -1,0 +1,7 @@
+{"timestamp": "2026-03-08T23:03:58.126150", "event_type": "deployment_start", "component_id": "migrate-to-gsm", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T23:03:58.247051", "event_type": "deployment_success", "component_id": "migrate-to-gsm", "status": "completed", "details": {}, "error": null}
+{"timestamp": "2026-03-08T23:03:58.247867", "event_type": "deployment_start", "component_id": "migrate-to-vault", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T23:03:58.373497", "event_type": "deployment_success", "component_id": "migrate-to-vault", "status": "completed", "details": {}, "error": null}
+{"timestamp": "2026-03-08T23:03:58.373779", "event_type": "deployment_start", "component_id": "migrate-to-kms", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T23:04:08.471681", "event_type": "step_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {"step": "setup-wif"}, "error": null}
+{"timestamp": "2026-03-08T23:04:08.472264", "event_type": "deployment_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {}, "error": "Step failed: setup-wif"}
