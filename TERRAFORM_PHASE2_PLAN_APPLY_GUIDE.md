@@ -36,8 +36,8 @@ Configure these secrets in **Settings → Secrets and Variables → Actions:**
 - `GCP_PROJECT_ID` — GCP project ID containing GSM
 
 **Alternatively**, provide directly:
-- `AWS_ACCESS_KEY_ID` — AWS access key ID
-- `AWS_SECRET_ACCESS_KEY` — AWS secret access key  
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - `AWS_REGION` — AWS region (default: `us-east-1`)
 
 ### Terraform Variables (Required)

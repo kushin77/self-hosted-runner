@@ -5,8 +5,7 @@ set -euo pipefail
 # Usage: cat key.json | ./scripts/ingest-gcp-key-safe.sh --repo owner/repo --secret-name GCP_SERVICE_ACCOUNT_KEY
 
 REPO=""
-SECRET_NAME="GCP_SERVICE_ACCOUNT_KEY"
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 usage() {
   cat <<EOF
 Usage: cat key.json | $0 --repo owner/repo [--secret-name NAME]

@@ -50,7 +50,7 @@ All Phase 3 infrastructure provisioning code is deployed to main and ready for i
 ```bash
 # GitHub UI: Settings → Secrets and variables → Actions
 
-GCP_SERVICE_ACCOUNT_KEY: <your-service-account-key.json>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 GCP_PROJECT_ID: <your-gcp-project-id>
 ```
 

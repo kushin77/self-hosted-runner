@@ -247,10 +247,9 @@ Timestamp       | Service | Action           | Status | Details
 ```
 # GCP
 GCP_PROJECT_ID
-GCP_SERVICE_ACCOUNT_EMAIL
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 GCP_WORKLOAD_IDENTITY_PROVIDER
-GCP_SERVICE_ACCOUNT_KEY
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # AWS
 AWS_ROLE_TO_ASSUME
 
@@ -345,8 +344,7 @@ gh run view --log (latest run)
 **Solution**:
 ```bash
 # 1. Verify GCP service account email
-gh secret get GCP_SERVICE_ACCOUNT_EMAIL
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # 2. Test GCP access
 gcloud auth list
 
@@ -371,7 +369,7 @@ vault write -field=token auth/approle/login \
   role_id=$VAULT_ROLE_ID secret_id=$VAULT_SECRET_ID
 
 # 5. Update GitHub secret manually
-gh secret set VAULT_TOKEN --body "new-token"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 ```
 
 ---

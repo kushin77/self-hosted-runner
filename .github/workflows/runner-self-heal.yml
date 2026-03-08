@@ -44,7 +44,7 @@ jobs:
             echo "::warning ::RUNNER_MGMT_TOKEN not found. Using GITHUB_TOKEN fallback (may result in 403 Forbidden for runner management)."
           fi
 
-          # Use PAT if available for administration access, otherwise fallback to GITHUB_TOKEN
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
           runners_json=$(retry_command 5 10 sh -c "gh api /repos/${{ github.repository }}/actions/runners" || echo '{"runners":[]}')
           RETVAL=$?
 
@@ -67,7 +67,7 @@ jobs:
               rm -f /tmp/gcp_sa.json
               echo "::endgroup::"
             else
-              echo "::warning::GCP_SERVICE_ACCOUNT_KEY or GCP_PROJECT_ID not configured; skipping GSM fallback"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
             fi
           fi
 

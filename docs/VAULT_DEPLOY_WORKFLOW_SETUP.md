@@ -38,8 +38,7 @@ cat deploy_id_rsa.pub
 ```bash
 # SSH to Vault server or use Vault CLI with auth
 export VAULT_ADDR=https://vault.internal.company.com:8200
-export VAULT_TOKEN=<your-vault-admin-token>
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Enable AppRole if not already enabled
 vault auth enable approle 2>/dev/null || true
 ```
