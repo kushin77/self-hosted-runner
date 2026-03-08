@@ -48,13 +48,6 @@ on:
         default: 'validate'
       dry_run:
         description: 'Dry-run mode (no state changes)'
-        required: false
-        default: 'false'
-
-permissions:
-  contents: read
-  id-token: write
-  actions: write
   issues: write
   pull-requests: read
 
