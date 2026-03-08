@@ -1,0 +1,166 @@
+# GOVERNANCE_ALLOWLIST.yaml
+# Whitelist of approved operations & repositories for restricted triggers
+# Maintained by: Security Team
+# Last Updated: 2026-03-08
+
+# Repository dispatch events (restricted by default)
+repository_dispatch:
+  # Allowed event types
+  events:
+    - name: infrastructure-emergency-deploy
+      allowed_actors: [kushin77]
+      description: "Emergency infrastructure deployment (requires approval)"
+      max_per_day: 3
+    
+    - name: credential-emergency-rotation
+      allowed_actors: [kushin77]
+      description: "Emergency credential rotation (security incident)"
+      max_per_day: 5
+    
+    - name: incident-remediation-dispatch
+      allowed_actors: [kushin77]
+      description: "Auto-remediation for active incidents"
+      max_per_day: 10
+
+# Workflows allowed to trigger other workflows via workflow_run
+workflow_run:
+  allowed_upstreams:
+    - E2E Validate & Hands-off Deploy
+    - Full Deployment Orchestration
+    - Terraform Auto Apply (Automated, Credential-driven)
+    - Phase P3 Pre-Apply Orchestrator
+    - GCP GSM Secrets Sync
+    - Credential Rotation (Weekly)
+
+  forbidden_combinations:
+    # Prevent conflicts between concurrent deploy orchestrators
+    - [Full Deployment Orchestration, Terraform Auto Apply (Automated, Credential-driven)]
+    - [Remediation Dispatcher (fallback), Full Deployment Orchestration]
+
+# Secrets: Allowed to be inherited via workflow_call
+secrets_inheritance:
+  allowed_workflows:
+    - terraform-apply
+    - credential-rotation
+    - infrastructure-deploy
+  
+  forbidden:
+    - Any workflow touching documentation only
+    - Test/lint workflows that don't deploy
+  
+  override_requires: securityteam approval
+
+# Concurrency groups: Required for high-risk operations
+concurrency_enforcement:
+  deploy_jobs:
+    pattern: ".*-apply|.*-deploy|.*-rotate"
+    required: true
+    cancel_in_progress: false  # Never cancel mid-deployment
+  
+  test_jobs:
+    pattern: "test|lint|validate"
+    recommended: true
+    cancel_in_progress: true   # Save resources
+
+# Approval gates: Override rules
+approval_overrides:
+  exceptions:
+    - name: "P0 Emergency Deploy"
+      duration: 72  # hours
+      requires_approval: [security-lead, ops-lead]
+      auto_expires: true
+    
+    - name: "Credential Leak Rollback"
+      duration: 24  # hours
+      requires_approval: [security-lead]
+      auto_expires: true
+
+# Runner selection rules
+runner_policy:
+  default: ubuntu-latest
+  
+  deploy_jobs:
+    allowed: [ubuntu-latest, self-hosted]
+    recommended: self-hosted
+  
+  test_jobs:
+    allowed: [ubuntu-latest]
+  
+  cost_sensitive_jobs:
+    use_self_hosted: true
+    reason: "Reduce GitHub-hosted runner costs"
+
+# Schedule frequency limits
+schedule_limits:
+  max_frequency: 30  # minutes
+  
+  exceptions:
+    critical_health_check:
+      frequency: 5  # minutes
+      reason: "Real-time monitoring of critical infrastructure"
+      approval_required: true
+    
+    credential_sync:
+      frequency: 15  # minutes
+      reason: "Keep secrets in sync across systems"
+
+# CODEOWNERS enforcement
+codeowners:
+  enforcement: mandatory
+  required_for_paths:
+    - .github/workflows/
+    - terraform/
+    - .github/governance/
+    - scripts/ops/
+
+# Branch protection rules (auto-enforced)
+branch_protection:
+  branch: main
+  required_checks:
+    - policy-enforcement-gate
+    - governance-audit-report
+  require_codeowners_review: true
+  require_status_checks: true
+  allow_force_push: false
+  allow_deletions: false
+
+# Remediation policies (auto-triggered)
+remediation:
+  policy_violation:
+    auto_remediate: true
+    examples:
+      - "Workflow missing permissions: block"
+      - "Hardcoded secret detected: block PR"
+      - "Branch protection bypassed: auto-revert"
+  
+  failed_approval:
+    auto_remediate: false
+    escalate_to: security-lead
+
+# Audit & logging requirements
+audit:
+  mandatory_for:
+    - deploy workflows
+    - credential operations
+    - approval decisions
+  
+  retention:
+    logs: 365  # days
+    compliance_reports: 730  # days
+    incident_records: indefinite
+  
+  alerting:
+    critical_violations: immediate
+    policy_deviations: real-time
+    compliance_gaps: daily
+
+# Version & approval tracking
+metadata:
+  version: "1.0"
+  approved_by: "Security Team"
+  effective_date: "2026-03-08"
+  next_review: "2026-04-08"
+  changelog:
+    - date: "2026-03-08"
+      change: "Initial governance allowlist creation"
+      approved_by: "Integration"
