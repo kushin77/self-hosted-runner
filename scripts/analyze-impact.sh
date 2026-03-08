@@ -1,274 +1,246 @@
 #!/bin/bash
 #
-# analyze-impact.sh - Analyze impact of changing/breaking an item
+# analyze-impact.sh - Impact analysis and blast-radius computation (IDEMPOTENT, NO-OPS)
+#
+# Computes blast radius of changes to metadata items.
+# - Idempotent: reads metadata, outputs analysis (no side effects)
+# - No-ops: pure analysis, no mutations
+# - Automated: can be called from CI/CD
 #
 # Usage:
-#   bash scripts/analyze-impact.sh --workflow terraform-apply
-#   bash scripts/analyze-impact.sh --script deploy-full-stack.sh
-#   bash scripts/analyze-impact.sh --secret AWS_OIDC_ROLE_ARN
+#   ./scripts/analyze-impact.sh <changed-item-id> [--json] [--risk-only]
 #
-# Output: Full impact analysis with downstream effects
+# Examples:
+#   ./scripts/analyze-impact.sh aws-credentials
+#   ./scripts/analyze-impact.sh deployment --json
+#   ./scripts/analyze-impact.sh terraform-apply --risk-only
 #
 
 set -euo pipefail
 
-ITEM_TYPE=""
-ITEM_NAME=""
 METADATA_DIR="metadata"
-OUTPUT_FORMAT="text"
+CHANGED_ID="${1:-}"
+OUTPUT_MODE="${2:-text}"
 
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-PURPLE='\033[0;35m'
+MAGENTA='\033[0;35m'
 NC='\033[0m'
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --workflow)
-            ITEM_TYPE="workflow"
-            ITEM_NAME="$2"
-            shift 2
-            ;;
-        --script)
-            ITEM_TYPE="script"
-            ITEM_NAME="$2"
-            shift 2
-            ;;
-        --secret)
-            ITEM_TYPE="secret"
-            ITEM_NAME="$2"
-            shift 2
-            ;;
-        --config)
-            ITEM_TYPE="config"
-            ITEM_NAME="$2"
-            shift 2
-            ;;
-        --json)
-            OUTPUT_FORMAT="json"
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Use: --workflow NAME, --script FILE, --secret NAME, --config NAME"
-            exit 1
-            ;;
-    esac
-done
+if [[ -z "$CHANGED_ID" ]]; then
+    cat << 'HELP'
+analyze-impact.sh - Idempotent impact analysis tool
 
-if [[ -z "$ITEM_TYPE" || -z "$ITEM_NAME" ]]; then
-    echo "Error: Must specify --workflow, --script, --secret, or --config"
-    exit 1
+Usage: analyze-impact.sh <changed-item-id> [--json | --risk-only]
+
+Computes blast radius of changes to metadata items.
+
+Examples:
+  ./scripts/analyze-impact.sh aws-credentials
+  ./scripts/analyze-impact.sh deployment --json
+  ./scripts/analyze-impact.sh terraform-apply --risk-only
+
+Output modes:
+  default (text)    - Human-readable report
+  --json            - Machine-readable JSON
+  --risk-only       - Risk score only (numeric)
+HELP
+    exit 0
 fi
 
 # ============================================================================
-# HELPER FUNCTIONS
+# Validation & Data Gathering (read-only, idempotent)
 # ============================================================================
 
-find_item_in_metadata() {
-    local type=$1
-    local name=$2
-    
-    if [[ "$type" == "workflow" ]]; then
-        jq ".workflows[] | select(.name == \"$name\" or .id == \"$name\")" "$METADATA_DIR/items.json" 2>/dev/null || echo "null"
-    elif [[ "$type" == "script" ]]; then
-        jq ".scripts[] | select(.name == \"$name\" or .id == \"$name\" or .file == \"$name\")" "$METADATA_DIR/items.json" 2>/dev/null || echo "null"
-    elif [[ "$type" == "secret" ]]; then
-        jq ".secrets[] | select(.id == \"$name\")" "$METADATA_DIR/items.json" 2>/dev/null || echo "null"
-    elif [[ "$type" == "config" ]]; then
-        jq ".configuration[] | select(.id == \"$name\")" "$METADATA_DIR/items.json" 2>/dev/null || echo "null"
-    fi
-}
+# Check if item exists in any collection
+ITEM_CHECK=$(jq -r --arg id "$CHANGED_ID" '
+    ((.workflows[]? | select(.id == $id) | .id) // 
+     (.scripts[]? | select(.id == $id) | .id) // 
+     (.secrets[]? | select(.id == $id) | .id)) | 
+    if . then "found" else "notfound" end
+' "$METADATA_DIR/items.json" 2>/dev/null)
 
-get_impacts() {
-    local type=$1
-    local name=$2
-    
-    jq ".impact_paths[] | select(.trigger | contains(\"$name\"))" "$METADATA_DIR/dependencies.json" 2>/dev/null || echo ""
-}
+if [[ "$ITEM_CHECK" != "found" ]]; then
+    echo -e "${RED}✗ Item not found: $CHANGED_ID${NC}" >&2
+    exit 1
+fi
 
-get_dependents() {
-    local type=$1
-    local name=$2
-    
-    if [[ "$type" == "workflow" ]]; then
-        jq ".dependencies[] | select(.to | contains(\"$name\"))" "$METADATA_DIR/dependencies.json" 2>/dev/null
-    elif [[ "$type" == "script" ]]; then
-        jq ".dependencies[] | select(.to | contains(\"$name\"))" "$METADATA_DIR/dependencies.json" 2>/dev/null
-    elif [[ "$type" == "secret" ]]; then
-        jq ".dependencies[] | select(.to == \"$name\")" "$METADATA_DIR/dependencies.json" 2>/dev/null
-    fi
-}
+# Determine item type and get details
+ITEM_TYPE=$(jq -r --arg id "$CHANGED_ID" '
+    if (.workflows[] | select(.id == $id) | .id) then "workflow"
+    elif (.scripts[] | select(.id == $id) | .id) then "script"  
+    elif (.secrets[] | select(.id == $id) | .id) then "secret"
+    else "unknown"
+    end
+' "$METADATA_DIR/items.json" 2>/dev/null | head -1)
 
-# ============================================================================
-# TEXT OUTPUT
-# ============================================================================
+ITEM_RISK=$(jq -r --arg id "$CHANGED_ID" '
+    (.workflows[] | select(.id == $id) | .risk_level //
+     .scripts[] | select(.id == $id) | .risk_level //
+     .secrets[] | select(.id == $id) | .risk_level //
+     "UNKNOWN") | first
+' "$METADATA_DIR/items.json" 2>/dev/null)
 
-output_impact_analysis_text() {
-    local type=$1
-    local name=$2
-    
-    echo ""
-    echo -e "${BLUE}╔══════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BLUE}║ IMPACT ANALYSIS: $type - $name${NC}"
-    echo -e "${BLUE}╚══════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    
-    # Find in metadata
-    local item=$(find_item_in_metadata "$type" "$name")
-    
-    if [[ "$item" == "null" || -z "$item" ]]; then
-        echo -e "${RED}❌ Item not found in metadata: $name${NC}"
-        echo ""
-        echo "Searched for:"
-        if [[ "$type" == "workflow" ]]; then
-            echo "  - Workflow name: $name"
-            echo "  - Workflow ID: $name"
-            jq '.workflows[].name' "$METADATA_DIR/items.json" 2>/dev/null | head -5 | sed 's/^/  Available: /'
-        elif [[ "$type" == "script" ]]; then
-            echo "  - Script name: $name"
-            echo "  - Script file: $name"
-            jq '.scripts[].name' "$METADATA_DIR/items.json" 2>/dev/null | head -5 | sed 's/^/  Available: /'
-        fi
-        exit 1
-    fi
-    
-    # Get owner
-    local owner=$(echo "$item" | jq -r '.owner // "unknown"')
-    local description=$(echo "$item" | jq -r '.description // ""')
-    local risk=$(echo "$item" | jq -r '.risk_level // "UNKNOWN"')
-    
-    # Color code risk
-    local risk_color=$NC
-    if [[ "$risk" == "CRITICAL" ]]; then
-        risk_color=$RED
-    elif [[ "$risk" == "HIGH" ]]; then
-        risk_color=$YELLOW
-    fi
-    
-    echo -e "📌 ${BLUE}Item Details${NC}"
-    echo "   Owner: $owner"
-    echo "   Risk Level: ${risk_color}$risk${NC}"
-    echo "   Description: $description"
-    echo ""
-    
-    # Get dependencies
-    echo -e "📊 ${BLUE}Direct Dependencies${NC} (what this depends on)"
-    if [[ "$type" == "workflow" ]]; then
-        local deps=$(echo "$item" | jq -r '.dependencies.scripts[]? // empty' 2>/dev/null)
-        if [[ -n "$deps" ]]; then
-            echo "   Scripts:"
-            echo "$deps" | sed 's/^/     - /'
-        fi
-        
-        local sec=$(echo "$item" | jq -r '.dependencies.secrets[]? // empty' 2>/dev/null)
-        if [[ -n "$sec" ]]; then
-            echo "   Secrets:"
-            echo "$sec" | sed 's/^/     - /'
-        fi
-    fi
-    echo ""
-    
-    # Get downstream impacts
-    echo -e "⚠️  ${BLUE}Downstream Impact${NC} (what breaks if this fails)"
-    local impacts=$(get_impacts "$type" "$name")
-    if [[ -n "$impacts" ]]; then
-        echo "$impacts" | jq -r '.impact[]? // empty' | sed 's/^/   - /'
-        echo ""
-        echo "   Time to detect: $(echo "$impacts" | jq -r '.time_to_detect // "unknown"')"
-        echo "   Time to fix: $(echo "$impacts" | jq -r '.time_to_fix // "unknown"')"
-        echo "   Severity: $(echo "$impacts" | jq -r '.severity // "unknown"')"
-    else
-        echo "   ✓ No direct downstream impacts documented"
-    fi
-    echo ""
-    
-    # Get dependents
-    echo -e "🔗 ${BLUE}Dependent Items${NC} (what uses this)"
-    local dependents=$(get_dependents "$type" "$name")
-    if [[ -n "$dependents" ]]; then
-        echo "$dependents" | jq -r '.from' | sort -u | sed 's/^/   - /'
-    else
-        echo "   ✓ Nothing documented as depending on this"
-    fi
-    echo ""
-    
-    # Risk assessment
-    echo -e "⚡ ${BLUE}Risk Assessment${NC}"
-    if [[ "$risk" == "CRITICAL" ]]; then
-        echo -e "   ${RED}🚨 CRITICAL ITEM - Changes require:${NC}"
-        echo "      • Full impact analysis"
-        echo "      • Owner approval (@$owner)"
-        echo "      • Oncall team notification"
-        echo "      • Runbook review"
-    elif [[ "$risk" == "HIGH" ]]; then
-        echo -e "   ${YELLOW}⚠️  HIGH RISK - Changes require:${NC}"
-        echo "      • Owner review (@$owner)"
-        echo "      • Testing in staging"
-    else
-        echo "   ✓ Low risk - standard PR process"
-    fi
-    echo ""
-    
-    # Recommendations
-    echo -e "💡 ${BLUE}Recommendations${NC}"
-    if [[ "$ITEM_TYPE" == "secret" ]]; then
-        local rotation=$(echo "$item" | jq -r '.rotation_schedule // "unknown"')
-        echo "   • Rotation schedule: $rotation"
-        echo "   • Check expiration date"
-        echo "   • Document all callers"
-    elif [[ "$ITEM_TYPE" == "workflow" ]]; then
-        echo "   • Update all dependent items if renaming"
-        echo "   • Test in staging before merging"
-        echo "   • Notify @$owner before major changes"
-    elif [[ "$ITEM_TYPE" == "script" ]]; then
-        echo "   • Check all callers if interface changes"
-        echo "   • Maintain backward compatibility"
-        echo "   • Update documentation in metadata"
-    fi
-    echo ""
-    
-    echo -e "${GREEN}✓ Analysis complete${NC}"
-    echo ""
-}
+ITEM_OWNER=$(jq -r --arg id "$CHANGED_ID" '
+    (.workflows[] | select(.id == $id) | .owner //
+     .scripts[] | select(.id == $id) | .owner //
+     .secrets[] | select(.id == $id) | .owner //
+     "unassigned") | first
+' "$METADATA_DIR/items.json" 2>/dev/null)
+
+# Find direct dependents (workflows/scripts that depend on this item)
+DIRECT_DEPENDENTS=$(jq -r --arg id "$CHANGED_ID" '.dependencies[] | select(.to == $id) | .from' "$METADATA_DIR/dependencies.json" | sort -u)
+DIRECT_COUNT=$(echo "$DIRECT_DEPENDENTS" | grep -c . || true)
+
+# Find transitive dependents (second-order effects)
+TRANSITIVE_DEPENDENTS=""
+for dep in $DIRECT_DEPENDENTS; do
+    TRANSITIVE=$(jq -r --arg id "$dep" '.dependencies[] | select(.to == $id) | .from' "$METADATA_DIR/dependencies.json" | sort -u)
+    [[ -n "$TRANSITIVE" ]] && TRANSITIVE_DEPENDENTS="$TRANSITIVE_DEPENDENTS${TRANSITIVE}
+"
+done
+TRANSITIVE_DEPENDENTS=$(echo "$TRANSITIVE_DEPENDENTS" | sort -u | sed '/^$/d')
+TRANSITIVE_COUNT=$(echo "$TRANSITIVE_DEPENDENTS" | grep -c . || true)
+
+# Find items this depends on (to understand cascading failures)
+DEPENDENCIES=$(jq -r --arg id "$CHANGED_ID" '.dependencies[] | select(.from == $id) | .to' "$METADATA_DIR/dependencies.json" | sort -u)
+DEP_COUNT=$(echo "$DEPENDENCIES" | grep -c . || true)
 
 # ============================================================================
-# JSON OUTPUT
+# Risk Scoring (idempotent formula)
 # ============================================================================
 
-output_impact_analysis_json() {
-    local type=$1
-    local name=$2
-    
-    local item=$(find_item_in_metadata "$type" "$name")
-    local impacts=$(get_impacts "$type" "$name")
-    local dependents=$(get_dependents "$type" "$name")
-    
-    cat <<EOF
-{
-  "item": {
-    "type": "$type",
-    "name": "$name",
-    "data": $item
-  },
-  "impacts": $impacts,
-  "dependents": $dependents,
-  "risk_level": "$(echo "$item" | jq -r '.risk_level // "UNKNOWN"')",
-  "owner": "$(echo "$item" | jq -r '.owner // "unknown"')"
-}
-EOF
-}
+RISK_BASE=0
+case "$ITEM_RISK" in
+    CRITICAL) RISK_BASE=40 ;;
+    HIGH) RISK_BASE=25 ;;
+    MEDIUM) RISK_BASE=15 ;;
+    LOW) RISK_BASE=5 ;;
+    *) RISK_BASE=10 ;;
+esac
 
-# ============================================================================
-# MAIN
-# ============================================================================
+# Impact multiplier based on dependents
+RISK_IMPACT=$((DIRECT_COUNT * 10 + TRANSITIVE_COUNT * 3))
+RISK_SCORE=$((RISK_BASE + RISK_IMPACT))
+[[ $RISK_SCORE -gt 100 ]] && RISK_SCORE=100
 
-if [[ "$OUTPUT_FORMAT" == "json" ]]; then
-    output_impact_analysis_json "$ITEM_TYPE" "$ITEM_NAME"
+# Severity classification (immutable logic)
+if [[ $RISK_SCORE -ge 75 ]]; then
+    SEVERITY="CRITICAL"
+elif [[ $RISK_SCORE -ge 50 ]]; then
+    SEVERITY="HIGH"
+elif [[ $RISK_SCORE -ge 25 ]]; then
+    SEVERITY="MEDIUM"
 else
-    output_impact_analysis_text "$ITEM_TYPE" "$ITEM_NAME"
+    SEVERITY="LOW"
+fi
+
+# ============================================================================
+# Output Generation (idempotent, no mutations)
+# ============================================================================
+
+if [[ "$OUTPUT_MODE" == "--json" ]]; then
+    # Machine-readable JSON
+    jq -n \
+        --arg id "$CHANGED_ID" \
+        --arg type "$ITEM_TYPE" \
+        --arg risk "$ITEM_RISK" \
+        --arg owner "$ITEM_OWNER" \
+        --argjson direct_count "$DIRECT_COUNT" \
+        --argjson transitive_count "$TRANSITIVE_COUNT" \
+        --argjson dependency_count "$DEP_COUNT" \
+        --argjson risk_score "$RISK_SCORE" \
+        --arg severity "$SEVERITY" \
+        --arg direct_deps "$DIRECT_DEPENDENTS" \
+        --arg transitive_deps "$TRANSITIVE_DEPENDENTS" \
+        --arg dependencies "$DEPENDENCIES" \
+        '{
+            item: {
+                id: $id,
+                type: $type,
+                risk_level: $risk,
+                owner: $owner
+            },
+            blast_radius: {
+                direct_affected: $direct_count,
+                transitive_affected: $transitive_count,
+                total_affected: ($direct_count + $transitive_count),
+                dependencies: $dependency_count
+            },
+            risk_assessment: {
+                score: $risk_score,
+                severity: $severity,
+                formula: "base(risk_level) + (direct_dependents × 10) + (transitive_dependents × 3)"
+            },
+            affected_items: {
+                direct: ($direct_deps | split("\n") | map(select(length > 0))),
+                transitive: ($transitive_deps | split("\n") | map(select(length > 0)))
+            },
+            dependencies: ($dependencies | split("\n") | map(select(length > 0)))
+        }'
+elif [[ "$OUTPUT_MODE" == "--risk-only" ]]; then
+    # Just the score (for automated CI gates)
+    echo "$RISK_SCORE"
+else
+    # Human-readable text output
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║ IMPACT ANALYSIS${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${MAGENTA}Changed Item:${NC}"
+    echo "  ID:           $CHANGED_ID"
+    echo "  Type:         $ITEM_TYPE"
+    echo "  Risk Level:   $ITEM_RISK"
+    echo "  Owner:        $ITEM_OWNER"
+    echo ""
+    echo -e "${MAGENTA}Blast Radius:${NC}"
+    echo "  Direct Affects:      $DIRECT_COUNT items"
+    echo "  Transitive Affects:  $TRANSITIVE_COUNT items"
+    echo "  Total Affected:      $((DIRECT_COUNT + TRANSITIVE_COUNT)) items"
+    echo "  Dependencies On:     $DEP_COUNT items"
+    echo ""
+    
+    if [[ $DIRECT_COUNT -gt 0 ]]; then
+        echo -e "${MAGENTA}Directly Affected (depend on $CHANGED_ID):${NC}"
+        echo "$DIRECT_DEPENDENTS" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    if [[ $TRANSITIVE_COUNT -gt 0 ]]; then
+        echo -e "${MAGENTA}Transitively Affected (depend on above):${NC}"
+        echo "$TRANSITIVE_DEPENDENTS" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    if [[ $DEP_COUNT -gt 0 ]]; then
+        echo -e "${MAGENTA}Dependencies (this item depends on):${NC}"
+        echo "$DEPENDENCIES" | sed 's/^/  • /'
+        echo ""
+    fi
+    
+    echo -e "${MAGENTA}Risk Assessment:${NC}"
+    if [[ "$SEVERITY" == "CRITICAL" ]]; then
+        echo -e "  Severity:       ${RED}CRITICAL${NC}"
+    elif [[ "$SEVERITY" == "HIGH" ]]; then
+        echo -e "  Severity:       ${YELLOW}HIGH${NC}"
+    elif [[ "$SEVERITY" == "MEDIUM" ]]; then
+        echo -e "  Severity:       ${YELLOW}MEDIUM${NC}"
+    else
+        echo -e "  Severity:       ${GREEN}LOW${NC}"
+    fi
+    echo "  Risk Score:     $RISK_SCORE / 100"
+    echo "  Formula:        base($ITEM_RISK=$RISK_BASE) + impacts"
+    echo ""
+    
+    if [[ $((DIRECT_COUNT + TRANSITIVE_COUNT)) -gt 0 ]]; then
+        echo -e "${YELLOW}⚠  WARNING: Changes to this item affect $((DIRECT_COUNT + TRANSITIVE_COUNT)) dependent items${NC}"
+        echo "  - Perform regression testing on affected workflows"
+        echo "  - Review security implications with $ITEM_OWNER"
+        echo "  - Consider staged rollout for CRITICAL items"
+    else
+        echo -e "${GREEN}✓ Safe: No dependent items detected${NC}"
+    fi
 fi
