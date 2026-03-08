@@ -1,4 +1,8 @@
 name: "Phase 2: Automated Issue Management & Lifecycle"
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:
