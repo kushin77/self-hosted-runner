@@ -1,0 +1,152 @@
+name: 🚀 10X Enterprise Enhancements - À La Carte Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: "Deployment phase (P0|P1|P2|P3|ALL)"
+        required: true
+        default: "ALL"
+        type: choice
+        options:
+          - P0
+          - P1
+          - P2
+          - P3
+          - ALL
+      dry-run:
+        description: "Dry run mode (no changes applied)"
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PHASE: ${{ inputs.phase }}
+  DRY_RUN: ${{ inputs.dry-run }}
+
+jobs:
+  deploy-enhancements:
+    name: Deploy Phase ${{ inputs.phase }}
+    runs-on: [self-hosted, linux]
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔐 Authenticate to Vault
+        uses: hashicorp/vault-action@v2
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: github-actions
+          jwtPayload: ${{ secrets.VAULT_JWT }}
+          secretsFormat: env
+        continue-on-error: true
+
+      - name: 🔐 Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1
+        continue-on-error: true
+
+      - name: 🚀 Run Deployment Generator
+        run: |
+          chmod +x scripts/deploy-10x-enhancements.sh
+          ./scripts/deploy-10x-enhancements.sh --phase "${{ inputs.phase }}"
+
+      - name: 📊 Generate Deployment Status
+        id: status
+        run: |
+          echo "deployment_phase=${{ inputs.phase }}" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+          echo "dry_run=${{ inputs.dry-run }}" >> $GITHUB_OUTPUT
+
+      - name: 📝 Create Deployment Issue
+        if: ${{ !inputs.dry-run }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const phase = "${{ inputs.phase }}";
+            const timestamp = "${{ steps.status.outputs.timestamp }}";
+            
+            const body = `## 10X Deployment: Phase ${phase}
+              
+**Timestamp:** ${timestamp}
+**Triggered By:** @${{ github.actor }}
+**Workflow:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+### Deployment Summary
+
+- **Phase:** ${phase}
+- **Status:** ✅ In Progress
+- **Dry Run:** ${{ inputs.dry-run }}
+
+### Check Lists
+
+**P0 Foundation**
+- [x] Documentation consolidation (#1761)
+- [x] Code quality gates (#1760)
+- [x] DX accelerator (#1759)
+
+**P1 Consolidation**
+- [x] Workflow templates (#1775)
+- [ ] Metadata adoption
+- [ ] Workflow migration
+- [ ] Enforcement
+
+**P2 Safety**
+- [ ] Test framework
+- [ ] Config management
+- [ ] Supply chain security
+
+**P3 Excellence**
+- [ ] API documentation
+- [ ] Pipeline dashboard
+
+### Architecture Principles
+
+✅ Immutable | ✅ Ephemeral | ✅ Idempotent | ✅ Hands-Off | ✅ No-Ops | ✅ Multi-Cloud
+`;
+
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚀 10X Deployment: Phase ${phase} - ${timestamp}`,
+              body: body,
+              labels: ["10x-deployment", `phase-${phase.toLowerCase()}"]
+            });
+
+      - name: 📊 Upload Deployment Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-report-${{ inputs.phase }}
+          path: 10X_DEPLOYMENT_REPORT_*.md
+          retention-days: 90
+
+      - name: ✅ Deployment Summary
+        if: always()
+        run: |
+          echo "## ✅ Deployment Complete"
+          echo ""
+          echo "- **Phase:** ${{ inputs.phase }}"
+          echo "- **Dry Run:** ${{ inputs.dry-run }}"
+          echo "- **Timestamp:** ${{ steps.status.outputs.timestamp }}"
+          echo ""
+          echo "### Artifacts"
+          echo "- Deployment report: artifacts/deployment-report-${{ inputs.phase }}"
+          echo "- Logs: Check job output above"
+          echo ""
+          echo "### Next Steps"
+          echo "1. Review deployment report"
+          echo "2. Check GitHub issues created"
+          echo "3. Merge PRs when approved"
+          echo "4. Continue with next phase"

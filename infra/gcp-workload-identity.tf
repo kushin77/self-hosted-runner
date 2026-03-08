@@ -31,19 +31,19 @@ variable "github_repo_name" {
 # Workload Identity Pool
 resource "google_iam_workload_identity_pool" "github" {
   workload_identity_pool_id = "github-pool"
-  location                  = "global"
   display_name              = "GitHub Actions"
   description               = "Workload Identity Pool for GitHub Actions OIDC"
   disabled                  = false
+  project                   = var.gcp_project_id
 }
 
 # OIDC Provider
 resource "google_iam_workload_identity_pool_provider" "github_provider" {
   workload_identity_pool_id          = google_iam_workload_identity_pool.github.workload_identity_pool_id
   workload_identity_pool_provider_id = "github-oidc"
-  location                           = "global"
   display_name                       = "GitHub OIDC Provider"
   disabled                           = false
+  project                            = var.gcp_project_id
 
   attribute_mapping = {
     "google.subject"       = "assertion.sub"
