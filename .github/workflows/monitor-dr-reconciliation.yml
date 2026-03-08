@@ -11,6 +11,11 @@ on:
   repository_dispatch:
     types: [dr-run-check, dr-reconciliation-trigger]
 
+permissions:
+  contents: read
+  issues: write
+  actions: write
+
 concurrency:
   group: monitor-dr-reconciliation-${{ github.ref }}
   cancel-in-progress: false
