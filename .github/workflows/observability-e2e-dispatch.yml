@@ -81,6 +81,16 @@ jobs:
           chmod +x run_e2e_ephemeral_test.sh
           ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_URL"
 
+      - name: Upload metrics artifact (guaranteed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            workflow_artifacts/metrics.json
+            **/workflow_artifacts/metrics.json
+            /tmp/observability-e2e.*/metrics.json
+
       - name: Run real endpoint test (PagerDuty)
         if: needs.secret-check.outputs.pagerduty_available == 'true' && (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
         env:
@@ -107,6 +117,16 @@ jobs:
           cd scripts/automation/pmo/prometheus
           chmod +x run_e2e_ephemeral_test.sh
           PAGERDUTY_SERVICE_KEY="$PD_KEY" ./run_e2e_ephemeral_test.sh --pagerduty-key "$PD_KEY"
+
+      - name: Upload metrics artifact (guaranteed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            workflow_artifacts/metrics.json
+            **/workflow_artifacts/metrics.json
+            /tmp/observability-e2e.*/metrics.json
 
       - name: Stage metrics for upload (ensure path exists)
         if: always()
