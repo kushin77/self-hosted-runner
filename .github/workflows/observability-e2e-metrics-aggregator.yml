@@ -1,0 +1,89 @@
+name: Observability E2E Metrics Aggregator
+
+on:
+  workflow_run:
+    workflows:
+      - "Observability E2E Mock Test"
+      - "Observability E2E Run (Real Receivers)"
+      - "Observability E2E Scheduled Run"
+    types: [completed]
+
+jobs:
+  aggregate-metrics:
+    name: Aggregate E2E Test Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
+          path: ./artifacts
+
+      - name: Collect and summarize metrics
+        run: |
+          set +e
+          echo "=== E2E Metrics Summary ==="
+          echo "Workflow: ${{ github.event.workflow_run.name }}"
+          echo "Status: ${{ github.event.workflow_run.conclusion }}"
+          echo "Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo ""
+          
+          # Find all metrics files and aggregate
+          METRICS_FOUND=0
+          for metrics_file in $(find ./artifacts -name "metrics.json" 2>/dev/null); do
+            if [ -f "$metrics_file" ]; then
+              METRICS_FOUND=$((METRICS_FOUND + 1))
+              echo "Metrics from: $(basename $(dirname "$metrics_file"))"
+              cat "$metrics_file" | jq '.' || cat "$metrics_file"
+              echo ""
+            fi
+          done
+          
+          if [ $METRICS_FOUND -eq 0 ]; then
+            echo "ℹ No metrics JSON files found in artifacts"
+          else
+            echo "✓ Collected $METRICS_FOUND metrics file(s)"
+          fi
+
+      - name: Store metrics for dashboard
+        if: always()
+        run: |
+          set +e
+          # Create a summary file for potential dashboard integration
+          SUMMARY_FILE="observability-e2e-metrics-$(date +%Y%m%d-%H%M%S).txt"
+          {
+            echo "Observability E2E Metrics Report"
+            echo "=================================="
+            echo "Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "Workflow: ${{ github.event.workflow_run.name }}"
+            echo "Conclusion: ${{ github.event.workflow_run.conclusion }}"
+            echo "Run URL: ${{ github.event.workflow_run.html_url }}"
+            echo ""
+            echo "Artifacts Summary:"
+            find ./artifacts -type f -name "*.json" | wc -l | xargs echo "  JSON files found:"
+            find ./artifacts -type f -name "*.log" | wc -l | xargs echo "  LOG files found:"
+          } > "$SUMMARY_FILE"
+          [ -f "$SUMMARY_FILE" ] && cat "$SUMMARY_FILE" || true
+
+      - name: Post metrics comment
+        if: github.event.workflow_run.conclusion == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const run = context.payload.workflow_run
+            const body = `✅ **Observability E2E Test Passed**\n\n- Workflow: ${run.name}\n- Status: ${run.conclusion}\n- Timestamp: ${new Date().toISOString()}\n\nMetrics and artifacts available in the workflow run.`
+            
+            // Post comment only if this is a scheduled run
+            if (run.name.includes('Scheduled')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: 1366, // Automation completion issue
+                body: body
+              })
+            }
+
