@@ -7,6 +7,11 @@ on:
     types: [ingestion-detected, ingestion-check]
 
 permissions:
+  contents: read
+  actions: write
+  issues: write
+
+permissions:
   issues: write
   contents: read
   actions: read
