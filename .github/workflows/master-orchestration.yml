@@ -19,6 +19,9 @@ on:
     types:
       - gcp-secret-manager-sync-complete
       - credentials-rotated
+      - gsm-sync
+      - credential-change
+      - remediation-request
   
   # Trigger 2: Scheduled checks (health + validation only, not deployment)
   schedule:
