@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "name": "10X Enterprise - Container Image Signing",
+    "description": "Cosign Configuration for OCI Image Signing and Verification",
+    "lifecycle": {
+      "phase": "P2-Safety"
+    }
+  },
+  "cosign": {
+    "version": ">=2.0.0",
+    "key_management": {
+      "provider": "vault",
+      "key_type": "ecdsa-p256",
+      "rotation": {
+        "interval": "90-days",
+        "strategy": "rolling"
+      }
+    },
+    "signing": {
+      "algorithm": "ECDSA",
+      "digest": "SHA256",
+      "signature_format": "json",
+      "attach_signatures": true
+    }
+  },
+  "image_signing": {
+    "scope": "all-builds",
+    "triggers": [
+      "docker-build",
+      "registry-push",
+      "release"
+    ],
+    "signing_keychain": {
+      "backend": "vault",
+      "path": "secret/kv/cosign-keys",
+      "auth_method": "kubernetes"
+    },
+    "policy": {
+      "sign_all": true,
+      "require_cosign_signature": true,
+      "require_attestation": true
+    }
+  },
+  "attestation": {
+    "formats": [
+      "cosignature",
+      "sbom",
+      "vuln"
+    ],
+    "sbom": {
+      "type": "spdx-json",
+      "location": "image",
+      "sync_attestation": true
+    },
+    "vulnerability": {
+      "type": "grype",
+      "location": "image"
+    }
+  },
+  "verification": {
+    "enforcement": {
+      "require_all_signatures": true,
+      "require_sbom": true,
+      "reject_unattestedimages": true
+    },
+    "identity": {
+      "issuer": "https://token.actions.githubusercontent.com",
+      "subject": "githubworkflow",
+      "oidc_keychain": {
+        "resource": "github.com/kushin77/self-hosted-runner"
+      }
+    }
+  },
+  "registry_scanning": {
+    "enabled": true,
+    "frequency": "on-push",
+    "scanners": [
+      {
+        "name": "grype",
+        "purpose": "vulnerability scan"
+      },
+      {
+        "name": "trivy",
+        "purpose": "image scanning"
+      }
+    ]
+  },
+  "key_distribution": {
+    "public_key": {
+      "location": "github-releases",
+      "sync_interval": "daily"
+    },
+    "key_ceremony": {
+      "type": "automated-sigstore",
+      "transparency_log": "sigstore-rekor"
+    }
+  }
+}
