@@ -257,8 +257,7 @@ New files added to your repository:
 4. **Set up credentials** (before Week 1)
    - AWS IAM user with ECR push permissions
    - Google Service Account with Artifact Registry permissions
-   - GitHub Actions secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, etc.
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 5. **Schedule rotations** (optional)
    - Secret rotation: 1st of every month
    - Chaos testing: Tuesdays (daily/weekly/monthly)

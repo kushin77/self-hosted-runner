@@ -1,0 +1,93 @@
+name: Reusable: Terraform Plan (callable)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  workflow_call:
+    inputs:
+      ami-tfvars-object:
+        required: false
+        type: string
+      plan-object:
+        required: false
+        type: string
+    secrets:
+      MINIO_BUCKET:
+        required: true
+      MINIO_ENDPOINT:
+        required: false
+      MINIO_ACCESS_KEY:
+        required: true
+      MINIO_SECRET_KEY:
+        required: true
+
+jobs:
+  plan:
+    runs-on: [self-hosted, linux, self-hosted-heavy]
+    steps:
+      - name: Download AMI tfvars artifact from MinIO
+        if: ${{ inputs.ami-tfvars-object != '' }}
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          chmod +x scripts/minio/download.sh scripts/minio/install-mc.sh
+          retry_command 3 5 scripts/minio/download.sh --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.ami-tfvars-object }}" --out terraform/packer-ami/ami.tfvars
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        run: |
+          set -euo pipefail
+          TF_VER=1.5.7
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VER}/terraform_${TF_VER}_linux_amd64.zip -o /tmp/terraform.zip
+          unzip -o /tmp/terraform.zip -d /usr/local/bin
+          terraform version
+
+      - name: Terraform init
+        working-directory: terraform
+        run: |
+          source ../.github/scripts/resilience.sh || true
+          retry_command 3 5 terraform init -backend=false
+
+      - name: Terraform plan (ci-runners)
+        working-directory: terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          set -euo pipefail
+          cp ../terraform/packer-ami/ami.tfvars . || true
+          terraform plan -var-file=ami.tfvars -out=ci-runners-plan.out ./modules/ci-runners
+
+      - name: Upload terraform plan to MinIO
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          retry_command 3 5 scripts/minio/upload.sh --file terraform/ci-runners-plan.out --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}"
+
+      - name: Prepare and upload plan checksum
+        env:
+          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+          mkdir -p /tmp
+          cp terraform/ci-runners-plan.out ./ci-runners-plan.out || true
+          sha256sum ci-runners-plan.out > ci-runners-plan.out.sha
+          chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
+          retry_command 3 5 scripts/minio/upload.sh --file ci-runners-plan.out.sha --bucket "${{ secrets.MINIO_BUCKET }}" --object "${{ inputs.plan-object || 'terraform-plan' }}.sha"

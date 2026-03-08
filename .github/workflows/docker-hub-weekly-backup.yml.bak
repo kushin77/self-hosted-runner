@@ -1,0 +1,175 @@
+name: Docker Hub Multi-Registry Weekly Backup
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  schedule:
+    - cron: '0 2 * * 1'  # Monday 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      force_push:
+        description: 'Force push to all registries'
+        required: false
+        default: 'false'
+
+env:
+  DOCKER_REGISTRY: docker.io
+  IMAGE_NAME: elevatediq/app-backup
+  BACKUP_TAG: backup-$(date +%Y%m%d-%H%M%S)
+
+  workflow_call: {}
+
+concurrency:
+  group: docker-hub-weekly-backup-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+
+  build-and-push-multi-registry:
+    needs: [fetch-aws-creds]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    env:
+      AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+      AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_PAT }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION || 'us-east-1' }}
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+      - name: Set GCP Project
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile.backup
+          push: false
+          load: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}
+            ${{ env.IMAGE_NAME }}:latest
+          build-args: |
+            BUILD_VERSION=1.0.0
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            BUILD_COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push to Multi-Registry
+        env:
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          DOCKER_HUB_PAT: ${{ secrets.DOCKER_HUB_PAT }}
+        run: |
+          source .github/scripts/resilience.sh || true
+          chmod +x scripts/multi-registry-push.sh
+          retry_command 2 10 bash scripts/multi-registry-push.sh "${{ env.BACKUP_TAG }}"
+
+      - name: Verify Multi-Registry Push
+        run: |
+          source .github/scripts/resilience.sh || true
+          # Verify Docker Hub
+          echo "Verifying Docker Hub..."
+          retry_command 2 5 docker pull ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}
+          docker inspect ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }} | jq .
+
+          echo "✓ Multi-registry push verification complete"
+
+      - name: Store Backup Metadata
+        if: always()
+        run: |
+          mkdir -p .backup-metadata
+
+          cat > .backup-metadata/latest-backup.json << EOF
+          {
+            "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "backup_tag": "${{ env.BACKUP_TAG }}",
+            "image": "${{ env.IMAGE_NAME }}",
+            "commit_sha": "${{ github.sha }}",
+            "commit_ref": "${{ github.ref }}",
+            "build_status": "success"
+          }
+          EOF
+
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add .backup-metadata/latest-backup.json
+          git commit -m "Backup: ${{ env.BACKUP_TAG }}" || true
+          git push || echo "Nothing new to push"
+
+      - name: Create Release with Backup Artifact
+        if: success()
+        run: |
+          gh release create "backup-${{ env.BACKUP_TAG }}" \
+            .backup-metadata/latest-backup.json \
+            multi-registry-push-results.json \
+            --title "Multi-Registry Backup ${{ env.BACKUP_TAG }}" \
+            --notes "Backup pushed to Docker Hub, AWS ECR, and Google Artifact Registry" \
+            || echo "Release creation skipped (may already exist)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Notify on Success
+        if: success()
+        run: |
+          echo "✓ Multi-registry backup completed successfully"
+          echo "  Image: ${{ env.IMAGE_NAME }}:${{ env.BACKUP_TAG }}"
+          echo "  Registries: Docker Hub, AWS ECR (123456789.dkr.ecr.us-east-1.amazonaws.com)"
+          echo "              Google Artifact Registry (us-east1-docker.pkg.dev)"
+
+      - name: Notify on Failure
+        if: failure()
+        run: |
+          echo "✗ Multi-registry backup failed"
+          gh issue create \
+            --title "🚨 Multi-Registry Backup Failed" \
+            --body "Backup workflow failed at $(date). See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+            --label critical || true
+        env:
+          GH_TOKEN: ${{ github.token }}

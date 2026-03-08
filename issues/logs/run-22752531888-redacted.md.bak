@@ -1,0 +1,154 @@
+Run E2E on self-hosted runner	Set up job	﻿2026-03-06T06:54:54.0735115Z Current runner version: '2.332.0'
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0742462Z Runner name: 'org-runner-dev-elevatediq-2-1772734248'
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0743374Z Runner group name: 'Default'
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0744261Z Machine name: 'dev-elevatediq-2'
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0746902Z ##[group]GITHUB_TOKEN Permissions
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0749215Z Contents: read
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0749746Z Metadata: read
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0750203Z Packages: read
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0750642Z ##[endgroup]
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0752920Z Secret source: Actions
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.0753597Z Prepare workflow directory
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.1192114Z Prepare all required actions
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.1236091Z Getting action download info
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:54.4657490Z Download action repository 'actions/checkout@v4' (SHA:34e114876b0b11c390a56381ad16ebd13914f8d5)
+Run E2E on self-hosted runner	Set up job	2026-03-06T06:54:55.0001183Z Complete job name: Run E2E on self-hosted runner
+Run E2E on self-hosted runner	Checkout	﻿2026-03-06T06:54:55.0949557Z ##[group]Run actions/checkout@v4
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0950809Z with:
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0951474Z   repository: kushin77/self-hosted-runner
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0952391Z   token: ***
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0952835Z   ssh-strict: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0953256Z   ssh-user: git
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0953698Z   persist-credentials: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0954180Z   clean: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0954607Z   sparse-checkout-cone-mode: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0955128Z   fetch-depth: 1
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0955551Z   fetch-tags: false
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0955979Z   show-progress: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0956423Z   lfs: false
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0957034Z   submodules: false
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0957511Z   set-safe-directory: true
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.0958643Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2688681Z Syncing repository: kushin77/self-hosted-runner
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2692196Z ##[group]Getting Git version info
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2693864Z Working directory is '/tmp/runner-1772734244/_work/self-hosted-runner/self-hosted-runner'
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2696259Z [command]/usr/bin/git version
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2697200Z git version 2.43.0
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2700276Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2708271Z Copying '/home/akushnir/.gitconfig' to '/tmp/runner-1772734244/_work/_temp/REDACTED-UUID/.gitconfig'
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2711416Z Temporarily overriding HOME='/tmp/runner-1772734244/_work/_temp/REDACTED-UUID' before making global git config changes
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2714085Z Adding repository directory to the temporary git global config as a safe directory
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2716600Z [command]/usr/bin/git config --global --add safe.directory /tmp/runner-1772734244/_work/self-hosted-runner/self-hosted-runner
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2739353Z [command]/usr/bin/git config --local --get remote.origin.url
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2757848Z https://github.com/kushin77/self-hosted-runner
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2778285Z ##[group]Removing previously created refs, to avoid conflicts
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2781884Z [command]/usr/bin/git rev-parse --symbolic-full-name --verify --quiet HEAD
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2800569Z refs/heads/main
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2810658Z [command]/usr/bin/git checkout --detach
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2879032Z HEAD is now at 6285737c2 chore: attach redacted log for run 22752266185 (Attempt 5)
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2922471Z [command]/usr/bin/git branch --delete --force main
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.2952292Z Deleted branch main (was 6285737c2).
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3053455Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3054863Z [command]/usr/bin/git submodule status
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3298325Z ##[group]Cleaning the repository
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3303645Z [command]/usr/bin/git clean -ffdx
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3357593Z Removing gitleaks-report.json
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3369952Z [command]/usr/bin/git reset --hard HEAD
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3443870Z HEAD is now at 6285737c2 chore: attach redacted log for run 22752266185 (Attempt 5)
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3450212Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3452455Z ##[group]Disabling automatic garbage collection
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3457619Z [command]/usr/bin/git config --local gc.auto 0
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3489972Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3490926Z ##[group]Setting up auth
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3498251Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3532983Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3769755Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.3798926Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4028618Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4060164Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4295584Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4339077Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4340260Z ##[group]Fetching the repository
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.4350463Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +6285737c20c5e1a0622079dccdb29e4fc7d810e7:refs/remotes/origin/main
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6842777Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6848362Z ##[group]Determining the checkout info
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6853028Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6855597Z [command]/usr/bin/git sparse-checkout disable
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6930910Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6971008Z ##[group]Checking out the ref
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.6976052Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.7059322Z Switched to a new branch 'main'
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.7061088Z branch 'main' set up to track 'origin/main'.
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.7069042Z ##[endgroup]
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.7124520Z [command]/usr/bin/git log -1 --format=%H
+Run E2E on self-hosted runner	Checkout	2026-03-06T06:54:55.7159049Z 6285737c20c5e1a0622079dccdb29e4fc7d810e7
+Run E2E on self-hosted runner	Ensure scripts are executable	﻿2026-03-06T06:54:55.7674196Z ##[group]Run chmod +x scripts/ci/run-e2e-self-hosted-with-vault.sh || true
+Run E2E on self-hosted runner	Ensure scripts are executable	2026-03-06T06:54:55.7680011Z [36;1mchmod +x scripts/ci/run-e2e-self-hosted-with-vault.sh || true[0m
+Run E2E on self-hosted runner	Ensure scripts are executable	2026-03-06T06:54:55.7685198Z [36;1mchmod +x scripts/ci/provision-approle-and-run-e2e.sh || true[0m
+Run E2E on self-hosted runner	Ensure scripts are executable	2026-03-06T06:54:55.7731475Z shell: /usr/bin/bash -e {0}
+Run E2E on self-hosted runner	Ensure scripts are executable	2026-03-06T06:54:55.7732670Z ##[endgroup]
+Run E2E on self-hosted runner	Run E2E (provision or run)	﻿2026-03-06T06:54:55.8039707Z ##[group]Run set -euo pipefail
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8043253Z [36;1mset -euo pipefail[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8047484Z [36;1mif [ "run" = "provision" ] && [ -n "${VAULT_ADMIN_TOKEN:-}" ]; then[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8053225Z [36;1m  echo "Provisioning AppRole and running E2E..."[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8058329Z [36;1m  ./scripts/ci/provision-approle-and-run-e2e.sh[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8062336Z [36;1melse[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8066151Z [36;1m  echo "Running E2E (assuming VAULT_ROLE_ID/SECRET are available)..."[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8071941Z [36;1m  ./scripts/ci/run-e2e-self-hosted-with-vault.sh[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8075840Z [36;1mfi[0m
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8132835Z shell: /usr/bin/bash -e {0}
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8135503Z env:
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8138484Z   VAULT_ADDR: ***
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8140879Z   VAULT_ROLE_ID: 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8143161Z   VAULT_SECRET_ID: 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8145489Z   VAULT_SECRET_ID_PATH: 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8148135Z   VAULT_ADMIN_TOKEN: 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8151694Z   GITHUB_TOKEN: ***
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8153922Z ##[endgroup]
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8266604Z Running E2E (assuming VAULT_ROLE_ID/SECRET are available)...
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8295895Z INFO: VAULT_ROLE_ID not set in environment; attempting to continue if workflow secrets available.
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8302108Z [e2e] VAULT_ADDR=***
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8304378Z [e2e] VAULT_ROLE_ID=<not-set>
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8307081Z [e2e] VAULT_SECRET_ID=<not-set-or-file>
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8409999Z [e2e] Running local test harness...
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8412250Z [2026-03-06 06:54:55] === GitHub Actions Runner Test Suite ===
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8422491Z [2026-03-06 06:54:55] Running comprehensive tests...
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8434274Z [2026-03-06 06:54:55] 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8450926Z ✓ PASS: Health monitor script exists
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8468198Z ✓ PASS: Cleanup script present
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8483194Z ✓ PASS: Pytest hygiene script present
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8498777Z ✓ PASS: Systemd service/timer files
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8515352Z ✓ PASS: Prometheus configuration
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8545231Z ✓ PASS: Docker Compose stack
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:54:55.8560180Z ✓ PASS: Terraform module exists
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.8904232Z ✓ PASS: Terraform validation
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.8917377Z ✓ PASS: Deployment validation script
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.8933396Z ✓ PASS: Documentation completeness
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.8958346Z ✓ PASS: README completeness
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9108554Z ✓ PASS: No hardcoded credentials
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9121057Z ✗ FAIL: Git pre-commit hooks
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9144490Z ✓ PASS: Environment variables documented
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9173296Z ✓ PASS: Deployment validation logic
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9185676Z [2026-03-06 06:55:23] 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9196043Z [2026-03-06 06:55:23] === Test Results ===
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9207141Z [2026-03-06 06:55:23] Passed: 14/15
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9217521Z [2026-03-06 06:55:23] Failed: 1/15
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9228448Z [2026-03-06 06:55:23] 
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9239271Z [2026-03-06 06:55:23] ✗ Some tests failed
+Run E2E on self-hosted runner	Run E2E (provision or run)	2026-03-06T06:55:23.9258891Z ##[error]Process completed with exit code 1.
+Run E2E on self-hosted runner	Post Checkout	﻿2026-03-06T06:55:23.9392868Z Post job cleanup.
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0820186Z [command]/usr/bin/git version
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0868517Z git version 2.43.0
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0916227Z Copying '/home/akushnir/.gitconfig' to '/tmp/runner-1772734244/_work/_temp/REDACTED-UUID/.gitconfig'
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0935176Z Temporarily overriding HOME='/tmp/runner-1772734244/_work/_temp/REDACTED-UUID' before making global git config changes
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0936477Z Adding repository directory to the temporary git global config as a safe directory
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0940973Z [command]/usr/bin/git config --global --add safe.directory /tmp/runner-1772734244/_work/self-hosted-runner/self-hosted-runner
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.0978039Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1011480Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1229319Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1250059Z http.https://github.com/.extraheader
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1264877Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1295176Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1511367Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+Run E2E on self-hosted runner	Post Checkout	2026-03-06T06:55:24.1544403Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Run E2E on self-hosted runner	Complete job	﻿2026-03-06T06:55:24.1897211Z Cleaning up orphan processes

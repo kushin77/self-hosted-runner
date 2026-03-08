@@ -133,7 +133,7 @@ gh secret list --repo kushin77/self-hosted-runner
 # Expected output:
 # RUNNER_MGMT_TOKEN          No description
 # DEPLOY_SSH_KEY             No description
-# GCP_SERVICE_ACCOUNT_KEY    No description
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # GCP_PROJECT_ID             No description
 ```
 

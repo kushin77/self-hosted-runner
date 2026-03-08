@@ -168,8 +168,8 @@
 ```bash
 gh secret set GCP_PROJECT_ID --body "VALUE"
 gh secret set GCP_SERVICE_ACCOUNT_KEY < /path/key.json
-gh secret set AWS_ACCESS_KEY_ID --body "KEY" # optional
-gh secret set AWS_SECRET_ACCESS_KEY --body "SECRET" # optional
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 gh secret set AWS_KMS_KEY_ARN --body "ARN" # optional
 ```
 
