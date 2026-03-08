@@ -51,13 +51,8 @@ jobs:
         with:
           url: ${{ secrets.VAULT_ADDR || 'https://vault.example.com' }}
           role: github-automation
-          jwtPayloadFields: |
-            {
-              "repository": "${{ github.repository }}",
-              "workflow": "${{ github.workflow }}",
-              "phase": "${{ github.event.inputs.phase || '1' }}",
-              "trigger": "${{ github.event_name }}"
-            }
+          path: jwt
+          jwtAudience: github-actions
           secrets: |
             secret/github/automation github_token;
             secret/gcp/serviceaccounts gsa_json
