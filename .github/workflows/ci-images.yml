@@ -1,4 +1,8 @@
 name: CI - Build & Push Images
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:

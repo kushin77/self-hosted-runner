@@ -1,4 +1,8 @@
 name: Self-Heal Retry
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   # Converted to event-driven: replaced frequent polling with repository_dispatch
