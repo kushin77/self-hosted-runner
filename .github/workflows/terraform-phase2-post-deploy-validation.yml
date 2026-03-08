@@ -114,16 +114,16 @@ jobs:
           set -euo pipefail
           echo "::group::Terraform Outputs"
           terraform output -json | tee terraform-outputs.json
-          
+
           # Validate critical outputs exist
           STANDARD_RUNNER_IDS=$(terraform output -raw standard_runner_ids 2>/dev/null || echo "")
           SECURITY_GROUP_ID=$(terraform output -raw security_group_id 2>/dev/null || echo "")
-          
+
           if [ -z "$STANDARD_RUNNER_IDS" ]; then
             echo "::error::standard_runner_ids output missing"
             exit 1
           fi
-          
+
           echo "::notice::✓ Standard runner IDs: $STANDARD_RUNNER_IDS"
           echo "::notice::✓ Security group: $SECURITY_GROUP_ID"
           echo "::endgroup::"
@@ -136,25 +136,25 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::EC2 Instance Validation"
-          
+
           # Get instances created by Terraform
           aws ec2 describe-instances \
             --filters "Name=tag:ManagedBy,Values=Terraform" \
                       "Name=tag:Project,Values=elevatediq-runners" \
             --query 'Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,PublicIpAddress,PrivateIpAddress]' \
             --output table
-          
+
           # Verify at least one instance is running
           RUNNING_COUNT=$(aws ec2 describe-instances \
             --filters "Name=tag:ManagedBy,Values=Terraform" \
                       "Name=instance-state-name,Values=running" \
             --query 'length(Reservations[*].Instances[*][])')
-          
+
           if [ "$RUNNING_COUNT" -lt 1 ]; then
             echo "::error::No running instances found"
             exit 1
           fi
-          
+
           echo "::notice::✓ $RUNNING_COUNT instances running"
           echo "::endgroup::"
 
@@ -166,13 +166,13 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Security Group Validation"
-          
+
           aws ec2 describe-security-groups \
             --filters "Name=tag:ManagedBy,Values=Terraform" \
                       "Name=tag:Project,Values=elevatediq-runners" \
             --query 'SecurityGroups[*].[GroupName,GroupId,IpPermissions[*].[IpProtocol,FromPort,ToPort]]' \
             --output table
-          
+
           echo "::endgroup::"
 
       - name: Upload validation report
@@ -197,23 +197,23 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::GitHub Self-Hosted Runners"
-          
+
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.event.repository.name }}"
-          
+
           # Get all self-hosted runners
           RUNNERS=$(gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" -q '.runners')
-          
+
           echo "$RUNNERS" | jq '.[] | select(.os=="Linux") | {name: .name, status: .status, busy: .busy}'
-          
+
           # Count online runners
           ONLINE_COUNT=$(echo "$RUNNERS" | jq '[.[] | select(.status=="online")] | length')
-          
+
           if [ "$ONLINE_COUNT" -lt 1 ]; then
             echo "::error::No online self-hosted runners found"
             exit 1
           fi
-          
+
           echo "::notice::✓ $ONLINE_COUNT self-hosted runners online"
           echo "::endgroup::"
 
@@ -227,52 +227,52 @@ jobs:
         run: |
           cat > validation-summary.md <<'EOF'
           # Terraform Phase 2 Post-Deployment Validation Report
-          
+
           **Timestamp:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           **Workflow:** ${{ github.workflow }}
           **Run ID:** ${{ github.run_id }}
           **Triggered by:** ${{ github.event_name }}
-          
+
           ## Validation Results
-          
+
           ### Terraform Outputs
           - Status: ${{ needs.validate-terraform-output.result }}
           - Standard Runner IDs: ✓ Captured
           - Security Groups: ✓ Validated
-          
+
           ### Infrastructure Checks
           - EC2 Instances: ✓ Running
           - Security Groups: ✓ Configured
           - Network ACLs: ✓ Applied
-          
+
           ### Runner Registration
           - Status: ${{ needs.smoke-test-runner-registration.result }}
           - Self-Hosted Runners: ✓ Online
-          
+
           ## Post-Deployment Actions
-          
+
           1. ✓ Infrastructure provisioned and validated
           2. ✓ Runner agents registered with GitHub
           3. ✓ Security groups configured
           4. ✓ Terraform outputs captured
-          
+
           ## Next Steps
-          
+
           - [ ] Run a test workflow on self-hosted runners
           - [ ] Monitor runner performance over 24 hours
           - [ ] Verify auto-scaling policies (if configured)
           - [ ] Enable observability dashboards
           - [ ] Schedule quarterly security review
-          
+
           ## Artifacts
-          
+
           - `terraform-validation-report-${{ github.run_id }}` (Terraform outputs)
           - `phase2-health-report-${{ github.run_id }}` (Health check)
-          
+
           ---
-          
+
           **All systems nominal.** Infrastructure ready for production use.
-          
+
           For support, see TERRAFORM_PHASE2_PLAN_APPLY_GUIDE.md
           EOF
           cat validation-summary.md

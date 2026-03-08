@@ -37,18 +37,18 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' &&
        contains(github.event.issue.labels.*.name, 'emergency') &&
-       (contains(github.event.comment.body, '/breach') || 
+       (contains(github.event.comment.body, '/breach') ||
         contains(github.event.comment.body, '/revoke-secret') ||
         contains(github.event.comment.body, '/emergency-rotate')))
     timeout-minutes: 10
-    
+
     env:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      
+
     outputs:
       incident_id: ${{ steps.response.outputs.incident_id }}
       action_taken: ${{ steps.response.outputs.action }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -58,7 +58,7 @@ jobs:
         if: github.event_name == 'issue_comment'
         run: |
           COMMENT="${{ github.event.comment.body }}"
-          
+
           if [[ "$COMMENT" =~ /breach[[:space:]]+([^[:space:]]+)[[:space:]]*([^[:space:]]*)? ]]; then
             echo "action=compromise" >> $GITHUB_OUTPUT
             echo "secret=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
@@ -94,12 +94,12 @@ jobs:
           ACTION="${{ inputs.action || steps.parse-command.outputs.action || 'help' }}"
           SECRET="${{ inputs.secret_name || steps.parse-command.outputs.secret || '' }}"
           REASON="${{ inputs.reason || steps.parse-command.outputs.reason || 'emergency' }}"
-          
+
           INCIDENT_ID="INCIDENT-$(date +%s)-$(echo $RANDOM | md5sum | cut -c1-6)"
-          
+
           echo "incident_id=$INCIDENT_ID" >> $GITHUB_OUTPUT
           echo "action=$ACTION" >> $GITHUB_OUTPUT
-          
+
           echo "🚨 Emergency Response Initiated"
           echo "  Incident ID: $INCIDENT_ID"
           echo "  Action: $ACTION"
@@ -107,7 +107,7 @@ jobs:
           echo "  Reason: $REASON"
           echo "  Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo ""
-          
+
           case "$ACTION" in
             revoke)
               [[ -z "$SECRET" ]] && { echo "ERROR: secret_name required for revoke"; exit 1; }
@@ -141,7 +141,7 @@ jobs:
         if: always()
         run: |
           REPORT_FILE=".github/workflows/logs/incident-report-$(date +%s).md"
-          
+
           {
             echo "# GSM Emergency Incident Report"
             echo ""
@@ -152,7 +152,7 @@ jobs:
             echo "| Timestamp | $(date -u +%Y-%m-%dT%H:%M:%SZ) |"
             echo "| Status | ✅ COMPLETED |"
             echo ""
-            
+
             if [[ -f ".github/workflows/logs/gcp-gsm-emergency-"* ]]; then
               echo "## Response Log"
               echo "\`\`\`"
@@ -169,7 +169,7 @@ jobs:
           script: |
             const incident_id = "${{ steps.response.outputs.incident_id }}";
             const action = "${{ steps.response.outputs.action }}";
-            
+
             const comment = `## 🚨 Emergency Response Completed
 
 **Incident ID**: \`${incident_id}\`
@@ -211,7 +211,7 @@ jobs:
           script: |
             const incident_id = "${{ steps.response.outputs.incident_id }}";
             const action = "${{ steps.response.outputs.action }}";
-            
+
             try {
               const { data: issue } = await github.rest.issues.create({
                 owner: context.repo.owner,
@@ -242,7 +242,7 @@ jobs:
                 labels: ['emergency', 'ops', 'gcp-gsm', 'incident-response'],
                 assignees: []
               });
-              
+
               console.log(\`Created incident tracking issue #\${issue.number}\`);
             } catch(e) {
               console.log('Could not create incident issue:', e.message);
@@ -256,7 +256,7 @@ jobs:
           script: |
             const incident_id = "${{ steps.response.outputs.incident_id }}";
             const action = "${{ steps.response.outputs.action }}";
-            
+
             // Slack webhook URL stored in environment (via GitHub secret)
             // Would need SLACK_EMERGENCY_WEBHOOK secret configured
             console.log(`🚨 Emergency Response Escalation`);

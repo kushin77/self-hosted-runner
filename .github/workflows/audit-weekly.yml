@@ -17,19 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Full Secrets Audit
         id: audit
         run: |
           echo "=== Running Full Secrets Audit ===" | tee /tmp/secrets-report.txt
           bash scripts/audit-secrets.sh --full >> /tmp/secrets-report.txt 2>&1
           echo "✅ Secrets audit completed"
-      
+
       - name: Export JSON
         run: |
           bash scripts/audit-secrets.sh --json > /tmp/secrets.json 2>/dev/null
           wc -l /tmp/secrets.json
-      
+
       - name: Create Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -37,7 +37,7 @@ jobs:
           name: secrets-audit-report
           path: /tmp/secrets-report.txt
           retention-days: 30
-      
+
       - name: Upload JSON Export
         if: always()
         uses: actions/upload-artifact@v4
@@ -45,7 +45,7 @@ jobs:
           name: secrets-export-json
           path: /tmp/secrets.json
           retention-days: 30
-      
+
       - name: Report Summary
         if: always()
         run: |
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Full Workflows Audit
         id: audit
         run: |
@@ -65,12 +65,12 @@ jobs:
           bash scripts/audit-workflows.sh --summary >> /tmp/workflows-report.txt 2>&1
           bash scripts/audit-workflows.sh --full >> /tmp/workflows-report.txt 2>&1
           echo "✅ Workflows audit completed"
-      
+
       - name: Export JSON
         run: |
           bash scripts/audit-workflows.sh --json > /tmp/workflows.json 2>/dev/null
           wc -l /tmp/workflows.json
-      
+
       - name: Create Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -78,7 +78,7 @@ jobs:
           name: workflows-audit-report
           path: /tmp/workflows-report.txt
           retention-days: 30
-      
+
       - name: Upload JSON Export
         if: always()
         uses: actions/upload-artifact@v4
@@ -86,7 +86,7 @@ jobs:
           name: workflows-export-json
           path: /tmp/workflows.json
           retention-days: 30
-      
+
       - name: Report Summary
         if: always()
         run: |
@@ -98,7 +98,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Full Scripts Audit
         id: audit
         run: |
@@ -106,12 +106,12 @@ jobs:
           bash scripts/audit-scripts.sh --summary >> /tmp/scripts-report.txt 2>&1
           bash scripts/audit-scripts.sh --critical >> /tmp/scripts-report.txt 2>&1
           echo "✅ Scripts audit completed"
-      
+
       - name: Export JSON
         run: |
           bash scripts/audit-scripts.sh --json > /tmp/scripts.json 2>/dev/null
           wc -l /tmp/scripts.json
-      
+
       - name: Create Artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -119,7 +119,7 @@ jobs:
           name: scripts-audit-report
           path: /tmp/scripts-report.txt
           retention-days: 30
-      
+
       - name: Upload JSON Export
         if: always()
         uses: actions/upload-artifact@v4
@@ -127,7 +127,7 @@ jobs:
           name: scripts-export-json
           path: /tmp/scripts.json
           retention-days: 30
-      
+
       - name: Report Summary
         if: always()
         run: |
@@ -141,47 +141,47 @@ jobs:
     if: always()
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Get Audit Results
         id: results
         run: |
           echo "Collecting audit results..."
           echo "AUDIT_TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
-      
+
       - name: Generate Weekly Report
         run: |
           cat > /tmp/weekly-summary.md <<'EOF'
           # 📈 Weekly 5-System Health Report
-          
+
           **Run Date**: ${{ steps.results.outputs.AUDIT_TIMESTAMP }}
-          
+
           ## System Status
-          
+
           ### Secrets System
           - Audit: ✅ Completed
           - Location: [SECRETS_INDEX.md](SECRETS_INDEX.md)
-          
+
           ### Workflows System
           - Audit: ✅ Completed
           - Location: [WORKFLOWS_INDEX.md](WORKFLOWS_INDEX.md)
-          
+
           ### Scripts System
           - Audit: ✅ Completed
           - Location: [SCRIPTS_REGISTRY.md](SCRIPTS_REGISTRY.md)
-          
+
           ### Errors System
           - Reference: [ERROR_CODES_GUIDE.md](ERROR_CODES_GUIDE.md)
-          
+
           ### Config System
           - Reference: [CONFIGURATION_GUIDE.md](CONFIGURATION_GUIDE.md)
-          
+
           ---
-          
+
           **All systems operational and up-to-date.**
           next scheduled audit: Next Monday 6 AM UTC
           EOF
           cat /tmp/weekly-summary.md
-      
+
       - name: Create Issue if Out of Sync
         if: failure()
         uses: actions/github-script@v7
@@ -195,7 +195,7 @@ jobs:
               body: `Scheduled audit detected inconsistencies in indices.\n\nReview the [audit workflow run](${context.payload.repository.html_url}/actions/runs/${context.runId}).`,
               labels: ['audit', 'automated']
             });
-      
+
       - name: Summary Report
         if: always()
         run: |
