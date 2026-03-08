@@ -1,0 +1,98 @@
+name: Retrieve Secret from HashiCorp Vault
+description: Dynamically retrieve secrets from Vault using JWT authentication
+
+inputs:
+  secret-path:
+    description: Path to secret in Vault (e.g., secret/data/my-secret)
+    required: true
+  
+  vault-addr:
+    description: Vault server address
+    required: true
+  
+  vault-role:
+    description: Vault JWT role for GitHub Actions
+    required: true
+
+outputs:
+  secret-value:
+    description: The secret value retrieved from Vault
+    value: ${{ steps.retrieve.outputs.secret }}
+
+runs:
+  using: composite
+  steps:
+    - name: Generate JWT token for Vault
+      id: jwt
+      shell: bash
+      run: |
+        # Get OIDC token from GitHub
+        GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+        
+        # Use GitHub's JWT as Vault JWT token
+        echo "jwt=${GITHUB_TOKEN}" >> $GITHUB_OUTPUT
+    
+    - name: Authenticate to Vault and retrieve secret
+      id: retrieve
+      shell: bash
+      run: |
+        VAULT_ADDR="${{ inputs.vault-addr }}"
+        VAULT_ROLE="${{ inputs.vault-role }}"
+        SECRET_PATH="${{ inputs.secret-path }}"
+        
+        # Authenticate to Vault using JWT
+        AUTH_RESPONSE=$(curl -s -X POST \
+          "${VAULT_ADDR}/v1/auth/jwt/login" \
+          -d "{\"role\": \"${VAULT_ROLE}\", \"jwt\": \"${GITHUB_TOKEN}\"}")
+        
+        VAULT_TOKEN=$(echo "$AUTH_RESPONSE" | jq -r '.auth.client_token' 2>/dev/null)
+        
+        if [[ -z "$VAULT_TOKEN" || "$VAULT_TOKEN" == "null" ]]; then
+          echo "::error::Failed to authenticate to Vault"
+          exit 1
+        fi
+        
+        # Retrieve secret from Vault
+        SECRET_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          "${VAULT_ADDR}/v1/${SECRET_PATH}")
+        
+        SECRET_VALUE=$(echo "$SECRET_RESPONSE" | jq -r '.data.data.value // .data.data[0] // ""' 2>/dev/null)
+        
+        if [[ -z "$SECRET_VALUE" ]]; then
+          echo "::error::Failed to retrieve secret from Vault: ${SECRET_PATH}"
+          exit 1
+        fi
+        
+        # Output secret (masked in logs)
+        echo "secret=${SECRET_VALUE}" >> $GITHUB_OUTPUT
+        echo "::add-mask::${SECRET_VALUE}"
+        
+        # Revoke token immediately (ephemeral)
+        curl -s -X POST \
+          -H "X-Vault-Token: ${VAULT_TOKEN}" \
+          "${VAULT_ADDR}/v1/auth/token/revoke-self" >/dev/null 2>&1 || true
+        
+        # Log retrieval in audit trail (immutable)
+        AUDIT_DIR=".vault-audit"
+        mkdir -p "$AUDIT_DIR"
+        
+        TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+        AUDIT_ENTRY=$(jq -n \
+          --arg ts "$TIMESTAMP" \
+          --arg secret "$SECRET_PATH" \
+          --arg vault "$VAULT_ADDR" \
+          --arg actor "${GITHUB_ACTOR:-system}" \
+          '{timestamp: $ts, action: "RETRIEVE", secret_path: $secret, vault_addr: $vault, actor: $actor, run_id: env.GITHUB_RUN_ID}')
+        
+        echo "$AUDIT_ENTRY" >> "$AUDIT_DIR/vault-retrieval-audit.jsonl"
+    
+    - name: Cleanup ephemeral data
+      if: always()
+      shell: bash
+      run: |
+        # Explicitly clear sensitive environment variables
+        unset SECRET_VALUE
+        unset VAULT_TOKEN
+        unset GITHUB_TOKEN
+        # Revoke any remaining tokens
+        true
