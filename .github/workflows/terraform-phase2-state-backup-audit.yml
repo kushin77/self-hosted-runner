@@ -60,50 +60,50 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Terraform State Backup"
-          
+
           TIMESTAMP=$(date -u +"%Y%m%dT%H%M%SZ")
           BACKUP_NAME="terraform-phase2-state-$TIMESTAMP.tfstate"
           GCS_PATH="gs://$BACKUP_BUCKET/terraform-backups/$BACKUP_NAME"
-          
+
           if [ -d "terraform" ] && [ -f "terraform/.terraform" ]; then
             echo "::notice::Backing up Terraform state..."
-            
+
             # Archive entire terraform directory
             tar -czf /tmp/terraform-backup-$TIMESTAMP.tar.gz terraform/ || {
               echo "::warning::Failed to archive terraform directory"
             }
-            
+
             # Upload backup
             gsutil -h "Cache-Control:no-cache" cp /tmp/terraform-backup-$TIMESTAMP.tar.gz "$GCS_PATH" || {
               echo "::warning::Failed to upload backup to GCS"
             }
-            
+
             echo "::notice::Backup uploaded to: $GCS_PATH"
           else
             echo "::warning::Terraform directory not found or not initialized"
           fi
-          
+
           # Clean old backups (keep last 30 days)
           CUTOFF=$(date -u -d "30 days ago" +"%Y%m%d")
           echo "::notice::Cleaning backups older than $CUTOFF..."
           # Note: gsutil list and filtering would go here
-          
+
           echo "::endgroup::"
 
       - name: Generate state audit report
         run: |
           cat > state-audit-report.md <<'EOF'
           # Terraform State Backup Report
-          
+
           **Date:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           **Status:** Backed up daily
           **Bucket:** Configured in GCS
           **Retention:** 30 days
-          
+
           ## Last Backups
           - Primary backup: Daily at 3 AM UTC
           - Retention: Automatic 30-day cleanup
-          
+
           ## Disaster Recovery
           To restore from backup:
           1. Download backup from GCS: `gs://terraform-state-backups/terraform-backups/`
@@ -111,13 +111,13 @@ jobs:
           3. Run: `terraform init`
           4. Verify: `terraform state list`
           5. If needed: `terraform plan` and review changes
-          
+
           ## Compliance
           - Encryption: ✓ At-rest (GCS encryption)
           - Audit Logging: ✓ GCP Cloud Audit Logs enabled
           - Access Control: ✓ IAM policies configured
           - Versioning: ✓ GCS object versioning enabled
-          
+
           EOF
           cat state-audit-report.md
 
@@ -138,13 +138,13 @@ jobs:
         run: |
           cat > terraform-compliance-report.md <<'EOF'
           # Terraform Phase 2 Compliance & Audit Report
-          
+
           **Generated:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           **Scope:** terraform/
           **Operator:** GitHub Actions CI/CD
-          
+
           ## Compliance Checklist
-          
+
           ### Security
           - [x] Terraform files version controlled
           - [x] Sensitive variables marked as `sensitive`
@@ -152,27 +152,27 @@ jobs:
           - [x] GCS backend encrypted at rest
           - [x] State file access via IAM policies
           - [x] All runners use Terraform IAM role
-          
+
           ### Change Management
           - [x] Plan artifacts retained for 30 days
           - [x] Apply requires GitHub Environments approval
           - [x] Drift detection enabled (daily)
           - [x] All changes tracked in git history
-          
+
           ### Infrastructure
           - [x] All resources tagged with ManagedBy=Terraform
           - [x] Terraform validate runs pre-apply
           - [x] Post-deploy smoke tests enabled
           - [x] Health checks scheduled
-          
+
           ### Documentation
           - [x] Terraform variable documentation
           - [x] Module relationships documented
           - [x] Operator runbook created
           - [x] Error troubleshooting guide available
-          
+
           ## Risk Assessment
-          
+
           | Risk | Mitigation | Status |
           |------|-----------|--------|
           | Credential exposure | Secrets Manager + masked logs | ✓ Low |
@@ -180,19 +180,19 @@ jobs:
           | Unauthorized changes | GitHub Environments approval | ✓ Low |
           | Backup availability | Daily automated backups (30d) | ✓ Low |
           | Disaster recovery | Backup restoration procedure documented | ✓ Medium |
-          
+
           ## Audit Trail
-          
+
           All operations logged in:
           - GitHub Actions workflow logs (90-day retention)
           - GCP Cloud Audit Logs (indefinite)
           - Terraform state history (GCS versioning)
-          
+
           ## Next Audit
           **Scheduled:** Quarterly (90 days)
           **Previous:** Mar 7, 2026
           **Next:** Jun 7, 2026
-          
+
           EOF
           cat terraform-compliance-report.md
 
