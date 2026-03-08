@@ -41,8 +41,8 @@ jobs:
         run: |
           set -euo pipefail
           # Change directory to where terraform code lives (adjust if needed)
-          if [ -d "infra" ]; then
-            cd infra
+          if [ -d "terraform" ]; then
+            cd terraform
           fi
           terraform init -input=false
           terraform apply -auto-approve
