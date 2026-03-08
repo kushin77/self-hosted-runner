@@ -1,0 +1,8 @@
+#!/bin/bash
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [[ ! "$BRANCH" =~ ^(feature|fix|docs|refactor|perf|ci|test|chore|security|main|master|develop|release)/ ]] && \
+   [[ ! "$BRANCH" =~ ^(main|master|develop)$ ]]; then
+  echo "❌ Branch name '$BRANCH' violates naming convention"
+  echo "   Format: TYPE/TICKET-description (e.g., feature/INFRA-401-oauth)"
+  exit 1
+fi
