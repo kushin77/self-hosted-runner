@@ -1,8 +1,19 @@
+name: GCP Key Fallback Provisioning
+
 permissions:
   contents: read
   id-token: write
   actions: read
 
-REPLACED BY SECURITY POLICY - SECRET REMOVED
+# REPLACED BY SECURITY POLICY - SECRET REMOVED
 
-This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.
+# This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  placeholder:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Placeholder - this workflow is provisioned via GSM/Vault"
