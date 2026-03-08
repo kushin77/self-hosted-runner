@@ -1,0 +1,37 @@
+name: Force Terraform Plan
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or ref to run terraform-plan on'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+  actions: write
+  issues: write
+
+jobs:
+  dispatch-plan:
+    name: Dispatch Terraform Plan (API)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch terraform-plan via REST API
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REF="${{ github.event.inputs.ref || github.ref || 'main' }}"
+          echo "Dispatching terraform-plan.yml on ref: $REF"
+          curl -sS -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/terraform-plan.yml/dispatches \
+            -d "{\"ref\": \"$REF\"}" || true
+      - name: Post note to ops issue
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REF="${{ github.event.inputs.ref || github.ref || 'main' }}"
+          gh issue comment 1384 --repo ${{ github.repository }} --body "Triggered terraform-plan on ref: $REF" || true

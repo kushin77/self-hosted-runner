@@ -1,0 +1,151 @@
+name: Observability E2E Postprocess
+
+on:
+  workflow_run:
+    workflows:
+      - "Observability E2E Scheduled Run"
+      - "Observability E2E Run (Real Receivers)"
+      - "Observability E2E Run (Mock Receivers)"
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Optional run id to postprocess (bypasses workflow_run trigger)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  postprocess:
+    name: Download metrics + post summary
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Prepare environment
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends -qq jq unzip curl
+
+      - name: Download metrics artifact from completed run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          # Prefer the workflow_run id when triggered by workflow_run; otherwise accept manual input
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          RUN_ID="${RUN_ID:-${{ github.event.inputs.run_id }}}"
+          if [ -z "$RUN_ID" ]; then
+            echo "ERROR: no run id supplied (neither workflow_run nor inputs.run_id)" >&2
+            exit 1
+          fi
+          echo "Using run id: $RUN_ID"
+          set -euo pipefail
+          echo "Looking up artifacts for run $RUN_ID"
+          ART_URL=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID/artifacts" \
+            | jq -r '.artifacts[] | select(.name=="observability-e2e-metrics") | .archive_download_url')
+
+          if [ -z "$ART_URL" ] || [ "$ART_URL" = "null" ]; then
+            echo "No observability-e2e-metrics artifact found for run $RUN_ID"
+            SUMMARY="No metrics artifact found for run $RUN_ID. The E2E run may not have produced or uploaded metrics.json; please inspect the run logs: https://github.com/$REPO/actions/runs/$RUN_ID"
+            COMMENT_PAYLOAD=$(jq -n --arg body "$SUMMARY" '{body:$body}')
+            echo "Posting notice to issue #1370"
+            curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -X POST "https://api.github.com/repos/$REPO/issues/1370/comments" \
+              -d "$COMMENT_PAYLOAD" || true
+            exit 0
+          fi
+
+          echo "Downloading artifact from $ART_URL"
+          curl -L -H "Authorization: Bearer $GITHUB_TOKEN" -o /tmp/metrics_artifact.zip "$ART_URL"
+          mkdir -p /tmp/metrics_artifact
+          unzip -q /tmp/metrics_artifact.zip -d /tmp/metrics_artifact
+
+      - name: Parse metrics and post summary comment
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          RUN_HTML_URL: ${{ github.event.workflow_run.html_url || '' }}
+          INPUT_RUN_ID: ${{ github.event.inputs.run_id || '' }}
+        run: |
+          set -euo pipefail
+          METRIC_FILES=$(find /tmp/metrics_artifact -type f -name metrics.json || true)
+          if [ -z "$METRIC_FILES" ]; then
+            echo "No metrics.json files found in artifact"
+            exit 0
+          fi
+
+          # Aggregation counters
+          TOTAL=0
+          COUNT=0
+          PASSES=0
+          FAILS=0
+
+          for f in $METRIC_FILES; do
+            echo "Processing $f"
+            # If the metrics file contains a tests array, use that schema
+            if jq -e '.tests' "$f" >/dev/null 2>&1; then
+              while IFS= read -r test; do
+                status=$(echo "$test" | jq -r '.status // ""')
+                lat=$(echo "$test" | jq -r '.latency_ms // 0')
+                TOTAL=$((TOTAL + lat))
+                COUNT=$((COUNT + 1))
+                if [ "$status" = "passed" ] || [ "$status" = "success" ]; then
+                  PASSES=$((PASSES + 1))
+                else
+                  FAILS=$((FAILS + 1))
+                fi
+              done < <(jq -c '.tests[]' "$f")
+            else
+              # Fallback: support the simple E2E runner schema
+              # - verification_passed: bool
+              # - test_type, incident_found, delivery_latency_seconds
+              VERIFIED=$(jq -r '.verification_passed // false' "$f")
+              TYPE=$(jq -r '.test_type // "unknown"' "$f")
+              INCIDENT=$(jq -r '.incident_found // false' "$f")
+              LATENCY=$(jq -r '.delivery_latency_seconds // 0' "$f")
+              COUNT=$((COUNT + 1))
+              TOTAL=$((TOTAL + LATENCY))
+              if [ "$VERIFIED" = "true" ] || [ "$INCIDENT" = "true" ]; then
+                PASSES=$((PASSES + 1))
+              else
+                FAILS=$((FAILS + 1))
+              fi
+            fi
+          done
+
+          if [ "$COUNT" -gt 0 ]; then
+            AVG=$((TOTAL / COUNT))
+          else
+            AVG=0
+          fi
+
+          # Prefer provided run URL; otherwise construct a link if run id present
+          if [ -n "$RUN_HTML_URL" ] && [ "$RUN_HTML_URL" != "null" ]; then
+            RUN_LINK="$RUN_HTML_URL"
+          else
+            # try to build URL from inputs if available
+            RUN_ID="${INPUT_RUN_ID}"
+            if [ -n "$RUN_ID" ]; then
+              RUN_LINK="https://github.com/${REPO}/actions/runs/${RUN_ID}"
+            else
+              RUN_LINK="(unknown run)"
+            fi
+          fi
+
+          SUMMARY="Observability E2E run summary for ${RUN_LINK}\n\n- Tests processed: $COUNT\n- Passed: $PASSES\n- Failed: $FAILS\n- Average latency (ms): $AVG\n\nArtifacts: observability-e2e-metrics"
+
+          COMMENT_PAYLOAD=$(jq -n --arg body "$SUMMARY" '{body:$body}')
+          echo "Posting summary to issue #1370"
+          curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -X POST "https://api.github.com/repos/$REPO/issues/1370/comments" \
+            -d "$COMMENT_PAYLOAD" || true

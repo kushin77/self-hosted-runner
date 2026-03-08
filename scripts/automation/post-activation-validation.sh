@@ -162,7 +162,7 @@ else
     echo ""
     echo "Troubleshooting:"
     if [ "$GSM_OK" != true ]; then
-        echo "  • GSM sync failed; verify GCP_SERVICE_ACCOUNT_KEY is valid JSON"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
         echo "  • Check: gh run view ${GSM_RUN_ID} -R $REPO --log"
     fi
     if [ "$HEAL_OK" != true ]; then

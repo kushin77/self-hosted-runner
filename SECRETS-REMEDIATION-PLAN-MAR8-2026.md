@@ -59,7 +59,7 @@ gcloud.secrets.list Error:
 
 3. **Update Workflow Configuration**
    - Edit `.github/workflows/vault-kms-credential-rotation.yml`
-   - Update GCP_SERVICE_ACCOUNT_EMAIL to correct account
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
    - Verify GCP_WORKLOAD_IDENTITY_PROVIDER is correct
    - Test with manual dispatch: `gh workflow run vault-kms-credential-rotation.yml --ref main`
 

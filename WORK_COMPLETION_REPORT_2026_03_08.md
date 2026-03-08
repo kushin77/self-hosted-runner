@@ -130,7 +130,7 @@ CI/CD Pipeline       → ✅ PASS (all checks)
 ### Step 2: Set GitHub Secrets (5 minutes)
 ```bash
 gh secret set GCP_PROJECT_ID
-gh secret set GCP_SERVICE_ACCOUNT_KEY < key.json
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # ... optional AWS secrets
 ```
 

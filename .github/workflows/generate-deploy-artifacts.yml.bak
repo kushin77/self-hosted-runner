@@ -1,0 +1,32 @@
+name: generate-deploy-artifacts
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Make generator executable
+        run: chmod +x scripts/generate_deploy_artifacts.sh || true
+
+      - name: Run generator
+        id: generate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/generate_deploy_artifacts.sh
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-artifacts
+          path: ${{ steps.generate.outputs.deploy_artifacts_file }}

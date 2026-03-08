@@ -34,7 +34,7 @@ All infrastructure automation phases (P1–P5) have been deployed to `main` and 
 - GCP Workload Identity Provider (OAuth OIDC)
 - Service Account with secretmanager.secretAccessor role
 - repo secret: `GCP_WORKLOAD_IDENTITY_PROVIDER`
-- repo secret: `GCP_SERVICE_ACCOUNT_EMAIL`
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 - repo secret: `GOOGLE_CREDENTIALS` (optional, for GCP keyfile auth)
 
 **Usage**:
