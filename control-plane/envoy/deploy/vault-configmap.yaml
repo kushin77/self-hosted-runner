@@ -4,7 +4,6 @@ metadata:
   name: control-plane-envoy-vault-config
 data:
   vault-agent.hcl: |
-{{- "" }}
     auto_auth {
       method "kubernetes" {
         mount_path = "auth/kubernetes"
@@ -29,17 +28,14 @@ data:
       perms = "0640"
     }
   cert.tpl: |
-{{- "" }}
     {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
     {{ .Data.certificate }}
     {{ end }}
   key.tpl: |
-{{- "" }}
     {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
     {{ .Data.private_key }}
     {{ end }}
   ca.tpl: |
-{{- "" }}
     {{ with secret "pki/issue/control-plane-role" "common_name=control-plane.example.local&ttl=72h" }}
     {{ .Data.issuing_ca }}
     {{ end }}
