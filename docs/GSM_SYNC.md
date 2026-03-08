@@ -24,3 +24,17 @@ Automation
 Troubleshooting
 - If a secret is missing in GSM, the script will log a warning and skip it.
 - If `gh secret set` fails, ensure the provided `gh` token has `repo` permission and the principal is allowed to write secrets.
+
+### GitHub Actions: run via OIDC
+
+You can run the GSM sync helper from GitHub Actions using Workload Identity Federation. A workflow has been added at `.github/workflows/gsm-sync-run.yml` that runs on `workflow_dispatch`.
+
+Requirements:
+- Add these repository secrets: `GCP_WORKLOAD_IDENTITY_PROVIDER`, `GCP_SERVICE_ACCOUNT_EMAIL`, and `GCP_PROJECT_ID`.
+- The workflow uses `google-github-actions/auth@v1` to obtain an access token via OIDC and `gcloud` to access Secret Manager.
+
+Run options:
+- From the GitHub UI: open the Actions tab, select "GSM Sync Run" and click "Run workflow".
+- From CLI: `gh workflow run gsm-sync-run.yml --repo kushin77/self-hosted-runner --ref main`
+
+If you prefer, Ops can run the script locally after authenticating with `gcloud`.

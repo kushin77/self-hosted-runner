@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Vault -> GitHub Secrets sync helper
+# Usage: vault_sync.sh --addr https://vault.example:8200 SECRET_PATH:KEY SECRET_PATH2:KEY2 ...
+
+usage(){
+  cat <<EOF
+Usage: $0 --addr VAULT_ADDR [--token VAULT_TOKEN] repo_owner/repo SECRET_SPEC...
+SECRET_SPEC format: secret/path:key_name (for KV v2 use path without /data/)
+Example: ./scripts/ops/vault_sync.sh --addr https://vault:8200 kushin77/self-hosted-runner secret/data/prod/slack:webhook_url
+EOF
+  exit 1
+}
+
+VAULT_ADDR=""
+VAULT_TOKEN=""
+if [ $# -lt 2 ]; then usage; fi
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --addr)
+      VAULT_ADDR="$2"; shift 2;;
+    --token)
+      VAULT_TOKEN="$2"; shift 2;;
+    --help)
+      usage;;
+    *) break;;
+  esac
+done
+
+REPO="$1"; shift
+if [ -z "$REPO" ]; then usage; fi
+
+export VAULT_ADDR
+if [ -n "$VAULT_TOKEN" ]; then export VAULT_TOKEN; fi
+
+for spec in "$@"; do
+  # spec format: path:key
+  IFS=":" read -r vault_path key <<< "$spec"
+  if [ -z "$vault_path" ] || [ -z "$key" ]; then
+    echo "Skipping invalid spec: $spec"; continue
+  fi
+
+  # Try to read from KV v2 (/data/..). Detect and use v2 if possible.
+  tmpfile=$(mktemp)
+  trap 'rm -f "$tmpfile"' RETURN
+
+  # Use vault CLI to get value; support both JSON outputs
+  if vault kv get -format=json "$vault_path" >/dev/null 2>&1; then
+    vault kv get -format=json "$vault_path" > "$tmpfile"
+    # extract key: for KV v2, data.data
+    value=$(jq -r ".data.data[\"$key\"] // .data[\"$key\"] // .data[\"$key\"]" "$tmpfile")
+  else
+    # fallback to generic read
+    vault read -format=json "$vault_path" > "$tmpfile" 2>/dev/null || true
+    value=$(jq -r ".data[\"$key\"] // .[\"$key\"] // empty" "$tmpfile")
+  fi
+
+  if [ -z "$value" ] || [ "$value" = "null" ]; then
+    echo "Warning: key '$key' not found at '$vault_path'"
+    continue
+  fi
+
+  # write to gh secret using temp file
+  secret_tmp=$(mktemp)
+  printf "%s" "$value" > "$secret_tmp"
+  gh secret set "$(basename "$key" | tr '[:lower:]' '[:upper:]')" --repo "$REPO" --body-file "$secret_tmp"
+  rm -f "$secret_tmp"
+  echo "Synced $vault_path:$key -> $REPO"
+done
+
+exit 0
