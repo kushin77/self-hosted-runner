@@ -7,6 +7,10 @@ on:
         description: 'Deploy Vault (helm)'
         required: false
         default: 'false'
+      cred_source:
+        description: 'Credential source (vault|gsm|github)'
+        required: false
+        default: 'vault'
 
 jobs:
   provision:
@@ -20,10 +24,97 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch GCP credentials from secret backend
+        id: fetch_creds
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          CRED_SOURCE: ${{ github.event.inputs.cred_source }}
+        run: |
+          #!/bin/bash
+          set -eo pipefail
+          
+          CRED_SOURCE="${CRED_SOURCE:-vault}"
+          
+          # Strategy 1: Vault OIDC (Ephemeral - No long-lived secrets)
+          if [[ "$CRED_SOURCE" == "vault" && -n "$VAULT_ADDR" ]]; then
+            echo "📦 Fetching GCP credentials from Vault via OIDC..."
+            
+            # Get GitHub OIDC token
+            GITHUB_TOKEN=$(curl -s -L -X POST \
+              -H "Authorization: bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: application/json" \
+              -d "{\"audience\":\"vault\"}" \
+              "https://token.actions.githubusercontent.com/.well-known/openid-configuration" 2>/dev/null || \
+              echo "X-GitHub-Token: ${{ secrets.GITHUB_TOKEN }}" | grep -i token || true)
+            
+            # Try Vault OIDC authentication
+            VAULT_TOKEN=$(curl -s -X POST \
+              -d "role=github&jwt=$GITHUB_TOKEN" \
+              "$VAULT_ADDR/v1/auth/jwt/login" | jq -r '.auth.client_token // empty' 2>/dev/null || true)
+            
+            if [[ -n "$VAULT_TOKEN" ]]; then
+              echo "✅ Authenticated to Vault via OIDC"
+              # Fetch GCP key from Vault
+              GCP_SA_KEY=$(curl -s -H "X-Vault-Token: $VAULT_TOKEN" \
+                "$VAULT_ADDR/v1/secret/data/gcp/terraform-sa-key" | \
+                jq -r '.data.data.key // empty')
+              
+              if [[ -n "$GCP_SA_KEY" ]]; then
+                echo "$GCP_SA_KEY" > /tmp/gcp-sa-key.json
+                echo "✅ GCP credentials fetched from Vault"
+                echo "creds_source=vault" >> "$GITHUB_OUTPUT"
+                exit 0
+              fi
+            fi
+          fi
+          
+          # Fallback: Try GitHub secret (will be base64-decoded if needed)
+          if [[ -n "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]]; then
+            echo "📦 Using GitHub secret for GCP credentials (fallback)..."
+            SECRET_VALUE="${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
+            
+            # Check if base64-encoded (no spaces/newlines)
+            if [[ ! "$SECRET_VALUE" =~ $'\n' ]]; then
+              echo "🔐 Decoding base64-encoded secret..."
+              echo "$SECRET_VALUE" | base64 -d > /tmp/gcp-sa-key.json
+            else
+              echo "✅ Using raw JSON secret"
+              echo "$SECRET_VALUE" > /tmp/gcp-sa-key.json
+            fi
+            
+            echo "creds_source=github" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          echo "❌ No credential source available. Vault: $VAULT_ADDR, GitHub Secret: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}"
+          exit 1
+
+      - name: Validate GCP credentials
+        run: |
+          #!/bin/bash
+          if [[ ! -f /tmp/gcp-sa-key.json ]]; then
+            echo "❌ Credentials file not found"
+            exit 1
+          fi
+          
+          # Validate JSON format
+          jq -e '.type=="service_account"' /tmp/gcp-sa-key.json > /dev/null || {
+            echo "❌ Invalid service account JSON"
+            exit 1
+          }
+          
+          echo "✅ Credentials validated successfully"
+          jq -r '.client_email' /tmp/gcp-sa-key.json
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v1
         with:
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          credentials_json: ${{ steps.fetch_creds.outputs.creds_file || '/tmp/gcp-sa-key.json' }}
+          cleanup_credentials: true
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/setup-gcloud@v1
@@ -38,8 +129,8 @@ jobs:
       - name: Terraform Init & Apply (GCP WIF)
         working-directory: infra
         env:
+          GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-sa-key.json
           GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
-          GOOGLE_CREDENTIALS: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
         run: |
           terraform init
           terraform apply -auto-approve -var="gcp_project_id=${{ secrets.GCP_PROJECT_ID }}" -var="github_repo_owner=${{ github.repository_owner }}" -var="github_repo_name=${{ github.event.repository.name }}"
