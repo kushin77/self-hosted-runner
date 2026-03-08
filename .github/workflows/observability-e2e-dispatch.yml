@@ -116,7 +116,15 @@ jobs:
           path: |
             scripts/automation/pmo/prometheus/*.log
 
+      - name: Collect metrics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-e2e-metrics
+          path: |
+            /tmp/observability-e2e.*/metrics.json
+
       - name: Summary
         if: always()
         run: |
-          echo "Observability E2E dispatch complete. Check artifacts: observability-e2e-logs"
+          echo "Observability E2E dispatch complete. Check artifacts: observability-e2e-logs, observability-e2e-metrics"
