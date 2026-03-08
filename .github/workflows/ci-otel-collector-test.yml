@@ -1,4 +1,8 @@
 name: CI - OTEL Collector Test
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   push:

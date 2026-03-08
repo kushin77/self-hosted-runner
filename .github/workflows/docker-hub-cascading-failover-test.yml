@@ -1,4 +1,8 @@
 name: Cascading Failover Recovery Testing
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   schedule:

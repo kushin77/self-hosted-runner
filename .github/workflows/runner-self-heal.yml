@@ -1,4 +1,8 @@
 name: Runner Self-Heal
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   # Converted to event-driven: removed 5-minute polling
