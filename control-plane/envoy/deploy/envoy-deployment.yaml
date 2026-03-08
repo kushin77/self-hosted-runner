@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: control-plane-envoy
+  labels:
+    app: control-plane-envoy
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: control-plane-envoy
+  template:
+    metadata:
+      labels:
+        app: control-plane-envoy
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.30-latest
+          ports:
+            - containerPort: 8443
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/envoy/tls
+              readOnly: true
+        - name: vault-agent
+          image: hashicorp/vault:1.13.0
+          command: ["/bin/vault","agent","-config=/etc/vault/vault-agent.hcl"]
+          env:
+            - name: VAULT_ADDR
+              value: "https://vault.example.local"
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/envoy/tls
+            - name: vault-config
+              mountPath: /etc/vault
+      initContainers: []
+      volumes:
+        - name: tls
+          emptyDir: {}
+        - name: vault-config
+          configMap:
+            name: control-plane-envoy-vault-config

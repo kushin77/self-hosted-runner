@@ -1,8 +1,3 @@
-# Test configuration for airgap-control-plane Terraform module
-# These values are used when running Terraform tests
+REPLACED BY SECURITY POLICY - SECRET REMOVED
 
-# Use default provider configuration from kubeconfig
-# The Kubernetes provider will use the current context
-
-# Test image sizes (smaller than production for faster testing)
-# test.tf sets module-level image_storage_size; no root-level tfvars required
+This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.

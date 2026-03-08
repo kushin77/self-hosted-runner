@@ -1,4 +1,8 @@
 name: Reusable Canary Deployment
+permissions:
+  contents: read
+  id-token: write
+  actions: read
 
 on:
   workflow_call:
