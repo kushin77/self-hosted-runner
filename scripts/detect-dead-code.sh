@@ -52,22 +52,15 @@ while IFS= read -r item; do
 done <<< "$ALL_ITEMS"
 
 # Analyze each unreferenced item for additional context
-DEAD_CODE_COUNT=0
+DEAD_CODE_COUNT=${#UNREFERENCED[@]}
 CRITICAL_DEAD=0
 HIGH_DEAD=0
 MEDIUM_DEAD=0
 LOW_DEAD=0
 
-DEAD_ITEMS_JSON=$(jq -n '[
-  {
-    "id": "",
-    "type": "",
-    "risk_level": "",
-    "status": "DEAD_CODE_CANDIDATE"
-  }
-] | .[0:0]')
+DEAD_ITEMS_JSON=$(jq -n '[]')
 
-while IFS= read -r item; do
+for item in "${UNREFERENCED[@]}"; do
     [[ -z "$item" ]] && continue
     
     ITEM_INFO=$(jq -r --arg id "$item" '
@@ -88,8 +81,6 @@ while IFS= read -r item; do
     TYPE=$(echo "$ITEM_INFO" | jq -r '.type')
     RISK=$(echo "$ITEM_INFO" | jq -r '.risk // "UNKNOWN"')
     
-    DEAD_CODE_COUNT=$((DEAD_CODE_COUNT + 1))
-    
     case "$RISK" in
         CRITICAL) CRITICAL_DEAD=$((CRITICAL_DEAD + 1)) ;;
         HIGH) HIGH_DEAD=$((HIGH_DEAD + 1)) ;;
@@ -106,7 +97,7 @@ while IFS= read -r item; do
             referenced_by_count: 0
         }]
     ')
-done <<< "$UNREFERENCED"
+done
 
 # ============================================================================
 # Output Generation
@@ -136,7 +127,7 @@ if [[ "$OUTPUT_MODE" == "--json" ]]; then
         }'
 elif [[ "$OUTPUT_MODE" == "--archive-candidates" ]]; then
     # Output safe-to-archive recommendations
-    echo "$UNREFERENCED" | while read -r item; do
+    for item in "${UNREFERENCED[@]}"; do
         [[ -z "$item" ]] && continue
         RISK=$(jq -r --arg id "$item" '
             ((.workflows[]? // .scripts[]? // .secrets[]?) | select(.id == $id) | .risk_level // "UNKNOWN") | first
@@ -171,7 +162,7 @@ else
         echo "Items without incoming dependencies:"
         echo ""
         
-        echo "$UNREFERENCED" | while read -r item; do
+        for item in "${UNREFERENCED[@]}"; do
             [[ -z "$item" ]] && continue
             
             ITEM_INFO=$(jq -r --arg id "$item" '
