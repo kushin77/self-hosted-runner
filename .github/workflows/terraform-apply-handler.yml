@@ -1,0 +1,60 @@
+name: Terraform Apply Handler
+
+on:
+  issue_comment:
+    types: [created, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  check-approval:
+    name: Check Plan Approval
+    runs-on: ubuntu-latest
+    outputs:
+      approved: ${{ steps.check.outputs.approved }}
+
+    steps:
+      - name: Check Approval Comment
+        id: check
+        run: |
+          # Check if this is issue #1384 and comment contains approval
+          ISSUE_NUM=${{ github.event.issue.number || 1384 }}
+          COMMENT_BODY="${{ github.event.comment.body }}"
+          
+          if [[ "$ISSUE_NUM" == "1384" ]] && 
+             [[ "$COMMENT_BODY" == *"⏳ Plan approved"* ]]; then
+            echo "approved=true" >> $GITHUB_OUTPUT
+            echo "✅ Plan approval detected - triggering terraform-apply"
+          else
+            echo "approved=false" >> $GITHUB_OUTPUT
+          fi
+
+  trigger-apply:
+    name: Trigger Terraform Apply
+    needs: check-approval
+    runs-on: ubuntu-latest
+    if: needs.check-approval.outputs.approved == 'true'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trigger terraform-apply Workflow
+        run: |
+          # Trigger the existing terraform-apply workflow
+          gh workflow run terraform-apply.yml \
+            --repo ${{ github.repository }} \
+            --ref ${{ github.ref }} \
+            --input plan-object=terraform-plan
+          
+          echo "✅ Terraform apply workflow triggered"
+          
+          # Post confirmation to issue
+          gh issue comment 1384 \
+            --repo ${{ github.repository }} \
+            --body "🚀 Terraform apply workflow triggered. Check [Actions](https://github.com/${{ github.repository }}/actions) for progress." || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
