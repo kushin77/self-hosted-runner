@@ -38,15 +38,35 @@ jobs:
           set -euo pipefail
           echo "::group::Vault AppRole authentication"
           
+          # Validate inputs
+          if [ -z "${VAULT_ADDR}" ] || [ -z "${VAULT_NAMESPACE}" ] || [ -z "${VAULT_ROLE_ID}" ] || [ -z "${VAULT_SECRET_ID}" ]; then
+            echo "ERROR: Missing Vault configuration secrets" >&2
+            exit 1
+          fi
+          
+          echo "Vault Endpoint: ${VAULT_ADDR}"
+          echo "Vault Namespace: ${VAULT_NAMESPACE}"
+          
           # Authenticate with Vault using AppRole
-          VAULT_TOKEN=$(curl -s -X POST \
+          AUTH_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             "${VAULT_ADDR}/v1/auth/approle/login" \
             -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
-            -d "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}" \
-            | jq -r '.auth.client_token')
+            -d "{\"role_id\": \"${VAULT_ROLE_ID}\", \"secret_id\": \"${VAULT_SECRET_ID}\"}")
           
-          if [ -z "$VAULT_TOKEN" ] || [ "$VAULT_TOKEN" == "null" ]; then
-            echo "ERROR: Failed to obtain Vault token" >&2
+          HTTP_CODE=$(echo "$AUTH_RESPONSE" | tail -1)
+          RESPONSE_BODY=$(echo "$AUTH_RESPONSE" | sed '$d')
+          
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Vault authentication failed with HTTP $HTTP_CODE" >&2
+            echo "Response: $RESPONSE_BODY" >&2
+            exit 1
+          fi
+          
+          VAULT_TOKEN=$(echo "$RESPONSE_BODY" | jq -r '.auth.client_token // empty')
+          
+          if [ -z "$VAULT_TOKEN" ]; then
+            echo "ERROR: Failed to extract Vault token from response" >&2
+            echo "Response: $RESPONSE_BODY" >&2
             exit 1
           fi
           echo "✓ Vault AppRole authentication successful"
@@ -54,16 +74,25 @@ jobs:
           
           # Fetch AWS credentials from Vault
           echo "::group::Fetching AWS credentials from Vault"
-          AWS_CREDS=$(curl -s -X GET \
+          CREDS_RESPONSE=$(curl -s -w "\n%{http_code}" -X GET \
             "${VAULT_ADDR}/v1/aws/creds/terraform-role" \
             -H "X-Vault-Namespace: ${VAULT_NAMESPACE}" \
             -H "X-Vault-Token: ${VAULT_TOKEN}")
           
-          AWS_ACCESS_KEY_ID=$(echo "$AWS_CREDS" | jq -r '.data.access_key')
-          AWS_SECRET_ACCESS_KEY=$(echo "$AWS_CREDS" | jq -r '.data.secret_key')
+          HTTP_CODE=$(echo "$CREDS_RESPONSE" | tail -1)
+          RESPONSE_BODY=$(echo "$CREDS_RESPONSE" | sed '$d')
           
-          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ "$AWS_ACCESS_KEY_ID" == "null" ]; then
-            echo "ERROR: Failed to fetch AWS credentials from Vault" >&2
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "ERROR: Failed to fetch AWS credentials with HTTP $HTTP_CODE" >&2
+            echo "Response: $RESPONSE_BODY" >&2
+            exit 1
+          fi
+          
+          AWS_ACCESS_KEY_ID=$(echo "$RESPONSE_BODY" | jq -r '.data.access_key // empty')
+          AWS_SECRET_ACCESS_KEY=$(echo "$RESPONSE_BODY" | jq -r '.data.secret_key // empty')
+          
+          if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "ERROR: Failed to extract AWS credentials from Vault response" >&2
             exit 1
           fi
           echo "✓ AWS credentials fetched from Vault"
