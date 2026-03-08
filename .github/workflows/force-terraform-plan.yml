@@ -1,24 +1,45 @@
 name: Force Terraform Plan
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or ref to run terraform-plan on'
+        required: false
+        default: 'main'
 
 permissions:
   contents: read
-  actions: read
+  actions: write
   issues: write
 
 jobs:
-  call-plan:
-    uses: ./.github/workflows/terraform-plan.yml
-    with:
-      terraform_version: '1.7.0'
-    secrets:
-      PROD_TFVARS: ${{ secrets.PROD_TFVARS }}
-      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-      MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+  dispatch-plan:
+    name: Dispatch Terraform Plan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch terraform-plan workflow on target ref
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const repo = context.repo.owner + '/' + context.repo.repo;
+            const workflow_id = 'terraform-plan.yml';
+            const ref = core.getInput('ref') || github.context.payload.ref || 'main';
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id,
+              ref
+            });
+      - name: Post note to ops issue
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const runRef = core.getInput('ref') || github.context.payload.ref || 'main';
+            const body = `Triggered terraform-plan on ref: ${runRef}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1384,
+              body
+            });
