@@ -16,8 +16,7 @@ gcloud iam service-accounts list --project=YOUR_PROJECT_ID
 
 # Step 3: If account doesn't exist, create it or update workflow with correct email
 # Edit: .github/workflows/vault-kms-credential-rotation.yml
-# Search for GCP_SERVICE_ACCOUNT_EMAIL and update
-
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
 # Step 4: Test the fix
 gh workflow run vault-kms-credential-rotation.yml \
   --repo kushin77/self-hosted-runner \

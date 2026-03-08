@@ -120,9 +120,9 @@ jobs:
           SECRETS=$(gh secret list --repo "${REPO}" --json name --jq '.[] | .name' 2>/dev/null || echo "")
 
           REQUIRED_SECRETS=(
-            "GCP_SERVICE_ACCOUNT_KEY"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
             "GCP_WORKLOAD_IDENTITY_PROVIDER"
-            "GCP_SERVICE_ACCOUNT_EMAIL"
+<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
             "GCP_PROJECT_ID"
           )
 

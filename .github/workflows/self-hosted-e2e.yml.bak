@@ -1,0 +1,56 @@
+name: Self-hosted Runner E2E (manual)
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      trigger_mode:
+        description: 'Trigger mode: run or provision'
+        required: false
+        default: 'run'
+  workflow_run:
+    workflows: ["Preflight Checks"]
+    types: [completed]
+
+jobs:
+  e2e:
+    name: Run E2E on self-hosted runner
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    concurrency:
+      group: self-hosted-e2e-${{ github.ref || github.run_id }}
+      cancel-in-progress: false
+    runs-on: self-hosted
+    environment: production
+    steps:
+            - name: Load resilience helpers
+              run: |
+                set -euo pipefail
+                source .github/scripts/resilience.sh || true
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/ci/run-e2e-self-hosted-with-vault.sh || true
+          chmod +x scripts/ci/provision-approle-and-run-e2e.sh || true
+
+      - name: Run E2E (provision or run)
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE_ID: ${{ secrets.VAULT_ROLE_ID }}
+          VAULT_SECRET_ID: ${{ secrets.VAULT_SECRET_ID }}
+          VAULT_SECRET_ID_PATH: ${{ secrets.VAULT_SECRET_ID_PATH }}
+          VAULT_ADMIN_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event.inputs.trigger_mode }}" = "provision" ] && [ -n "${VAULT_ADMIN_TOKEN:-}" ]; then
+            echo "Provisioning AppRole and running E2E..."
+            ./scripts/ci/provision-approle-and-run-e2e.sh
+          else
+            echo "Running E2E (assuming VAULT_ROLE_ID/SECRET are available)..."
+            ./scripts/ci/run-e2e-self-hosted-with-vault.sh
+          fi
