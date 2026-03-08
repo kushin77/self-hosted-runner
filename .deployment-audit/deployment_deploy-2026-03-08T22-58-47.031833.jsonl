@@ -1,0 +1,3 @@
+{"timestamp": "2026-03-08T22:58:47.032584", "event_type": "deployment_start", "component_id": "setup-dynamic-credential-retrieval", "status": "in-progress", "details": {}, "error": null}
+{"timestamp": "2026-03-08T22:58:57.046969", "event_type": "step_failed", "component_id": "setup-dynamic-credential-retrieval", "status": "failed", "details": {"step": "create-retrieval-actions"}, "error": null}
+{"timestamp": "2026-03-08T22:58:57.047518", "event_type": "deployment_failed", "component_id": "setup-dynamic-credential-retrieval", "status": "failed", "details": {}, "error": "Step failed: create-retrieval-actions"}
