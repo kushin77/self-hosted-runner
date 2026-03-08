@@ -182,7 +182,7 @@ Export your valid GCP service account key as JSON:
 {
   "type": "service_account",
   "project_id": "your-project",
-  "private_key": "-----BEGIN PRIVATE KEY-----...",
+  "private_key": "[REDACTED_PRIVATE_KEY_EXAMPLE]",
   "client_email": "...",
   "client_id": "...",
   ...all required fields...

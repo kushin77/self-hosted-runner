@@ -280,14 +280,14 @@ Self-Healing found: GCP key present but missing required fields
    # Validate structure
    jq . < service-account.json
    # Should show:
-   # {
-   #   "type": "service_account",
-   #   "project_id": "my-project",
-   #   "private_key_id": "key-id-hash",
-   #   "private_key": "-----BEGIN PRIVATE KEY-----\n...",
-   #   "client_email": "account@my-project.iam.gserviceaccount.com",
-   #   ...
-   # }
+  # {
+  #   "type": "service_account",
+  #   "project_id": "my-project",
+  #   "private_key_id": "key-id-hash",
+  #   "private_key": "[REDACTED_PRIVATE_KEY_EXAMPLE]",
+  #   "client_email": "account@my-project.iam.gserviceaccount.com",
+  #   ...
+  # }
    ```
 
 2. **Use Validation Script**
