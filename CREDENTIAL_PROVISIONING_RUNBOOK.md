@@ -590,10 +590,58 @@ sudo journalctl -u wait-and-deploy.service --since "1 hour ago" | grep "Detected
 
 ---
 
+## ✅ Completion Checklist
+
+**For full go-live of immutable/ephemeral/idempotent deployment system, complete in this order:**
+
+### Phase 1: Vault Production Hardening (Issue #2101)
+- [ ] Replace dev token with AppRole
+- [ ] Deploy Vault Agent on bastion (systemd service)
+- [ ] Update watcher to use agent token file
+- [ ] Test successful Vault login and deploy
+
+### Phase 2: Choose Second Credential Provider (Issue #2100 OR #2103)
+
+**Option A: AWS Secrets Manager (#2100) — Recommended if running on EC2**
+- [ ] Create KMS key for encryption
+- [ ] Provision `runner/ssh-credentials` secret
+- [ ] Create IAM role + policy for watcher
+- [ ] Configure watcher to use AWS provider
+- [ ] Test successful AWS login and deploy
+
+**Option B: GSM (#2103) — Recommended if running on GCP**
+- [ ] Grant service account `roles/secretmanager.secretAccessor`
+- [ ] Provision `runner-deploy` secret
+- [ ] Test `gcloud` access and credential fetch
+- [ ] Configure watcher to use GSM provider
+- [ ] Test successful GSM login and deploy
+
+### Phase 3: Disable CI/PR Workflows (Issue #2102)
+- [ ] Verify workflows are archived in `.github/workflows/archive/`
+- [ ] Verify no production triggers on PR/push
+- [ ] Test manual workflow_dispatch only
+- [ ] Document policy in `CONTRIBUTING.md`
+
+### Phase 4: Enforce Deployment Policy (Issue #2104)
+- [ ] Add pre-commit hook to detect hardcoded secrets
+- [ ] Add PR template reminding operators of no-secrets rule
+- [ ] Update `GIT_GOVERNANCE_STANDARDS.md` with enforcement rules
+- [ ] Run audit on recent commits to verify compliance
+
+### Phase 5: Validate End-to-End
+- [ ] Run `bash scripts/deploy.sh main`
+- [ ] Verify worker receives immutable bundle
+- [ ] Verify audit appended to GitHub issue #2072
+- [ ] Verify watcher logs show auto-detection of active provider
+- [ ] Verify zero manual ops required (fully hands-off)
+
+---
+
 ## 🔄 Version History
 
 | Date | Author | Change |
 |------|--------|--------|
+| 2026-03-09 | ops | ✅ Completed: Created all 6 provisioning issues + added completion checklist + linked all governance tasks |
+| 2026-03-09 | ops | ✅ Vault dev provisioning active; watcher auto-detect functional; manual deploys working |
 | 2026-03-09 | ops | Created runbook with Vault/AWS/GSM provisioning steps |
-| - | - | - |
 
