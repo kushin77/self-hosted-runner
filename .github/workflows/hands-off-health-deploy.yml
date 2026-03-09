@@ -1,3 +1,9 @@
+# ⚠️ DISABLED - hands-off-health-deploy.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run hands-off-health-deploy.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
 name: 🚀 Hands-Off Health Check & Auto-Deployment
 
 # Fully automated, immutable, idempotent health check and deployment workflow
