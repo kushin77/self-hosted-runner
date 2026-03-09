@@ -184,7 +184,7 @@ jobs:
           PROVENANCE_SIG="${PROVENANCE_FILE}.sig"
 
           # Upload to S3 (versioned, immutable)
-          S3_BUCKET="${{ steps.cred_artifact_bucket.outputs.credential }}"
+          S3_BUCKET="${{ secrets.ARTIFACT_BUCKET }}"
 
           aws s3 cp "$ARTIFACT_FILE" "s3://${S3_BUCKET}/artifacts/$(basename $ARTIFACT_FILE)" \
             --sse aws:kms --sse-kms-key-id ${{ inputs.kms_key_id }} \
