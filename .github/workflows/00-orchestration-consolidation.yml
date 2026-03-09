@@ -318,23 +318,21 @@ jobs:
         run: |
           # Remove lock file
           rm -f .workflow-locks/lock-*
-
           echo "✅ Distributed lock released"
 
-        - name: 'Record: Execution completion (immutable seal)'
-          run: |
-            cat > /tmp/execution-complete.json << 'EOF'
-            {
-              "execution_id": "${{ needs.init.outputs.execution_id }}",
-              "status": "${{ job.status }}",
-              "timestamp_end": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
-              "duration_seconds": ${{ job.duration || 0 }}
-            }
-            EOF
-
-            mkdir -p orchestration-logs
-            cp /tmp/execution-complete.json orchestration-logs/
-            echo "✅ Execution sealed"
+      - name: 'Record: Execution completion (immutable seal)'
+        run: |
+          cat > /tmp/execution-complete.json << 'EOF'
+          {
+            "execution_id": "${{ needs.init.outputs.execution_id }}",
+            "status": "${{ job.status }}",
+            "timestamp_end": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "duration_seconds": ${{ job.duration || 0 }}
+          }
+          EOF
+          mkdir -p orchestration-logs
+          cp /tmp/execution-complete.json orchestration-logs/
+          echo "✅ Execution sealed"
 
       - name: 'Upload: Execution logs (for audit trail)'
         if: always()

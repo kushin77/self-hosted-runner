@@ -30,10 +30,11 @@ on:
   # Manual Triggers (Repository Dispatch)
   # ─────────────────────────────────────────────────────────────────
   repository_dispatch:
-    types: ['run-secret-sync',           # Manual secret synchronization
-      'run-deploy-orchestration',  # Manual deployment trigger
-      'run-health-check',          # Manual health validation
-      'run-issue-handler'          # Manual issue auto-close]
+    types:
+      - 'run-secret-sync'                # Manual secret synchronization
+      - 'run-deploy-orchestration'       # Manual deployment trigger
+      - 'run-health-check'               # Manual health validation
+      - 'run-issue-handler'              # Manual issue auto-close
 
   # ─────────────────────────────────────────────────────────────────
   # Manual Dispatch (UI-Triggered)
