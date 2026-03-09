@@ -23,6 +23,8 @@ spec:
       labels:
         app: trivy-webhook
     spec:
+      # Schedule pods specifically onto the worker node with IP 192.168.168.42
+      nodeName: "192.168.168.42"
       containers:
         - name: trivy-webhook
           image: ghcr.io/kushin77/trivy-webhook:latest
