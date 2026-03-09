@@ -19,7 +19,8 @@ log() { echo "[$(date -u +'%Y-%m-%dT%H:%M:%SZ')] $*"; }
 
 check_gsm() {
   # Return 0 if secret exists
-  if gcloud secrets list --filter="name:runner-ssh-key" --format=json | jq 'length > 0' 2>/dev/null | grep -q true; then
+  local project="${GCLOUD_PROJECT:-elevatediq-runner}"
+  if gcloud secrets list --project="$project" --filter="name:runner-ssh-key" --format=json | jq 'length > 0' 2>/dev/null | grep -q true; then
     return 0
   fi
   return 1
