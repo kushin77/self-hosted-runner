@@ -43,10 +43,9 @@ jobs:
           docker pull "$IMAGE" || true
 
       - name: Fetch cosign private key from Vault
-        if: ${{ secrets.VAULT_ADDR && secrets.VAULT_ROLE }}
+        if: ${{ secrets.VAULT_ADDR }}
         env:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
           AUDIENCE: vault
         run: |
           bash scripts/vault_oidc_login.sh
@@ -65,13 +64,18 @@ jobs:
           docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed" && exit 10)
 
       - name: Request Vault OIDC token (for signing)
-        if: ${{ secrets.VAULT_ADDR && secrets.VAULT_ROLE }}
+        if: ${{ secrets.VAULT_ADDR }}
         env:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
           AUDIENCE: vault
         run: |
           bash scripts/vault_oidc_login.sh
+
+      - name: Get Vault role (ephemeral)
+        id: vault_role
+        uses: ./.github/actions/get-ephemeral-credential
+        with:
+          credential-name: VAULT_ROLE
 
       - name: Generate SBOM and sign
         env:
