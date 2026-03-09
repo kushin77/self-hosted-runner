@@ -20,14 +20,6 @@ jobs:
       'refs/tags/'))
     steps:
     - uses: actions/checkout@v4
-    - name: Get Credential [GPG_PRIVATE_KEY]
-      id: cred_gpg_private_key
-      uses: ./.github/actions/get-ephemeral-credential
-      with:
-        credential-name: GPG_PRIVATE_KEY
-        retrieve-from: auto
-        cache-ttl: 600
-        audit-log: true
     - name: Get Credential [GPG_KEY_ID]
       id: cred_gpg_key_id
       uses: kushin77/get-ephemeral-credential@v1
