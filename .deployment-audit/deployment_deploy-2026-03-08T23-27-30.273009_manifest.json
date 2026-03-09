@@ -1,0 +1,43 @@
+{
+  "deployment_id": "deploy-2026-03-08T23-27-30.273009",
+  "timestamp": "2026-03-08T23:27:30.273219",
+  "components": {
+    "deployed": [],
+    "failed": [
+      "revoke-exposed-keys"
+    ]
+  },
+  "summary": {
+    "deployment_id": "deploy-2026-03-08T23-27-30.273009",
+    "timestamp": "2026-03-08T23:27:30.273219",
+    "total_events": 3,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:27:30.274084",
+        "event_type": "deployment_start",
+        "component_id": "revoke-exposed-keys",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:27:30.278969",
+        "event_type": "step_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {
+          "step": "scan-exposed-keys"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:27:30.279288",
+        "event_type": "deployment_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: scan-exposed-keys"
+      }
+    ]
+  }
+}
