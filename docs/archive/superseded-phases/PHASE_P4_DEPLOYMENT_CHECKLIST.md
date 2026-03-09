@@ -9,7 +9,7 @@ Use this checklist to ensure Phase P4 is deployed correctly and operating as exp
 - [ ] Kubernetes cluster is running (v1.24+) with sufficient resources
 - [ ] Docker registry (GHCR/ECR/ACR) is accessible for image pushes
 - [ ] DNS is configured for `vault.example.local` and `control-plane.example.local`
-- [ ] All 4 implementation PRs (#1565, #1566, #1567, #1569) are merged
+- [ ] All 4 implementation Draft issues (#1565, #1566, #1567, #1569) are merged
 
 ## Deployment Phase 1: Infrastructure
 

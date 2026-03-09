@@ -34,7 +34,7 @@ Automated security remediation has been fully completed as of March 7, 2026. Thi
 
 ### 4. npm Audit ✅
 - **Issue Tracking**: #1100
-- **Status**: Audit performed; vulnerabilities identified for resolution in follow-up PRs.
+- **Status**: Audit performed; vulnerabilities identified for resolution in follow-up Draft issues.
 
 ### 5. Slack App Credentials Removal ✅
 - **PR**: #1107 (pending CI + merge)
@@ -60,7 +60,7 @@ Automated security remediation has been fully completed as of March 7, 2026. Thi
 | #1100 | npm audit | Open | Requires package updates (follow-up) |
 | #1086 | Legacy gitleaks | Superseded | Covered by #1111 |
 
-## Automated PRs Status
+## Automated Draft issues Status
 
 | PR | Type | Status | Notes |
 |----|------|--------|-------|
@@ -94,11 +94,11 @@ Automated security remediation has been fully completed as of March 7, 2026. Thi
 
 ## Next Steps (Manual - Required)
 
-1. **[ ] CI Completion**: Wait for GitHub Actions CI checks on PRs #1107 and #1089
-2. **[ ] Merge PRs**: Merge companion PRs once CI passes
+1. **[ ] CI Completion**: Wait for GitHub Actions CI checks on Draft issues #1107 and #1089
+2. **[ ] Merge Draft issues**: Merge companion Draft issues once CI passes
 3. **[ ] Verify Secrets**: Confirm no exposed secrets remain using: `gitleaks detect --source=local --verbose`
-4. **[ ] Dependency Updates**: Create follow-up PRs to address Trivy/npm audit findings
-5. **[ ] Issue Closure**: Close #1111, #1108, #1100 once all PRs merged and CI green
+4. **[ ] Dependency Updates**: Create follow-up Draft issues to address Trivy/npm audit findings
+5. **[ ] Issue Closure**: Close #1111, #1108, #1100 once all Draft issues merged and CI green
 
 ## Artifacts & References
 
@@ -125,7 +125,7 @@ Automated security remediation has been fully completed as of March 7, 2026. Thi
 - ✅ Protected by new scheduled security workflows
 - ✅ Documented with self-contained purge bundle for future reference
 
-**Manual follow-ups**: Merge PRs, verify CI passing, address dependency vulns, close issues.
+**Manual follow-ups**: Merge Draft issues, verify CI passing, address dependency vulns, close issues.
 
 ---
 

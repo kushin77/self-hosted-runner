@@ -87,7 +87,7 @@ node index.js  # Service should start without module errors
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| `git` operations | ✅ Works | Create branches, PRs, commits |
+| `git` operations | ✅ Works | Create branches, Draft issues, commits |
 | Ansible playbooks | ✅ Works | Deploy rotation automation; playbook created |
 | Shell script execution | ✅ Works | Run arbitrary commands via `run_in_terminal` |
 | SSH to staging | ⚠️ Missing | Blocks live rollout execution from this environment |

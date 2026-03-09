@@ -197,7 +197,7 @@ pytest tests/test_failure_predictor.py -v
 ./scripts/automation/pmo/job-cancellation-handler.sh --test
 ```
 
-### Step 4: Create Pull Request
+### Step 4: Create Draft Issue
 ```bash
 git push origin feature/p1-job-cancellation
 # Then open PR on GitHub with clear description
@@ -274,7 +274,7 @@ git push origin feature/p1-job-cancellation
 
 ### Communication
 - ✅ Update GitHub issue with progress daily
-- ✅ Comment on PRs within 24 hours
+- ✅ Comment on Draft issues within 24 hours
 - ✅ Flag blockers early in Slack
 - ✅ Document design decisions in issue
 - ✅ Share knowledge with other teams
@@ -326,7 +326,7 @@ git push origin feature/p1-job-cancellation
 4. **Escalate to PM if time-critical**
 
 ### For Code Review:
-1. **Create pull request with clear description**
+1. **Create Draft issue with clear description**
 2. **Request review from team lead + 1 peer**
 3. **Respond to reviews within 24 hours**
 4. **Ask clarification if review is unclear**
@@ -337,7 +337,7 @@ git push origin feature/p1-job-cancellation
 
 You're on track if:
 - ✅ Attending daily standups
-- ✅ Making consistent progress (commits/PRs)
+- ✅ Making consistent progress (commits/Draft issues)
 - ✅ Tests passing on your component
 - ✅ Communicating blockers early
 - ✅ Reviewing peers' code

@@ -338,7 +338,7 @@ Phase 1: Infrastructure Deployment
   Files:   21 deployed
   Code:    2,200+ LOC
   Docs:    2,300+ LOC
-  PR:      #1945 (merged)
+  Draft Issue:      #1945 (merged)
   
 Phase 2: OIDC/WIF Configuration
   Status:  ▶️  READY FOR EXECUTION

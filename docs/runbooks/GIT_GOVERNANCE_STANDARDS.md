@@ -257,7 +257,7 @@ git config --global commit.gpgSign true  # Auto-sign
 | Commits | 1-10 | Suggestion to squash |
 | Discussion length | Track | Flag if > 10 comments |
 
-**Large PRs require:**
+**Large Draft issues require:**
 - Extra code review (2 minimum)
 - Security review (if security code)
 - CODEOWNERS explicit approval
@@ -318,8 +318,8 @@ git config --global commit.gpgSign true  # Auto-sign
 - Automated workflow runs weekly (Sunday 1 AM UTC)
 
 **Rules:**
-- Draft PRs ignored
-- PRs with recent comments not stale
+- Draft Draft issues ignored
+- Draft issues with recent comments not stale
 - Ops team can bypass
 
 ---
@@ -597,7 +597,7 @@ git commit --no-verify  # Skips hooks (dangerous!)
 |----------|---------|--------|
 | credential-rotation.yml | Daily 3 AM UTC | Rotate GSM/VAULT/KMS |
 | stale-cleanup.yml | Daily 2 AM UTC | Delete inactive branches |
-| stale-pr-cleanup.yml | Weekly Sun 1 AM | Close inactive PRs |
+| stale-pr-cleanup.yml | Weekly Sun 1 AM | Close inactive Draft issues |
 | compliance-audit.yml | Daily 4 AM UTC | Check governance compliance |
 | release-automation.yml | Push to main | Create release + tag |
 
@@ -652,7 +652,7 @@ git commit --no-verify  # Skips hooks (dangerous!)
 **Schedule:** Weekly Sunday 1 AM UTC
 
 **Rules:**
-- Close PRs > 21 days inactive
+- Close Draft issues > 21 days inactive
 - Leave comment with reason
 - Allow reopening
 - No auto-deletion (just close)

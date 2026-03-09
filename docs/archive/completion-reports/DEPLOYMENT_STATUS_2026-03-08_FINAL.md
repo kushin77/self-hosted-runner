@@ -11,7 +11,7 @@
 | Component | Status | Details |
 |-----------|--------|---------|
 | **Remediation PR** | ✅ MERGED (PR #1862) | Embedded secrets removed & redacted |
-| **Docs PRs** | ✅ MERGED (PR #1852) ✅ MERGED (PR #1858) | 1/3 still in CI (PR #1856 pending) |
+| **Docs Draft issues** | ✅ MERGED (PR #1852) ✅ MERGED (PR #1858) | 1/3 still in CI (PR #1856 pending) |
 | **Gitleaks Scan** | ✅ PASSED | CI gitleaks-scan checks succeeded |
 | **GSM/VAULT/KMS** | 🔄 ACTIVE | Multi-layer credential system operational |
 | **Automation Workflows** | ✅ ACTIVE | 67+ credential & deployment workflows configured |
@@ -115,7 +115,7 @@
 | Gitleaks validation | ✅ Passed | CI | gitleaks-scan checks passed |
 | Credential sync | 🔄 In Progress | Automation | sync-gsm-to-github-secrets running |
 | Credential health check | ⏳ Pending | Automation | credential-monitor queued |
-| Docs PRs | ⏳ In Progress | CI | PR #1856 awaiting checks (3 merged) |
+| Docs Draft issues | ⏳ In Progress | CI | PR #1856 awaiting checks (3 merged) |
 | Key rotation | ⚠️ Pending | Ops | Manual action required (Issue #1864) |
 | Immutable automation | ✅ Configured | Agent | 67+ workflows, no-ops ready |
 | GSM/VAULT/KMS integration | ✅ Active | System | Multi-layer creds operational |

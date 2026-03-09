@@ -18,7 +18,7 @@
 ### Best Practices: ✅ IMPLEMENTED
 - ✅ **Immutable**: All operations logged to GitHub + Cloud Logging
 - ✅ **Ephemeral**: Vault OIDC tokens with 15-minute TTL
-- ✅ **Idempotent**: Safe re-execution - already-merged PRs auto-skipped
+- ✅ **Idempotent**: Safe re-execution - already-merged Draft issues auto-skipped
 - ✅ **No-Ops**: Non-blocking conflicts, escalated separately
 - ✅ **Fully Automated**: Zero manual intervention required
 - ✅ **Hands-Off**: Trigger once, operates autonomously
@@ -39,7 +39,7 @@
 ## 🎯 EXECUTION PLAN: 257 BRANCHES → CONSOLIDATED
 
 ```
-PHASE 1: Critical Security Fixes (4 PRs)
+PHASE 1: Critical Security Fixes (4 Draft issues)
 ├─ PR #1724: fix/trivy-remediation-dockerfile-update (CVE)
 ├─ PR #1727: fix/envoy-manifest-patches (Stability)
 ├─ PR #1728: fix/pipeline-repair-tar-override (Tar CVE)
@@ -47,7 +47,7 @@ PHASE 1: Critical Security Fixes (4 PRs)
 Duration: 15-20 minutes
 Status: QUEUED
 
-PHASE 2: Phase 3 Vault & P0-P3 Core Features (6 PRs)
+PHASE 2: Phase 3 Vault & P0-P3 Core Features (6 Draft issues)
 ├─ PR #1802: feat/phase3-vault-credentials (Ephemeral auth)
 ├─ PR #1775: feat/p1-workflow-consolidation (Foundation)
 ├─ PR #1773: docs/final-delivery-summary (Automation docs)
@@ -210,11 +210,11 @@ gh run view <run-id> --log
 If workflow times out, stops, or you want to retry:
 
 ```bash
-# Phase 1 retry (safe - already-merged PRs skipped)
+# Phase 1 retry (safe - already-merged Draft issues skipped)
 gh workflow run auto-merge-orchestration.yml -f phase=1
 
 # No manual cleanup needed
-# Already-merged PRs auto-skipped
+# Already-merged Draft issues auto-skipped
 # Resume from last successful point
 # Unlimited retry attempts allowed
 ```
@@ -225,7 +225,7 @@ If PR has merge conflicts:
 1. Conflict detected automatically
 2. Separate GitHub issue created
 3. Main orchestration continues
-4. Other PRs still merge
+4. Other Draft issues still merge
 5. Manual review only needed for conflict
 
 ---
@@ -274,7 +274,7 @@ If PR has merge conflicts:
 - [ ] GitHub Issue #1805 updated ✅
 
 ### Phase 2 (30-40 min)
-- [ ] 6 feature PRs merged
+- [ ] 6 feature Draft issues merged
 - [ ] P0-P3 automation framework operational
 - [ ] Issue #1805 updated with results
 

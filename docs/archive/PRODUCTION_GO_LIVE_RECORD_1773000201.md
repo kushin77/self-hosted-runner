@@ -177,7 +177,7 @@ Continuous Automation
 - ✅ Enforce branch protection for admins
 
 ### Security Scanning
-- ✅ Gitleaks enabled on all PRs
+- ✅ Gitleaks enabled on all Draft issues
 - ✅ Manifest validation active
 - ✅ Secrets scan enabled
 - ✅ Dependency scanning active

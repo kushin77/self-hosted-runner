@@ -1,6 +1,6 @@
 # Request: Vault Setup for Deploy SSH Key (Workflow Integration)
 
-Related PR: #708
+Related Draft Issue: #708
 Related Issue: #707
 
 Summary

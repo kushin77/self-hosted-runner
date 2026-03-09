@@ -15,7 +15,7 @@ Describe the backend capability that is missing or has outdated portal metadata.
 - Function/Service name: 
 
 ## Details
-What metadata is missing, incorrect, or stale? Include links to PRs or files if available.
+What metadata is missing, incorrect, or stale? Include links to Draft issues or files if available.
 
 ## Suggested action
 - Add or update `metadata.yaml` at the component root with required fields: `id`, `name`, `repo_path`, `owner`, `status`, `last_updated`.

@@ -20,7 +20,7 @@
 - ✅ `.github/governance/DELIVERY_SUMMARY_10X_GOVERNANCE.md` (17KB)
 
 #### Enforcement Workflows (Pre-Merge Blocking)
-- ✅ `policy-enforcement-gate.yml` (8.5KB) — Blocks non-compliant PRs
+- ✅ `policy-enforcement-gate.yml` (8.5KB) — Blocks non-compliant Draft issues
 - ✅ `governance-audit-report.yml` (6.7KB) — Daily compliance scorecard
 - ✅ `reusable-guards.yml` (6.7KB) — 6 modular guardrail checks
 - ✅ `branch-protection-enforcer.yml` (2.9KB) — Auto-enforces protections
@@ -265,7 +265,7 @@ Destinations:
 | **Credential Rotation** | 90 days | ✅ Automated via GSM (NIST IA-4) |
 | **Ephemeral TTL** | <15 min | ✅ Vault OIDC 10-min TTL |
 | **Approval SLA (P0)** | <1h | ✅ Manual gate + audit trail |
-| **Violations Blocked** | 100% of non-compliant PRs | ✅ Policy enforcement active |
+| **Violations Blocked** | 100% of non-compliant Draft issues | ✅ Policy enforcement active |
 | **Automation** | 80% hands-off | ✅ Master orchestration event-driven |
 
 ---

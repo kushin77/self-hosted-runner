@@ -1,4 +1,4 @@
-# 10X Self-Healing Enhancements: Workflows, PRs & Auto-Merge
+# 10X Self-Healing Enhancements: Workflows, Draft issues & Auto-Merge
 
 **Status**: Enhancement Blueprint  
 **Date**: March 8, 2026  
@@ -342,7 +342,7 @@ if __name__ == '__main__':
 ### Current Gap
 - PR **requires manual approval** to merge (slow, bottleneck)
 - No automatic merge on successful checks (waits for human)
-- High-risk PRs can't distinguish from low-risk ones
+- High-risk Draft issues can't distinguish from low-risk ones
 - No rollback on post-merge failure
 
 ### 10X Enhancement
@@ -1030,9 +1030,9 @@ jobs:
 ## 10X ENHANCEMENT 7: Intelligent PR Prioritization & Fast-Track Merge
 
 ### Current Gap
-- All PRs treated equally (no priority system)
+- All Draft issues treated equally (no priority system)
 - Critical fixes wait same as docs updates
-- No fast-track for urgent PRs
+- No fast-track for urgent Draft issues
 
 ### 10X Enhancement
 **Intelligent PR prioritization** with fast-track merge for high-priority items.

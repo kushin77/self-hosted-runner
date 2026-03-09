@@ -446,7 +446,7 @@ const myStyle: React.CSSProperties = {
 - [x] Bundle size optimized
 - [x] Dev server tested
 - [x] Git commits organized
-- [x] Pull request created (#263)
+- [x] Draft issue created (#263)
 - [x] Issue documentation (#262)
 - [x] PR review requested
 - [ ] Code review completed
@@ -485,7 +485,7 @@ const myStyle: React.CSSProperties = {
 
 **For Questions about this Enhancement:**
 - GitHub Issue: [#262](https://github.com/kushin77/self-hosted-runner/issues/262)
-- GitHub PR: [#263](https://github.com/kushin77/self-hosted-runner/pull/263)
+- GitHub Draft Issue: [#263](https://github.com/kushin77/self-hosted-runner/pull/263)
 - Branch: `feature/portal-enterprise-ui-enhancement`
 
 **Related Documentation:**

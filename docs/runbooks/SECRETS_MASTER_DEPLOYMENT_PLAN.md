@@ -49,7 +49,7 @@ TOTAL ESTIMATED DELIVERY: 2-3 WEEKS END-TO-END
 **Status:** ⏳ AWAITING USER ACTION  
 **Timeline:** 2 minutes  
 **Action:** Go to https://github.com/settings/keys/142804975 and click "Approve"  
-**Unblocks:** Automated CI pushes for fixes and PRs
+**Unblocks:** Automated CI pushes for fixes and Draft issues
 
 **See:** GitHub issue comment with detailed instructions
 
@@ -183,11 +183,11 @@ Tier 4 (Emergency): Local encrypted file (~/.vault/encrypted-*)
 - ✅ `.github/workflows/secrets-scan.yml` (gitleaks-based scanning)
 - ✅ `docs/SECRETS_SCANNING_GUIDE.md`
 - ✅ Vault AppRole configured for CI
-- ✅ Secret scanning runs on all PRs/pushes
+- ✅ Secret scanning runs on all Draft issues/pushes
 
 **Key Features:**
 - Secret retrieval with local caching (1-hour TTL)
-- Gitleaks scanning on PRs (reports uploaded)
+- Gitleaks scanning on Draft issues (reports uploaded)
 - Automated secret detection + review workflow
 - False positive suppression (.gitleaksignore)
 
@@ -426,7 +426,7 @@ kubectl apply -f <downloaded-file>
 - [ ] Slack notifications on success/failure
 
 ### Tier 3 Completion Criteria
-- [ ] Secrets scan workflow running on PRs/pushes
+- [ ] Secrets scan workflow running on Draft issues/pushes
 - [ ] Gitleaks reports uploaded
 - [ ] Vault AppRole working
 - [ ] K8s secret injection verified in staging
@@ -435,7 +435,7 @@ kubectl apply -f <downloaded-file>
 
 ### Tier 4 Completion Criteria
 - [ ] SealedSecrets controller running
-- [ ] Sealed secret workflow triggered + creates PRs
+- [ ] Sealed secret workflow triggered + creates Draft issues
 - [ ] Sealed secrets uploaded to MinIO (not git)
 - [ ] Access control verified
 - [ ] Artifact uploads using MinIO (not GitHub Actions)

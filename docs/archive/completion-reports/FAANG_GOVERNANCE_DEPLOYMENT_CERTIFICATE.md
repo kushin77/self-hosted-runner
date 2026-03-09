@@ -92,7 +92,7 @@ Successfully deployed comprehensive FAANG-grade git governance framework with **
 - Idempotent & immutable
 
 **`stale-pr-cleanup.yml`** (Weekly Sunday 1 AM UTC)
-- Finds PRs > 21 days inactive
+- Finds Draft issues > 21 days inactive
 - Auto-closes with notification
 - Allows reopening
 - No-ops automation
@@ -266,7 +266,7 @@ Copilot:
 - ✅ Stale branches auto-deleted (daily)
 - ✅ Credentials auto-rotated (daily)
 - ✅ Compliance audits auto-run (daily)
-- ✅ Stale PRs auto-closed (weekly)
+- ✅ Stale Draft issues auto-closed (weekly)
 
 ---
 

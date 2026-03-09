@@ -14,8 +14,8 @@ Impact
 
 Root Cause Analysis
 -------------------
-- Policy: Protected branch required a broad set of checks for all PRs, without distinguishing docs-only or non-code changes.
-- Implementation: CI workflows had no fast-path for metadata/docs-only PRs.
+- Policy: Protected branch required a broad set of checks for all Draft issues, without distinguishing docs-only or non-code changes.
+- Implementation: CI workflows had no fast-path for metadata/docs-only Draft issues.
 
 10X Enhancements Implemented
 ----------------------------
@@ -27,7 +27,7 @@ Root Cause Analysis
    - Applied: Executed orchestrator with `rotation_trigger=simulate_failover` (run 22825556324) and recorded results; regenerated `SECRETS_REMEDIATION_STATUS_MAR8_2026.md` and `PRODUCTION_READY_2026_03_08.md`.
    - Benefit: Repeatable, auditable verification artifacts for operator handoff.
 
-3. Auto-merge for safe fast-path PRs
+3. Auto-merge for safe fast-path Draft issues
    - Applied: Enabled auto-merge for handoff PR to let protected-branch policy accept merging when required checks complete.
    - Benefit: Removes manual merge gating; still respects required checks.
 
@@ -45,7 +45,7 @@ Root Cause Analysis
 
 Operational Recommendations (next 30 days)
 -----------------------------------------
-- Implement a lightweight CI gate for docs-only PRs: run only `gitleaks` and metadata validation.
+- Implement a lightweight CI gate for docs-only Draft issues: run only `gitleaks` and metadata validation.
 - Add a `docs:fast-track` label that maintainers can apply to bypass heavy checks for non-code changes.
 - Harden the PR preflight classifier to auto-detect docs-only changes and apply reduced checkset.
 - Add scheduled chaos tests for failover (monthly) and publish results as artifacts.

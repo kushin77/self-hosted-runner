@@ -12,8 +12,8 @@
 
 Vulnerability Context:
 - Phase 2 identified critical transitive vulnerabilities (tar, node-gyp, glob, cacache)
-- Non-breaking patches merged (PRs #1398, #1399) ✅
-- Breaking bumps (PRs #1401, #1402) showed CI instability; staged rollout necessary
+- Non-breaking patches merged (Draft issues #1398, #1399) ✅
+- Breaking bumps (Draft issues #1401, #1402) showed CI instability; staged rollout necessary
 
 **Approach:** Incremental batches, 100% CI green gate, full idempotent testing
 
@@ -230,7 +230,7 @@ gh issue create --title "Rollback: Batch X — [reason]"
 
 - **Phase 2 Complete Issue:** #1396 (Dependabot high-severity remediation)
 - **Phase 3 Tracking Issue:** #1424 (This phase)
-- **Phase 2 Closed PRs:** #1401, #1402 (Reference for CI patterns)
+- **Phase 2 Closed Draft issues:** #1401, #1402 (Reference for CI patterns)
 - **GSM Integration:** PR #1417 (Credential management foundation)
 
 ---

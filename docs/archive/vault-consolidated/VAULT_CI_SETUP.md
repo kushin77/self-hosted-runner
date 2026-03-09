@@ -6,7 +6,7 @@ This document describes how to configure GitHub Secrets for the Vault-backed CI 
 
 The `p2-managed-auth-vault-integration` workflow supports two modes:
 
-1. **DEV Mode** (default): Uses a temporary Docker-based Vault dev server. Invoked when GitHub Secrets are not configured. No additional setup required for PRs.
+1. **DEV Mode** (default): Uses a temporary Docker-based Vault dev server. Invoked when GitHub Secrets are not configured. No additional setup required for Draft issues.
 2. **PROD Mode**: Uses real Vault credentials (AppRole authentication). Invoked when `VAULT_ADDR` secret is configured. Enables production-like testing and secrets persistence.
 
 ## Configuration
@@ -83,9 +83,9 @@ gh secret list | grep VAULT
 
 ## Workflow Behavior
 
-### Pull Request Workflows
+### Draft Issue Workflows
 - When `VAULT_ADDR` is not set, uses **DEV mode** (local Docker Vault)
-- No special secrets required for testing PRs
+- No special secrets required for testing Draft issues
 - Enables safe integration testing without production credentials
 
 ### Main Branch Workflows  

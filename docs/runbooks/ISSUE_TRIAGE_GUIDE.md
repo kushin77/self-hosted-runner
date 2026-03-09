@@ -47,7 +47,7 @@
 ### **Medium Effort - 2-4 hours**
 3. **[#1349](https://github.com/kushin77/self-hosted-runner/issues/1349)** - Security: Dependabot findings (10 vulnerabilities)
    - **Labels:** `security`, `dependabot`, `priority/urgent`, `vulnerability`
-   - **Action:** Triage 7 high-severity, open remediation PRs
+   - **Action:** Triage 7 high-severity, open remediation Draft issues
    - **Critical:** 7 high-severity vulns need fixes
    - **Time:** 2-3 hours
 

@@ -285,7 +285,7 @@ gh secret set SECRET_NAME --repo kushin77/self-hosted-runner
 
 ### Could Be Done Later
 1. **Pre-commit hook** — Prevent secrets from being committed
-2. **CI/CD validation** — Block PRs if secrets audit shows new issues
+2. **CI/CD validation** — Block Draft issues if secrets audit shows new issues
 3. **Rotation automation** — Auto-rotate credentials on schedule
 4. **Secret versioning** — Track secret changes over time
 5. **Access audit logs** — Log who accessed what secret when
