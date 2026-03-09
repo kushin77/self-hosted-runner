@@ -4,7 +4,7 @@
 # Status: Can be executed manually via: gh workflow run operational-health-dashboard.yml --ref main
 # Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
 #
-name: Operational Health Dashboard & Metrics
+name: 'Operational Health Dashboard & Metrics'
 
 on:
   workflow_dispatch:
