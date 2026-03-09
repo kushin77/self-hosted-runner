@@ -1,3 +1,9 @@
+# ⚠️ DISABLED - revoke-runner-mgmt-token.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run revoke-runner-mgmt-token.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
 name: Revoke Compromised RUNNER_MGMT_TOKEN
 
 on:
