@@ -40,7 +40,7 @@ help: ## Display this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  make %-$(HELP_SPACING)s %s\n", $$1, $$2}'
 	@echo ""
 	@echo "💡 Examples:"
-	@echo "  make dev-up           # Start: http://localhost:3000"
+	@echo "  make dev-up           # Start: http://192.168.168.42:3000"
 	@echo "  make dev-logs         # See what's happening"
 	@echo "  make dev-verify       # Verify services are healthy"
 	@echo "  make dev-shell SERVICE=vault  # SSH into container"
@@ -140,7 +140,7 @@ dev-up: ## Start full local development stack (docker-compose)
 	@sleep 5
 	@echo ""
 	@echo "🌐 Services available at:"
-	@echo "  Portal UI:        http://localhost:3000"
+	@echo "  Portal UI:        http://192.168.168.42:3000"
 	@echo "  Provisioner API:  http://localhost:8000/health"
 	@echo "  VaultShim:        http://localhost:8080"
 	@echo "  Vault UI:         http://localhost:8200/ui"
@@ -216,7 +216,7 @@ dev-setup-complete: bootstrap docker-build dev-up ## Complete dev setup: bootstr
 	@echo "📚 Next steps:"
 	@echo "  1. Run 'make dev-verify' to check services"
 	@echo "  2. Run 'make dev-logs' to see service logs"
-	@echo "  3. Visit http://localhost:3000 for the Portal"
+	@echo "  3. Visit http://192.168.168.42:3000 for the Portal"
 	@echo "  4. Read QUICKSTART.md for usage patterns"
 
 docs-check:
