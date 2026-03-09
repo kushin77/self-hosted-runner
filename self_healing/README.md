@@ -1,5 +1,5 @@
-# Predictive Workflow Healing Implementation
+# Automatic Rollback & Recovery Implementation
 
-Pattern-based remediation with cooldown tracking.
+Zero-downtime rollback with health check orchestration.
 
 See main README for full framework overview.
