@@ -238,61 +238,19 @@ jobs:
           TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
           SUCCESS_RATE="${{ steps.workflow-health.outputs.overall_success_rate }}"
           CLOSED_ISSUES="${{ steps.issue-metrics.outputs.closed_count }}"
-          OPEN_ISSUES="${{ steps.issue-metrics.outputs.open_count }}"
-          UPDATED_ISSUES="${{ steps.issue-metrics.outputs.updated_count }}"
           RUNNER_TOKEN="${{ steps.secrets-status.outputs.runner_token_status }}"
           DEPLOY_KEY="${{ steps.secrets-status.outputs.deploy_key_status }}"
           MINIO_STATUS="${{ steps.minio-status.outputs.minio_status }}"
 
-          REPORT="## 📊 Health Dashboard Report - $TIMESTAMP
+          REPORT="Health Dashboard Report - $TIMESTAMP
 
-### ✅ System Health Summary
+          SUCCESS_RATE: $SUCCESS_RATE%
+          CLOSED_ISSUES: $CLOSED_ISSUES
+          RUNNER_TOKEN: $RUNNER_TOKEN
+          DEPLOY_KEY: $DEPLOY_KEY
+          MINIO_STATUS: $MINIO_STATUS
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Workflow Success Rate** | $SUCCESS_RATE% | $([ $SUCCESS_RATE -ge 95 ] && echo '🟢 HEALTHY' || echo '🟡 WARNING') |
-| **Tracked Issues Closed** | $CLOSED_ISSUES / 11 | $([ $CLOSED_ISSUES -eq 11 ] && echo '✅ ALL' || echo '🔄 IN PROGRESS') |
-| **Issues Recently Updated** | $UPDATED_ISSUES | 🔄 Active remediation |
-| **RUNNER_MGMT_TOKEN** | $RUNNER_TOKEN | $(echo "$RUNNER_TOKEN" | grep -q "✅" && echo '✅' || echo '❌') |
-| **DEPLOY_SSH_KEY** | $DEPLOY_KEY | $(echo "$DEPLOY_KEY" | grep -q "✅" && echo '✅' || echo '❌') |
-| **MinIO Endpoint** | $MINIO_STATUS | $(echo "$MINIO_STATUS" | grep -q "HEALTHY" && echo '✅' || echo '⚠') |
-
-### 📋 Tracked Issues Status
-
-${{ steps.issue-metrics.outputs.issue_details }}
-
-### 🔄 Automation Workflow Status
-
-- **DR Reconciliation**: Every 30 min (detects+closes failures)
-- **Secret Provisioning**: Every 6 hours (ephemeral, auto-close)
-- **Auto-Merge**: Daily verification (enable+config)
-- **MinIO Failover**: Every 15 min (health monitor)
-
-### 📈 Key Metrics (Last 5 Runs Each)
-
-**Success Rate**: $SUCCESS_RATE% overall
-**Failures**: ${{ steps.workflow-health.outputs.overall_total - steps.workflow-health.outputs.overall_successes }} of ${{ steps.workflow-health.outputs.overall_total }} runs
-**Auto-Closes**: $CLOSED_ISSUES issues resolved
-
-### 🎯 System Properties
-
-✅ **Immutable**: All actions logged to GitHub issues
-✅ **Ephemeral**: Secrets rotated; failover auto-reverts
-✅ **Idempotent**: Workflows safe to re-run
-✅ **Hands-Off**: 100% automated, zero manual ops
-
-### 🔗 Links
-
-- **Workflows**: https://github.com/kushin77/self-hosted-runner/actions
-- **Issues**: https://github.com/kushin77/self-hosted-runner/issues
-- **Phase 5 Sign-Off**: Issue #1071
-- **Remediation Summary**: Issue #1077
-
----
-
-**Report Generated**: $TIMESTAMP
-**Next Report**: $(date -u -d '+24 hours' +'%Y-%m-%d %H:%M:%S UTC')
-**Status**: 🟢 SYSTEM OPERATIONAL"
+          Status: OPERATIONAL"
 
           echo "report<<EOF" >> $GITHUB_OUTPUT
           echo "$REPORT" >> $GITHUB_OUTPUT
@@ -301,10 +259,10 @@ ${{ steps.issue-metrics.outputs.issue_details }}
       - name: Post or Update Dashboard Issue
         id: dashboard-issue
         run: |
-          DASHBOARD_ISSUE="1056"  # Continuous Monitoring issue
+          DASHBOARD_ISSUE="1056"
           REPORT="${{ steps.daily-report.outputs.report }}"
 
-          # Check if we should post comment or just update
+          ## Check if we should post comment or just update
           if [ "$(date +'%H')" -eq "04" ]; then
             # Daily report (04:00 UTC)
             echo "Posting daily health report to issue #$DASHBOARD_ISSUE..."

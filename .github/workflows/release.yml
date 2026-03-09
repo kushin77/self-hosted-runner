@@ -13,40 +13,41 @@ jobs:
     permissions:
       contents: write
       packages: write
-    
+
     steps:
     - uses: actions/checkout@v4
       with:
-        fetch-depth: 0  # Fetch full history for changelog
-      - name: Get Credential [PYPI_TOKEN]
-        id: cred_pypi_token
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: PYPI_TOKEN
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        fetch-depth: 0
 
-    
+    - name: Get Credential [PYPI_TOKEN]
+      id: cred_pypi_token
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: PYPI_TOKEN
+        retrieve-from: 'auto'
+        cache-ttl: 600
+        audit-log: true
+
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-    
+
     - name: Validate version format
       run: |
         if ! [[ "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
           echo "Invalid version format. Use v1.0.0 or v1.0.0-rc1"
           exit 1
         fi
-    
+
     - name: Create git tag
       run: |
         git config user.name "GitHub Actions"
         git config user.email "actions@github.com"
         git tag -a ${{ github.event.inputs.version }} -m "Release ${{ github.event.inputs.version }}"
         git push origin ${{ github.event.inputs.version }}
-    
+
     - name: Create GitHub release
       run: |
         gh release create ${{ github.event.inputs.version }} \
@@ -55,7 +56,7 @@ jobs:
           --draft=false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    
+
     - name: Build and publish to PyPI (optional)
       if: '!contains(github.event.inputs.version, "rc") && !contains(github.event.inputs.version, "alpha") && !contains(github.event.inputs.version, "beta")'
       run: |
