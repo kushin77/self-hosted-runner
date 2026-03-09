@@ -32,27 +32,27 @@ locals {
       fi
     fi
 
-    mkdir -p ${VAULT_AGENT_DIR}/templates
+    mkdir -p $${VAULT_AGENT_DIR}/templates
 
     fetch_metadata_or_repo() {
       local key="$1" dst="$2" repo_path="$3"
       # Try metadata server first
-      if curl -fsS ${MD_URL_BASE}/${key} ${MD_HEADER} -o "${dst}"; then
-        echo "Wrote ${dst} from instance metadata (${key})"
+      if curl -fsS $${MD_URL_BASE}/$${key} $${MD_HEADER} -o "$${dst}"; then
+        echo "Wrote $${dst} from instance metadata ($${key})"
         return 0
       fi
       # Fallback to raw repo
-      if curl -fsSL "${BOOTSTRAP_BASE}/${repo_path}" -o "${dst}"; then
-        echo "Wrote ${dst} from repo fallback (${repo_path})"
+      if curl -fsSL "$${BOOTSTRAP_BASE}/$${repo_path}" -o "$${dst}"; then
+        echo "Wrote $${dst} from repo fallback ($${repo_path})"
         return 0
       fi
-      echo "Warning: failed to fetch ${key} or ${repo_path}" >&2
+      echo "Warning: failed to fetch $${key} or $${repo_path}" >&2
       return 1
     }
 
     echo "Installing Vault Agent artifacts (metadata preferred)"
-    fetch_metadata_or_repo "vault-agent.hcl" "${VAULT_AGENT_DIR}/vault-agent.hcl" "scripts/identity/vault-agent/vault-agent.hcl" || true
-    fetch_metadata_or_repo "registry-creds.tpl" "${VAULT_AGENT_DIR}/templates/registry-creds.tpl" "scripts/identity/vault-agent/registry-creds.tpl" || true
+    fetch_metadata_or_repo "vault-agent.hcl" "$${VAULT_AGENT_DIR}/vault-agent.hcl" "scripts/identity/vault-agent/vault-agent.hcl" || true
+    fetch_metadata_or_repo "registry-creds.tpl" "$${VAULT_AGENT_DIR}/templates/registry-creds.tpl" "scripts/identity/vault-agent/registry-creds.tpl" || true
     fetch_metadata_or_repo "vault-agent.service" "/etc/systemd/system/vault-agent.service" "scripts/identity/vault-agent/vault-agent.service" || true
 
     # Ensure vault binary exists (best-effort; recommend baking into image for production)
@@ -64,13 +64,13 @@ locals {
     fi
 
     # Fetch and run the runner startup wrapper (handles OIDC->Vault bootstrap and runner registration)
-    RUNNER_STARTUP_URL="${BOOTSTRAP_BASE}/scripts/identity/runner-startup.sh"
-    RUNNER_STARTUP_PATH="${BOOTSTRAP_DIR}/runner-startup.sh"
-    echo "Fetching runner startup wrapper from ${RUNNER_STARTUP_URL}"
-    curl -fsSL "${RUNNER_STARTUP_URL}" -o "${RUNNER_STARTUP_PATH}" || true
-    chmod +x "${RUNNER_STARTUP_PATH}"
+    RUNNER_STARTUP_URL="$${BOOTSTRAP_BASE}/scripts/identity/runner-startup.sh"
+    RUNNER_STARTUP_PATH="$${BOOTSTRAP_DIR}/runner-startup.sh"
+    echo "Fetching runner startup wrapper from $${RUNNER_STARTUP_URL}"
+    curl -fsSL "$${RUNNER_STARTUP_URL}" -o "$${RUNNER_STARTUP_PATH}" || true
+    chmod +x "$${RUNNER_STARTUP_PATH}"
 
-    exec "${RUNNER_STARTUP_PATH}"
+    exec "$${RUNNER_STARTUP_PATH}"
   EOT
 
   metadata_base = {
