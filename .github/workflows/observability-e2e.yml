@@ -1,32 +1,27 @@
 name: Observability E2E Test
-
-on:
+true:
   workflow_dispatch:
     inputs:
       test_real:
-        description: 'Test with real Slack/PagerDuty endpoints (requires secrets)'
+        description: Test with real Slack/PagerDuty endpoints (requires secrets)
         required: 'false'
         default: 'false'
       test_type:
         description: 'Test type: slack, pagerduty, or all'
         required: 'false'
-        default: 'all'
+        default: all
       debug_mode:
-        description: 'Enable debug output'
+        description: Enable debug output
         required: 'false'
         default: 'false'
   schedule:
-    # Scheduled run with mock receivers (daily, off-peak)
-    - cron: '0 2 * * *'  # Daily 02:00 UTC (off-peak)
-
+  - cron: 0 2 * * *
 permissions:
   contents: read
   id-token: write
-
 concurrency:
   group: observability-e2e-${{ github.ref }}
   cancel-in-progress: false
-
 jobs:
   secret-check:
     name: Check Secret Availability
@@ -37,78 +32,66 @@ jobs:
       slack_available: ${{ steps.check.outputs.slack_available }}
       pagerduty_available: ${{ steps.check.outputs.pagerduty_available }}
     steps:
-      - name: Check for required secrets
-        id: check
-      - name: Get Credential [PAGERDUTY_SERVICE_KEY]
-        id: cred_pagerduty_service_key
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: PAGERDUTY_SERVICE_KEY
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [SLACK_WEBHOOK_URL]
-        id: cred_slack_webhook_url
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: SLACK_WEBHOOK_URL
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [PAGERDUTY_SERVICE_KEY]
-        id: cred_pagerduty_service_key
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: PAGERDUTY_SERVICE_KEY
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [SLACK_WEBHOOK_URL]
-        id: cred_slack_webhook_url
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: SLACK_WEBHOOK_URL
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [PAGERDUTY_SERVICE_KEY]
-        id: cred_pagerduty_service_key
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: PAGERDUTY_SERVICE_KEY
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [SLACK_WEBHOOK_URL]
-        id: cred_slack_webhook_url
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: SLACK_WEBHOOK_URL
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-
-        run: |
-          SLACK_AVAILABLE="false"
-          PAGERDUTY_AVAILABLE="false"
-
-          if [-n "${{ secrets.SLACK_WEBHOOK_URL || '' }}"]; then
-            SLACK_AVAILABLE="true"
-            echo "✓ SLACK_WEBHOOK_URL is available"
-          else
-            echo "⚠ SLACK_WEBHOOK_URL is not set (will use mock for testing)"
-          fi
-
-          if [-n "${{ secrets.PAGERDUTY_SERVICE_KEY || '' }}"]; then
-            PAGERDUTY_AVAILABLE="true"
-            echo "✓ PAGERDUTY_SERVICE_KEY is available"
-          else
-            echo "⚠ PAGERDUTY_SERVICE_KEY is not set (will use mock for testing)"
-          fi
-
-          echo "slack_available=$SLACK_AVAILABLE" >> "$GITHUB_OUTPUT"
-          echo "pagerduty_available=$PAGERDUTY_AVAILABLE" >> "$GITHUB_OUTPUT"
-
+    - name: Check for required secrets
+      id: check
+    - name: Get Credential [PAGERDUTY_SERVICE_KEY]
+      id: cred_pagerduty_service_key
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: PAGERDUTY_SERVICE_KEY
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [SLACK_WEBHOOK_URL]
+      id: cred_slack_webhook_url
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: SLACK_WEBHOOK_URL
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [PAGERDUTY_SERVICE_KEY]
+      id: cred_pagerduty_service_key
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: PAGERDUTY_SERVICE_KEY
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [SLACK_WEBHOOK_URL]
+      id: cred_slack_webhook_url
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: SLACK_WEBHOOK_URL
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [PAGERDUTY_SERVICE_KEY]
+      id: cred_pagerduty_service_key
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: PAGERDUTY_SERVICE_KEY
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [SLACK_WEBHOOK_URL]
+      id: cred_slack_webhook_url
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: SLACK_WEBHOOK_URL
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+      run: "SLACK_AVAILABLE=\"false\"\nPAGERDUTY_AVAILABLE=\"false\"\n\nif [-n \"\
+        ${{ secrets.SLACK_WEBHOOK_URL || '' }}\"]; then\n  SLACK_AVAILABLE=\"true\"\
+        \n  echo \"✓ SLACK_WEBHOOK_URL is available\"\nelse\n  echo \"⚠ SLACK_WEBHOOK_URL\
+        \ is not set (will use mock for testing)\"\nfi\n\nif [-n \"${{ secrets.PAGERDUTY_SERVICE_KEY\
+        \ || '' }}\"]; then\n  PAGERDUTY_AVAILABLE=\"true\"\n  echo \"✓ PAGERDUTY_SERVICE_KEY\
+        \ is available\"\nelse\n  echo \"⚠ PAGERDUTY_SERVICE_KEY is not set (will\
+        \ use mock for testing)\"\nfi\n\necho \"slack_available=$SLACK_AVAILABLE\"\
+        \ >> \"$GITHUB_OUTPUT\"\necho \"pagerduty_available=$PAGERDUTY_AVAILABLE\"\
+        \ >> \"$GITHUB_OUTPUT\"\n"
+    timeout-minutes: 30
   ephemeral-e2e-test:
     name: Ephemeral E2E Test (${{ matrix.test_mode }})
     needs: secret-check
@@ -119,298 +102,186 @@ jobs:
     timeout-minutes: 10
     strategy:
       matrix:
-        test_mode: [mock, real]
+        test_mode:
+        - mock
+        - real
       fail-fast: false
     if: always()
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Load resilience helpers
+      run: 'set -euo pipefail
 
-      - name: Load resilience helpers
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh || true
+        source .github/scripts/resilience.sh || true
 
-      - name: Prepare test environment
-        id: prep
-        run: |
-          set -euo pipefail
+        '
+    - name: Prepare test environment
+      id: prep
+      run: "set -euo pipefail\n\nTEST_MODE=\"${{ matrix.test_mode }}\"\nTEST_TYPE=\"\
+        ${{ github.event.inputs.test_type || 'all' }}\"\nDEBUG_MODE=\"${{ github.event.inputs.debug_mode\
+        \ || 'false' }}\"\n\necho \"test_mode=$TEST_MODE\" >> \"$GITHUB_OUTPUT\"\n\
+        echo \"test_type=$TEST_TYPE\" >> \"$GITHUB_OUTPUT\"\necho \"debug_mode=$DEBUG_MODE\"\
+        \ >> \"$GITHUB_OUTPUT\"\n\necho \"\U0001F4CB Test Configuration:\"\necho \"\
+        \  Mode: $TEST_MODE\"\necho \"  Type: $TEST_TYPE\"\necho \"  Debug: $DEBUG_MODE\"\
+        \n\nif [\"$TEST_MODE\" = \"real\"]; then\n  echo \"  Slack Available: ${{\
+        \ needs.secret-check.outputs.slack_available }}\"\n  echo \"  PagerDuty Available:\
+        \ ${{ needs.secret-check.outputs.pagerduty_available }}\"\nfi\n"
+    - name: Run mock endpoint test (local receivers)
+      if: matrix.test_mode == 'mock'
+      env:
+        DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
+      run: "set -euo pipefail\nsource .github/scripts/resilience.sh 2>/dev/null ||\
+        \ true\n\necho \"\U0001F9EA Running ephemeral E2E test with mock webhook...\"\
+        \n\ncd scripts/automation/pmo/prometheus\nchmod +x run_e2e_ephemeral_test.sh\n\
+        \n# Run with retry for transient Docker issues\nretry_command 2 5 ./run_e2e_ephemeral_test.sh\
+        \ || {\n  echo \"✗ Mock test failed (non-fatal)\"\n  exit 0\n}\n\necho \"\
+        ✓ Mock endpoint test completed\"\n"
+    - name: Run real endpoint test (Slack)
+      if: 'matrix.test_mode == ''real'' &&
 
-          TEST_MODE="${{ matrix.test_mode }}"
-          TEST_TYPE="${{ github.event.inputs.test_type || 'all' }}"
-          DEBUG_MODE="${{ github.event.inputs.debug_mode || 'false' }}"
+        needs.secret-check.outputs.slack_available == ''true'' &&
 
-          echo "test_mode=$TEST_MODE" >> "$GITHUB_OUTPUT"
-          echo "test_type=$TEST_TYPE" >> "$GITHUB_OUTPUT"
-          echo "debug_mode=$DEBUG_MODE" >> "$GITHUB_OUTPUT"
+        (github.event.inputs.test_type == ''slack'' || github.event.inputs.test_type
+        == ''all'')
 
-          echo "📋 Test Configuration:"
-          echo "  Mode: $TEST_MODE"
-          echo "  Type: $TEST_TYPE"
-          echo "  Debug: $DEBUG_MODE"
+        '
+      env:
+        SLACK_WEBHOOK_URL: ${{ steps.cred_slack_webhook_url.outputs.credential }}
+        DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
+      run: "set -euo pipefail\nsource .github/scripts/resilience.sh 2>/dev/null ||\
+        \ true\n\necho \"\U0001F4F2 Running E2E test with real Slack endpoint...\"\
+        \n\ncd scripts/automation/pmo/prometheus\nchmod +x run_e2e_ephemeral_test.sh\n\
+        \n# Run with real Slack webhook\nretry_command 2 5 ./run_e2e_ephemeral_test.sh\
+        \ --slack-url \"$SLACK_WEBHOOK_URL\" || {\n  echo \"✗ Slack test failed\"\n\
+        \  exit 1\n}\n\necho \"✓ Real Slack endpoint test completed\"\n"
+    - name: Run real endpoint test (PagerDuty)
+      if: 'matrix.test_mode == ''real'' &&
 
-          if ["$TEST_MODE" = "real"]; then
-            echo "  Slack Available: ${{ needs.secret-check.outputs.slack_available }}"
-            echo "  PagerDuty Available: ${{ needs.secret-check.outputs.pagerduty_available }}"
-          fi
+        needs.secret-check.outputs.pagerduty_available == ''true'' &&
 
-      - name: Run mock endpoint test (local receivers)
-        if: matrix.test_mode == 'mock'
-        env:
-          DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh 2>/dev/null || true
+        (github.event.inputs.test_type == ''pagerduty'' || github.event.inputs.test_type
+        == ''all'')
 
-          echo "🧪 Running ephemeral E2E test with mock webhook..."
-
-          cd scripts/automation/pmo/prometheus
-          chmod +x run_e2e_ephemeral_test.sh
-
-          # Run with retry for transient Docker issues
-          retry_command 2 5 ./run_e2e_ephemeral_test.sh || {
-            echo "✗ Mock test failed (non-fatal)"
-            exit 0
-          }
-
-          echo "✓ Mock endpoint test completed"
-
-      - name: Run real endpoint test (Slack)
-        if: |
-          matrix.test_mode == 'real' &&
-          needs.secret-check.outputs.slack_available == 'true' &&
-          (github.event.inputs.test_type == 'slack' || github.event.inputs.test_type == 'all')
-        env:
-          SLACK_WEBHOOK_URL: ${{ steps.cred_slack_webhook_url.outputs.credential }}
-          DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh 2>/dev/null || true
-
-          echo "📲 Running E2E test with real Slack endpoint..."
-
-          cd scripts/automation/pmo/prometheus
-          chmod +x run_e2e_ephemeral_test.sh
-
-          # Run with real Slack webhook
-          retry_command 2 5 ./run_e2e_ephemeral_test.sh --slack-url "$SLACK_WEBHOOK_URL" || {
-            echo "✗ Slack test failed"
-            exit 1
-          }
-
-          echo "✓ Real Slack endpoint test completed"
-
-      - name: Run real endpoint test (PagerDuty)
-        if: |
-          matrix.test_mode == 'real' &&
-          needs.secret-check.outputs.pagerduty_available == 'true' &&
-          (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
-        env:
-          PAGERDUTY_SERVICE_KEY: ${{ steps.cred_pagerduty_service_key.outputs.credential }}
-          DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
-        run: |
-          set -euo pipefail
-          source .github/scripts/resilience.sh 2>/dev/null || true
-
-          echo "📲 Running E2E test with real PagerDuty endpoint..."
-
-          cd scripts/automation/pmo/prometheus
-          chmod +x run_e2e_ephemeral_test.sh
-
-          # Run with real PagerDuty service key
-          retry_command 2 5 ./run_e2e_ephemeral_test.sh --pagerduty-key "$PAGERDUTY_SERVICE_KEY" || {
-            echo "✗ PagerDuty test failed"
-            exit 1
-          }
-
-          echo "✓ Real PagerDuty endpoint test completed"
-
-      - name: Validation summary
-        if: always()
-        run: |
-          cat <<'EOF'
-
-          ╔════════════════════════════════════════════════════════════════════╗
-          ║              Observability E2E Test - Execution Summary            ║
-          ╚════════════════════════════════════════════════════════════════════╝
-
-          Test Mode: ${{ matrix.test_mode }}
-          Test Type: ${{ github.event.inputs.test_type || 'all' }}
-          Debug: ${{ github.event.inputs.debug_mode || 'false' }}
-
-          Configuration:
-            - Alertmanager config generation: ✓
-            - Mock webhook receiver: ✓ (mock mode)
-            - Real Slack delivery: ${{ matrix.test_mode == 'real' && needs.secret-check.outputs.slack_available == 'true' && 'Ready' || 'Skipped' }}
-            - Real PagerDuty delivery: ${{ matrix.test_mode == 'real' && needs.secret-check.outputs.pagerduty_available == 'true' && 'Ready' || 'Skipped' }}
-
-          Ephemeral Infrastructure:
-            - Docker network: Created & destroyed
-            - Temporary directory: Cleaned up
-            - Container state: Ephemeral
-            - No persistent changes: ✓
-
-          For troubleshooting:
-            - Check scripts/automation/pmo/prometheus/run_e2e_ephemeral_test.sh
-            - Review alertmanager.yml.tpl template
-            - Enable debug_mode=true for verbose output
-
-          ╔════════════════════════════════════════════════════════════════════╗
-
-          EOF
-
+        '
+      env:
+        PAGERDUTY_SERVICE_KEY: ${{ steps.cred_pagerduty_service_key.outputs.credential
+          }}
+        DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
+      run: "set -euo pipefail\nsource .github/scripts/resilience.sh 2>/dev/null ||\
+        \ true\n\necho \"\U0001F4F2 Running E2E test with real PagerDuty endpoint...\"\
+        \n\ncd scripts/automation/pmo/prometheus\nchmod +x run_e2e_ephemeral_test.sh\n\
+        \n# Run with real PagerDuty service key\nretry_command 2 5 ./run_e2e_ephemeral_test.sh\
+        \ --pagerduty-key \"$PAGERDUTY_SERVICE_KEY\" || {\n  echo \"✗ PagerDuty test\
+        \ failed\"\n  exit 1\n}\n\necho \"✓ Real PagerDuty endpoint test completed\"\
+        \n"
+    - name: Validation summary
+      if: always()
+      run: "cat <<'EOF'\n\n╔════════════════════════════════════════════════════════════════════╗\n\
+        ║              Observability E2E Test - Execution Summary            ║\n╚════════════════════════════════════════════════════════════════════╝\n\
+        \nTest Mode: ${{ matrix.test_mode }}\nTest Type: ${{ github.event.inputs.test_type\
+        \ || 'all' }}\nDebug: ${{ github.event.inputs.debug_mode || 'false' }}\n\n\
+        Configuration:\n  - Alertmanager config generation: ✓\n  - Mock webhook receiver:\
+        \ ✓ (mock mode)\n  - Real Slack delivery: ${{ matrix.test_mode == 'real' &&\
+        \ needs.secret-check.outputs.slack_available == 'true' && 'Ready' || 'Skipped'\
+        \ }}\n  - Real PagerDuty delivery: ${{ matrix.test_mode == 'real' && needs.secret-check.outputs.pagerduty_available\
+        \ == 'true' && 'Ready' || 'Skipped' }}\n\nEphemeral Infrastructure:\n  - Docker\
+        \ network: Created & destroyed\n  - Temporary directory: Cleaned up\n  - Container\
+        \ state: Ephemeral\n  - No persistent changes: ✓\n\nFor troubleshooting:\n\
+        \  - Check scripts/automation/pmo/prometheus/run_e2e_ephemeral_test.sh\n \
+        \ - Review alertmanager.yml.tpl template\n  - Enable debug_mode=true for verbose\
+        \ output\n\n╔════════════════════════════════════════════════════════════════════╗\n\
+        \nEOF\n"
   secret-guide:
     name: Display Secret Setup Guide
     needs: secret-check
     runs-on: ubuntu-latest
-    if: |
-      always() && (
-        needs.secret-check.outputs.slack_available == 'false' ||
-        needs.secret-check.outputs.pagerduty_available == 'false'
-      )
+    if: "always() && (\n  needs.secret-check.outputs.slack_available == 'false' ||\n\
+      \  needs.secret-check.outputs.pagerduty_available == 'false'\n)\n"
     steps:
-      - name: Show secret setup instructions
-        run: |
-          cat <<'EOF'
-
-          ╔════════════════════════════════════════════════════════════════════╗
-          ║               Observability E2E - Secret Setup Guide               ║
-          ╚════════════════════════════════════════════════════════════════════╝
-
-          Missing secrets detected. To enable real endpoint testing:
-
-          1. SLACK_WEBHOOK_URL
-             ─────────────────────────────────────────────────────────────
-             • Go to: GitHub repo → Settings → Secrets and variables → Actions
-             • Click "New repository secret"
-             • Name: SLACK_WEBHOOK_URL
-             • Value: https://hooks.slack.com/services/T.../B.../... (from Slack)
-             • Save
-
-          2. PAGERDUTY_SERVICE_KEY
-             ─────────────────────────────────────────────────────────────
-             • Go to: GitHub repo → Settings → Secrets and variables → Actions
-             • Click "New repository secret"
-             • Name: PAGERDUTY_SERVICE_KEY
-             • Value: (Integration/service key from PagerDuty)
-             • Save
-
-          How to Obtain Secrets:
-
-          Slack Webhook:
-            1. Go to https://api.slack.com/apps
-            2. Create New App (from scratch)
-            3. Activate "Incoming Webhooks"
-            4. Add New Webhook to Workspace
-            5. Copy webhook URL
-            6. Paste here as SLACK_WEBHOOK_URL
-
-          PagerDuty Service Key:
-            1. Go to https://www.pagerduty.com
-            2. Navigate to Services → Service Directory
-            3. Create a new Service (or use existing)
-            4. Go to Integrations → Add Integration
-            5. Select "Prometheus" as integration type
-            6. Copy the Integration Key
-            7. Paste here as PAGERDUTY_SERVICE_KEY
-
-          Security Best Practices:
-            ✓ Never paste secrets in PRs, issues, or commit messages
-            ✓ Use org-level secrets scoped to this repository if available
-            ✓ Rotate credentials periodically
-            ✓ Secrets are encrypted at rest on GitHub and in transit
-            ✓ Only exposed to workflow steps that explicitly reference them
-
-          Testing After Setup:
-
-            1. Re-run this workflow with default parameters (mock test)
-            2. Verify mock test passes
-            3. Re-run with inputs: test_real=true
-            4. Check Slack/PagerDuty for test notifications
-            5. Confirm delivery in GitHub Actions logs
-
-          Scheduling:
-
-            • This workflow is currently on manual dispatch (workflow_dispatch)
-            • To enable scheduled runs, comment out the cron schedule above
-            • Recommended: Monday 2 AM UTC (low-traffic time)
-            • Adjust as needed for your team's timezone
-
-          Troubleshooting:
-
-            Issue: Mock test passes but real test fails
-            → Check webhook URL and service key format
-            → Verify credentials have proper permissions
-            → Test credentials outside GitHub (curl/API call)
-
-            Issue: Slack/PagerDuty shows no activity
-            → Verify webhook URL/key by sending test via provider's UI
-            → Check that repo has actual alert data to send
-            → Review alertmanager.yml.tpl configuration
-
-            Issue: Timeout or connection refused
-            → Verify firewall allows outbound to Slack/PagerDuty APIs
-            → Check internet connectivity on runner
-            → PagerDuty: rate limiting may apply (check service config)
-
-          More Info:
-            • Slack API: https://api.slack.com/messaging/webhooks
-            • PagerDuty Integrations: https://developer.pagerduty.com/
-            • Alertmanager Config: https://prometheus.io/docs/alerting/latest/configuration/
-
-          ╔════════════════════════════════════════════════════════════════════╗
-
-          EOF
-
+    - name: Show secret setup instructions
+      run: "cat <<'EOF'\n\n╔════════════════════════════════════════════════════════════════════╗\n\
+        ║               Observability E2E - Secret Setup Guide               ║\n╚════════════════════════════════════════════════════════════════════╝\n\
+        \nMissing secrets detected. To enable real endpoint testing:\n\n1. SLACK_WEBHOOK_URL\n\
+        \   ─────────────────────────────────────────────────────────────\n   • Go\
+        \ to: GitHub repo → Settings → Secrets and variables → Actions\n   • Click\
+        \ \"New repository secret\"\n   • Name: SLACK_WEBHOOK_URL\n   • Value: https://hooks.slack.com/services/T.../B.../...\
+        \ (from Slack)\n   • Save\n\n2. PAGERDUTY_SERVICE_KEY\n   ─────────────────────────────────────────────────────────────\n\
+        \   • Go to: GitHub repo → Settings → Secrets and variables → Actions\n  \
+        \ • Click \"New repository secret\"\n   • Name: PAGERDUTY_SERVICE_KEY\n  \
+        \ • Value: (Integration/service key from PagerDuty)\n   • Save\n\nHow to Obtain\
+        \ Secrets:\n\nSlack Webhook:\n  1. Go to https://api.slack.com/apps\n  2.\
+        \ Create New App (from scratch)\n  3. Activate \"Incoming Webhooks\"\n  4.\
+        \ Add New Webhook to Workspace\n  5. Copy webhook URL\n  6. Paste here as\
+        \ SLACK_WEBHOOK_URL\n\nPagerDuty Service Key:\n  1. Go to https://www.pagerduty.com\n\
+        \  2. Navigate to Services → Service Directory\n  3. Create a new Service\
+        \ (or use existing)\n  4. Go to Integrations → Add Integration\n  5. Select\
+        \ \"Prometheus\" as integration type\n  6. Copy the Integration Key\n  7.\
+        \ Paste here as PAGERDUTY_SERVICE_KEY\n\nSecurity Best Practices:\n  ✓ Never\
+        \ paste secrets in PRs, issues, or commit messages\n  ✓ Use org-level secrets\
+        \ scoped to this repository if available\n  ✓ Rotate credentials periodically\n\
+        \  ✓ Secrets are encrypted at rest on GitHub and in transit\n  ✓ Only exposed\
+        \ to workflow steps that explicitly reference them\n\nTesting After Setup:\n\
+        \n  1. Re-run this workflow with default parameters (mock test)\n  2. Verify\
+        \ mock test passes\n  3. Re-run with inputs: test_real=true\n  4. Check Slack/PagerDuty\
+        \ for test notifications\n  5. Confirm delivery in GitHub Actions logs\n\n\
+        Scheduling:\n\n  • This workflow is currently on manual dispatch (workflow_dispatch)\n\
+        \  • To enable scheduled runs, comment out the cron schedule above\n  • Recommended:\
+        \ Monday 2 AM UTC (low-traffic time)\n  • Adjust as needed for your team's\
+        \ timezone\n\nTroubleshooting:\n\n  Issue: Mock test passes but real test\
+        \ fails\n  → Check webhook URL and service key format\n  → Verify credentials\
+        \ have proper permissions\n  → Test credentials outside GitHub (curl/API call)\n\
+        \n  Issue: Slack/PagerDuty shows no activity\n  → Verify webhook URL/key by\
+        \ sending test via provider's UI\n  → Check that repo has actual alert data\
+        \ to send\n  → Review alertmanager.yml.tpl configuration\n\n  Issue: Timeout\
+        \ or connection refused\n  → Verify firewall allows outbound to Slack/PagerDuty\
+        \ APIs\n  → Check internet connectivity on runner\n  → PagerDuty: rate limiting\
+        \ may apply (check service config)\n\nMore Info:\n  • Slack API: https://api.slack.com/messaging/webhooks\n\
+        \  • PagerDuty Integrations: https://developer.pagerduty.com/\n  • Alertmanager\
+        \ Config: https://prometheus.io/docs/alerting/latest/configuration/\n\n╔════════════════════════════════════════════════════════════════════╗\n\
+        \nEOF\n"
+    timeout-minutes: 30
   report:
     name: E2E Execution Report
-    needs: [secret-check, ephemeral-e2e-test]
+    needs:
+    - secret-check
+    - ephemeral-e2e-test
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Upload metrics artifact (guaranteed)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: observability-e2e-metrics
-          path: |
-            workflow_artifacts/metrics.json
-            **/workflow_artifacts/metrics.json
-            /tmp/observability-e2e.*/metrics.json
+    - name: Upload metrics artifact (guaranteed)
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: observability-e2e-metrics
+        path: 'workflow_artifacts/metrics.json
 
-      - name: Generate final report
-        run: |
-          cat <<'EOF'
+          **/workflow_artifacts/metrics.json
 
-          ╔════════════════════════════════════════════════════════════════════╗
-          ║             Observability E2E Pipeline - Final Report              ║
-          ╚════════════════════════════════════════════════════════════════════╝
+          /tmp/observability-e2e.*/metrics.json
 
-          Secret Status:
-            • Slack Webhook URL: ${{ needs.secret-check.outputs.slack_available == 'true' && '✓ Available' || '✗ Not configured' }}
-            • PagerDuty Service Key: ${{ needs.secret-check.outputs.pagerduty_available == 'true' && '✓ Available' || '✗ Not configured' }}
-
-          Test Execution:
-            • Mock E2E Test: ${{ needs.ephemeral-e2e-test.result == 'success' && '✓ Passed' || needs.ephemeral-e2e-test.result == 'skipped' && '⊘ Skipped' || '✗ Failed' }}
-            • Real E2E Test: ${{ needs.ephemeral-e2e-test.result == 'success' && '✓ Passed' || needs.ephemeral-e2e-test.result == 'skipped' && '⊘ Skipped/Not Configured' || '✗ Failed' }}
-
-          Characteristics:
-            ✓ Ephemeral: Docker containers cleaned up after run
-            ✓ Idempotent: Safe to re-run without side effects
-            ✓ Non-fatal Real Tests: Mock always runs, real optional
-            ✓ Automated: No manual configuration required
-
-          Next Steps:
-            1. If secrets missing: Follow guide above to add them to GitHub Settings
-            2. If secrets added: Re-run with test_real=true to validate delivery
-            3. If all passing: Enable scheduled runs (edit cron in workflow)
-            4. Monitor: Check real notifications in Slack/PagerDuty periodically
-
-          Configuration:
-            • Alert Template: scripts/automation/pmo/prometheus/alertmanager.yml.tpl
-            • Config Generator: scripts/automation/pmo/prometheus/generate-alertmanager-config.sh
-            • Test Runner: scripts/automation/pmo/prometheus/run_e2e_ephemeral_test.sh
-
-          ╔════════════════════════════════════════════════════════════════════╗
-
-          EOF
+          '
+    - name: Generate final report
+      run: "cat <<'EOF'\n\n╔════════════════════════════════════════════════════════════════════╗\n\
+        ║             Observability E2E Pipeline - Final Report              ║\n╚════════════════════════════════════════════════════════════════════╝\n\
+        \nSecret Status:\n  • Slack Webhook URL: ${{ needs.secret-check.outputs.slack_available\
+        \ == 'true' && '✓ Available' || '✗ Not configured' }}\n  • PagerDuty Service\
+        \ Key: ${{ needs.secret-check.outputs.pagerduty_available == 'true' && '✓\
+        \ Available' || '✗ Not configured' }}\n\nTest Execution:\n  • Mock E2E Test:\
+        \ ${{ needs.ephemeral-e2e-test.result == 'success' && '✓ Passed' || needs.ephemeral-e2e-test.result\
+        \ == 'skipped' && '⊘ Skipped' || '✗ Failed' }}\n  • Real E2E Test: ${{ needs.ephemeral-e2e-test.result\
+        \ == 'success' && '✓ Passed' || needs.ephemeral-e2e-test.result == 'skipped'\
+        \ && '⊘ Skipped/Not Configured' || '✗ Failed' }}\n\nCharacteristics:\n  ✓\
+        \ Ephemeral: Docker containers cleaned up after run\n  ✓ Idempotent: Safe\
+        \ to re-run without side effects\n  ✓ Non-fatal Real Tests: Mock always runs,\
+        \ real optional\n  ✓ Automated: No manual configuration required\n\nNext Steps:\n\
+        \  1. If secrets missing: Follow guide above to add them to GitHub Settings\n\
+        \  2. If secrets added: Re-run with test_real=true to validate delivery\n\
+        \  3. If all passing: Enable scheduled runs (edit cron in workflow)\n  4.\
+        \ Monitor: Check real notifications in Slack/PagerDuty periodically\n\nConfiguration:\n\
+        \  • Alert Template: scripts/automation/pmo/prometheus/alertmanager.yml.tpl\n\
+        \  • Config Generator: scripts/automation/pmo/prometheus/generate-alertmanager-config.sh\n\
+        \  • Test Runner: scripts/automation/pmo/prometheus/run_e2e_ephemeral_test.sh\n\
+        \n╔════════════════════════════════════════════════════════════════════╗\n\
+        \nEOF\n"
+    timeout-minutes: 30
