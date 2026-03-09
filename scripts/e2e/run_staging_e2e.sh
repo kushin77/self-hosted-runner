@@ -27,6 +27,19 @@ pushd "$EXAMPLE_DIR" >/dev/null
 
 export TF_IN_AUTOMATION=1
 
+# In CI mode, print lightweight kubeconfig diagnostics to help debug provider connectivity.
+if [ "${TF_VAR_run_mode:-}" = "ci" ]; then
+  echo "CI diagnostics: TF_VAR_kubeconfig_path=${TF_VAR_kubeconfig_path:-unset}"
+  if [ -n "${TF_VAR_kubeconfig_path:-}" ] && [ -f "${TF_VAR_kubeconfig_path}" ]; then
+    ls -l "${TF_VAR_kubeconfig_path}" || true
+    echo "kubectl client version:" && kubectl version --client --short || true
+    echo "kubectl cluster-info:" && kubectl --kubeconfig="${TF_VAR_kubeconfig_path}" cluster-info || true
+    echo "kubectl get nodes:" && kubectl --kubeconfig="${TF_VAR_kubeconfig_path}" get nodes -o wide || true
+  else
+    echo "No kubeconfig file found at TF_VAR_kubeconfig_path"
+  fi
+fi
+
 if [ ! -f .terraform.lock.hcl ]; then
   terraform init -input=false
 else
