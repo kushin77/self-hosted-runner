@@ -1,2 +1,22 @@
 Starting automated deploy run: Mon Mar  9 04:31:28 PM UTC 2026
 Creating service account terraform-deployer@p4-platform.iam.gserviceaccount.com
+Starting automated deploy run: Mon Mar  9 04:34:42 PM UTC 2026
+Creating service account terraform-deployer@p4-platform.iam.gserviceaccount.com
+=== AUTOMATED TERRAFORM APPLY RUN ===
+Start: Mon Mar  9 04:37:33 PM UTC 2026
+Project: p4-platform
+Service Account: terraform-deployer@p4-platform.iam.gserviceaccount.com
+Terraform Dir: /home/akushnir/self-hosted-runner/terraform/environments/staging-tenant-a
+
+[1/4] Attempting to create temporary key...
+ERROR: (gcloud.iam.service-accounts.keys.create) NOT_FOUND: Unknown service account. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property
+❌ Failed to create key. SA may not exist or insufficient permissions.
+Attempting to create SA and grant roles...
+ERROR: (gcloud.iam.service-accounts.create) [akushnir@bioenergystrategies.com] does not have permission to access projects instance [p4-platform] (or it may not exist): Permission 'iam.serviceAccounts.create' denied on resource (or it may not exist). This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property.
+- '@type': type.googleapis.com/google.rpc.ErrorInfo
+  domain: iam.googleapis.com
+  metadata:
+    permission: iam.serviceAccounts.create
+  reason: IAM_PERMISSION_DENIED
+ℹ️ SA already exists
+Granting roles/compute.admin...

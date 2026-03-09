@@ -4,14 +4,14 @@
 # Description: Deploys vault-agent configured with AppRole credentials to bastion
 #              for secure credential distribution and automatic secret rotation
 # Usage: ./deploy-vault-agent-to-bastion.sh [--dry-run] [--verbose]
-# Requires: SSH access to bastion (192.168.168.31), vault CLI, jq
+# Requires: SSH access to bastion (192.168.168.42), vault CLI, jq
 ################################################################################
 
 set -e
 
 # Configuration
-BASTION_HOST="${BASTION_HOST:-192.168.168.31}"
-BASTION_USER="${BASTION_USER:-ec2-user}"
+BASTION_HOST="${BASTION_HOST:-192.168.168.42}"
+BASTION_USER="${BASTION_USER:-akushnir}"
 VAULT_ADDR="${VAULT_ADDR:-https://vault.aws.example.com:8200}"
 VAULT_NAMESPACE="${VAULT_NAMESPACE:-admin}"
 
