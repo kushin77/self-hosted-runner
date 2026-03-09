@@ -1,8 +1,6 @@
 name: Dependabot Triage
 
 on:
-  schedule:
-    - cron: '0 3 * * *' # run daily at 03:00 UTC
   workflow_dispatch:
 
 permissions:
