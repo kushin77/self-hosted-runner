@@ -5,7 +5,7 @@ on:
     inputs:
       action:
         description: 'Emergency action to perform'
-        required: true
+        required: 'true'
         default: 'revoke'
         type: choice
         options:
@@ -17,10 +17,10 @@ on:
           - audit
       secret_name:
         description: 'Secret name (required for revoke/compromise/exposure/verify)'
-        required: false
+        required: 'false'
       reason:
         description: 'Reason for emergency action (e.g., "github_leak", "logs_exposed")'
-        required: false
+        required: 'false'
   issue_comment:
     types: [created]
 
@@ -54,15 +54,15 @@ jobs:
         run: |
           COMMENT="${{ github.event.comment.body }}"
 
-          if [[ "$COMMENT" =~ /breach[[:space:]]+([^[:space:]]+)[[:space:]]*([^[:space:]]*)? ]]; then
+          if [["$COMMENT" =~ /breach[[:space:]]+([^[:space:]]+)[[:space:]]*([^[:space:]]*)?]]; then
             echo "action=compromise" >> $GITHUB_OUTPUT
             echo "secret=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
             echo "reason=${BASH_REMATCH[2]:-automated_breach_detection}" >> $GITHUB_OUTPUT
-          elif [[ "$COMMENT" =~ /revoke-secret[[:space:]]+([^[:space:]]+)[[:space:]]*([^[:space:]]*)? ]]; then
+          elif [["$COMMENT" =~ /revoke-secret[[:space:]]+([^[:space:]]+)[[:space:]]*([^[:space:]]*)?]]; then
             echo "action=revoke" >> $GITHUB_OUTPUT
             echo "secret=${BASH_REMATCH[1]}" >> $GITHUB_OUTPUT
             echo "reason=${BASH_REMATCH[2]:-manual_revocation}" >> $GITHUB_OUTPUT
-          elif [[ "$COMMENT" =~ /emergency-rotate ]]; then
+          elif [["$COMMENT" =~ /emergency-rotate]]; then
             echo "action=mass-rotate" >> $GITHUB_OUTPUT
             echo "reason=emergency_rotation_triggered" >> $GITHUB_OUTPUT
           fi
@@ -102,7 +102,7 @@ jobs:
 
           case $ACTION in
             "compromise"|"revoke")
-              if [[ -z "$SECRET_NAME" ]]; then echo "Secret name required" && exit 1; fi
+              if [[-z "$SECRET_NAME"]]; then echo "Secret name required" && exit 1; fi
               echo "Revoking $SECRET_NAME..."
               gcloud secrets versions list "$SECRET_NAME" --format="value(name)" --project="$GCP_PROJECT" | xargs -I {} gcloud secrets versions disable {} --project="$GCP_PROJECT"
               ;;

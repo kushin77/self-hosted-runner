@@ -32,7 +32,7 @@ jobs:
 
       - name: Run ESLint where applicable
         run: |
-          if [ -f package.json ]; then
+          if [-f package.json]; then
             retry_command 5 10 sh -c "npm ci" || true
             npx eslint . || true
           fi

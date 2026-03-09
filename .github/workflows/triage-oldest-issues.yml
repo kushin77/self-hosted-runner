@@ -31,7 +31,7 @@ jobs:
 
           # optionally post a comment on the very oldest issue to prompt triage
           OLDEST=$(gh issue list --repo "$REPO" --state open --search "sort:created-asc" --limit 1 --json number --jq '.[0].number')
-          if [ -n "$OLDEST" ]; then
+          if [-n "$OLDEST"]; then
             echo "📝 Adding triage reminder to oldest issue #$OLDEST"
             gh issue comment "$OLDEST" --repo "$REPO" --body "🔁 This is currently the oldest open issue; please review and triage (automated ping)." || true
           fi

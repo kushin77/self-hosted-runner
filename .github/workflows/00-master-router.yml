@@ -30,12 +30,10 @@ on:
   # Manual Triggers (Repository Dispatch)
   # ─────────────────────────────────────────────────────────────────
   repository_dispatch:
-    types: [
-      'run-secret-sync',           # Manual secret synchronization
+    types: ['run-secret-sync',           # Manual secret synchronization
       'run-deploy-orchestration',  # Manual deployment trigger
       'run-health-check',          # Manual health validation
-      'run-issue-handler'          # Manual issue auto-close
-    ]
+      'run-issue-handler'          # Manual issue auto-close]
 
   # ─────────────────────────────────────────────────────────────────
   # Manual Dispatch (UI-Triggered)
@@ -51,27 +49,25 @@ on:
           - 'health-check'
           - 'issue-auto-close'
           - 'all'
-        required: false
+        required: 'false'
         default: 'all'
       force_execution:
         description: 'Skip deduplication (force execution)'
         type: boolean
-        default: false
+        default: 'false'
       dry_run:
         description: 'Dry-run mode (no state changes)'
         type: boolean
-        default: false
+        default: 'false'
 
   # ─────────────────────────────────────────────────────────────────
   # Event-Driven Trigger (On Completion Events)
   # ─────────────────────────────────────────────────────────────────
   workflow_run:
-    workflows: [
-      'deploy-immutable-ephemeral',
+    workflows: ['deploy-immutable-ephemeral',
       'deploy-rotation-staging',
       'phase-p3-pre-apply-orchestrator',
-      'runner-self-heal'
-    ]
+      'runner-self-heal']
     types: [completed]
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -217,7 +213,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
         run: |
           CONTEXT=$(cat <<EOF
           {
@@ -241,18 +236,18 @@ jobs:
           ACTION="periodic-check"
           CACHE_KEY="router-decision"
 
-          if [[ "${{ github.event_name }}" == "schedule" ]]; then
+          if [["${{ github.event_name }}" == "schedule"]]; then
             ACTION="periodic-check"
-          elif [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+          elif [["${{ github.event_name }}" == "repository_dispatch"]]; then
             ACTION="${{ github.event.action }}"
-          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+          elif [["${{ github.event_name }}" == "workflow_run"]]; then
             CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-            if [[ "$CONCLUSION" == "success" ]]; then
+            if [["$CONCLUSION" == "success"]]; then
               ACTION="handle-success-completion"
-            elif [[ "$CONCLUSION" == "failure" ]]; then
+            elif [["$CONCLUSION" == "failure"]]; then
               ACTION="handle-failure-completion"
             fi
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          elif [["${{ github.event_name }}" == "workflow_dispatch"]]; then
             ACTION="${{ github.event.inputs.action }}"
           fi
 
@@ -272,7 +267,7 @@ jobs:
           SKIP_DEDUP="${{ github.event.inputs.force_execution }}"
 
           # If force_execution = true, skip dedup
-          if [[ "$SKIP_DEDUP" == "true" ]]; then
+          if [["$SKIP_DEDUP" == "true"]]; then
             echo "should-run=true" >> $GITHUB_OUTPUT
             echo "✓ Deduplication SKIPPED (force_execution=true)"
             exit 0
@@ -335,7 +330,7 @@ jobs:
       - name: 'Initialize KMS Client (for envelope encryption)'
         id: kms-init
         run: |
-          if [[ -n "$KMS_KEY_URI" ]]; then
+          if [[-n "$KMS_KEY_URI"]]; then
             echo "✓ KMS available for envelope encryption"
             echo "kms-ready=true" >> $GITHUB_OUTPUT
           else
@@ -346,7 +341,7 @@ jobs:
       - name: 'Initialize VAULT Client (for transit encryption)'
         id: vault-init
         run: |
-          if [[ -n "$VAULT_ADDR" ]]; then
+          if [[-n "$VAULT_ADDR"]]; then
             echo "✓ VAULT available for transit engine"
             echo "vault-ready=true" >> $GITHUB_OUTPUT
           else
@@ -370,7 +365,7 @@ jobs:
           # Execute reusable secret sync template (delegated)
           echo "🔐 [Secret Sync] Starting atomic transaction"
 
-          if [[ "$DRY_RUN" == "true" ]]; then
+          if [["$DRY_RUN" == "true"]]; then
             echo "  → DRY-RUN MODE (no state changes)"
           else
             echo "  → LIVE MODE (applying changes)"
@@ -384,7 +379,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          STATUS=$([[ ${PIPESTATUS[@]} -eq 0 ]] && echo "success" || echo "failure")
+          STATUS=$([[${PIPESTATUS[@]} -eq 0]] && echo "success" || echo "failure")
           TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
           echo "📝 [Audit] Secret sync $STATUS at $TIMESTAMP"
@@ -403,12 +398,10 @@ jobs:
 
     strategy:
       matrix:
-        phase: [
-          'phase-p2-provisioning',
+        phase: ['phase-p2-provisioning',
           'phase-p3-pre-apply',
           'phase-p4-deployment',
-          'phase-p5-validation'
-        ]
+          'phase-p5-validation']
       max-parallel: 1
 
     steps:
@@ -447,7 +440,7 @@ jobs:
           PHASE="${{ matrix.phase }}"
           echo "⚙️ Applying $PHASE (transactional mode)"
 
-          if [[ "$DRY_RUN" == "true" ]]; then
+          if [["$DRY_RUN" == "true"]]; then
             echo "  → DRY-RUN (no Terraform/kubectl changes)"
           else
             echo "  → LIVE (applying infrastructure changes)"
@@ -532,7 +525,7 @@ jobs:
       - name: 'Determine Completion Event'
         id: determine-event
         run: |
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+          if [["${{ github.event_name }}" == "workflow_run"]]; then
             WORKFLOW_NAME="${{ github.event.workflow_run.name }}"
             WORKFLOW_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
             EVENT_TYPE="${WORKFLOW_NAME}-${WORKFLOW_CONCLUSION}"

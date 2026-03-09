@@ -47,7 +47,7 @@ jobs:
 
       - name: Verify file exists
         run: |
-          if [[ ! -f "$FILE_PATH" ]]; then
+          if [[! -f "$FILE_PATH"]]; then
             echo "File $FILE_PATH does not exist; nothing to do.";
             exit 0;
           fi

@@ -12,14 +12,14 @@ on:
     inputs:
       reason:
         description: 'Reason for revocation'
-        required: true
+        required: 'true'
         default: 'emergency_incident'
       target_runners:
         description: 'Comma-separated runner IDs to target (leave empty for all)'
-        required: false
+        required: 'false'
       notify_team:
         description: 'Notify ops team after revocation'
-        required: false
+        required: 'false'
         default: 'true'
 
   workflow_call: {}
@@ -53,7 +53,7 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
         run: |
-          if [[ -z "$DEPLOY_SSH_KEY" ]]; then
+          if [[-z "$DEPLOY_SSH_KEY"]]; then
             echo "::warning::DEPLOY_SSH_KEY not set"
             echo "key_available=false" >> $GITHUB_OUTPUT
             exit 0
@@ -104,7 +104,7 @@ jobs:
           RUNNER_LIST=$(gh api repos/${{ github.repository }}/actions/runners \
             --jq '.runners[] | .name' 2>/dev/null || echo "")
 
-          if [[ -z "$RUNNER_LIST" ]]; then
+          if [[-z "$RUNNER_LIST"]]; then
             echo "⚠️  No runners found; key revocation from runners skipped"
             echo "removed_count=0" >> $GITHUB_OUTPUT
             echo "failed_count=0" >> $GITHUB_OUTPUT
@@ -166,7 +166,7 @@ jobs:
         run: |
           echo "💾 Storing new SSH key in GCP Secret Manager..."
 
-          if [[ -n "$GCP_SERVICE_ACCOUNT_KEY" ]]; then
+          if [[-n "$GCP_SERVICE_ACCOUNT_KEY"]]; then
             echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
             gcloud auth activate-service-account --key-file=/tmp/gcp-key.json 2>/dev/null || true
 
@@ -189,7 +189,7 @@ jobs:
           echo "$NEW_PRIVATE_KEY" | gh secret set DEPLOY_SSH_KEY \
             --repo "${{ github.repository }}" 2>/dev/null
 
-          if [[ $? -eq 0 ]]; then
+          if [[$? -eq 0]]; then
             echo "✅ GitHub Secret updated"
             echo "updated=true" >> $GITHUB_OUTPUT
           else
