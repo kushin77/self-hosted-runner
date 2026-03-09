@@ -1,0 +1,488 @@
+openapi: 3.0.0
+info:
+  title: NexusShield Portal MVP - Backend API
+  description: Enterprise credential management, observability, and orchestration API
+  version: 1.0.0-alpha
+  contact:
+    name: NexusShield Team
+    url: https://nexusshield.cloud
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.nexusshield.cloud
+    description: Production API
+  - url: https://staging-api.nexusshield.cloud
+    description: Staging API
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check endpoint
+      operationId: getHealth
+      responses:
+        '200':
+          description: System healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: OAuth 2.0 login via GitHub/Google
+      operationId: authLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                provider:
+                  type: string
+                  enum: [github, google]
+                code:
+                  type: string
+                  description: OAuth authorization code
+              required: [provider, code]
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  refresh_token:
+                    type: string
+                  user:
+                    $ref: '#/components/schemas/User'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      tags:
+        - Authentication
+      summary: Logout current session
+      operationId: authLogout
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logout successful
+        '401':
+          description: Unauthorized
+
+  /credentials:
+    get:
+      tags:
+        - Credentials
+      summary: List all credentials
+      operationId: listCredentials
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [aws, gcp, vault, github]
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Credentials list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  credentials:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Credential'
+                  total:
+                    type: integer
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+    post:
+      tags:
+        - Credentials
+      summary: Create new credential
+      operationId: createCredential
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCredentialRequest'
+      responses:
+        '201':
+          description: Credential created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Credential'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+
+  /credentials/{credentialId}:
+    get:
+      tags:
+        - Credentials
+      summary: Get credential details
+      operationId: getCredential
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Credential details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CredentialDetailed'
+        '404':
+          description: Not found
+
+    delete:
+      tags:
+        - Credentials
+      summary: Delete credential
+      operationId: deleteCredential
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Credential deleted
+        '404':
+          description: Not found
+
+  /credentials/{credentialId}/rotate:
+    post:
+      tags:
+        - Credentials
+      summary: Trigger credential rotation
+      operationId: rotateCredential
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: credentialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rotation initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rotation_id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, in_progress, completed, failed]
+                  scheduled_at:
+                    type: string
+                    format: date-time
+
+  /audit:
+    get:
+      tags:
+        - Audit
+      summary: Get audit trail
+      operationId: getAuditTrail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: resource_type
+          in: query
+          schema:
+            type: string
+            enum: [credential, user, deployment, system]
+        - name: resource_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [create, read, update, delete, rotate]
+        - name: from_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Audit entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditEntry'
+                  total:
+                    type: integer
+
+  /metrics:
+    get:
+      tags:
+        - Monitoring
+      summary: Get Prometheus metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /deployments:
+    get:
+      tags:
+        - Deployments
+      summary: List all deployments
+      operationId: listDeployments
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Deployments list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deployments:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deployment'
+
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        avatar_url:
+          type: string
+          format: uri
+        role:
+          type: string
+          enum: [admin, viewer, developer]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Credential:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum: [aws, gcp, vault, github]
+        provider:
+          type: string
+          enum: [gsm, vault, kms, local]
+        status:
+          type: string
+          enum: [active, inactive, rotating, expired]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        last_rotated_at:
+          type: string
+          format: date-time
+        next_rotation_at:
+          type: string
+          format: date-time
+
+    CredentialDetailed:
+      allOf:
+        - $ref: '#/components/schemas/Credential'
+        - type: object
+          properties:
+            metadata:
+              type: object
+              additionalProperties: true
+            access_count:
+              type: integer
+            last_accessed_at:
+              type: string
+              format: date-time
+
+    CreateCredentialRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 3
+          maxLength: 255
+        type:
+          type: string
+          enum: [aws, gcp, vault, github]
+        provider:
+          type: string
+          enum: [gsm, vault, kms]
+        secret_data:
+          type: object
+          description: Encrypted credential payload
+        rotation_policy:
+          type: object
+          properties:
+            enabled:
+              type: boolean
+            interval_days:
+              type: integer
+              minimum: 1
+              maximum: 365
+      required: [name, type, provider, secret_data]
+
+    AuditEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        user_id:
+          type: string
+          format: uuid
+        resource_type:
+          type: string
+          enum: [credential, user, deployment, system]
+        resource_id:
+          type: string
+        action:
+          type: string
+          enum: [create, read, update, delete, rotate]
+        changes:
+          type: object
+          additionalProperties: true
+        ip_address:
+          type: string
+        user_agent:
+          type: string
+
+    Deployment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed]
+        created_at:
+          type: string
+          format: date-time
+        started_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: System
+    description: System health and status endpoints
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Credentials
+    description: Credential management endpoints
+  - name: Audit
+    description: Audit trail and compliance endpoints
+  - name: Monitoring
+    description: Metrics and observability endpoints
+  - name: Deployments
+    description: Deployment orchestration endpoints
