@@ -1,5 +1,5 @@
 name: 'Reusable: Security Scan (git-secrets, Trivy, Checkov, CodeQL)'
-true:
+on:
   workflow_call:
     inputs:
       scan_targets:

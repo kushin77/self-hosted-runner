@@ -1,5 +1,5 @@
 name: Deploy (orchestration on main merge)
-true:
+on:
   push:
     branches:
     - main

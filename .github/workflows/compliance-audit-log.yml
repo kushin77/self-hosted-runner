@@ -1,5 +1,5 @@
 name: Compliance & Audit Log
-true:
+on:
   workflow_run:
     types:
     - completed
