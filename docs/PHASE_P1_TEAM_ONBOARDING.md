@@ -24,16 +24,16 @@ git checkout main
 
 ### 2. Read Key Documentation
 **30 minutes**:
-- [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) - Full 6-week roadmap (start here!)
-- [PROJECT_COMPLETION_SUMMARY.md](docs/PROJECT_COMPLETION_SUMMARY.md) - What Phase P0 delivered
+- [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) - Full 6-week roadmap (start here!)
+- [PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md) - What Phase P0 delivered
 
 **15 minutes**:
 - Your assigned GitHub issue (see your component below)
 - Component skeleton code
 
 **15 minutes**:
-- [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) - Approval checklist
-- [GITHUB_ISSUES_TRACKER.md](docs/GITHUB_ISSUES_TRACKER.md) - Issue details
+- [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) - Approval checklist
+- [GITHUB_ISSUES_TRACKER.md](GITHUB_ISSUES_TRACKER.md) - Issue details
 
 ### 3. Setup Development Environment
 ```bash
@@ -82,7 +82,7 @@ cat scripts/automation/pmo/failure-predictor.sh
 **Key Files**:
 - Skeleton: `scripts/automation/pmo/job-cancellation-handler.sh` (6.3 KB)
 - Config: `scripts/automation/pmo/examples/.runner-config/job-cancellation.yaml`
-- Planning: [PHASE_P1_PLANNING.md - Week 1-3](docs/PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation)
+- Planning: [PHASE_P1_PLANNING.md - Week 1-3](PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation)
 
 **Success Criteria**:
 - Graceful termination rate: >95% within grace period
@@ -101,7 +101,7 @@ cat scripts/automation/pmo/failure-predictor.sh
 **Key Files**:
 - Skeleton: `scripts/automation/pmo/vault-integration.sh` (9.4 KB)
 - Config: `scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml`
-- Planning: [PHASE_P1_PLANNING.md - Week 2-4](docs/PHASE_P1_PLANNING.md#week-2-secrets-rotation)
+- Planning: [PHASE_P1_PLANNING.md - Week 2-4](PHASE_P1_PLANNING.md#week-2-secrets-rotation)
 
 **Success Criteria**:
 - Secret rotation success: 100%
@@ -122,7 +122,7 @@ cat scripts/automation/pmo/failure-predictor.sh
 **Key Files**:
 - Skeleton: `scripts/automation/pmo/failure-predictor.sh` (8.7 KB)
 - Config: `scripts/automation/pmo/examples/.runner-config/failure-detection.yaml`
-- Planning: [PHASE_P1_PLANNING.md - Week 5-7](docs/PHASE_P1_PLANNING.md#week-5-failure-prediction)
+- Planning: [PHASE_P1_PLANNING.md - Week 5-7](PHASE_P1_PLANNING.md#week-5-failure-prediction)
 
 **Success Criteria**:
 - Prediction accuracy: >90%
@@ -154,14 +154,14 @@ cat scripts/automation/pmo/failure-predictor.sh
 ## 📚 DOCUMENTATION INDEX
 
 **Critical Reading** (read first):
-1. [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) - Complete 6-week roadmap
+1. [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) - Complete 6-week roadmap
 2. Your component's GitHub issue (#1-5 above)
-3. [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) - How Phase P0 works
+3. [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) - How Phase P0 works
 
 **Reference Docs**:
-- [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) - Phase P0 internals you'll integrate with
-- [PROJECT_COMPLETION_SUMMARY.md](docs/PROJECT_COMPLETION_SUMMARY.md) - Complete project context
-- [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) - Deployment procedures
+- [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) - Phase P0 internals you'll integrate with
+- [PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md) - Complete project context
+- [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) - Deployment procedures
 
 **Configuration Templates**:
 - `scripts/automation/pmo/examples/.runner-config/job-cancellation.yaml`
@@ -284,7 +284,7 @@ git push origin feature/p1-job-cancellation
 ## 🚧 COMMON BLOCKERS & SOLUTIONS
 
 ### "I don't understand Phase P0"
-→ Read [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)  
+→ Read [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)  
 → Ask Phase P0 team member in #platform-p0 Slack channel
 
 ### "I need to integrate with Phase P0"
@@ -383,7 +383,7 @@ You're on track if:
 If you've read this guide and your component's GitHub issue, you're ready to start Phase P1 development!
 
 **Next Actions:**
-1. ✅ Read [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md)
+1. ✅ Read [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md)
 2. ✅ Read your component's GitHub issue (#1-5)
 3. ✅ Setup development environment
 4. ✅ Create feature branch
@@ -402,4 +402,4 @@ If you've read this guide and your component's GitHub issue, you're ready to sta
 **Components**: 3 skeletons ready for development  
 **Duration**: 6 weeks (Week 1-8)
 
-For more context, see [PROJECT_COMPLETION_SUMMARY.md](docs/PROJECT_COMPLETION_SUMMARY.md).
+For more context, see [PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md).

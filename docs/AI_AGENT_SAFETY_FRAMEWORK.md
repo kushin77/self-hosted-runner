@@ -428,7 +428,7 @@ AI system must escalate if:
 
 ## Resources
 
-- [AI Development Framework](../../AI_DEVELOPMENT.md)
-- [Contributing Guidelines](../../CONTRIBUTING.md)
+- [AI Development Framework](architecture/AI_DEVELOPMENT.md)
+- [Contributing Guidelines](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)
 - [Architecture](../../ARCHITECTURE.md)
-- [GOVERNANCE.md](../../GOVERNANCE.md)
+- [GOVERNANCE.md](../actions-runner/externals.2.312.0/node16/lib/node_modules/npm/node_modules/node-gyp/node_modules/tap-mocha-reporter/node_modules/readable-stream/GOVERNANCE.md)

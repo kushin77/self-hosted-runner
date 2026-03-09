@@ -28,7 +28,7 @@ Error: Template interpolation doesn't expect a colon at this location.
 
 **Solution Implemented**:
 - Escaped shell variables: `$${RUNNER_VERSION}` → `v$${RUNNER_VERSION}`
-- File: [terraform/modules/ci-runners/runner_setup.sh](terraform/modules/ci-runners/runner_setup.sh#L40-L43)
+- File: [terraform/modules/ci-runners/runner_setup.sh](../terraform/modules/ci-runners/runner_setup.sh#L40-L43)
 
 **Validation**: ✅ `terraform validate` passes successfully
 
@@ -44,7 +44,7 @@ Error: Template interpolation doesn't expect a colon at this location.
 **Root Cause**: Test script itself contained grep patterns; scripts reading from external sources (GSM, Vault) flagged as hardcoded
 
 **Solution Implemented**:
-- Updated [scripts/automation/pmo/tests/test_runner_suite.sh](scripts/automation/pmo/tests/test_runner_suite.sh#L118-L133)
+- Updated [scripts/automation/pmo/tests/test_runner_suite.sh](../scripts/automation/pmo/tests/test_runner_suite.sh#L118-L133)
 - Added exclusions for:
   - `scripts/automation/pmo/tests/` (test scripts themselves)
   - `scripts/run_gcp_vault_import.sh` (legitimate external source reads)
@@ -109,7 +109,7 @@ Error: Template interpolation doesn't expect a colon at this location.
 
 **Deliverables Created**:
 
-1. **Comprehensive Setup Guide**: [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md](docs/VAULT_DEPLOY_WORKFLOW_SETUP.md)
+1. **Comprehensive Setup Guide**: [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md](VAULT_DEPLOY_WORKFLOW_SETUP.md)
    - Step-by-step Vault configuration
    - AppRole creation & policy setup
    - SSH key storage procedures
@@ -119,7 +119,7 @@ Error: Template interpolation doesn't expect a colon at this location.
    - Troubleshooting guide
    - Secret rotation procedures
 
-2. **Automation Script**: [scripts/setup-vault-deploy-approle.sh](scripts/setup-vault-deploy-approle.sh)
+2. **Automation Script**: [scripts/setup-vault-deploy-approle.sh](../scripts/setup-vault-deploy-approle.sh)
    - Automates Vault AppRole setup
    - Creates policies
    - Tests AppRole authentication
@@ -181,7 +181,7 @@ Result: ✅ All tests passed!
 ## Ops Action Items
 
 ### Phase 1: Vault Configuration (10-15 min)
-Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Steps 1-2](docs/VAULT_DEPLOY_WORKFLOW_SETUP.md)
+Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Steps 1-2](VAULT_DEPLOY_WORKFLOW_SETUP.md)
 
 **Quick Option - Use Automation Script**:
 ```bash
@@ -215,14 +215,14 @@ gh secret set VAULT_SECRET_ID --body "$SECRET_ID"
 ```
 
 ### Phase 3: Deploy User SSH Setup (10-15 min)
-Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Step 4](docs/VAULT_DEPLOY_WORKFLOW_SETUP.md)
+Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Step 4](VAULT_DEPLOY_WORKFLOW_SETUP.md)
 
 On each runner host:
 1. Create deploy user and add SSH key
 2. Configure passwordless sudo (optional)
 
 ### Phase 4: Validation (5 min)
-Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Step 5](docs/VAULT_DEPLOY_WORKFLOW_SETUP.md)
+Follow [docs/VAULT_DEPLOY_WORKFLOW_SETUP.md - Step 5](VAULT_DEPLOY_WORKFLOW_SETUP.md)
 
 1. Test Vault authentication with curl
 2. Trigger workflow with `dry_run=true`

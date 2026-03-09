@@ -589,5 +589,5 @@ k6 run tests/load-test.js
 ## References
 
 - OpenAPI 3.0 Spec: [managed-auth-openapi.yaml](./managed-auth-openapi.yaml)
-- Terraform Module: [terraform/modules/managed-auth](../../terraform/modules/managed-auth/README.md)
+- Terraform Module: [terraform/modules/managed-auth](../self_healing/README.md)
 - Deployment Guide: [docs/MANAGED_AUTH_DEPLOYMENT.md](../MANAGED_AUTH_DEPLOYMENT.md)

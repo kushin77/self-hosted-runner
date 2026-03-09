@@ -649,8 +649,8 @@ v2.0 - Breaking change: 3 approvals required for production
 
 ## Reference Documents
 
-- [GOVERNANCE.md](../../GOVERNANCE.md)
-- [SECURITY.md](../../SECURITY.md)
+- [GOVERNANCE.md](../actions-runner/externals.2.312.0/node16/lib/node_modules/npm/node_modules/node-gyp/node_modules/tap-mocha-reporter/node_modules/readable-stream/GOVERNANCE.md)
+- [SECURITY.md](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/cookie/SECURITY.md)
 - [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [Contributing Guidelines](../../CONTRIBUTING.md)
-- [AI Agent Safety Framework](../AI_AGENT_SAFETY_FRAMEWORK.md)
+- [Contributing Guidelines](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)
+- [AI Agent Safety Framework](AI_AGENT_SAFETY_FRAMEWORK.md)

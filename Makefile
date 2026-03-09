@@ -220,3 +220,38 @@ dev-setup-complete: bootstrap docker-build dev-up ## Complete dev setup: bootstr
 	@echo "  2. Run 'make dev-logs' to see service logs"
 	@echo "  3. Visit http://localhost:3000 for the Portal"
 	@echo "  4. Read QUICKSTART.md for usage patterns"
+
+docs-check:
+	@bash scripts/docs-check.sh
+
+# Developer experience targets
+dev-up:
+	@echo "Starting local development stack (docker-compose.dev.yml)"
+	@docker-compose -f docker-compose.dev.yml up -d --build
+
+dev-down:
+	@echo "Tearing down local development stack"
+	@docker-compose -f docker-compose.dev.yml down
+
+dev-reset:
+	@echo "Resetting local development stack (removes volumes)"
+	@docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+
+dev-shell:
+	@sh -c 'if [ -z "$$1" ]; then echo "Usage: make dev-shell SERVICE="; exit 2; fi; docker-compose -f docker-compose.dev.yml exec $$1 /bin/sh'
+
+dev-migrate:
+	@echo "Running migrations (service: provisioner-worker)"
+	@docker-compose -f docker-compose.dev.yml exec provisioner-worker /bin/sh -c "./scripts/migrate.sh || true"
+
+scaffold:
+	@sh scripts/scaffold-service.sh $(NAME)
+
+dev-logs:
+	@docker-compose -f docker-compose.dev.yml logs -f --tail=200
+
+dev-verify:
+	@echo "Running smoke checks against core endpoints"
+	@echo "Checking Vault..."
+	@docker-compose -f docker-compose.dev.yml exec -T vault sh -c 'curl -sSf localhost:8200/v1/sys/health >/dev/null && echo OK || echo FAIL'
+
