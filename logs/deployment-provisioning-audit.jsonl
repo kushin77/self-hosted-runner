@@ -24,3 +24,110 @@ unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
 {"timestamp":"2026-03-09T13:20:52Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
 {"timestamp":"2026-03-09T13:20:52Z","action":"verify","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
 {"timestamp":"2026-03-09T13:20:52Z","action":"provision-complete","field":"all","status":"partial","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:35Z","action":"provision-start","field":"all","status":"initiated","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:35Z","action":"discover","field":"VAULT_ADDR","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:35Z","action":"discover","field":"VAULT_ROLE","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:35Z","action":"discover","field":"AWS_ROLE_TO_ASSUME","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:35Z","action":"discover","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:38Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:38Z","action":"provision-env","field":"VAULT_ADDR","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:42Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:42Z","action":"provision-env","field":"VAULT_ROLE","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:46Z","action":"fetch","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:46Z","action":"provision-env","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:50Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:50Z","action":"provision-env","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:53Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:53Z","action":"verify","field":"VAULT_ADDR","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:57Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T13:56:57Z","action":"verify","field":"VAULT_ROLE","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:39Z","action":"provision-start","field":"all","status":"initiated","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:39Z","action":"discover","field":"VAULT_ADDR","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:39Z","action":"discover","field":"VAULT_ROLE","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:39Z","action":"discover","field":"AWS_ROLE_TO_ASSUME","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:39Z","action":"discover","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:42Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:42Z","action":"provision-env","field":"VAULT_ADDR","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:46Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:46Z","action":"provision-env","field":"VAULT_ROLE","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:49Z","action":"fetch","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:49Z","action":"provision-env","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:53Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:53Z","action":"provision-env","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:57Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:02:57Z","action":"verify","field":"VAULT_ADDR","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:00Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:00Z","action":"verify","field":"VAULT_ROLE","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:04Z","action":"fetch","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:04Z","action":"verify","field":"AWS_ROLE_TO_ASSUME","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:08Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:08Z","action":"verify","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:03:08Z","action":"provision-complete","field":"all","status":"partial","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:22Z","action":"provision-start","field":"all","status":"initiated","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:22Z","action":"discover","field":"VAULT_ADDR","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:22Z","action":"discover","field":"VAULT_ROLE","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:22Z","action":"discover","field":"AWS_ROLE_TO_ASSUME","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:22Z","action":"discover","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"found","source":"missing
+unknown","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:26Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:26Z","action":"provision-env","field":"VAULT_ADDR","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:30Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:30Z","action":"provision-env","field":"VAULT_ROLE","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:33Z","action":"fetch","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:33Z","action":"provision-env","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:37Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:37Z","action":"provision-env","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"env-file","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:40Z","action":"fetch","field":"VAULT_ADDR","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:40Z","action":"verify","field":"VAULT_ADDR","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:44Z","action":"fetch","field":"VAULT_ROLE","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:44Z","action":"verify","field":"VAULT_ROLE","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:48Z","action":"fetch","field":"AWS_ROLE_TO_ASSUME","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:48Z","action":"verify","field":"AWS_ROLE_TO_ASSUME","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:51Z","action":"fetch","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed","source":"all-providers","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:52Z","action":"verify","field":"GCP_WORKLOAD_IDENTITY_PROVIDER","status":"failed-notfound","source":"verification","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:07:52Z","action":"provision-complete","field":"all","status":"partial","source":"auto-provisioning","hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"deployment","stage":"start","status":"initiated","details":"dry_run=true","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"discover","stage":"credentials","status":"started","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"discover","stage":"aws_creds","status":"missing","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"discover","stage":"gcp_creds","status":"missing","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"discover","stage":"vault_creds","status":"missing","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"discover","stage":"credentials","status":"completed","details":"found=0","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:16Z","action":"terraform","stage":"validate","status":"started","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+Initializing the backend...
+Initializing modules...
+- gcp_iam_vault_sa in modules/gcp-iam
+- gcp_vault in modules/gcp-vault
+- runners in modules/ci-runners
+Initializing provider plugins...
+- Reusing previous version of hashicorp/local from the dependency lock file
+- Reusing previous version of hashicorp/google from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Installing hashicorp/local v2.7.0...
+- Installed hashicorp/local v2.7.0 (signed by HashiCorp)
+- Installing hashicorp/google v7.22.0...
+- Installing hashicorp/aws v6.35.1...
+
+Error: Failed to install provider
+
+Error while installing hashicorp/google v7.22.0: write
+.terraform/providers/registry.terraform.io/hashicorp/google/7.22.0/linux_amd64/terraform-provider-google_v7.22.0_x5:
+no space left on device
+
+Error: Failed to install provider
+
+Error while installing hashicorp/aws v6.35.1: releases.hashicorp.com: write
+/tmp/terraform-provider1482966624: no space left on device
+{"timestamp":"2026-03-09T14:09:22Z","action":"terraform","stage":"init","status":"failed","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:09:22Z","action":"deployment","stage":"failed","status":"terraform_validate","details":"","dry_run":true,"hostname":"dev-elevatediq-2","user":"akushnir"}
+{"timestamp":"2026-03-09T14:10:00Z","action":"stage1_complete","stage":"orchestrator_deployment","status":"success","details":"Multi-layer orchestrator staged and ready for GitHub Actions execution","dry_run":false,"hostname":"$(hostname)","user":"${USER:-system}"}
