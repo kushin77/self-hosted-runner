@@ -86,9 +86,9 @@ locals {
   # need not bundle them. This allows the startup script to write files from
   # metadata on first boot and enable Vault Agent.
   metadata = var.inject_vault_agent_metadata ? merge(local.metadata_pre, {
-    "vault-agent.hcl"        = file("${path.root}/scripts/identity/vault-agent/vault-agent.hcl")
-    "vault-agent.service"    = file("${path.root}/scripts/identity/vault-agent/vault-agent.service")
-    "registry-creds.tpl"     = file("${path.root}/scripts/identity/vault-agent/registry-creds.tpl")
+    "vault-agent.hcl"        = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.hcl")
+    "vault-agent.service"    = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.service")
+    "registry-creds.tpl"     = file("${path.module}/../../../scripts/identity/vault-agent/registry-creds.tpl")
   }) : local.metadata_pre
 
   effective_allowed_egress_cidrs = distinct(compact(concat(var.required_egress_cidrs, var.allowed_egress_cidrs)))
@@ -152,6 +152,8 @@ resource "google_compute_firewall" "runner_ingress_deny" {
   direction   = "INGRESS"
   priority    = 1000
   target_tags = local.runner_tags
+
+  source_ranges = ["0.0.0.0/0"]
 
   deny {
     protocol = "all"
