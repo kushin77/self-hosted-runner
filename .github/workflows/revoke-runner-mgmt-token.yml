@@ -11,12 +11,12 @@ on:
     inputs:
       reason:
         description: 'Reason for revocation (e.g., "leaked", "expired", "compromise_detected")'
-        required: 'true'
+        required: true
         default: 'emergency_incident'
       notify_team:
         description: 'Notify ops team after revocation'
-        required: 'false'
-        default: 'true'
+        required: false
+        default: true
 
 permissions:
   id-token: write
@@ -42,7 +42,7 @@ jobs:
         env:
           RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
         run: |
-          if [[-z "$RUNNER_MGMT_TOKEN"]]; then
+          if [[ -z "$RUNNER_MGMT_TOKEN" ]]; then
             echo "::warning::RUNNER_MGMT_TOKEN not set; revocation skipped"
             echo "token_valid=false" >> $GITHUB_OUTPUT
             exit 0
