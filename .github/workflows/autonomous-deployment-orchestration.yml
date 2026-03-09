@@ -92,8 +92,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "🔐 Authenticate to GCP"
+      - name: "🔐 Authenticate to GCP via OIDC (ephemeral)"
         uses: google-github-actions/auth@v1
+        continue-on-error: true
+        if: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER && secrets.GCP_SA_EMAIL }}
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: "🔐 Authenticate to GCP (fallback: service account key)"
+        uses: google-github-actions/auth@v1
+        continue-on-error: true
+        if: ${{ !secrets.GCP_WORKLOAD_IDENTITY_PROVIDER && secrets.GCP_SA_KEY }}
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
           cleanup_credentials: true
@@ -188,11 +198,12 @@ ${log.slice(-1000)}
         with:
           fetch-depth: 0
 
-      - name: "🔐 Authenticate to AWS"
+      - name: "🔐 Authenticate to AWS via OIDC (ephemeral)"
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          duration-seconds: 3600
         continue-on-error: true
 
       - name: "🔓 Setup Vault CLI"
