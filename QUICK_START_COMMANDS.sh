@@ -51,7 +51,7 @@ echo "## PHASE 4: VAULT AGENT DEPLOYMENT (Post Phase 1-3)"
 echo "Prerequisite: Phase 1-3 complete"
 echo ""
 echo "Execute:"
-echo "  bash scripts/deploy-vault-agent-to-bastion.sh --bastion 192.168.168.31 --verbose"
+echo "  bash scripts/deploy-vault-agent-to-bastion.sh --bastion 192.168.168.42 --verbose"
 echo ""
 
 echo "## PHASE 5: WATCHER INTEGRATION (Post Phase 4)"
