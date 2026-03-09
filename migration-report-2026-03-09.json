@@ -1,0 +1,10 @@
+{\n  "generated_at": "2026-03-09T01:38:01Z",
+  "migrations": [
+    {
+      "name": "",
+      "current_location": "repo_secret",
+      "recommended_target": "gsm",
+      "migration_command": "# Dry-run: create  in gsm (provider CLI)"
+    },
+  ]
+}\n
