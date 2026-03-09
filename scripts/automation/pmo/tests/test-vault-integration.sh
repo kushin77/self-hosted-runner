@@ -1,4 +1,0 @@
-#!/bin/bash
-# REPLACED BY SECURITY POLICY - SECRET REMOVED
-
-# This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.

@@ -1,3 +1,0 @@
-[legacy]
-# Legacy control plane / old worker node to be cleaned
-192.168.168.31 ansible_user=cloud ansible_become=true

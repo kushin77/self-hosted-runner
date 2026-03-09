@@ -1,6 +1,0 @@
-# Replacement rules for git-filter-repo --replace-text
-# Edit only with confirmed secrets. These defaults redact common PAT patterns and tokens.
-regex:ghp_[0-9A-Za-z_\-]+ => [REDACTED_SECRET]
-regex:gho_[0-9A-Za-z_\-]+ => [REDACTED_SECRET]
-regex:GITHUB_TOKEN => [REDACTED_SECRET]
-regex:YOUR_TOKEN => [REDACTED_SECRET]

@@ -1,6 +1,0 @@
-{"timestamp": "2026-03-08T23:00:24.580754", "event_type": "deployment_start", "component_id": "migrate-to-kms", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:00:34.675633", "event_type": "step_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {"step": "inventory-secrets"}, "error": null}
-{"timestamp": "2026-03-08T23:00:34.676223", "event_type": "deployment_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {}, "error": "Step failed: inventory-secrets"}
-{"timestamp": "2026-03-08T23:01:52.811967", "event_type": "deployment_start", "component_id": "migrate-to-kms", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:02:02.874115", "event_type": "step_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {"step": "setup-aws-kms"}, "error": null}
-{"timestamp": "2026-03-08T23:02:02.874867", "event_type": "deployment_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {}, "error": "Step failed: setup-aws-kms"}

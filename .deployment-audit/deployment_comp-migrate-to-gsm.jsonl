@@ -1,6 +1,0 @@
-{"timestamp": "2026-03-08T23:00:04.391219", "event_type": "deployment_start", "component_id": "migrate-to-gsm", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:00:14.482585", "event_type": "step_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {"step": "inventory-secrets"}, "error": null}
-{"timestamp": "2026-03-08T23:00:14.483183", "event_type": "deployment_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {}, "error": "Step failed: inventory-secrets"}
-{"timestamp": "2026-03-08T23:01:32.683385", "event_type": "deployment_start", "component_id": "migrate-to-gsm", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:01:42.741262", "event_type": "step_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {"step": "setup-gsm"}, "error": null}
-{"timestamp": "2026-03-08T23:01:42.741928", "event_type": "deployment_failed", "component_id": "migrate-to-gsm", "status": "failed", "details": {}, "error": "Step failed: setup-gsm"}
