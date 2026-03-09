@@ -18,7 +18,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-      - name: Get Credential [AWS_REGION]
+
+    - name: Get Credential [AWS_REGION]
         id: cred_aws_region
         uses: kushin77/get-ephemeral-credential@v1
         with:
