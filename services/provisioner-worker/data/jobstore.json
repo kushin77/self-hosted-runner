@@ -1,9 +1,0 @@
-{
-  "store": {
-    "test-1": {
-      "request_id": "test-1",
-      "foo": "bar"
-    }
-  },
-  "planIndex": {}
-}
