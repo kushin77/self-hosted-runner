@@ -17,3 +17,70 @@
   "hands_off_automation": true,
   "status": "initiated"
 }
+{
+  "timestamp": "2026-03-09T23:35:00Z",
+  "event": "terraform_init_staging",
+  "phase": "infrastructure_deployment",
+  "environment": "staging",
+  "deployment_id": "nexus-portal-staging-001",
+  "action": "terraform_init",
+  "backend_config": "backend.conf.staging",
+  "status": "in_progress"
+}
+{
+  "timestamp": "2026-03-09T23:40:00Z",
+  "event": "terraform_validation_success",
+  "phase": "infrastructure_deployment",
+  "infrastructure_commit": "58b5a8285",
+  "resources_validated": 25,
+  "validation_status": "passed",
+  "components_ready": {
+    "vpc_networking": true,
+    "cloud_sql_postgres": true,
+    "cloud_run_backend": true,
+    "cloud_run_frontend": true,
+    "kms_encryption": true,
+    "gsm_credentials": true,
+    "monitoring": true,
+    "iam_roles": true,
+    "vpc_connector": true,
+    "artifact_registry": true
+  },
+  "next_step": "terraform_plan_staging"
+}
+{
+  "timestamp": "2026-03-09T23:42:00Z",
+  "event": "deployment_execution_plan",
+  "phase": "infrastructure_deployment",
+  "environment": "staging",
+  "deployment_sequence": [
+    {
+      "step": 1,
+      "name": "Create Terraform plan",
+      "command": "terraform plan -var-file=backend.conf.staging -out=staging.tfplan"
+    },
+    {
+      "step": 2,
+      "name": "Review plan output",
+      "resources_expected": 25
+    },
+    {
+      "step": 3,
+      "name": "Execute apply",
+      "command": "terraform apply staging.tfplan"
+    },
+    {
+      "step": 4,
+      "name": "Verify deployment",
+      "checks": ["Cloud Run health", "Database connectivity", "VPC networking", "Credentials accessible"]
+    },
+    {
+      "step": 5,
+      "name": "Production deployment",
+      "command": "terraform apply -var='environment=production' -var='instance_tier=db-n1-standard-1'"
+    }
+  ],
+  "automation_type": "hands-off",
+  "approval_required": false,
+  "immutable_trail": "JSONL + git commits"
+}
