@@ -91,5 +91,5 @@ systemctl status elevatediq-runner-health-monitor.timer
 
 ## See Also
 
-- [Runner Infrastructure](./RUNNER_INFRASTRUCTURE_DEPLOYMENT.md)
+- [Runner Infrastructure](RUNNER_INFRASTRUCTURE_DEPLOYMENT.md)
 - [Governance Policies](../governance/runners.md)

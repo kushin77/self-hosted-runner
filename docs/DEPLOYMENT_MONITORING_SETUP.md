@@ -608,4 +608,4 @@ vault list auth/approle/role
 **Last Updated**: March 4, 2026  
 **Version**: 1.0
 
-For deployment procedures, see [APPROVED_DEPLOYMENT.md](../APPROVED_DEPLOYMENT.md).
+For deployment procedures, see [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md).

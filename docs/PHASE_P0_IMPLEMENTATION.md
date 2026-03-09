@@ -472,7 +472,7 @@ After completing Phase P0, the next phase (P1, 6 weeks) will add:
 - **Secrets Rotation**: Vault integration, 6-hour cycle
 - **ML-Based Failure Prediction**: Anomaly detection for likely failures
 
-See [ENHANCEMENTS_10X.md](ENHANCEMENTS_10X.md) for full Phase P1-P3 plans.
+See [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) for full Phase P1-P3 plans.
 
 ---
 

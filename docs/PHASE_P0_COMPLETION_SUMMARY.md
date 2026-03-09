@@ -17,7 +17,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ## What Was Built
 
 ### 1. Ephemeral Workspace Manager (748 lines)
-**File**: [scripts/automation/pmo/ephemeral-workspace-manager.sh](scripts/automation/pmo/ephemeral-workspace-manager.sh)
+**File**: [scripts/automation/pmo/ephemeral-workspace-manager.sh](../scripts/automation/pmo/ephemeral-workspace-manager.sh)
 
 **Problem Solved**: Workspace contamination, artifact carryover between jobs, unreliable cleanup
 
@@ -46,7 +46,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ---
 
 ### 2. Declarative Capability Store / Runner CRDs (1180 lines)
-**File**: [scripts/automation/pmo/capability-store.sh](scripts/automation/pmo/capability-store.sh)
+**File**: [scripts/automation/pmo/capability-store.sh](../scripts/automation/pmo/capability-store.sh)
 
 **Problem Solved**: Runner discovery, capability mismatches, job routing, static runner assignment
 
@@ -90,7 +90,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ---
 
 ### 3. OpenTelemetry Distributed Tracing (1010 lines)
-**File**: [scripts/automation/pmo/otel-tracer.sh](scripts/automation/pmo/otel-tracer.sh)
+**File**: [scripts/automation/pmo/otel-tracer.sh](../scripts/automation/pmo/otel-tracer.sh)
 
 **Problem Solved**: Job visibility, bottleneck identification, multi-runner correlation, latency analysis
 
@@ -129,7 +129,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ---
 
 ### 4. Fair Job Scheduler with Priority Classes (1200 lines)
-**File**: [scripts/automation/pmo/fair-job-scheduler.sh](scripts/automation/pmo/fair-job-scheduler.sh)
+**File**: [scripts/automation/pmo/fair-job-scheduler.sh](../scripts/automation/pmo/fair-job-scheduler.sh)
 
 **Problem Solved**: Job starvation, unfair resource allocation, no prioritization, quota violations
 
@@ -171,7 +171,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ./fair-job-scheduler.sh status
 ```
 
-**Quota Rules** (from [examples/runner-quotas.yaml](scripts/automation/pmo/examples/runner-quotas.yaml)):
+**Quota Rules** (from [examples/runner-quotas.yaml](../scripts/automation/pmo/examples/runner-quotas.yaml)):
 - platform-core: 8 concurrent, 500 VPUs/hr, priority=high
 - backend-service: 3 concurrent, 150 VPUs/hr, priority=normal
 - maintenance: 1 concurrent, 30 VPUs/hr, priority=batch
@@ -185,7 +185,7 @@ Implemented complete Phase P0 platform enhancements delivering **immutable**, **
 ---
 
 ### 5. Drift Detection & Auto-Remediation (1100 lines)
-**File**: [scripts/automation/pmo/drift-detector.sh](scripts/automation/pmo/drift-detector.sh)
+**File**: [scripts/automation/pmo/drift-detector.sh](../scripts/automation/pmo/drift-detector.sh)
 
 **Problem Solved**: Configuration drift, manual remediation, compliance violations, infrastructure inconsistency
 
@@ -239,7 +239,7 @@ DRIFT: Service not enabled at boot
 ## Configuration Examples
 
 ### Runner CRD Manifests (3 examples)
-**File**: [scripts/automation/pmo/examples/runner-crd-manifests.yaml](scripts/automation/pmo/examples/runner-crd-manifests.yaml)
+**File**: [scripts/automation/pmo/examples/runner-crd-manifests.yaml](../scripts/automation/pmo/examples/runner-crd-manifests.yaml)
 
 Three production runner profiles:
 ```yaml
@@ -265,7 +265,7 @@ spec:
 ```
 
 ### Repository Quotas
-**File**: [scripts/automation/pmo/examples/runner-quotas.yaml](scripts/automation/pmo/examples/runner-quotas.yaml)
+**File**: [scripts/automation/pmo/examples/runner-quotas.yaml](../scripts/automation/pmo/examples/runner-quotas.yaml)
 
 Organization-wide quota policies:
 ```yaml
@@ -282,7 +282,7 @@ repositories:
 ```
 
 ### Drift Detection Config
-**Directory**: [scripts/automation/pmo/examples/.runner-config/](scripts/automation/pmo/examples/.runner-config/)
+**Directory**: [scripts/automation/pmo/examples/.runner-config/](../scripts/automation/pmo/examples/.runner-config)
 
 Example capabilities specification for validation:
 ```yaml
@@ -304,7 +304,7 @@ tools:
 ## Documentation
 
 ### Primary Guides
-1. **[PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md)** (3000 lines)
+1. **[PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md)** (3000 lines)
    - Quick start for all 5 components
    - Architecture integration diagrams
    - Configuration examples
@@ -312,7 +312,7 @@ tools:
    - Performance tuning
    - Troubleshooting guide
 
-2. **[ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md)** (2500 lines)
+2. **[ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md)** (2500 lines)
    - Full 10X platform vision
    - 10 enhancement proposals (P0-P3)
    - Implementation code examples
@@ -422,7 +422,7 @@ tools:
    - Proactive failure prevention
    - Historical pattern analysis
 
-See [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) for detailed P1 plan.
+See [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) for detailed P1 plan.
 
 ---
 

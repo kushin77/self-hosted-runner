@@ -451,9 +451,9 @@ Post-rollback:
 
 ## 📚 REFERENCE LINKS
 
-- [Terraform AWS Spot Module](terraform/modules/aws_spot_runner/)
+- [Terraform AWS Spot Module](../terraform/modules/aws_spot_runner)
 - [CI/CD Workflows](.github/workflows/p4-aws-spot-*.yml)
-- [Deployment Readiness Checklist](docs/PHASE_P4_DEPLOYMENT_READINESS.md)
+- [Deployment Readiness Checklist](PHASE_P4_DEPLOYMENT_READINESS.md)
 - [AWS Spot Instance Best Practices](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/using-spot-instances.html)
 - [GitHub Actions Self-Hosted Runners](https://docs.github.com/en/actions/hosting-your-own-runners)
 

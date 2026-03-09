@@ -381,10 +381,10 @@ All design principles maintained:
 
 ## Documentation Index
 
-- [Phase P3 Pre-Apply Automation](./PHASE_P3_PRE_APPLY_AUTOMATION.md)
-- [Phase P4 Terraform Apply](../PHASE_P4_DEPLOYMENT_COMPLETE.md)
-- [Complete Operations Runbook](./PHASE_2_3_OPS_RUNBOOK.md)
-- [Automation Deployment Checklist](../AUTOMATION_DEPLOYMENT_CHECKLIST.md)
+- [Phase P3 Pre-Apply Automation](PHASE_P3_PRE_APPLY_AUTOMATION.md)
+- [Phase P4 Terraform Apply](archive/phases/PHASE_P4_DEPLOYMENT_COMPLETE.md)
+- [Complete Operations Runbook](PHASE_2_3_OPS_RUNBOOK.md)
+- [Automation Deployment Checklist](runbooks/AUTOMATION_DEPLOYMENT_CHECKLIST.md)
 
 ---
 
