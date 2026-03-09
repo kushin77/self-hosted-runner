@@ -85,3 +85,8 @@ ERROR: project p4-platform not found or inaccessible
 https://github.com/kushin77/self-hosted-runner/issues/2112#issuecomment-4025596302
 https://github.com/kushin77/self-hosted-runner/issues/2072#issuecomment-4025596492
 Complete: Mon Mar  9 05:41:16 PM UTC 2026
+=== FINAL TERRAFORM APPLY ATTEMPT ===
+Time: Mon Mar  9 05:47:22 PM UTC 2026
+
+[1/5] Verifying GCP project access...
+❌ Project p4-platform not found or inaccessible
