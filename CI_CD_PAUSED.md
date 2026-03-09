@@ -24,3 +24,11 @@ Policy
 
 Contact
 - For questions or to request a controlled restore, comment on issue #2064 or open a new issue and reference #2064.
+
+Temporary Direct-Deploy Path (Ops-approved)
+
+- While CI/CD remains paused, authorized deploys will be performed directly on the approved worker node: `192.168.168.42`.
+- Follow the steps in `CONTRIBUTING.md` → "Direct Development & Deployment (MANDATED)" for the exact deploy procedure, integrity checks, and logging requirements.
+- Use GSM/VAULT/KMS for any credential retrieval during deployment; do not place secrets in the deploy bundle or commit them to git.
+
+Note: This direct-deploy path is temporary and will be rescinded when CI/CD is re-enabled. All direct-deploy activity must reference emergency issue #2064.
