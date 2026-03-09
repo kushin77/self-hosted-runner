@@ -22,7 +22,7 @@ jobs:
     - uses: actions/checkout@v4
     - name: Get Credential [GPG_PRIVATE_KEY]
       id: cred_gpg_private_key
-      uses: kushin77/get-ephemeral-credential@v1
+      uses: ./.github/actions/get-ephemeral-credential
       with:
         credential-name: GPG_PRIVATE_KEY
         retrieve-from: auto
