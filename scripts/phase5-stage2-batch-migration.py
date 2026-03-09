@@ -10,31 +10,44 @@ from pathlib import Path
 from collections import defaultdict
 import sys
 
-# Define batches - selected workflows with actual secrets to migrate
+# Define batches - selected workflows with actual NON-GITHUB_TOKEN secrets to migrate
 BATCHES = {
     'batch1': [
-        # Batch 1: Non-core workflows with 1-3 secrets (low risk, good for testing)
-        '00-master-router.yml',
-        '01-workflow-consolidation-orchestrator.yml',
-        'ansible-runbooks.yml',
-        'bootstrap-vault-secrets.yml',
-        'deploy-trivy-webhook-staging.yml',
-        'dependabot-triage.yml',
-        'ala-carte-deployment-info.yml',
-        'automation-health-validator.yml',
-        'docker-build-push-reusable.yml',
-        'ci-images.yml',
+        # Batch 1: Low-complexity, non-critical (1-2 secrets, utility/observability)
+        'operational-health-dashboard.yml',  # MINIO_HOST (1)
+        'observability-e2e.yml',  # PAGERDUTY_SERVICE_KEY, SLACK_WEBHOOK_URL (2)
+        'secret-validator-observability.yml',  # PAGERDUTY_SERVICE_KEY, SLACK_WEBHOOK_URL (2)
+        'secrets-health-dashboard.yml',  # SLACK_WEBHOOK_URL (1)
+        'secrets-health.yml',  # DEPLOY_SSH_KEY, RUNNER_MGMT_TOKEN (2)
+        'rotation_schedule.yml',  # AWS_REGION (1)
+        'release.yml',  # PYPI_TOKEN (1)
+        'push-image-to-registry.yml',  # REGISTRY_ORG (1)
+        'ci-images.yml',  # REGISTRY_HOST, REGISTRY_USERNAME (2)
+        'build.yml',  # GPG_KEY_ID, GPG_PRIVATE_KEY (2)
     ],
     'batch2': [
-        # Batch 2: More complex workflows (4+ secrets)
-        'build.yml',
-        'deploy.yml',
-        'ephemeral-credential-refresh-15min.yml',
-        'ephemeral-secret-provisioning.yml',
-        'e2e-integration.yml',
+        # Batch 2: Medium-complexity (2-4 secrets, configuration/rotation/credentials)
+        'ephemeral-secret-provisioning.yml',  # VAULT_ADDR, VAULT_NAMESPACE (2)
+        'secret-rotation-mgmt-token.yml',  # RUNNER_MGMT_TOKEN (1)
+        'revoke-runner-mgmt-token.yml',  # GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_KEY, RUNNER_MGMT_TOKEN (3)
+        'revoke-deploy-ssh-key.yml',  # ADMIN_SSH_KEY, DEPLOY_SSH_KEY, GCP_PROJECT_ID (3)
+        'revoke-keys.yml',  # EXPOSED_AWS_KEY_IDS, EXPOSED_GCP_SA_EMAIL, EXPOSED_VAULT_ROLE_IDS (3)
+        'phase3-automated-deploy.yml',  # GCP_SERVICE_ACCOUNT_EMAIL, GCP_WORKLOAD_IDENTITY_PROVIDER (2)
+        'phase3-bootstrap-wip.yml',  # GCP_SERVICE_ACCOUNT_EMAIL, GOOGLE_CREDENTIALS (2)
+        'deploy.yml',  # AWS_REGION, GCP_PROJECT_ID, VAULT_ADDR, VAULT_TOKEN (4)
     ],
     'batch3': [
-        # Batch 3: To be identified after batch 1-2 are stable
+        # Batch 3: High-complexity (4+ secrets, infrastructure/GSM/orchestration)
+        'gcp-gsm-breach-recovery.yml',  # GCP creds (4)
+        'gcp-gsm-rotation.yml',  # GCP creds (3)
+        'gcp-gsm-sync-secrets.yml',  # AWS/GCP/Vault/Slack (8)
+        'hands-off-health-deploy.yml',  # AWS/GCP/Vault (5)
+        'store-leaked-to-gsm-and-remove.yml',  # GCP (3)
+        'store-slack-to-gsm.yml',  # GCP, Slack (4)
+        'terraform-phase2-drift-detection.yml',  # TF config (8)
+        'terraform-phase2-final-plan-apply.yml',  # TF config (7)
+        'terraform-phase2-post-deploy-validation.yml',  # TF config (8)
+        'secrets-orchestrator-multi-layer.yml',  # AWS/GCP/Vault (8)
     ],
 }
 
@@ -48,9 +61,12 @@ class WorkflowCredentialIntegrator:
         self.stats = defaultdict(int)
 
     def extract_secrets_from_text(self, text):
-        """Extract all secret references as plain text patterns"""
-        pattern = r'\$\{\{\s*secrets\.([A-Z_][A-Z0-9_]*)\s*\}\}'
-        return sorted(set(re.findall(pattern, text)))
+        """Extract all secret references (handles ${{ secrets.NAME ...}})"""
+        # Match: secrets.NAME where NAME is alphanumeric + underscore
+        pattern = r'secrets\.([A-Za-z_][A-Za-z0-9_]*)'
+        matches = re.findall(pattern, text)
+        # Only keep matches that are in ${{ }} context (double-check)
+        return sorted(set(m for m in matches if '${{' in text and 'secrets.' + m in text))
 
     def migrate_workflow_file(self, filepath):
         """Migrate single workflow file"""

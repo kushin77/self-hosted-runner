@@ -101,6 +101,15 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
+      - name: Get Credential [REGISTRY_ORG]
+        id: cred_registry_org
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_ORG
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
         run: |
           set -euo pipefail

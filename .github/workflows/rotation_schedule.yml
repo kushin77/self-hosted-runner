@@ -77,6 +77,23 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
         run: pip install -r requirements.txt
 
