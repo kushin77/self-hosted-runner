@@ -1,0 +1,93 @@
+name: 🚀 Phase 3 Automated GCP Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: false
+        default: 'production'
+      auto_approve:
+        description: 'Auto-approve'
+        required: false
+        default: 'true'
+
+permissions:
+  id-token: write
+  contents: read
+  actions: write
+  issues: write
+
+env:
+  TF_VERSION: '1.14.6'
+  GCP_PROJECT: 'gcp-eiq'
+
+jobs:
+  deploy-phase3:
+    name: Deploy Phase 3 Infrastructure
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Auth to GCP (Ephemeral OIDC)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          token_format: 'access_token'
+          access_token_lifetime: '1200s'
+
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Verify GCP Auth
+        run: |
+          echo "🔐 Verifying ephemeral OIDC access to GCP..."
+          gcloud config get-value project
+          echo "✅ OIDC authentication successful"
+
+      - name: Terraform Init
+        working-directory: ./infra/phase3-clean
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: ./infra/phase3-clean
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: ./infra/phase3-clean
+        run: |
+          if [[ "${{ github.event.inputs.auto_approve }}" == "true" ]]; then
+            terraform apply -auto-approve tfplan
+          else
+            terraform apply tfplan
+          fi
+          echo "✅ Phase 3 infrastructure deployed"
+
+      - name: Update Issue on Success
+        if: success()
+        uses: actions/github-script@v7
+        continue-on-error: true
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 1816,
+              body: '✅ Phase 3 deployment completed via workflow #${{ github.run_number }}'
+            });
+
+      - name: Report Status
+        run: |
+          echo "## ✅ Phase 3 Deployment Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
