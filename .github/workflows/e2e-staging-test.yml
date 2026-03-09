@@ -18,6 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.6.7'
+
       - name: Prepare environment
         run: |
           chmod +x scripts/e2e/run_staging_e2e.sh
