@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// CORE MODELS
+// ============================================================================
+
+/// Credentials: Store secrets with audit trail
+model Credential {
+  id            String    @id @default(cuid())
+  type          String    // "gcp", "aws", "vault", "azure", "generic"
+  name          String    // Friendly name
+  value         String    // Encrypted value (KMS at DB level)
+  created_by    String    // User/service that created this
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime? // Soft delete for audit
+
+  // Relations
+  rotations     RotationHistory[]
+  accessLogs    AccessLog[]
+
+  @@unique([type, name])
+  @@index([type])
+  @@index([created_at])
+}
+
+/// RotationHistory: Immutable audit of credential rotations
+model RotationHistory {
+  id              String    @id @default(cuid())
+  credentialId    String
+  credential      Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  
+  old_value_hash  String    // SHA256 hash of old value (not raw value)
+  new_value_hash  String    // SHA256 hash of new value
+  rotation_reason String    // "scheduled", "manual", "revoked", "expired"
+  rotated_by      String    // User/service that performed rotation
+  rotated_at      DateTime  @default(now())
+
+  @@index([credentialId])
+  @@index([rotated_at])
+}
+
+/// AccessLog: Track all credential access (security audit)
+model AccessLog {
+  id            String    @id @default(cuid())
+  credentialId  String
+  credential    Credential @relation(fields: [credentialId], references: [id], onDelete: Cascade)
+  
+  action        String    // "read", "create", "update", "delete", "rotate"
+  accessed_by   String    // User/service that accessed
+  accessed_at   DateTime  @default(now())
+  ip_address    String?
+  user_agent    String?
+  status        String    // "success", "denied", "failed"
+  
+  @@index([credentialId])
+  @@index([accessed_at])
+  @@index([accessed_by])
+}
+
+/// AuditLog: Immutable append-only audit trail
+model AuditLog {
+  id            String    @id @default(cuid())
+  event         String    // "credential_created", "rotation_scheduled", "access_denied", etc.
+  resource_type String    // "credential", "user", "rotation", "system"
+  resource_id   String?   // ID of affected resource
+  
+  actor_id      String    // User/service that triggered the event
+  action        String    // What was done
+  details       String?   // JSON serialized details
+  
+  created_at    DateTime  @default(now())
+  
+  // Immutability
+  hash          String    // SHA256 of this record + previous hash (blockchain-like)
+  previous_hash String?   // Hash of the previous log entry
+  
+  @@index([resource_type])
+  @@index([created_at])
+  @@unique([hash]) // Each hash must be unique (immutable)
+}
+
+/// Users: Portal users with roles and permissions
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  oauth_id        String?   @unique // Google OAuth ID
+  oauth_provider  String?   // "google", "github", "azure"
+  
+  role            String    @default("viewer") // "admin", "editor", "viewer"
+  permissions     String[]  @default([]) // Array of permission strings
+  
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  last_login      DateTime?
+  
+  @@index([email])
+  @@index([oauth_id])
+}
+
+/// CredentialPolicy: RBAC and compliance policies
+model CredentialPolicy {
+  id              String    @id @default(cuid())
+  name            String    @unique
+  description     String?
+  
+  // Policy rules (JSON serialized)
+  rules           String    // e.g. {"maxLifetime": 3600, "minComplexity": "high"}
+  
+  // Resource matching
+  resource_types  String[]  // ["gcp", "aws", "vault"]
+  resource_names  String[]  // Glob patterns like "prod-*"
+  
+  // Enforcement
+  enabled         Boolean   @default(true)
+  enforced        Boolean   @default(false) // Hard enforcement vs. warning
+  
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  @@index([enabled])
+  @@index([enforced])
+}
+
+/// ComplianceEvent: Track compliance status and violations
+model ComplianceEvent {
+  id              String    @id @default(cuid())
+  event_type      String    // "policy_violation", "rotation_missed", "access_denied", "audit_divergence"
+  
+  resource_type   String    // "credential", "user", "system"
+  resource_id     String?
+  
+  severity        String    // "critical", "high", "medium", "low"
+  status          String    @default("open") // "open", "acknowledged", "resolved"
+  
+  details         String    // JSON with event details
+  remediation     String?   // JSON with remediation steps
+  
+  created_at      DateTime  @default(now())
+  resolved_at     DateTime?
+  
+  @@index([severity])
+  @@index([status])
+  @@index([created_at])
+}
+
+/// ScheduledRotation: Schedule credential rotations
+model ScheduledRotation {
+  id              String    @id @default(cuid())
+  credential_name String
+  credential_type String
+  
+  schedule        String    // Cron expression: "0 2 * * *" (daily at 2 AM UTC)
+  enabled         Boolean   @default(true)
+  
+  last_run        DateTime?
+  next_run        DateTime?
+  
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+  
+  @@unique([credential_name, credential_type])
+  @@index([enabled])
+  @@index([next_run])
+}
+
+/// SystemMetrics: Prometheus metrics snapshot
+model SystemMetrics {
+  id                  String    @id @default(cuid())
+  timestamp           DateTime  @default(now())
+  
+  // API metrics
+  requests_total      Int       @default(0)
+  requests_success    Int       @default(0)
+  requests_failed     Int       @default(0)
+  request_latency_ms  Float     @default(0)
+  
+  // Database metrics
+  db_connections      Int       @default(0)
+  db_pool_size        Int       @default(10)
+  db_query_latency_ms Float     @default(0)
+  
+  // System metrics
+  memory_usage_mb     Float     @default(0)
+  cpu_usage_percent   Float     @default(0)
+  uptime_seconds      Int       @default(0)
+  
+  @@index([timestamp])
+}
+
+// ============================================================================
+// INDEXES FOR PERFORMANCE
+// ============================================================================
+
+/// Full-text search for credential names
+model CredentialSearch {
+  id              String    @id @default(cuid())
+  credential_id   String
+  search_text     String    // Name + type combined
+  
+  @@fulltext([search_text]) // MySQL only; PostgreSQL uses separate FTS
+  @@index([credential_id])
+}
