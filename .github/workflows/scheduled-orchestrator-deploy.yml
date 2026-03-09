@@ -1,9 +1,6 @@
 name: "[SCHEDULED] Multi-Layer Orchestrator Deployment — 6 AM UTC Daily"
 
 on:
-  schedule:
-    # Daily at 6 AM UTC — production orchestration run
-    - cron: '0 6 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
