@@ -76,6 +76,31 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
+      - name: Get Credential [REGISTRY_HOST]
+        id: cred_registry_host
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_HOST
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_PASSWORD]
+        id: cred_registry_password
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_PASSWORD
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_USERNAME]
+        id: cred_registry_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
 
         run: |

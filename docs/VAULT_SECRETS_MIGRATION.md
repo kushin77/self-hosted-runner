@@ -251,4 +251,4 @@ vault audit enable file file_path=/vault/logs/audit.log
 - [Vault OIDC Auth Method](https://www.vaultproject.io/docs/auth/jwt)
 - [GitHub Actions OIDC Support](https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
 - [Vault KV v2 Secrets Engine](https://www.vaultproject.io/docs/secrets/kv/kv-v2)
-- [About this implementation](./docs/SECRETS_HANDOFF.md)
+- [About this implementation](SECRETS_HANDOFF.md)

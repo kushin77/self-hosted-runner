@@ -52,4 +52,4 @@ When adding new APIs:
 2. Run `make docs-generate` to regenerate
 3. Commit updated OpenAPI specs to version control
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
+See [CONTRIBUTING.md](../../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md) for details.

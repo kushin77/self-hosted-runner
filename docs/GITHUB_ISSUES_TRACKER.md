@@ -58,9 +58,9 @@ Implement graceful job cancellation handler with proper signal processing and re
 - Compatibility: Works with all runner types
 
 #### Code References
-- Skeleton: [job-cancellation-handler.sh](scripts/automation/pmo/job-cancellation-handler.sh)
-- Config: [job-cancellation.yaml](scripts/automation/pmo/examples/.runner-config/job-cancellation.yaml)
-- Planning: [PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation](docs/PHASE_P1_PLANNING.md)
+- Skeleton: [job-cancellation-handler.sh](../scripts/automation/pmo/job-cancellation-handler.sh)
+- Config: [job-cancellation.yaml](../scripts/automation/pmo/examples/.runner-config/job-cancellation.yaml)
+- Planning: [PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation](PHASE_P1_PLANNING.md)
 
 #### Labels
 - `phase-p1` (overall phase)
@@ -110,9 +110,9 @@ Implement HashiCorp Vault integration for automated credential rotation with TTL
 - Zero credential leaks in logs
 
 #### Code References
-- Skeleton: [vault-integration.sh](scripts/automation/pmo/vault-integration.sh)
-- Config: [vault-rotation.yaml](scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml)
-- Planning: [PHASE_P1_PLANNING.md#week-2-secrets-rotation](docs/PHASE_P1_PLANNING.md)
+- Skeleton: [vault-integration.sh](../scripts/automation/pmo/vault-integration.sh)
+- Config: [vault-rotation.yaml](../scripts/automation/pmo/examples/.runner-config/vault-rotation.yaml)
+- Planning: [PHASE_P1_PLANNING.md#week-2-secrets-rotation](PHASE_P1_PLANNING.md)
 
 #### Labels
 - `phase-p1` (overall phase)
@@ -162,9 +162,9 @@ Implement machine learning-based anomaly detection for early job failure predict
 - Integration: Seamless with Phase P0 traces
 
 #### Code References
-- Skeleton: [failure-predictor.sh](scripts/automation/pmo/failure-predictor.sh)
-- Config: [failure-detection.yaml](scripts/automation/pmo/examples/.runner-config/failure-detection.yaml)
-- Planning: [PHASE_P1_PLANNING.md#week-5-failure-prediction](docs/PHASE_P1_PLANNING.md)
+- Skeleton: [failure-predictor.sh](../scripts/automation/pmo/failure-predictor.sh)
+- Config: [failure-detection.yaml](../scripts/automation/pmo/examples/.runner-config/failure-detection.yaml)
+- Planning: [PHASE_P1_PLANNING.md#week-5-failure-prediction](PHASE_P1_PLANNING.md)
 
 #### Labels
 - `phase-p1` (overall phase)
@@ -387,7 +387,7 @@ EOF
 
 ### For Development Team:
 1. Review assigned issues
-2. Review [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md)
+2. Review [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md)
 3. Review skeleton code
 4. Prepare development environment
 5. Attend Phase P1 kickoff
