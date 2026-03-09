@@ -100,7 +100,7 @@ grep -A5 "github.event.comment.body\|issue.comments" .github/workflows/*.yml
 - ✅ Auto-ingest-trigger detects comment → dispatches verify + DR
 - ✅ Both run in parallel → post results automatically
 - ✅ Auto-activation-retry polls every 15 min → handles failures
-- ✅ Auto-merge enabled for security PRs → deploys on success
+- ✅ Auto-merge enabled for security Draft issues → deploys on success
 - ✅ System posts updates to issues → no silent failures
 
 **Flow Diagram**:
@@ -167,7 +167,7 @@ Operator: Comment "ingested: true"
 | Threat | Mitigation | Verification |
 |--------|-----------|--------------|
 | Secret exposure | GitHub masked secrets + gitleaks scan | Issue #1255 |
-| Unauthorized PRs | Branch protection + auto-merge conditions | PR status checks |
+| Unauthorized Draft issues | Branch protection + auto-merge conditions | PR status checks |
 | Cascading failures | Idempotent + ephemeral design | Test re-runs |
 | Lost artifacts | Always-upload pattern + 7-day retention | Artifact existence checks |
 | Manual errors | Fully automated (no manual steps) | Audit log review |
@@ -176,7 +176,7 @@ Operator: Comment "ingested: true"
 - **Gitleaks**: Every 6 hours (secret detection)
 - **Trivy**: Every 6 hours (CVE scanning)
 - **npm audit**: Per verify workflow (dependency validation)
-- **Dependabot**: Daily scan + auto-remediation PRs
+- **Dependabot**: Daily scan + auto-remediation Draft issues
 
 ---
 
@@ -190,7 +190,7 @@ Issue #1255 (tracking)
         ↓
 auto-dependency-remediation (daily 2 AM UTC)
         ↓
-Create security PRs (labeled: dependabot-fix)
+Create security Draft issues (labeled: dependabot-fix)
         ↓
 Run security-audit + verify checks
         ↓

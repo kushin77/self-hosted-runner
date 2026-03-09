@@ -95,7 +95,7 @@ All automation hardening work is **COMPLETE and PRODUCTION-READY**. The reposito
 | **Batch 1 Integration** | 4 workflows | ✅ DEPLOYED | PR #1153 merged |
 | **Batch 2 Integration** | 3 workflows | ⏳ READY | PR #1169 awaiting approval |
 | **Monitoring** | operational-health-dashboard.yml | ✅ DEPLOYED | Live, running hourly |
-| **Documentation** | Issues #988, #1123, all PRs | ✅ COMPLETE | Comprehensive coverage |
+| **Documentation** | Issues #988, #1123, all Draft issues | ✅ COMPLETE | Comprehensive coverage |
 
 ---
 

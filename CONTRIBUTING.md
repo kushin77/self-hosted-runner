@@ -111,7 +111,7 @@ bash scripts/audit-secrets.sh --json > secrets-manifest.json
 - **GSM access denied**: Check service account has `roles/secretmanager.secretAccessor`
 - **Rotation overdue**: Check [SECRETS_INDEX.md](SECRETS_INDEX.md) rotation schedule
 
-## Change & Review Policy (PRs Deprecated)
+## Change & Review Policy (Draft issues Deprecated)
 - Pull requests are deprecated while CI/CD is paused. All proposed changes must be recorded as a draft issue and reference the emergency record `#2064`.
 - For operational changes (deployments, runner updates, secrets), open a draft issue and include: deployer username, UTC timestamp, bundle SHA256, and a pointer to logs; then perform the approved direct-deploy to `192.168.168.42`.
 - When CI is re-enabled, the team will reconvene to agree the PR process and reinstate any governance rules.

@@ -31,4 +31,4 @@ PagerDuty integration is configured via repository secret `PAGERDUTY_TOKEN` and 
 
 Post-incident
 -------------
-Create a post-incident review issue linking to logs and remediation PRs. Ensure audit logs are archived and mark incident severity.
+Create a post-incident review issue linking to logs and remediation Draft issues. Ensure audit logs are archived and mark incident severity.

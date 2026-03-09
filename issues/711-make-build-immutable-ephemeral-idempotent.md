@@ -29,7 +29,7 @@ Planned Tasks
 
 Acceptance Criteria
 ---
-- New PRs run preflight and fail when checks don't pass.
+- New Draft issues run preflight and fail when checks don't pass.
 - Deploy workflow runs non-interactively via Vault AppRole and passes checks.
 - Post-deploy metric checks verify rotation success.
 

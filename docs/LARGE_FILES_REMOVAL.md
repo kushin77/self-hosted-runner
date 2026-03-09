@@ -26,7 +26,7 @@ Option C — Replace with download-on-demand
 2. Update CI to call the script during setup.
 
 Notes & Warnings
-- Rewriting history requires coordination (force-push) and will disrupt forks/PRs. Only proceed after team agreement.
+- Rewriting history requires coordination (force-push) and will disrupt forks/Draft issues. Only proceed after team agreement.
 - Using Git LFS requires enabling LFS for the repository and possibly increasing storage billing for LFS usage.
 - I can prepare a PR that implements Option C (remove files from HEAD and add a fetch script + docs), or implement Option A by adding `.gitattributes` and performing the `git lfs migrate` steps if you approve.
 

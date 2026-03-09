@@ -213,7 +213,7 @@ artifacts/
 
 2. **Security Remediation** (parallel)
    - [ ] Triage 10 Dependabot vulnerabilities (#1349)
-   - [ ] Open remediation PRs for high-severity items
+   - [ ] Open remediation Draft issues for high-severity items
    - [ ] Merge and verify fixes
 
 3. **Documentation** (concurrent)

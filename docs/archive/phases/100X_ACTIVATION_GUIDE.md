@@ -77,7 +77,7 @@ git push origin main
 - ✅ **Real-time branch hygiene** - Every 5 minutes (not daily!)
 - ✅ **Intelligent stale cleanup** - ML-aware, archive branches for recovery
 - ✅ **Secret scanning 24/7** - Advanced (TruffleHog + GitLeaks)
-- ✅ **PR quality gates** - Auto-block non-compliant PRs
+- ✅ **PR quality gates** - Auto-block non-compliant Draft issues
 - ✅ **Commit validation** - Conventional format + ticket linking
 
 ### Tier 2: Security & Integrity (2 Hours)

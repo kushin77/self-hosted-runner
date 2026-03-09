@@ -111,7 +111,7 @@ GCP Terraform provider v5.x removed support for `location = "global"` parameter 
 - [x] CI checks passed (gitleaks-scan, validators)
 - [x] Documentation complete
 - [x] RCA documented with prevention
-- [x] All PRs merged and closed
+- [x] All Draft issues merged and closed
 - [x] System tested locally (terraform validate)
 
 ### Deployment Prerequisites

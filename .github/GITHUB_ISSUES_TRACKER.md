@@ -45,7 +45,7 @@ If remote issue creation fails, maintainers can copy these entries to GitHub Iss
 
 8. Chore: Add CI job to run portal TypeScript compile checks
    - Labels: chore, ci
-   - Body: Add GitHub Actions job for `pnpm build` / `tsc --noEmit` on PRs
+   - Body: Add GitHub Actions job for `pnpm build` / `tsc --noEmit` on Draft issues
    - Assignees: ci-team
 
 9. Docs: Release notes and Phase 2 executive summary

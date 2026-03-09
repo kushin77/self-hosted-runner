@@ -14,7 +14,7 @@ This runbook guides operations teams through the final credential restoration st
 
 ## Pre-Restoration Checklist
 
-✅ All PRs merged to main:
+✅ All Draft issues merged to main:
 - PR #862: e2e runner-discovery + hosted-fallback
 - PR #866: MinIO credentials in reusable callables
 - PR #868: portal-sync MinIO upload
@@ -145,7 +145,7 @@ Repository will be deemed **FULLY OPERATIONAL** when:
 
 ✅ All required branch protection checks passing on main branch
 
-✅ Team can merge PRs without manual CI approval
+✅ Team can merge Draft issues without manual CI approval
 
 ---
 
@@ -168,7 +168,7 @@ With Phase 3 automation active:
 - New code commits trigger CI automatically
 - Failed checks block merges (branch protection)
 - Successful checks enable merges
-- E2E tests run on all relevant PRs
+- E2E tests run on all relevant Draft issues
 
 ### Manual Events (Ops)
 - Monitor irregular CI failures (post to issues)
@@ -210,6 +210,6 @@ With Phase 3 automation active:
 **Version:** 1.0  
 **Last Reviewed:** March 6, 2026  
 **Next Review:** August 6, 2026 (6 months)  
-**Immutable:** This document is committed to git; changes require pull request
+**Immutable:** This document is committed to git; changes require Draft issue
 
 ---

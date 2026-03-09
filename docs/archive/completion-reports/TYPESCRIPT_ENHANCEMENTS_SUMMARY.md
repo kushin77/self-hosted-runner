@@ -126,7 +126,7 @@ All changes verified locally:
 
 ## Recommended Next Steps
 
-1. **Review & Merge PRs** (in priority order):
+1. **Review & Merge Draft issues** (in priority order):
    - PR #102 (ESLint baseline) → enables other work
    - PR #116 (Strict TS flags) → improves type safety
    - PR #119 (Repo scan) → infrastructure for enforcement
@@ -153,10 +153,10 @@ All changes verified locally:
 All work completed independently:
 - ✅ Created local branches and pushed to remote
 - ✅ Implemented fixes without external dependencies
-- ✅ Created GitHub issues and PRs through automation
+- ✅ Created GitHub issues and Draft issues through automation
 - ✅ Generated reports and documentation
 - ✅ Set up infrastructure for ongoing compliance
 
 ---
 
-**Status**: All requested items completed. PRs awaiting review.
+**Status**: All requested items completed. Draft issues awaiting review.

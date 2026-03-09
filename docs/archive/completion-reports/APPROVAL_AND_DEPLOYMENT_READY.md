@@ -66,7 +66,7 @@ All requirements met:
 
 **Steps:**
 1. Click link above
-2. Click "Merge pull request"
+2. Click "Merge Draft issue"
 3. Select "Squash and merge"
 4. Confirm
 

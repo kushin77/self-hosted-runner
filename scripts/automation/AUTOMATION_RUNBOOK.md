@@ -1,6 +1,6 @@
 **Auto Merge & CI Rerun — Runbook**
 
-- **Purpose**: Periodically rerun failed workflows and enable auto-merge on eligible PRs to support fully hands-off CI/CD operations.
+- **Purpose**: Periodically rerun failed workflows and enable auto-merge on eligible Draft issues to support fully hands-off CI/CD operations.
 - **Location**: `scripts/automation/auto_merge_worker.sh`
 - **Schedule**: GitHub Actions workflow `.github/workflows/auto-merge-cron.yml` runs every 30 minutes and is manually dispatchable.
 - **Idempotency**: The worker is safe to run repeatedly. It requests reruns (API is idempotent) and sets repository/PR settings where appropriate.

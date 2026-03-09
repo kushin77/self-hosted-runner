@@ -199,7 +199,7 @@ When secrets expire:
 - Can be manually triggered for immediate check
 
 ### Why PR Event Gating?
-- Terraform plan/apply should not mutate state on PRs
+- Terraform plan/apply should not mutate state on Draft issues
 - PR validation should be fast (< 5 min)
 - Full validation only on merge to main
 - Developers get fast feedback without side effects
@@ -223,7 +223,7 @@ When secrets expire:
 - [x] All P1–P5 workflows deployed and enabled on `main`
 - [x] Scheduled automation configured (P5 every 30 min)
 - [x] GSM integration deployed and documented
-- [x] PR event gating verified (no heavy ops on PRs)
+- [x] PR event gating verified (no heavy ops on Draft issues)
 - [x] Terraform plan/apply safety patches applied
 - [x] Secrets validation and rotation workflow functional
 - [x] Artifact upload and log collection enabled

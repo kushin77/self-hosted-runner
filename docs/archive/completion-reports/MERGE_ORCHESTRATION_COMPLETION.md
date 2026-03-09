@@ -6,13 +6,13 @@
 
 ## Executive Summary
 
-**10 critical + core PRs successfully merged** into production main branch via automated orchestration. Phases 1-2 complete; Phase 3 identified conflicts as expected for stale branches (non-blocking).
+**10 critical + core Draft issues successfully merged** into production main branch via automated orchestration. Phases 1-2 complete; Phase 3 identified conflicts as expected for stale branches (non-blocking).
 
 ### Key Metrics
 - **Phase 1**: 4/4 critical security fixes merged ✅
 - **Phase 2**: 6/6 core features merged ✅
 - **Phase 3**: 47 infrastructure branches scanned (conflicts deferred)
-- **Total Merged**: 10 PRs
+- **Total Merged**: 10 Draft issues
 - **Execution Time**: ~25 minutes
 - **Architecture**: Immutable, ephemeral, idempotent, hands-off
 
@@ -99,7 +99,7 @@
 - Auto-rotating auth via scheduled workflow
 
 ✅ **Idempotent**:
-- Merge-already-merged PRs: skipped
+- Merge-already-merged Draft issues: skipped
 - Terraform state-based (re-runnable)
 - All operations: safe to retry
 - No side effects on re-execution
@@ -136,7 +136,7 @@
 - **CI Validation**: Check polling between phases
 - **Conflict Handling**: Separate non-blocking issue creation
 - **Audit Trail**: GitHub Issues + temp logs (immutable)
-- **Replay Safety**: Already-merged PRs auto-skipped
+- **Replay Safety**: Already-merged Draft issues auto-skipped
 
 ---
 
@@ -149,7 +149,7 @@ Timestamp: 2026-03-08 18:52:30 UTC
 Commits integrated:
   - Phase 1: 4 critical security fixes
   - Phase 2: 6 core features
-  - Total: 10 PRs, ~400 files changed, ~15 commits
+  - Total: 10 Draft issues, ~400 files changed, ~15 commits
 ```
 
 ### Release Tag Status
@@ -256,8 +256,8 @@ grep -i "gcp\|vault\|kms" infra/*/main.tf
 
 | Metric | Status | Details |
 |--------|--------|---------|
-| **Phase 1 (4 PRs)** | ✅ COMPLETE | Critical security fixes merged |
-| **Phase 2 (6 PRs)** | ✅ COMPLETE | Core features + Vault merged |
+| **Phase 1 (4 Draft issues)** | ✅ COMPLETE | Critical security fixes merged |
+| **Phase 2 (6 Draft issues)** | ✅ COMPLETE | Core features + Vault merged |
 | **Phase 3 (47 branches)** | 🔄 DEFERRED | Conflicts expected, non-blocking |
 | **Architecture** | ✅ VERIFIED | Immutable, ephemeral, idempotent, no-ops |
 | **Security** | ✅ HARDENED | CVEs fixed, quality gates, 3-layer secrets |

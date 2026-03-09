@@ -20,7 +20,7 @@ This document outlines the comprehensive 10x improvement to the CI/CD automation
 ## 1. Problem Statement (Root Cause)
 
 ### Pre-Enhancement Issues
-- ❌ CI failures blocking PRs (LFS pointers, validation gaps)
+- ❌ CI failures blocking Draft issues (LFS pointers, validation gaps)
 - ❌ Manual merge gates (required human review before deploy)
 - ❌ Inconsistent audit trails (scattered across logs, issues, wiki)
 - ❌ Long-lived credential exposure (secrets in environment)

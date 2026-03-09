@@ -443,7 +443,7 @@ After team handoff, measure these indicators:
 **For improvements:**
 1. Document what could be better
 2. File issue on GitHub
-3. Contribute improvements via pull request
+3. Contribute improvements via Draft issue
 4. Share at team retrospective
 
 **For incidents:**

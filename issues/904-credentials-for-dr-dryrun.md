@@ -46,7 +46,7 @@ How to create these safely (recommended):
 Security notes:
 - Use short-lived tokens and rotate/delete after the dry-run.
 - Prefer creating ephemeral credentials that expire automatically.
-- Never paste unencrypted long-lived secrets into PRs or issues. Use ephemeral paste or out-of-band secure channel for sharing with the runner.
+- Never paste unencrypted long-lived secrets into Draft issues or issues. Use ephemeral paste or out-of-band secure channel for sharing with the runner.
 
 How to run locally (example):
 
