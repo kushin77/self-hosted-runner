@@ -77,6 +77,13 @@ resource "google_compute_instance" "automation_runner" {
     scopes = ["cloud-platform"]
   }
 
+  # Enable Shielded VM for org policy compliance
+  shielded_vm_config {
+    enable_secure_boot          = true
+    enable_vtpm                 = true
+    enable_integrity_monitoring = true
+  }
+
   metadata = {
     enable-oslogin = "TRUE"
     startup-script = <<-EOT
