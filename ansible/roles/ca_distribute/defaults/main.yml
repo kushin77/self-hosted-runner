@@ -1,6 +1,0 @@
----
-# Defaults for CA distribution
-ca_local_path: files/eiq-internal-ca.crt
-ca_dest_name: eiq-internal-ca.crt
-ca_dest_path: /usr/local/share/ca-certificates
-update_command: update-ca-certificates

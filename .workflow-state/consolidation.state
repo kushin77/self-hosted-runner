@@ -1,9 +1,0 @@
-# Workflow State Checkpoint
-# This file tracks idempotent consolidation progress
-# Format: bash key=value pairs
-
-CONSOLIDATION_STARTED=true
-LAST_COMPLETED_PHASE=0
-MERGED_COUNT=0
-CREATED_AT=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-STATE_VERSION=1

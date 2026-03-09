@@ -1,3 +1,0 @@
-{"timestamp": "2026-03-08T22:53:43.104357", "event_type": "deployment_start", "component_id": "remove-embedded-secrets", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T22:53:53.242162", "event_type": "step_failed", "component_id": "remove-embedded-secrets", "status": "failed", "details": {"step": "remove-secrets"}, "error": null}
-{"timestamp": "2026-03-08T22:53:53.242754", "event_type": "deployment_failed", "component_id": "remove-embedded-secrets", "status": "failed", "details": {}, "error": "Step failed: remove-secrets"}

@@ -1,6 +1,0 @@
-replicaCount: 1
-
-image:
-  repository: minio/minio
-  tag: RELEASE.2026-01-01
-  pullPolicy: IfNotPresent
