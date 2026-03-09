@@ -1,0 +1,684 @@
+openapi: 3.0.0
+info:
+  title: Managed-Homing Runner Registration API
+  description: Centralized API for secure runner registration across air-gapped VPCs
+  version: 1.0.0
+  contact:
+    name: RunnerCloud Team
+  license:
+    name: Apache 2.0
+
+servers:
+  - url: https://managed-auth.example.com/api/v1
+    description: Production
+  - url: http://localhost:8080/api/v1
+    description: Development
+
+paths:
+  /auth/token:
+    post:
+      operationId: createAccessToken
+      summary: Request new ephemeral access token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+      responses:
+        '201':
+          description: Token created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh expired token
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '201':
+          description: Token refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /auth/revoke:
+    post:
+      operationId: revokeToken
+      summary: Revoke token
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeTokenRequest'
+      responses:
+        '204':
+          description: Token revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /runners/register:
+    post:
+      operationId: registerRunner
+      summary: Register a new runner
+      tags:
+        - Runners
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunnerRegistrationRequest'
+      responses:
+        '201':
+          description: Runner registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerRegistrationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /runners/{runner_id}:
+    get:
+      operationId: getRunner
+      summary: Get runner status
+      tags:
+        - Runners
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RunnerIdParam'
+      responses:
+        '200':
+          description: Runner status retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      operationId: deregisterRunner
+      summary: Deregister runner (graceful shutdown)
+      tags:
+        - Runners
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RunnerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RunnerDeregistrationRequest'
+      responses:
+        '202':
+          description: Runner deregistration initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RunnerDeregistrationResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /runners/{runner_id}/heartbeat:
+    post:
+      operationId: sendHeartbeat
+      summary: Send periodic heartbeat
+      tags:
+        - Heartbeat
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RunnerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HeartbeatRequest'
+      responses:
+        '200':
+          description: Heartbeat acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HeartbeatResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /runners/{runner_id}/healthcheck:
+    post:
+      operationId: sendHealthcheck
+      summary: Detailed health check
+      tags:
+        - Heartbeat
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RunnerIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HealthcheckRequest'
+      responses:
+        '200':
+          description: Healthcheck processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthcheckResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /audit/logs:
+    get:
+      operationId: getAuditLogs
+      summary: Retrieve audit logs
+      tags:
+        - Audit
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: runner_id
+          in: query
+          schema:
+            type: string
+        - name: event_type
+          in: query
+          schema:
+            type: string
+            enum: [register, heartbeat, token_issue, token_revoke, error]
+        - name: start_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+      responses:
+        '200':
+          description: Audit logs retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditLogsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Service health check
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded]
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  schemas:
+    TokenRequest:
+      type: object
+      required:
+        - ttl_seconds
+      properties:
+        ttl_seconds:
+          type: integer
+          minimum: 60
+          maximum: 28800
+          description: Token lifetime in seconds
+        job_type:
+          type: string
+          enum: [quick-test, ci-build, integration-test, deploy]
+          default: ci-build
+        resource_tags:
+          type: object
+          additionalProperties:
+            type: string
+
+    TokenResponse:
+      type: object
+      required:
+        - access_token
+        - token_type
+        - expires_in
+      properties:
+        access_token:
+          type: string
+          pattern: '^ep_[a-zA-Z0-9_-]+$'
+        token_type:
+          type: string
+          enum: [Bearer]
+        expires_in:
+          type: integer
+          description: Seconds until token expires
+        ttl_seconds:
+          type: integer
+        issued_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        job_type:
+          type: string
+
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refresh_token
+        - ttl_seconds
+      properties:
+        refresh_token:
+          type: string
+          pattern: '^rt_[a-zA-Z0-9_-]+$'
+        ttl_seconds:
+          type: integer
+          minimum: 60
+
+    RevokeTokenRequest:
+      type: object
+      required:
+        - token
+      properties:
+        token:
+          type: string
+        reason:
+          type: string
+          enum: [runner_shutdown, token_compromise, manual_revoke]
+
+    RunnerRegistrationRequest:
+      type: object
+      required:
+        - name
+        - os
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        os:
+          type: string
+          example: ubuntu-latest
+        arch:
+          type: string
+          enum: [x86_64, arm64, arm]
+        labels:
+          type: array
+          items:
+            type: string
+        pool:
+          type: string
+          default: default
+        vpc_id:
+          type: string
+        region:
+          type: string
+        max_jobs:
+          type: integer
+          default: 4
+          minimum: 1
+        network_config:
+          type: object
+          properties:
+            allow_public_ip:
+              type: boolean
+            secure_tunnel:
+              type: boolean
+            mtls_required:
+              type: boolean
+
+    RunnerRegistrationResponse:
+      type: object
+      required:
+        - runner_id
+        - registration_token
+        - status
+      properties:
+        runner_id:
+          type: string
+          pattern: '^r-[a-zA-Z0-9]+$'
+        registration_token:
+          type: string
+        status:
+          type: string
+          enum: [provisioning, running, idle, offline, terminated]
+        created_at:
+          type: string
+          format: date-time
+        registration_expires_at:
+          type: string
+          format: date-time
+        heartbeat:
+          type: object
+          properties:
+            required:
+              type: boolean
+            interval_seconds:
+              type: integer
+            timeout_seconds:
+              type: integer
+        config:
+          type: object
+
+    RunnerStatus:
+      type: object
+      properties:
+        runner_id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [provisioning, running, idle, offline, terminated]
+        created_at:
+          type: string
+          format: date-time
+        last_heartbeat:
+          type: string
+          format: date-time
+        current_job:
+          type: object
+          properties:
+            id:
+              type: string
+            status:
+              type: string
+            started_at:
+              type: string
+              format: date-time
+        metrics:
+          type: object
+          properties:
+            cpu_percent:
+              type: number
+            memory_percent:
+              type: number
+            disk_percent:
+              type: number
+
+    RunnerDeregistrationRequest:
+      type: object
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          enum: [scheduled_maintenance, resource_optimization, error_recovery]
+        drain_timeout:
+          type: integer
+          default: 300
+
+    RunnerDeregistrationResponse:
+      type: object
+      properties:
+        runner_id:
+          type: string
+        status:
+          type: string
+          enum: [draining, terminated]
+        drain_timeout:
+          type: integer
+        drain_started_at:
+          type: string
+          format: date-time
+        drain_deadline:
+          type: string
+          format: date-time
+
+    HeartbeatRequest:
+      type: object
+      required:
+        - timestamp
+        - status
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [idle, running, draining]
+        current_job_id:
+          type: string
+          nullable: true
+        job_history:
+          type: array
+          items:
+            type: object
+        metrics:
+          type: object
+          properties:
+            cpu_percent:
+              type: number
+            memory_percent:
+              type: number
+            disk_percent:
+              type: number
+        system_info:
+          type: object
+
+    HeartbeatResponse:
+      type: object
+      properties:
+        runner_id:
+          type: string
+        heartbeat_received:
+          type: boolean
+        next_heartbeat_at:
+          type: string
+          format: date-time
+        next_token_rotation_at:
+          type: string
+          format: date-time
+        commands:
+          type: array
+          items:
+            type: object
+
+    HealthcheckRequest:
+      type: object
+      required:
+        - timestamp
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        health:
+          type: object
+          properties:
+            docker_socket:
+              type: boolean
+            disk_available_gb:
+              type: number
+            network_connectivity:
+              type: boolean
+            vault_connectivity:
+              type: boolean
+
+    HealthcheckResponse:
+      type: object
+      properties:
+        health_status:
+          type: string
+          enum: [healthy, degraded, critical]
+        last_check:
+          type: string
+          format: date-time
+        recommendations:
+          type: array
+          items:
+            type: string
+
+    AuditLogsResponse:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              event_type:
+                type: string
+              runner_id:
+                type: string
+              actor:
+                type: string
+              details:
+                type: object
+              result:
+                type: string
+              audit_id:
+                type: string
+        total:
+          type: integer
+        has_more:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - error_description
+      properties:
+        error:
+          type: string
+        error_description:
+          type: string
+        correlation_id:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        details:
+          type: object
+
+  parameters:
+    RunnerIdParam:
+      name: runner_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^r-[a-zA-Z0-9]+$'
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+    Conflict:
+      description: Conflict - resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Authentication
+    description: Token and credential management
+  - name: Runners
+    description: Runner registration and management
+  - name: Heartbeat
+    description: Runner health monitoring
+  - name: Audit
+    description: Audit trail and compliance
+  - name: System
+    description: System health and status
