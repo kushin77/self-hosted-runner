@@ -142,7 +142,7 @@ fetch_credential() {
       ;;
     env)
       local env_var="${key}_ENV"
-      env_var="${env_var//[^A-Z0-9_]/_}"  # sanitize for env var
+      env_var="${env_var//[^A-Za-z0-9_]/_}"  # sanitize for env var
       local value="${!env_var:-}"
       [[ -n "$value" ]] && echo "$value" || return 1
       ;;
