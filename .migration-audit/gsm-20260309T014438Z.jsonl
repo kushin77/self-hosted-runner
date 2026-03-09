@@ -1,0 +1,10 @@
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"DOCKER_HUB_PASSWORD","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"DOCKER_HUB_USERNAME","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"GCP_PROJECT_ID","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"GCP_WORKLOAD_IDENTITY_PROVIDER","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"GOOGLE_CREDENTIALS","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"MINIO_BUCKET","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"PROD_TFVARS","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"REGISTRY_USERNAME","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"SLACK_WEBHOOK_URL","action":"create","status":"dry-run"}
+{"time":"2026-03-09T01:44:38Z","provider":"gsm","name":"TFSTATE_BUCKET","action":"create","status":"dry-run"}

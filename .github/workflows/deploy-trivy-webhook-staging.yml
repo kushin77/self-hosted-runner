@@ -28,6 +28,8 @@ jobs:
           KUBE_CONFIG_BASE64: ${{ secrets.STAGING_KUBECONFIG_B64 }}
         run: |
           echo "$KUBE_CONFIG_BASE64" | base64 -d > kubeconfig
+          # Ensure kubeconfig points to the staging worker node (avoid localhost)
+          sed -i 's/\(server: \).*$/\1https:\/\/192.168.168.42:6443/' kubeconfig || true
           export KUBECONFIG=$PWD/kubeconfig
           kubectl version --client
 
