@@ -32,9 +32,9 @@ jobs:
     name: Fetch AWS Credentials from GSM
     uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
     secrets:
-      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-      GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ steps.cred_gcp_service_account_email.outputs.credential }}
+      GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
 
   # Step 2: Plan ElastiCache changes
   plan:
@@ -59,6 +59,31 @@ jobs:
 
       - name: Terraform Init
         working-directory: ./terraform/elasticache
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+        id: cred_gcp_service_account_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           echo "🔧 Initializing Terraform..."
           terraform init \

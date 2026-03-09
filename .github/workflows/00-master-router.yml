@@ -85,10 +85,10 @@ env:
   PHASE_LOCK_TIMEOUT: 600              # 10 minutes per phase
 
   # Security (KMS/GSM/VAULT)
-  KMS_KEY_URI: ${{ secrets.KMS_KEY_URI }}
-  GSM_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-  VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+  KMS_KEY_URI: ${{ steps.cred_kms_key_uri.outputs.credential }}
+  GSM_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
+  VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+  VAULT_NAMESPACE: ${{ steps.cred_vault_namespace.outputs.credential }}
 
   # Execution Context
   ROUTER_VERSION: "1.0.0"
@@ -136,6 +136,55 @@ jobs:
       # ───────────────────────────────────────────────────────────
       - name: 'Capture Event Context'
         id: event-context
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT]
+        id: cred_gcp_service_account
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [KMS_KEY_URI]
+        id: cred_kms_key_uri
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: KMS_KEY_URI
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_NAMESPACE]
+        id: cred_vault_namespace
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_NAMESPACE
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           CONTEXT=$(cat <<EOF
           {
@@ -246,8 +295,8 @@ jobs:
       - name: 'Authenticate to GCP (Workload Identity)'
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account.outputs.credential }}
         continue-on-error: true
 
       - name: 'Initialize KMS Client (for envelope encryption)'
