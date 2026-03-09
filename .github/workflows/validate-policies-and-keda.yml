@@ -1,0 +1,181 @@
+name: Validate policies and KEDA (secure server dry-run)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  validate:
+    name: Validate (client + server dry-run)
+    runs-on: ubuntu-latest
+
+    env:
+      KUBECONFIG_PATH: ${{ github.workspace }}/.kube/staging.kubeconfig
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.29.0'
+
+      - name: Determine secret backend and fetch kubeconfig
+        id: fetch_kubeconfig
+        shell: bash
+        env:
+          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          STAGING_KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          set -euo pipefail
+          mkdir -p $(dirname "$KUBECONFIG_PATH")
+
+          # Prefer GSM (GCP Secret Manager)
+          if [[ -n "$GCP_PROJECT" && -n "$GCP_SA_KEY" ]]; then
+            echo "Using GCP Secret Manager to fetch STAGING_KUBECONFIG"
+            echo "$GCP_SA_KEY" > /tmp/gcp_sa.json
+            echo "GCP SA key written to temp file"
+            # Authenticate for the duration of the step
+            gcloud auth activate-service-account --key-file=/tmp/gcp_sa.json --project="$GCP_PROJECT" >/dev/null 2>&1 || true
+            # Fetch secret; secret name should be STAGING_KUBECONFIG (base64) in Secret Manager
+            secret_val=$(gcloud secrets versions access latest --secret=STAGING_KUBECONFIG --project="$GCP_PROJECT" 2>/dev/null || true)
+            if [[ -n "$secret_val" ]]; then
+              printf '%s' "$secret_val" | base64 -d > "$KUBECONFIG_PATH"
+              echo "kubeconfig_fetched=gsm" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+          fi
+
+          # Next prefer Vault
+          if [[ -n "$VAULT_ADDR" && -n "$VAULT_ROLE" ]]; then
+            echo "Using Vault to fetch STAGING_KUBECONFIG"
+            # Login is expected to be configured via environment (OIDC or approle via pipeline secrets)
+            # Try reading secret at secret/data/staging/STAGING_KUBECONFIG
+            if command -v vault >/dev/null 2>&1; then
+              vault kv get -format=json secret/staging | jq -r '.data.data.STAGING_KUBECONFIG' | base64 -d > "$KUBECONFIG_PATH" || true
+              if [[ -s "$KUBECONFIG_PATH" ]]; then
+                echo "kubeconfig_fetched=vault" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+            fi
+          fi
+
+          # Fallback: GitHub Actions repo secret (base64-encoded kubeconfig)
+          if [[ -n "$STAGING_KUBECONFIG" ]]; then
+            echo "Using repository secret STAGING_KUBECONFIG"
+            printf '%s' "$STAGING_KUBECONFIG" | base64 -d > "$KUBECONFIG_PATH"
+            echo "kubeconfig_fetched=repo_secret" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "No kubeconfig available; continuing with client-side checks only" >> $GITHUB_OUTPUT
+
+      - name: Mask kubeconfig contents
+        if: steps.fetch_kubeconfig.outputs.kubeconfig_fetched != ''
+        run: |
+          if [[ -f "$KUBECONFIG_PATH" ]]; then
+            # mask value to avoid accidental log exposure
+            echo "::add-mask::$(cat $KUBECONFIG_PATH | base64 -w0)"
+          fi
+
+      - name: Export KUBECONFIG if present
+        if: steps.fetch_kubeconfig.outputs.kubeconfig_fetched != ''
+        run: |
+          echo "KUBECONFIG=$KUBECONFIG_PATH" >> $GITHUB_ENV
+
+      - name: Client-side validation
+        run: |
+          set -euo pipefail
+          if command -v yamllint >/dev/null 2>&1; then
+            yamllint -c .yamllint deploy/policies || true
+          fi
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 kubectl apply --dry-run=client -f || true
+
+      - name: Server-side dry-run
+        if: env.KUBECONFIG != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Running server-side dry-run using kubeconfig"
+          kubectl --kubeconfig="$KUBECONFIG" get ns runners >/dev/null 2>&1 || kubectl --kubeconfig="$KUBECONFIG" create ns runners || true
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 -I{} kubectl --kubeconfig="$KUBECONFIG" apply --dry-run=server -f {}
+
+      - name: Add PR comment with recommendation
+        uses: machinebox/comment-on-pr@v1
+        if: always()
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          message: |
+            Server-side validation: ${{ steps.fetch_kubeconfig.outputs.kubeconfig_fetched || 'none' }}
+            
+            Recommendations:
+            - Store `STAGING_KUBECONFIG` in GSM/Vault and configure platform credentials for CI.
+            - Use least-privileged service account scoped to `runners` namespace (NetworkPolicy, ScaledObject, ConfigMap).
+            - Rotate and short-lived credentials preferred.
+name: Validate policies and KEDA (client + optional server)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validation (client + optional server)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.29.0'
+
+      - name: Persist STAGING_KUBECONFIG (if provided)
+        shell: bash
+        env:
+          KUBECONFIG_B64: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          if [[ -n "$KUBECONFIG_B64" ]]; then
+            echo "STAGING_KUBECONFIG secret found, writing kubeconfig"
+            mkdir -p $GITHUB_WORKSPACE/.kube
+            echo "$KUBECONFIG_B64" | base64 -d > $GITHUB_WORKSPACE/.kube/staging.kubeconfig
+            echo "KUBECONFIG=$GITHUB_WORKSPACE/.kube/staging.kubeconfig" >> $GITHUB_ENV
+          else
+            echo "No STAGING_KUBECONFIG secret provided; skipping server-side checks"
+          fi
+
+      - name: Client-side validation (kustomize/kind/yaml lint)
+        run: |
+          if command -v yamllint >/dev/null 2>&1; then
+            yamllint -c .yamllint deploy/policies || true
+          fi
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 kubectl apply --dry-run=client -f || true
+
+      - name: Server-side dry-run (requires STAGING_KUBECONFIG)
+        if: env.KUBECONFIG != ''
+        shell: bash
+        run: |
+          echo "Running server-side validation using $KUBECONFIG"
+          kubectl --kubeconfig="$KUBECONFIG" get ns runners >/dev/null 2>&1 || kubectl --kubeconfig="$KUBECONFIG" create ns runners || true
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 -I{} kubectl --kubeconfig="$KUBECONFIG" apply --dry-run=server -f {}
+
+      - name: Optional: Run KEDA smoke test (real cluster)
+        if: env.KUBECONFIG != '' && (github.event.pull_request.draft == false)
+        env:
+          STAGING_KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          chmod +x ./scripts/ci/run-keda-smoke-test.sh
+          STAGING_KUBECONFIG="$STAGING_KUBECONFIG" ./scripts/ci/run-keda-smoke-test.sh
