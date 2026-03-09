@@ -1,0 +1,164 @@
+name: "[SCHEDULED] Multi-Layer Secrets Health Check — Every 15 Minutes"
+
+on:
+  schedule:
+    # Every 15 minutes — continuous health monitoring
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  health_check:
+    name: Multi-Layer Secrets Health
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: "AWS Connectivity Check"
+        id: aws_check
+        run: |
+          if [[ -z "$AWS_ACCESS_KEY_ID" ]]; then
+            echo "status=MISSING" >> $GITHUB_OUTPUT
+            echo "❌ AWS credentials not configured"
+            exit 0
+          fi
+          
+          # Try to list S3 buckets (non-destructive)
+          if aws s3 ls --region us-east-1 &>/dev/null; then
+            echo "status=HEALTHY" >> $GITHUB_OUTPUT
+            echo "✅ AWS connectivity OK"
+          else
+            echo "status=UNHEALTHY" >> $GITHUB_OUTPUT
+            echo "⚠️ AWS connectivity check failed"
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+      
+      - name: "GCP Connectivity Check"
+        id: gcp_check
+        run: |
+          if [[ -z "$GCP_SERVICE_ACCOUNT_KEY" ]]; then
+            echo "status=MISSING" >> $GITHUB_OUTPUT
+            echo "❌ GCP credentials not configured"
+            exit 0
+          fi
+          
+          echo "$GCP_SERVICE_ACCOUNT_KEY" > /tmp/gcp-key.json
+          
+          # Try gcloud auth
+          if gcloud auth activate-service-account --key-file=/tmp/gcp-key.json &>/dev/null; then
+            echo "status=HEALTHY" >> $GITHUB_OUTPUT
+            echo "✅ GCP connectivity OK"
+          else
+            echo "status=UNHEALTHY" >> $GITHUB_OUTPUT
+            echo "⚠️ GCP connectivity check failed"
+          fi
+          
+          rm -f /tmp/gcp-key.json
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      
+      - name: "Vault Connectivity Check"
+        id: vault_check
+        run: |
+          if [[ -z "$VAULT_ADDR" ]]; then
+            echo "status=MISSING" >> $GITHUB_OUTPUT
+            echo "❌ Vault not configured"
+            exit 0
+          fi
+          
+          # Try Vault health check (non-destructive)
+          if curl -s -f "$VAULT_ADDR/v1/sys/health" &>/dev/null; then
+            echo "status=HEALTHY" >> $GITHUB_OUTPUT
+            echo "✅ Vault connectivity OK"
+          else
+            echo "status=UNHEALTHY" >> $GITHUB_OUTPUT
+            echo "⚠️ Vault connectivity check failed"
+          fi
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+      
+      - name: "KMS Connectivity Check"
+        id: kms_check
+        run: |
+          if [[ -z "$AWS_KMS_KEY_ID" ]]; then
+            echo "status=MISSING" >> $GITHUB_OUTPUT
+            echo "❌ AWS KMS not configured"
+            exit 0
+          fi
+          
+          # Try to describe KMS key (non-destructive)
+          if aws kms describe-key --key-id "$AWS_KMS_KEY_ID" --region us-east-1 &>/dev/null; then
+            echo "status=HEALTHY" >> $GITHUB_OUTPUT
+            echo "✅ AWS KMS connectivity OK"
+          else
+            echo "status=UNHEALTHY" >> $GITHUB_OUTPUT
+            echo "⚠️ AWS KMS connectivity check failed"
+          fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_KMS_KEY_ID: ${{ secrets.AWS_KMS_KEY_ID }}
+          AWS_DEFAULT_REGION: us-east-1
+      
+      - name: "Aggregate Results"
+        id: results
+        run: |
+          aws_status="${{ steps.aws_check.outputs.status }}"
+          gcp_status="${{ steps.gcp_check.outputs.status }}"
+          vault_status="${{ steps.vault_check.outputs.status }}"
+          kms_status="${{ steps.kms_check.outputs.status }}"
+          
+          unhealthy_count=0
+          
+          [[ "$aws_status" == "UNHEALTHY" ]] && ((unhealthy_count++))
+          [[ "$gcp_status" == "UNHEALTHY" ]] && ((unhealthy_count++))
+          [[ "$vault_status" == "UNHEALTHY" ]] && ((unhealthy_count++))
+          [[ "$kms_status" == "UNHEALTHY" ]] && ((unhealthy_count++))
+          
+          if [[ $unhealthy_count -gt 0 ]]; then
+            echo "overall_status=DEGRADED" >> $GITHUB_OUTPUT
+          else
+            echo "overall_status=HEALTHY" >> $GITHUB_OUTPUT
+          fi
+          
+          echo "unhealthy_count=$unhealthy_count" >> $GITHUB_OUTPUT
+      
+      - name: "Post Health to Issue #1702"
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const now = new Date().toISOString();
+            const body = `## 🏥 Health Check — ${now}
+            
+**Overall Status:** ${{ steps.results.outputs.overall_status == 'HEALTHY' ? '✅ HEALTHY' : '⚠️ DEGRADED' }}
+
+### Provider Status
+- AWS: ${{ steps.aws_check.outputs.status || 'UNKNOWN' }}
+- GCP: ${{ steps.gcp_check.outputs.status || 'UNKNOWN' }}
+- Vault: ${{ steps.vault_check.outputs.status || 'UNKNOWN' }}
+- AWS KMS: ${{ steps.kms_check.outputs.status || 'UNKNOWN' }}
+
+**Unhealthy Layers:** ${{ steps.results.outputs.unhealthy_count || '0' }}
+
+**Workflow Run:** [#${{ github.run_id }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+`;
+            
+            github.rest.issues.createComment({
+              issue_number: 1702,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            }).catch(e => {
+              // Issue might not exist yet, continue
+              console.log('Could not post to issue #1702:', e.message);
+            });
