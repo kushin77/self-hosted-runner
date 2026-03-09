@@ -40,6 +40,55 @@ install_systemd(){
   fi
 }
 
+install_vault_agent(){
+  if command -v vault >/dev/null 2>&1; then
+    log "vault binary already installed"
+  else
+    log "Installing Vault CLI/Agent (HashiCorp release)..."
+    tmpdir=$(mktemp -d)
+    cd "$tmpdir"
+    VER=${VAULT_VERSION:-1.16.0}
+    OS=$(uname | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "x86_64" ]; then ARCH=amd64; fi
+    URL="https://releases.hashicorp.com/vault/${VER}/vault_${VER}_${OS}_${ARCH}.zip"
+    if curl -fsSLO "$URL"; then
+      unzip -q "vault_${VER}_${OS}_${ARCH}.zip"
+      sudo mv vault /usr/local/bin/
+      sudo chmod 755 /usr/local/bin/vault
+      log "vault installed to /usr/local/bin/vault"
+    else
+      log "Failed to download Vault from $URL — skipping install"
+    fi
+    cd - >/dev/null || true
+    rm -rf "$tmpdir"
+  fi
+
+  # Install agent config and template
+  if [ -f "$(dirname "${BASH_SOURCE[0]}")/../config/vault-agent.hcl" ]; then
+    sudo mkdir -p /etc/vault/templates
+    sudo cp "$(dirname "${BASH_SOURCE[0]}")/../config/vault-agent.hcl" /etc/vault/agent.hcl
+    sudo cp "$(dirname "${BASH_SOURCE[0]}")/../config/deployment.env.tpl" /etc/vault/templates/deployment.env.tpl
+    sudo chown -R root:root /etc/vault
+    sudo chmod 644 /etc/vault/agent.hcl || true
+    log "Vault Agent configuration installed to /etc/vault"
+  else
+    log "No Vault Agent config found in repo; skipping config deploy"
+  fi
+
+  # Install systemd unit for vault-agent if present in repo infra
+  if [ -f "$(dirname "${BASH_SOURCE[0]}")/../infra/vault-agent.service" ]; then
+    sudo cp "$(dirname "${BASH_SOURCE[0]}")/../infra/vault-agent.service" /etc/systemd/system/vault-agent.service
+    sudo chown root:root /etc/systemd/system/vault-agent.service
+    sudo chmod 644 /etc/systemd/system/vault-agent.service
+    sudo systemctl daemon-reload || true
+    sudo systemctl enable --now vault-agent.service || true
+    log "vault-agent systemd enabled and started"
+  else
+    log "vault-agent.service file missing in repo infra; skipping service install"
+  fi
+}
+
 install_dependencies(){
   # Install minimal tooling if available via package manager
   if command -v apt-get >/dev/null 2>&1; then
@@ -76,6 +125,7 @@ main(){
   ensure_user
   ensure_dirs
   install_dependencies
+  install_vault_agent
   install_systemd
   fix_permissions
   print_next_steps
