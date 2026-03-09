@@ -3,32 +3,35 @@ permissions:
   contents: read
   id-token: write
   actions: read
-
-on:
-  workflow_dispatch:
+true:
+  workflow_dispatch: null
   schedule:
-    - cron: '0 3 * * *' # daily checks
-
+  - cron: 0 3 * * *
 jobs:
   build-and-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up QEMU (for multi-arch builds)
-        uses: docker/setup-qemu-action@v2
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build image
-        run: |
-          IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ github.repository }}-runner:ci-scan
-          docker build -t "$IMAGE_NAME" .
-      - name: Run Trivy scan
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ github.repository_owner }}/${{ github.repository }}-runner:ci-scan
-      - name: Upload Trivy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-report
-          path: .trivyignore || trivy-report.json || ''
+    - uses: actions/checkout@v4
+    - name: Set up QEMU (for multi-arch builds)
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Build image
+      run: 'IMAGE_NAME=ghcr.io/${{ github.repository_owner }}/${{ github.repository
+        }}-runner:ci-scan
+
+        docker build -t "$IMAGE_NAME" .
+
+        '
+    - name: Run Trivy scan
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ github.repository_owner }}/${{ github.repository }}-runner:ci-scan
+    - name: Upload Trivy report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: trivy-report
+        path: .trivyignore || trivy-report.json || ''
+    timeout-minutes: 30
+    name: Build And Scan
