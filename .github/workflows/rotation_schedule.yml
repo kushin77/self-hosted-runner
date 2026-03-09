@@ -8,7 +8,7 @@ on:
     inputs:
       provider:
         description: 'Rotate credentials for specific provider (vault/gsm/aws/all)'
-        required: false
+        required: 'false'
         default: 'all'
 
 permissions:
@@ -110,8 +110,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
         run: pip install -r requirements.txt
 
       - name: Rotate Vault secrets
@@ -137,11 +135,9 @@ jobs:
               "vault_token": vault_token,
           })
 
-          secrets_to_rotate = [
-              "github-token",
+          secrets_to_rotate = ["github-token",
               "slack-webhook",
-              "pagerduty-key",
-          ]
+              "pagerduty-key",]
 
           print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from Vault...")
 
@@ -225,11 +221,9 @@ jobs:
               "gcp_project_id": gcp_project_id,
           })
 
-          secrets_to_rotate = [
-              "orchestrator-github-token",
+          secrets_to_rotate = ["orchestrator-github-token",
               "orchestrator-slack-webhook",
-              "orchestrator-pagerduty-key",
-          ]
+              "orchestrator-pagerduty-key",]
 
           print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from Google Secret Manager...")
 
@@ -307,11 +301,9 @@ jobs:
               "region_name": aws_region,
           })
 
-          secrets_to_rotate = [
-              "orchestrator/github-token",
+          secrets_to_rotate = ["orchestrator/github-token",
               "orchestrator/slack-webhook",
-              "orchestrator/pagerduty-key",
-          ]
+              "orchestrator/pagerduty-key",]
 
           print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from AWS Secrets Manager...")
 
@@ -376,7 +368,7 @@ jobs:
             fi
           done
 
-          if [ $failed -gt 0 ]; then
+          if [$failed -gt 0]; then
             echo "🚨 Credential rotation failed!"
 
             # Create GitHub issue
@@ -403,8 +395,7 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{
               "text": "🚨 Credential rotation failed",
-              "blocks": [
-                {
+              "blocks": [{
                   "type": "section",
                   "text": {
                     "type": "mrkdwn",
@@ -413,13 +404,10 @@ jobs:
                 },
                 {
                   "type": "actions",
-                  "elements": [
-                    {
+                  "elements": [{
                       "type": "button",
                       "text": {"type": "plain_text", "text": "View Logs"},
                       "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                }
-              ]
+                    }]
+                }]
             }' || echo "Failed to send Slack notification (webhook not configured)"

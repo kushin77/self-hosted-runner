@@ -27,65 +27,65 @@ on:
     inputs:
       tf_dir:
         description: 'Terraform directory to apply'
-        required: true
+        required: 'true'
         type: string
       plan_file:
         description: 'Path to plan file (from plan workflow)'
-        required: false
+        required: 'false'
         type: string
       aws_role_arn:
         description: 'AWS IAM role ARN for OIDC'
-        required: false
+        required: 'false'
         type: string
       gcp_project_id:
         description: 'GCP project ID for Workload Identity'
-        required: false
+        required: 'false'
         type: string
       azure_tenant_id:
         description: 'Azure tenant ID for managed identity'
-        required: false
+        required: 'false'
         type: string
       vault_addr:
         description: 'Vault server address'
-        required: false
+        required: 'false'
         type: string
       vault_role:
         description: 'Vault role for auth'
-        required: false
+        required: 'false'
         type: string
         default: 'github-actions'
       require_approval:
         description: 'Require manual approval before apply'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       approval_team:
         description: 'GitHub team for approval authority'
-        required: false
+        required: 'false'
         type: string
         default: 'infrastructure-team'
       auto_approve_if_no_changes:
         description: 'Auto-approve if plan shows no changes'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       log_bucket:
         description: 'GCS bucket for audit logs'
-        required: false
+        required: 'false'
         type: string
     secrets:
       VAULT_ADDR:
         description: 'Vault server address'
-        required: false
+        required: 'false'
       VAULT_ROLE_ID:
         description: 'Vault AppRole ID'
-        required: false
+        required: 'false'
       VAULT_SECRET_ID:
         description: 'Vault AppRole Secret ID'
-        required: false
+        required: 'false'
       GCP_SA_KEY:
         description: 'GCP service account key (fallback only)'
-        required: false
+        required: 'false'
 
 permissions:
   contents: read
@@ -114,7 +114,7 @@ jobs:
           IS_MEMBER=$(gh api orgs/${{ github.repository_owner }}/teams/${TEAM}/memberships/${ACTOR} \
             --jq '.state' 2>/dev/null || echo "not_found")
 
-          if [ "$IS_MEMBER" = "active" ]; then
+          if ["$IS_MEMBER" = "active"]; then
             echo "✅ Approval authority verified: $ACTOR in $TEAM"
             echo "approved=true" >> $GITHUB_OUTPUT
             echo "approver=$ACTOR" >> $GITHUB_OUTPUT
@@ -172,7 +172,7 @@ jobs:
           EOF
 
           # Log to immutable audit store
-          if [ -n "$LOG_BUCKET" ]; then
+          if [-n "$LOG_BUCKET"]; then
             AUDIT_KEY="${{ github.repository }}/terraform-applies/${EXECUTION_ID}/intent-log.json"
             gsutil cp /tmp/intent.json "${LOG_BUCKET}/${AUDIT_KEY}"
           fi
@@ -276,7 +276,7 @@ jobs:
           }
           EOF
 
-          if [ -n "$LOG_BUCKET" ]; then
+          if [-n "$LOG_BUCKET"]; then
             AUDIT_KEY="${{ github.repository }}/terraform-applies/${EXECUTION_ID}/results-log.json"
             gsutil cp /tmp/results.json "${LOG_BUCKET}/${AUDIT_KEY}"
             echo "✅ Results logged to: $AUDIT_KEY"

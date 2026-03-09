@@ -40,7 +40,7 @@ jobs:
         run: |
           set -euo pipefail
           FILE=workflow-audit-report.txt
-          if [ -f "$FILE" ]; then
+          if [-f "$FILE"]; then
             TAR=workflow-audit-report-${{ github.run_id }}.tgz
             tar -czf "$TAR" "$FILE" || true
             chmod +x ci/scripts/upload_to_minio.sh || true
@@ -53,7 +53,7 @@ jobs:
       - name: Package audit report for MinIO
         run: |
           mkdir -p /tmp/minio-uploads
-          if [ -f workflow-audit-report.txt ]; then
+          if [-f workflow-audit-report.txt]; then
             cp workflow-audit-report.txt /tmp/minio-uploads/
           else
             echo "No workflow audit report found"

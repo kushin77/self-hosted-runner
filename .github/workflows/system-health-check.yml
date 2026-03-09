@@ -36,7 +36,7 @@ jobs:
             LATEST=$(gh run list --repo "${REPO}" --workflow "$wf" --limit 1 --json status,conclusion,createdAt --jq '.[0]' 2>/dev/null || echo '{}')
             STATUS=$(echo "$LATEST" | jq -r '.status // "unknown"')
 
-            if [ "$STATUS" = "unknown" ] || [ -z "$LATEST" ]; then
+            if ["$STATUS" = "unknown"] || [-z "$LATEST"]; then
               echo "⚠️  WARNING: No recent runs for $wf"
               UNHEALTHY=$((UNHEALTHY + 1))
             else
@@ -64,7 +64,7 @@ jobs:
           echo "escalation=$ESCALATION" >> $GITHUB_OUTPUT
           echo "dr_issues=$DR_ISSUES" >> $GITHUB_OUTPUT
 
-          if [ $((CRITICAL + ESCALATION + DR_ISSUES)) -gt 0 ]; then
+          if [$((CRITICAL + ESCALATION + DR_ISSUES)) -gt 0]; then
             echo "⚠️  Open issues detected: critical=$CRITICAL escalation=$ESCALATION dr=$DR_ISSUES"
           else
             echo "✅ No critical issues"
@@ -83,7 +83,7 @@ jobs:
           # Check if "ingested: true" comment exists
           INGESTED=$(gh api "/repos/${REPO}/issues/${ISSUE}/comments" --jq '.[] | select(.body=="ingested: true") | .id' 2>/dev/null | wc -l)
 
-          if [ $INGESTED -gt 0 ]; then
+          if [$INGESTED -gt 0]; then
             echo "ingested=true" >> $GITHUB_OUTPUT
             echo "✅ Ingestion detected"
           else
@@ -105,10 +105,10 @@ jobs:
 
           # Determine overall health
           OVERALL_HEALTH="🟢 HEALTHY"
-          if [ $UNHEALTHY_WF -gt 0 ] || [ $CRITICAL -gt 0 ] || [ $ESCALATIONS -gt 0 ]; then
+          if [$UNHEALTHY_WF -gt 0] || [$CRITICAL -gt 0] || [$ESCALATIONS -gt 0]; then
             OVERALL_HEALTH="🟡 DEGRADED"
           fi
-          if [ $DR_ISSUES -gt 2 ]; then
+          if [$DR_ISSUES -gt 2]; then
             OVERALL_HEALTH="🔴 CRITICAL"
           fi
 
@@ -155,7 +155,7 @@ jobs:
           # Post or update health status
           EXISTING=$(gh api "/repos/${REPO}/issues/${TRACKING_ISSUE}/comments" --jq ".[] | select(.body | contains(\"System Health Check\")) | .id" 2>/dev/null | head -1 || true)
 
-          if [ -n "$EXISTING" ]; then
+          if [-n "$EXISTING"]; then
             gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$REPORT" 2>/dev/null || true
           else
             gh issue comment ${TRACKING_ISSUE} --repo ${REPO} --body "$REPORT" 2>/dev/null || true

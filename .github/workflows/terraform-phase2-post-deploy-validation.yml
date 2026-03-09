@@ -12,7 +12,7 @@ on:
     inputs:
       environment:
         description: 'Environment to validate'
-        required: false
+        required: 'false'
         default: 'prod'
         type: choice
         options:
@@ -514,9 +514,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
-
         run: |
           set -euo pipefail
           TF_VERSION=1.5.7
@@ -529,7 +526,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY || secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
-          if [ -n "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+          if [-n "$GOOGLE_APPLICATION_CREDENTIALS_JSON"]; then
             echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/gcp-sa.json
             export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json
             echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-sa.json" >> $GITHUB_ENV
@@ -591,7 +588,7 @@ jobs:
           STANDARD_RUNNER_IDS=$(terraform output -raw standard_runner_ids 2>/dev/null || echo "")
           SECURITY_GROUP_ID=$(terraform output -raw security_group_id 2>/dev/null || echo "")
 
-          if [ -z "$STANDARD_RUNNER_IDS" ]; then
+          if [-z "$STANDARD_RUNNER_IDS"]; then
             echo "::error::standard_runner_ids output missing"
             exit 1
           fi
@@ -622,7 +619,7 @@ jobs:
                       "Name=instance-state-name,Values=running" \
             --query 'length(Reservations[*].Instances[*][])')
 
-          if [ "$RUNNING_COUNT" -lt 1 ]; then
+          if ["$RUNNING_COUNT" -lt 1]; then
             echo "::error::No running instances found"
             exit 1
           fi
@@ -681,7 +678,7 @@ jobs:
           # Count online runners
           ONLINE_COUNT=$(echo "$RUNNERS" | jq '[.[] | select(.status=="online")] | length')
 
-          if [ "$ONLINE_COUNT" -lt 1 ]; then
+          if ["$ONLINE_COUNT" -lt 1]; then
             echo "::error::No online self-hosted runners found"
             exit 1
           fi
@@ -730,11 +727,11 @@ jobs:
 
           ## Next Steps
 
-          - [ ] Run a test workflow on self-hosted runners
-          - [ ] Monitor runner performance over 24 hours
-          - [ ] Verify auto-scaling policies (if configured)
-          - [ ] Enable observability dashboards
-          - [ ] Schedule quarterly security review
+          - [] Run a test workflow on self-hosted runners
+          - [] Monitor runner performance over 24 hours
+          - [] Verify auto-scaling policies (if configured)
+          - [] Enable observability dashboards
+          - [] Schedule quarterly security review
 
           ## Artifacts
 

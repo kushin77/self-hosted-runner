@@ -43,7 +43,7 @@ jobs:
           CRITICAL=$(jq '[.[] | select(.Severity=="CRITICAL" or .Severity=="Critical")] | length' vulns.json)
           HIGH=$(jq '[.[] | select(.Severity=="HIGH" or .Severity=="High")] | length' vulns.json)
           echo "CRITICAL=$CRITICAL HIGH=$HIGH"
-          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 5 ]; then
+          if ["$CRITICAL" -gt 0] || ["$HIGH" -gt 5]; then
             python3 .github/scripts/dispatch_trivy_alert.py --repo "$REPO" --token "$GITHUB_TOKEN" --file trivy-report.json
           else
             echo "No action needed"

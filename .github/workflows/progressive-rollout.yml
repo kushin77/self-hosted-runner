@@ -11,31 +11,31 @@ on:
     inputs:
       strategy:
         description: 'Rollout strategy: staged|all-at-once|blue-green'
-        required: true
+        required: 'true'
         default: 'staged'
       playbook:
         description: 'Ansible playbook for deployment'
-        required: true
+        required: 'true'
         default: 'ansible/playbooks/deploy-rotation.yml'
       inventory:
         description: 'Ansible inventory path (production)'
-        required: true
+        required: 'true'
         default: 'ansible/inventory/production'
       batches:
         description: 'Comma-separated batch sizes or host groups for staged rollout (e.g. batch1,batch2,batch3)'
-        required: false
+        required: 'false'
         default: 'batch1,batch2,batch3'
       wait_seconds:
         description: 'Wait seconds between batches'
-        required: false
+        required: 'false'
         default: '60'
       health_endpoint:
         description: 'Health check endpoint to validate per-batch'
-        required: false
+        required: 'false'
         default: 'http://localhost:9093/-/healthy'
       rollback_playbook:
         description: 'Rollback playbook path (optional)'
-        required: false
+        required: 'false'
         default: 'ansible/playbooks/rollback.yml'
 
 concurrency:
@@ -89,10 +89,10 @@ jobs:
           WAIT=${{ steps.vars.outputs.WAIT }}
           HEALTH=${{ steps.vars.outputs.HEALTH }}
 
-          if [ "$STRATEGY" = "all-at-once" ]; then
+          if ["$STRATEGY" = "all-at-once"]; then
             echo "Deploying all-at-once to production"
             ansible-playbook -i "$INVENTORY" "$PLAYBOOK" || { echo "Deployment failed"; exit 30; }
-          elif [ "$STRATEGY" = "staged" ]; then
+          elif ["$STRATEGY" = "staged"]; then
             IFS=',' read -ra GROUPS <<< "$BATCHES"
             for grp in "${GROUPS[@]}"; do
               echo "Deploying batch: $grp"
@@ -104,7 +104,7 @@ jobs:
                 exit 32
               fi
             done
-          elif [ "$STRATEGY" = "blue-green" ]; then
+          elif ["$STRATEGY" = "blue-green"]; then
             echo "Blue-green strategy: switch traffic to green (operator must configure)"
             # Placeholder: user-defined traffic switch
           else
@@ -118,7 +118,7 @@ jobs:
           echo "Rollout failed; attempting rollback"
           ROLLBACK=${{ github.event.inputs.rollback_playbook }}
           INVENTORY=${{ steps.vars.outputs.INVENTORY }}
-          if [ -f "$ROLLBACK" ]; then
+          if [-f "$ROLLBACK"]; then
             ansible-playbook -i "$INVENTORY" "$ROLLBACK" || true
           fi
           gh issue create --title "P1: Progressive rollout failed" --body "Progressive rollout failed in ${GITHUB_REPOSITORY} run ${GITHUB_RUN_ID}. Rollback attempted." --label P1 --repo $GITHUB_REPOSITORY || true

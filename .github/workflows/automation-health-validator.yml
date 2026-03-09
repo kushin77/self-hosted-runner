@@ -75,7 +75,7 @@ jobs:
             fi
           done
 
-          if [ ${#MISSING_WORKFLOWS[@]} -gt 0 ]; then
+          if [${#MISSING_WORKFLOWS[@]} -gt 0]; then
             echo "missing=true" >> $GITHUB_OUTPUT
             echo "missing_list=$(IFS=, ; echo \"${MISSING_WORKFLOWS[*]}\")" >> $GITHUB_OUTPUT
             echo "❌ Missing workflows: ${MISSING_WORKFLOWS[*]}"
@@ -97,12 +97,12 @@ jobs:
 
           MISSING_DOCS=()
           for doc in "${REQUIRED_DOCS[@]}"; do
-            if [ ! -f "$doc" ]; then
+            if [! -f "$doc"]; then
               MISSING_DOCS+=("$doc")
             fi
           done
 
-          if [ ${#MISSING_DOCS[@]} -gt 0 ]; then
+          if [${#MISSING_DOCS[@]} -gt 0]; then
             echo "missing=true" >> $GITHUB_OUTPUT
             echo "missing_list=$(IFS=, ; echo \"${MISSING_DOCS[*]}\")" >> $GITHUB_OUTPUT
             echo "❌ Missing documentation: ${MISSING_DOCS[*]}"
@@ -124,7 +124,7 @@ jobs:
           SECRETS_OK=true
 
           # Check base secrets (must be present)
-          if [ -z "${GCP_PROJECT_ID}" ]; then
+          if [-z "${GCP_PROJECT_ID}"]; then
             echo "⚠️  GCP_PROJECT_ID not configured"
             echo "secrets_ready=false" >> $GITHUB_OUTPUT
             SECRETS_OK=false
@@ -132,14 +132,14 @@ jobs:
             echo "✅ GCP_PROJECT_ID configured"
           fi
 
-          if [ -z "${GCP_SERVICE_ACCOUNT_EMAIL}" ]; then
+          if [-z "${GCP_SERVICE_ACCOUNT_EMAIL}"]; then
             echo "secrets_ready=false" >> $GITHUB_OUTPUT
             SECRETS_OK=false
           else
           fi
 
           # Check provisioning secrets (optional for dry-run, required for apply)
-          if [ -n "${AWS_OIDC_ROLE_ARN}" ] && [ "${USE_OIDC}" = "true" ]; then
+          if [-n "${AWS_OIDC_ROLE_ARN}"] && ["${USE_OIDC}" = "true"]; then
             echo "✅ AWS OIDC Role configured — apply phase unlocked"
             echo "apply_ready=true" >> $GITHUB_OUTPUT
           else
@@ -147,7 +147,7 @@ jobs:
             echo "apply_ready=false" >> $GITHUB_OUTPUT
           fi
 
-          if [ "$SECRETS_OK" = "true" ]; then
+          if ["$SECRETS_OK" = "true"]; then
             echo "secrets_ready=true" >> $GITHUB_OUTPUT
           fi
 
@@ -163,7 +163,7 @@ jobs:
           AGGREGATOR_RUNS=$(gh run list --repo ${REPO} --workflow system-status-aggregator.yml --limit 5 --json conclusion --jq '[.[] | select(.conclusion != null)] | length' 2>/dev/null || echo "0")
           AGGREGATOR_SUCCESS=$(gh run list --repo ${REPO} --workflow system-status-aggregator.yml --limit 5 --json conclusion --jq '[.[] | select(.conclusion == "success")] | length' 2>/dev/null || echo "0")
 
-          if [ "$AGGREGATOR_RUNS" -gt 0 ]; then
+          if ["$AGGREGATOR_RUNS" -gt 0]; then
             SUCCESS_RATE=$(( (AGGREGATOR_SUCCESS * 100) / AGGREGATOR_RUNS ))
             echo "aggregator_health=$(echo "scale=0; $SUCCESS_RATE" | bc)%" >> $GITHUB_OUTPUT
             echo "✅ System Aggregator: $SUCCESS_RATE% success rate (last 5 runs)"
@@ -176,7 +176,7 @@ jobs:
           TRACKER_RUNS=$(gh run list --repo ${REPO} --workflow issue-tracker-automation.yml --limit 3 --json conclusion --jq '[.[] | select(.conclusion != null)] | length' 2>/dev/null || echo "0")
           TRACKER_SUCCESS=$(gh run list --repo ${REPO} --workflow issue-tracker-automation.yml --limit 3 --json conclusion --jq '[.[] | select(.conclusion == "success")] | length' 2>/dev/null || echo "0")
 
-          if [ "$TRACKER_RUNS" -gt 0 ]; then
+          if ["$TRACKER_RUNS" -gt 0]; then
             TRACKER_RATE=$(( (TRACKER_SUCCESS * 100) / TRACKER_RUNS ))
             echo "tracker_health=$(echo "scale=0; $TRACKER_RATE" | bc)%" >> $GITHUB_OUTPUT
             echo "✅ Issue Tracker: $TRACKER_RATE% success rate (last 3 runs)"
@@ -197,7 +197,7 @@ jobs:
           BRANCH_PROTECTED=$(gh api repos/${REPO}/branches/main \
             --jq '.protected' 2>/dev/null || echo "false")
 
-          if [ "$BRANCH_PROTECTED" = "true" ]; then
+          if ["$BRANCH_PROTECTED" = "true"]; then
             echo "✅ Main branch is protected"
             echo "branch_protected=true" >> $GITHUB_OUTPUT
           else
@@ -228,10 +228,10 @@ jobs:
           EOF
 
           # Determine overall health
-          if [ "$WORKFLOW_MISSING" = "false" ] && [ "$DOC_MISSING" = "false" ] && [ "$SECRETS_READY" = "true" ]; then
+          if ["$WORKFLOW_MISSING" = "false"] && ["$DOC_MISSING" = "false"] && ["$SECRETS_READY" = "true"]; then
             HEALTH="🟢 HEALTHY"
             echo "| Status | 🟢 All Systems Operational |" >> /tmp/health_report.md
-          elif [ "$WORKFLOW_MISSING" = "true" ] || [ "$DOC_MISSING" = "true" ]; then
+          elif ["$WORKFLOW_MISSING" = "true"] || ["$DOC_MISSING" = "true"]; then
             HEALTH="🔴 DEGRADED"
             echo "| Status | 🔴 Critical Components Missing |" >> /tmp/health_report.md
           else
@@ -249,28 +249,28 @@ jobs:
           EOF
 
           # Workflow status
-          if [ "$WORKFLOW_MISSING" = "true" ]; then
+          if ["$WORKFLOW_MISSING" = "true"]; then
             echo "| Workflows | ❌ Missing | ${{ steps.workflow-check.outputs.missing_list }} |" >> /tmp/health_report.md
           else
             echo "| Workflows | ✅ All Present | terraform-auto-apply, elasticache-safe, aggregator, tracker, gsm-fetch |" >> /tmp/health_report.md
           fi
 
           # Documentation status
-          if [ "$DOC_MISSING" = "true" ]; then
+          if ["$DOC_MISSING" = "true"]; then
             echo "| Documentation | ❌ Missing | ${{ steps.doc-check.outputs.missing_list }} |" >> /tmp/health_report.md
           else
             echo "| Documentation | ✅ Complete | Runbook, implementation guide, operator quick-start |" >> /tmp/health_report.md
           fi
 
           # Secrets status
-          if [ "$SECRETS_READY" = "true" ]; then
+          if ["$SECRETS_READY" = "true"]; then
             echo "| Base Secrets | ✅ Configured | GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_EMAIL |" >> /tmp/health_report.md
           else
             echo "| Base Secrets | ⚠️  Incomplete | Check GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_EMAIL |" >> /tmp/health_report.md
           fi
 
           # Provisioning status
-          if [ "$APPLY_READY" = "true" ]; then
+          if ["$APPLY_READY" = "true"]; then
             echo "| Provisioning | ✅ READY | AWS_OIDC_ROLE_ARN + USE_OIDC enabled |" >> /tmp/health_report.md
             echo "| Automation | 🟢 LIVE | terraform-auto-apply active |" >> /tmp/health_report.md
           else
@@ -279,20 +279,20 @@ jobs:
           fi
 
           # Workflow health
-          if [ "$AGGREGATOR_HEALTH" != "unknown" ]; then
+          if ["$AGGREGATOR_HEALTH" != "unknown"]; then
             echo "| Aggregator | ✅ Healthy | Success rate: $AGGREGATOR_HEALTH |" >> /tmp/health_report.md
           else
             echo "| Aggregator | ℹ️  Initializing | First run pending |" >> /tmp/health_report.md
           fi
 
-          if [ "$TRACKER_HEALTH" != "unknown" ]; then
+          if ["$TRACKER_HEALTH" != "unknown"]; then
             echo "| Issue Tracker | ✅ Healthy | Success rate: $TRACKER_HEALTH |" >> /tmp/health_report.md
           else
             echo "| Issue Tracker | ℹ️  Initializing | First run pending |" >> /tmp/health_report.md
           fi
 
           # Branch protection
-          if [ "$BRANCH_PROTECTED" = "true" ]; then
+          if ["$BRANCH_PROTECTED" = "true"]; then
             echo "| Branch Protection | ✅ Enabled | main branch protected |" >> /tmp/health_report.md
           else
             echo "| Branch Protection | ⚠️  Disabled | Recommended for safer deploys |" >> /tmp/health_report.md
@@ -304,7 +304,7 @@ jobs:
 
           EOF
 
-          if [ "$HEALTH" = "🟢 HEALTHY" ] && [ "$APPLY_READY" = "false" ]; then
+          if ["$HEALTH" = "🟢 HEALTHY"] && ["$APPLY_READY" = "false"]; then
             cat >> /tmp/health_report.md << 'EOF'
           ### Unlock Full Automation (Operator Action Required)
 
@@ -314,7 +314,7 @@ jobs:
           4. This health check will auto-update status when provisioning complete
 
           EOF
-          elif [ "$HEALTH" = "🟢 HEALTHY" ] && [ "$APPLY_READY" = "true" ]; then
+          elif ["$HEALTH" = "🟢 HEALTHY"] && ["$APPLY_READY" = "true"]; then
             cat >> /tmp/health_report.md << 'EOF'
           ### ✅ Fully Hands-Off Automation is LIVE
 
@@ -358,13 +358,13 @@ jobs:
           # Ensure issue #1064 exists and is open
           ISSUE_STATE=$(gh issue view 1064 --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "")
 
-          if [ -z "$ISSUE_STATE" ]; then
+          if [-z "$ISSUE_STATE"]; then
             # Create issue if missing
             gh issue create --repo ${REPO} \
               --title "🏥 Automation Health & Deployment Status" \
               --body "Central tracking for automation health and deployment readiness. Updated hourly by automation-health-validator.yml" \
               --label "automation,monitoring,status-tracking" || true
-          elif [ "$ISSUE_STATE" = "CLOSED" ]; then
+          elif ["$ISSUE_STATE" = "CLOSED"]; then
             # Reopen if closed
             gh issue reopen 1064 --repo ${REPO} || true
           fi
@@ -372,7 +372,7 @@ jobs:
           # Post or update health report
           EXISTING=$(gh api "/repos/${REPO}/issues/1064/comments" --jq ".[] | select(.body | startswith(\"# 🏥 Automation Health Report\")) | .id" 2>/dev/null | head -1 || true)
 
-          if [ -n "$EXISTING" ]; then
+          if [-n "$EXISTING"]; then
             # Update existing comment
             gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="${{ env.report }}" 2>/dev/null || echo "Failed to update comment"
           else

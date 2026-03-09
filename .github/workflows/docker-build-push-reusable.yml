@@ -25,68 +25,68 @@ on:
     inputs:
       dockerfile:
         description: 'Path to Dockerfile'
-        required: true
+        required: 'true'
         type: string
       image_name:
         description: 'Image name (without registry prefix)'
-        required: true
+        required: 'true'
         type: string
       image_tag:
         description: 'Image tag (default: git sha)'
-        required: false
+        required: 'false'
         type: string
       registries:
         description: 'Target registries (comma-separated): ecr, gcr, dockerhub, harbor'
-        required: false
+        required: 'false'
         type: string
         default: 'ecr'
       build_platforms:
         description: 'Target platforms (comma-separated): linux/amd64, linux/arm64'
-        required: false
+        required: 'false'
         type: string
         default: 'linux/amd64'
       aws_account_id:
         description: 'AWS account ID for ECR'
-        required: false
+        required: 'false'
         type: string
       aws_role_arn:
         description: 'AWS IAM role ARN'
-        required: false
+        required: 'false'
         type: string
       gcp_project_id:
         description: 'GCP project ID for GCR'
-        required: false
+        required: 'false'
         type: string
       sign_image:
         description: 'Sign image with cosign (SLSA L3)'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       generate_sbom:
         description: 'Generate SBOM artifact'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       push:
         description: 'Push image to registries (false = dry-run)'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       docker_build_args:
         description: 'Docker build args (--build-arg key=value)'
-        required: false
+        required: 'false'
         type: string
     secrets:
       DOCKERHUB_USERNAME:
-        required: false
+        required: 'false'
       DOCKERHUB_TOKEN:
-        required: false
+        required: 'false'
       HARBOR_USERNAME:
-        required: false
+        required: 'false'
       HARBOR_TOKEN:
-        required: false
+        required: 'false'
       COSIGN_KEY:
-        required: false
+        required: 'false'
 
 permissions:
   contents: read
@@ -234,7 +234,7 @@ jobs:
         id: build
         run: |
           BUILD_ARGS=""
-          if [ -n "${{ inputs.docker_build_args }}" ]; then
+          if [-n "${{ inputs.docker_build_args }}"]; then
             BUILD_ARGS="${{ inputs.docker_build_args }}"
           fi
 

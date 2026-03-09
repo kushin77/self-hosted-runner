@@ -5,17 +5,17 @@ on:
     inputs:
       setup_gcp:
         description: "Setup GCP WIF"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
       setup_aws:
         description: "Setup AWS OIDC"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
       setup_vault:
         description: "Setup Vault JWT"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
 
