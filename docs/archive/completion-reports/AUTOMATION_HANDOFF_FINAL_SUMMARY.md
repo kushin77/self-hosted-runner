@@ -23,7 +23,7 @@ Features Implemented
 - Failure notifier: posts to Slack, comments tracking Issue #1192, creates P1 issues, and optionally triggers PagerDuty incidents when `PAGERDUTY_INTEGRATION_KEY` is set.
 - Auto-rollback: last-known-good Alertmanager config persisted and automatically reapplied on failed deploys.
 - Dependabot: weekly updates enabled for `github-actions` and `pip`.
-- Auto-merge: Dependabot PRs auto-merge when CI checks pass.
+- Auto-merge: Dependabot Draft issues auto-merge when CI checks pass.
 
 Operational Notes
 -----------------

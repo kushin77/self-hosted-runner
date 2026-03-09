@@ -9,8 +9,8 @@ Why:
 
 Rules:
 1. No direct edits on worker nodes (192.168.168.42 or others).
-2. No direct pushes to `main`; use feature branches and PRs.
-3. All PRs must include:
+2. No direct pushes to `main`; use feature branches and Draft issues.
+3. All Draft issues must include:
    - A passing CI status (lint, tests, `yamllint`, credential validation).
    - At least one approving review from code owners.
    - No plaintext secrets in diffs.
@@ -20,7 +20,7 @@ Rules:
    - `validate-credential-providers` (Phase 2 provider validation)
    - Integration tests / smoke tests where applicable
 5. Branch protection/Repository settings (operator action):
-   - Require pull request reviews before merging
+   - Require Draft issue reviews before merging
    - Require status checks to pass before merge
    - Restrict who can push to `main` (admins only, for emergency revert)
    - Enforce signed commits if configured

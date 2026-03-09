@@ -215,7 +215,7 @@ scripts/automation/auto-apply-on-approval.sh
   → Used by: issue-tracker-automation.yml
 
 scripts/automation/auto-pr-merge.sh
-  → Auto-merge qualifying PRs
+  → Auto-merge qualifying Draft issues
   → Checks: all tests pass, reviews approved, no conflicts
   → Used by: auto-merge-cron.yml
 
@@ -232,7 +232,7 @@ scripts/automation/pmo/job-cancellation-handler.sh
 
 **When to Use:**
 - Auto-apply on approval: Use `auto-apply-on-approval.sh`
-- Auto-merge PRs: Use `auto-pr-merge.sh`
+- Auto-merge Draft issues: Use `auto-pr-merge.sh`
 - Merge after validation: Use `auto-merge-post-validation.sh`
 - Cancel stuck jobs: Use `job-cancellation-handler.sh`
 

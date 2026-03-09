@@ -30,7 +30,7 @@ Security automation (resilience loader + Dependabot remediation) has been fully 
 - ✅ **23 Alerts** identified and categorized
   - 14 High/Critical severity
   - 9 Low/Medium severity
-- ✅ **3 Existing Dependabot PRs** identified (in progress)
+- ✅ **3 Existing Dependabot Draft issues** identified (in progress)
 - ✅ **14 Tracking Issues** created for visibility and priority routing
 - ✅ **Triage Summary:** Posted to issue #1254
 
@@ -72,13 +72,13 @@ Security automation (resilience loader + Dependabot remediation) has been fully 
 - **minimatch** (3 alerts) - Transitive dependency
 - **semver** (1 alert) - Transitive dependency
 
-### Existing Remediation PRs
+### Existing Remediation Draft issues
 1. **PR #1270** - Docker base: python 3.11 → 3.14-alpine
 2. **PR #1179** - npm: esbuild 0.21.5 → 0.27.3
 3. **PR #443** - Action: actions/checkout 4 → 6
 
 ### Remediation Strategy
-- Existing PRs: Monitor CI, merge when green
+- Existing Draft issues: Monitor CI, merge when green
 - Transitive deps: Dependabot will auto-update package-lock.json when parent deps are bumped
 - Follow-up: Scan `package-lock.json` updates post-merge to confirm vuln closure
 
@@ -89,7 +89,7 @@ Security automation (resilience loader + Dependabot remediation) has been fully 
 ### For On-Call Engineers
 1. **No manual patching required** - Resilience loader handles all setup
 2. **Security audit workflow** runs automatically on each commit
-3. **Dependabot PRs** auto-generated; monitor CI runs via GitHub UI
+3. **Dependabot Draft issues** auto-generated; monitor CI runs via GitHub UI
 4. **Incident response** - Use `.github/scripts/resilience.sh` for recovery
 5. **Handoff playbook:** Refer to `HANDS_OFF_OPERATOR_PLAYBOOK.md`
 
@@ -136,7 +136,7 @@ Security automation (resilience loader + Dependabot remediation) has been fully 
 
 **Resilience Rollout:** Complete and operational  
 **Security Automation:** Fully hands-off  
-**Dependabot Remediation:** In progress (PRs under review)  
+**Dependabot Remediation:** In progress (Draft issues under review)  
 **Operations Readiness:** Confirmed  
 **Zero Manual Intervention:** Guaranteed  
 

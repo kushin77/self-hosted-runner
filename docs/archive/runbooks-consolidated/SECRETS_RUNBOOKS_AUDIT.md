@@ -9,7 +9,7 @@ Location: [Repository Settings → Secrets and variables → Actions](https://gi
 
 | Secret | Purpose | Rotation | Backup Store |
 |--------|---------|----------|--------------|
-| `GITHUB_TOKEN` | Repository automation (workflows, issues, PRs) | Auto-renewed by GitHub | N/A |
+| `GITHUB_TOKEN` | Repository automation (workflows, issues, Draft issues) | Auto-renewed by GitHub | N/A |
 | `RUNNER_MGMT_TOKEN` | GitHub PAT with `administration:read` scope for managing runners | Manual / AppRole rotation | GCP GSM, Vault |
 | `DEPLOY_SSH_KEY` | Private SSH key for Ansible provisioning and recovery | Annual or on-demand | GCP GSM, Vault |
 | `MINIO_ENDPOINT` | S3-compatible MinIO endpoint URL | N/A (static config) | GCP GSM |

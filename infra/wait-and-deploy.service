@@ -1,0 +1,16 @@
+[Unit]
+Description=Wait-and-deploy watcher for self-hosted-runner
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+ExecStart=/usr/local/bin/wait-and-deploy.sh gsm
+Restart=on-failure
+RestartSec=30
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+[Install]
+WantedBy=multi-user.target

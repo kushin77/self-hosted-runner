@@ -15,7 +15,7 @@ Phase P4 transforms the self-hosted runner infrastructure from a localized provi
 
 ---
 
-## Completed Implementation PRs
+## Completed Implementation Draft issues
 
 ### Phase 1: Foundation & Scaffolds
 - **PR #1536**: Roadmap, Terraform scaffolds (Azure/AWS), runner bootstrap, CI linting

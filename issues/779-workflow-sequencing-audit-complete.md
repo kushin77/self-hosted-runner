@@ -19,7 +19,7 @@ Implemented end-to-end workflow sequencing, artifact integrity, and runner sover
 
 What I changed
 - Added `.github/scripts/check_workflow_sequencing.py` — repo audit for workflow sequencing protections.
-- Added `workflow-audit.yml` (PR-triggered) to run the audit against workflow/script PRs.
+- Added `workflow-audit.yml` (PR-triggered) to run the audit against workflow/script Draft issues.
 - Exempted `workflow-audit.yml` from auditing to avoid recursion.
 - Added conservative `workflow_run` / job `if:` guards and `concurrency:` groups across workflows.
 - Replaced usages of `runs-on: ubuntu-latest` with `[self-hosted, linux]` or `[self-hosted, linux, self-hosted-heavy]`.

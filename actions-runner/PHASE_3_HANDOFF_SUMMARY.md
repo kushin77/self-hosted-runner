@@ -16,7 +16,7 @@ Date: 2026-03-06 UTC
 - Persisted MinIO secrets to repository via `gh secret set`.
 - Dispatched MinIO and E2E validation workflows; downloaded Terraform validation artifacts and archived them under `/tmp/tf_val_results`.
 - Closed Phase 3 escalation and tracking issues: #864, #867, #870, #871, #845.
-- Created automation documentation and auto-continuation workflows (staged in PRs).
+- Created automation documentation and auto-continuation workflows (staged in Draft issues).
 
 ## Remaining Human Steps
 

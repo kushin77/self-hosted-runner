@@ -5,7 +5,7 @@
 - Owner: Platform
 
 ## Objective
-Deploy a GitOps controller (ArgoCD or Flux), integrate it with Vault for secret delivery, and add manifest validation to PRs.
+Deploy a GitOps controller (ArgoCD or Flux), integrate it with Vault for secret delivery, and add manifest validation to Draft issues.
 
 ## Checklist
 - [x] Add GitOps guidance `deploy/gitops/README.md` and `docs/GITOPS_VAULT_GUIDE.md`.

@@ -130,7 +130,7 @@
 1. **Multi-tenant Managed Fleet**: Deploy runners in seconds, no ops
 2. **Per-second Billing**: Pay only for actual compute (vs. GitHub's per-hour minimum)
 3. **LiveMirror Cache**: npm/pip/Docker 4–40x faster (persistent NVMe)
-4. **AI Failure Oracle**: LLM analyzes logs, posts root causes on GitHub PRs
+4. **AI Failure Oracle**: LLM analyzes logs, posts root causes on GitHub Draft issues
 5. **Portal Dashboard**: Real-time metrics (runners, jobs, cache hits, costs)
 6. **Sub-5-minute Onboarding**: GitHub App → runners live in < 5 minutes
 

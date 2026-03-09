@@ -383,7 +383,7 @@ deploy:
 **Pass Example:**
 ```yaml
 deploy:
-  # Only deploy on main branch pushes (not PRs)
+  # Only deploy on main branch pushes (not Draft issues)
   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
   steps:
     - run: ./deploy.sh

@@ -39,7 +39,7 @@ Implemented comprehensive CI/CD governance validation framework:
 - `.github/workflows/governance-checks.yml` (automated CI validation)
 - Posted comprehensive comment on #331 with implementation details
 
-**Impact**: Future PRs will be automatically validated for governance compliance, reducing manual review burden.
+**Impact**: Future Draft issues will be automatically validated for governance compliance, reducing manual review burden.
 
 ---
 
@@ -278,7 +278,7 @@ Created comprehensive operations deployment guide:
 | Documentation | Complete | ✅ Runbook + inline comments |
 | Deployment Ready | Yes | ✅ Merged to main, ready to deploy |
 | Security Checks | Enabled | ✅ Hardcoded secrets scan enabled |
-| Governance Enforced | Yes | ✅ All future PRs will be validated |
+| Governance Enforced | Yes | ✅ All future Draft issues will be validated |
 
 ---
 

@@ -146,7 +146,7 @@ The self-hosted runner infrastructure has successfully transitioned from manual 
 ### 🔴 **Blocker 2: SSH Key Audit Approval** (Admin)
 - **Issue**: [#1008](https://github.com/kushin77/self-hosted-runner/issues/1008)
 - **Problem**: GitHub requires audit approval for unverified SSH keys; `git push` attempts are blocked
-- **Impact**: Future fixes to workflows cannot be pushed; PRs cannot be created via git
+- **Impact**: Future fixes to workflows cannot be pushed; Draft issues cannot be created via git
 - **Resolution**: Admin to approve SSH key at https://github.com/settings/keys/142804975
 - **Expected ETA**: Immediate (manual action)
 - **Verification**: Attempt `git push` after approval; should succeed
@@ -157,7 +157,7 @@ The self-hosted runner infrastructure has successfully transitioned from manual 
 
 ### Immediate (Once Blockers Cleared)
 1. ✅ Resolve DNS for `mc.elevatediq.ai` → Retry MinIO archival
-2. ✅ Approve SSH key audit → Push workflow fixes and create PRs
+2. ✅ Approve SSH key audit → Push workflow fixes and create Draft issues
 3. ✅ End-to-end DR test: Restore Phase 3 artifacts from MinIO and verify integrity
 
 ### Short-term (1-2 weeks)

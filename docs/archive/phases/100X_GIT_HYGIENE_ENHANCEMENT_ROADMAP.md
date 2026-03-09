@@ -264,7 +264,7 @@ Auto-Actions:
 Metrics Displayed:
 - Total branches: count, health %
 - Stale branches: count, cleanup schedule
-- PRs awaiting review: count, age (color-coded by SLA)
+- Draft issues awaiting review: count, age (color-coded by SLA)
 - Test coverage: repo-wide %, trending
 - Code owner coverage: % of files owned (target: 100%)
 - Secret scan: active threats, historical count
@@ -298,7 +298,7 @@ Commit Quality (300 pts):
 - History: 100 pts (clean, squashed)
 
 Code Safety (300 pts):
-- Review coverage: 100 pts (all PRs reviewed)
+- Review coverage: 100 pts (all Draft issues reviewed)
 - Test coverage: 100 pts (>= 85%)
 - Secret scans: 100 pts (zero violations)
 
@@ -418,7 +418,7 @@ Pre-Release Checks:
 - ✓ Escalate if SLA breached
 - ✓ Track resolução time
 - ✓ Auto-close stale issues (15+ days no activity, unless pinned)
-- ✓ Link to root cause (commits, PRs, issues)
+- ✓ Link to root cause (commits, Draft issues, issues)
 ```
 
 ---
@@ -472,7 +472,7 @@ Automated Reports:
 Metrics Included:
 - % branches compliant with naming
 - % commits properly signed
-- % PRs with code review
+- % Draft issues with code review
 - % test coverage by component
 - % dependency updates applied
 - Attack surface (secret exposures, attempts)
@@ -500,7 +500,7 @@ Metrics Included:
 - ✓ Unusual commit pattern (sudden large commits from new contributor)
 - ✓ Unusual access patterns (high number of branch operations)
 - ✓ Malware detection in commits (patterns matching known attacks)
-- ✓ Unusual PR patterns (auto-approve all PRs, bulk merges)
+- ✓ Unusual PR patterns (auto-approve all Draft issues, bulk merges)
 - ✓ Insider threat detection (credential misuse)
 ```
 
@@ -511,7 +511,7 @@ Metrics Included:
 - ✓ Commit frequency per developer (track trends)
 - ✓ Code review quality score per reviewer
 - ✓ Time-to-merge distribution (identify slowdowns)
-- ✓ Rework rate (commits/PRs needing revisions)
+- ✓ Rework rate (commits/Draft issues needing revisions)
 - ✓ Learning metrics (new contributors improving over time)
 ```
 

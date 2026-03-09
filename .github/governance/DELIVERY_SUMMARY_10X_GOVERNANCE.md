@@ -51,7 +51,7 @@ A comprehensive, **10X-enhanced governance framework** has been delivered to est
 - ✅ Trigger documentation
 - ✅ Secret inheritance justification
 
-**Blocks PRs** if violations detected (strict mode).
+**Blocks Draft issues** if violations detected (strict mode).
 
 ---
 
@@ -265,7 +265,7 @@ bash .github/scripts/audit-log.sh --action deploy_end --status success --run-id 
 - [x] Update `CODEOWNERS` (governance entries)
 
 ### Phase 2: Integration (Immediate)
-- [ ] Activate `policy-enforcement-gate.yml` on all workflow PRs
+- [ ] Activate `policy-enforcement-gate.yml` on all workflow Draft issues
 - [ ] Schedule `governance-audit-report.yml` daily
 - [ ] Schedule `branch-protection-enforcer.yml` every 6h
 - [ ] Run `validate-governance.sh` as pre-commit hook (optional)
@@ -280,7 +280,7 @@ bash .github/scripts/audit-log.sh --action deploy_end --status success --run-id 
 
 ### Phase 4: Enforcement (Next Week)
 - [ ] Enable strict mode in `policy-enforcement-gate.yml`
-- [ ] Block all PRs that don't meet governance standards
+- [ ] Block all Draft issues that don't meet governance standards
 - [ ] Require all new workflows to use reusable guardrails
 - [ ] Conduct team training on governance framework
 

@@ -110,7 +110,7 @@ docker build -t self-hosted-runner:phase-p4 .
 - Docker base image (daily) — security-critical
 - Python packages (weekly)
 
-**Labels**: Applied to all PRs for organizational visibility
+**Labels**: Applied to all Draft issues for organizational visibility
 
 ---
 
@@ -191,7 +191,7 @@ gh run listen
 
 ### Continuous Monitoring
 - **Container Security**: Trivy scans run on every build; violations block merge
-- **Dependency Updates**: Dependabot opens PRs daily for security/version updates
+- **Dependency Updates**: Dependabot opens Draft issues daily for security/version updates
 - **Secrets Integrity**: gitleaks scans on every commit; blocks if creds detected
 - **Health Checks**: Kubernetes liveness/readiness probes with 30s intervals
 
@@ -309,7 +309,7 @@ kubectl rollout status deployment/control-plane-envoy -n control-plane --timeout
 
 ### Medium-term (Weeks 2-4)
 1. Gradual rollout to production (canary → 25% → 50% → 100%)
-2. Monitor Dependabot PRs, merge security updates
+2. Monitor Dependabot Draft issues, merge security updates
 3. Perform security re-scan post-deployment
 4. Update runbooks and incident playbooks
 

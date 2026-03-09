@@ -19,7 +19,7 @@ Restore process (ops only)
 4. Reintroduce workflows to `main` only via an Ops-reviewed PR with explicit restore approval and a run-plan (canary set, phased rollout).
 
 Policy
-- Do NOT open PRs that add or enable workflows on `main` until Ops announces reactivation.
+- Do NOT open Draft issues that add or enable workflows on `main` until Ops announces reactivation.
 - Do NOT re-register runners or deploy runner agents without Ops coordination.
 
 Contact

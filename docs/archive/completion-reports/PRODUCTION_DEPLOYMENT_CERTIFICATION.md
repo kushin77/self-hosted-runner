@@ -21,7 +21,7 @@
 | Metric | Value | Status |
 |--------|-------|--------|
 | **Branches Consolidated** | 52 | ✅ Complete |
-| **PRs Merged** | 4 (Sprints 1-4) | ✅ All MERGED |
+| **Draft issues Merged** | 4 (Sprints 1-4) | ✅ All MERGED |
 | **Conflict Resolution** | 100% | ✅ Zero unresolved |
 | **CI Pass Rate** | 100% | ✅ All gates passing |
 | **Security Clearance** | gitleaks + Trivy | ✅ Clean |

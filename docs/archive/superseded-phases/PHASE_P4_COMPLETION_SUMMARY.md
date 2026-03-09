@@ -35,7 +35,7 @@
 - ✅ **PR #337:** Portal live-channel skeletons + loader + tests ready for merge
 - ✅ **Issue #325:** Escalation tracked with clear action items for Ops
 - ✅ **Issue #313:** Handoff documentation updated
-- ✅ **Auto-merge:** Enabled for all three PRs when approve checks pass
+- ✅ **Auto-merge:** Enabled for all three Draft issues when approve checks pass
 
 ## Terraform Plan Summary
 
@@ -69,16 +69,16 @@ Estimated monthly cost: $12-15 USD
 3. **Ops/Team:** Protect environment `prod-terraform-apply` in GitHub
    - Add required approvers before guarded apply can run
 
-4. **Team:** Review and approve/merge PRs
+4. **Team:** Review and approve/merge Draft issues
    - #349 (Ops runbook)
    - #337 (Portal live-channels)
 
 ## Deployment Flow
 
 ```
-1. Ops adds secrets & approves PRs
+1. Ops adds secrets & approves Draft issues
         ↓
-2. Auto-merge PRs when checks pass
+2. Auto-merge Draft issues when checks pass
         ↓
 3. Trigger p4-aws-spot-deploy-plan.yml workflow
         ↓
@@ -120,7 +120,7 @@ Estimated monthly cost: $12-15 USD
 ## Next Steps
 
 1. ✅ All repo-side preparation is complete
-2. ⏳ Awaiting Ops to add secrets and team to approve PRs
+2. ⏳ Awaiting Ops to add secrets and team to approve Draft issues
 3. ⏳ Upon completion, auto-merge will trigger and plan workflow will run
 4. ⏳ Post plan review and approval, guarded apply will deploy infrastructure
 5. ⏳ Monitor deployment and close #240 upon success
@@ -139,4 +139,4 @@ Estimated monthly cost: $12-15 USD
 
 ---
 
-**Status:** Ready for Ops action. Once secrets are added and PRs approved, full deployment will proceed automatically with guarded controls.
+**Status:** Ready for Ops action. Once secrets are added and Draft issues approved, full deployment will proceed automatically with guarded controls.

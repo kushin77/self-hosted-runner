@@ -332,7 +332,7 @@ Phase 5 (ML Analytics) needs:
 1. [ ] Review blockers & timeline
 2. [ ] Schedule admin for OIDC setup (before Tue 09:00)
 3. [ ] Assign team members to daily tasks
-4. [ ] Plan code review schedule for Phase 1A PRs
+4. [ ] Plan code review schedule for Phase 1A Draft issues
 
 ---
 

@@ -22,7 +22,7 @@ Phase 2 infrastructure automation has been successfully implemented, verified, a
 - **Smoke Tests:** Fully updated to support Phase 2 workflows.
 
 ## Next Steps
-- Review and merge Pull Request #488 (`feat/10x-infrastructure-enhancements`).
+- Review and merge Draft Issue #488 (`feat/10x-infrastructure-enhancements`).
 - Proceed to Phase 3 (Extended runner scaling and pool management) based on validated Phase 2 foundations.
 
 **Signed,**

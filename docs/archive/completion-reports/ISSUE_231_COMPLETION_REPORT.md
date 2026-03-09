@@ -248,7 +248,7 @@ gh run view <ID> --repo kushin77/self-hosted-runner --log
 ✅ **GitOps Compliant**
 - Infrastructure as code in GitHub
 - Audit trail via GitHub Actions
-- Pull request tracking for changes
+- Draft issue tracking for changes
 
 ✅ **Security Hardened**
 - Masked secrets in logs

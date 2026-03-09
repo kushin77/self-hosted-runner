@@ -252,7 +252,7 @@ After successful provisioning:
 
 ---
 
-## Related Issues & PRs
+## Related Issues & Draft issues
 
 ### Issues
 - **#1787**: Root Cause Analysis (detailed investigation & prevention)

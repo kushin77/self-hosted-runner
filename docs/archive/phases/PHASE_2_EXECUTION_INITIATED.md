@@ -59,7 +59,7 @@ gh workflow run setup-oidc-infrastructure.yml \
 
 Phase 1: Infrastructure Deployment
   Status:  ✅ COMPLETE & DEPLOYED TO MAIN
-  PR:      #1945 (merged with commit 089357f3b8f626f334e00b499e4a65e93c437669)
+  Draft Issue:      #1945 (merged with commit 089357f3b8f626f334e00b499e4a65e93c437669)
   Files:   21 (4 workflows, 6 scripts, 3 actions, 8+ docs)
   Code:    2,200+ LOC (production-grade)
   Docs:    2,300+ LOC (comprehensive)

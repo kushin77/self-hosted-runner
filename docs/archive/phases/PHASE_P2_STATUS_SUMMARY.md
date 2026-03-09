@@ -109,7 +109,7 @@ As noted, API keys (AWS, GCP service accounts) will be configured in the portal 
 | `docs/security/GSM_VAULT_RUNBOOK.md` | GSM+Vault integration guide |
 | `docs/WORKLOAD_IDENTITY_RUNBOOK.md` | Workload Identity runbook |
 
-### GitHub Issues & PRs
+### GitHub Issues & Draft issues
 - **Issue #191:** Terraform import blocker (tracking state reconciliation)
 - **PR #205:** Helper script `run_gcp_vault_import.sh` (ready to merge)
 

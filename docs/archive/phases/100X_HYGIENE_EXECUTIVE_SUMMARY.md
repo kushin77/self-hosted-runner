@@ -92,7 +92,7 @@ When Phase 1 completes, you achieve:
 | **Branch naming compliance** | 100% | Pre-push hook + GitHub rule |
 | **Commit signing** | 100% | Verified signatures on all commits |
 | **Commit message format** | 100% | Conventional format mandatory |
-| **Code review coverage** | 100% | Block PRs without 1+ approval |
+| **Code review coverage** | 100% | Block Draft issues without 1+ approval |
 | **Test coverage minimum** | ≥85% | Auto-block if below |
 | **Secret exposure rate** | 0% | 24/7 scanning + auto-remediation |
 | **Stale branch cleanup** | 100% | Auto-cleanup daily, none remaining |
@@ -225,7 +225,7 @@ After Phase 1:
 - ✅ 100% of new branches compliant (within 5 min of creation)
 - ✅ 100% of commits validated (pre-push hook blocks violations)
 - ✅ 0% secrets exposed (24/7 scanning prevents)
-- ✅ 100% of PRs follow quality gates (auto-blocked if violated)
+- ✅ 100% of Draft issues follow quality gates (auto-blocked if violated)
 
 **Response Time:**
 - ✅ Violation detected: < 5 minutes (real-time monitoring)
