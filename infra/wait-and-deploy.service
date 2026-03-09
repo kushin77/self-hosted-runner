@@ -5,12 +5,13 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-User=deploy
-Group=deploy
+User=akushnir
+Group=akushnir
 ExecStart=/usr/local/bin/wait-and-deploy.sh gsm
 Restart=on-failure
 RestartSec=30
-Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=PATH=/snap/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment="GCLOUD_PROJECT=elevatediq-runner"
 
 [Install]
 WantedBy=multi-user.target
