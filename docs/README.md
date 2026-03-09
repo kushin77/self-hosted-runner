@@ -2,11 +2,21 @@
 
 Welcome to the central documentation hub for the self-hosted-runner project.
 
+## 🎯 **UPDATED - Production Documentation (P0/P1/P2 Complete)**
+
+**→ [📖 VIEW MASTER INDEX](INDEX.md)** ← Start here for complete doc navigation
+
+**Latest P2 Releases (2026-03-09):**
+- ✅ [CREDENTIAL_RUNBOOK.md](CREDENTIAL_RUNBOOK.md) - Daily operations & troubleshooting
+- ✅ [DISASTER_RECOVERY.md](DISASTER_RECOVERY.md) - Failure scenarios & recovery (RTO/RPO)
+- ✅ [AUDIT_TRAIL_GUIDE.md](AUDIT_TRAIL_GUIDE.md) - Compliance & data retention (SOC2/ISO/PCI)
+
 ## 🚀 Getting Started
 
-- **New to this project?** Start with [runbooks/QUICKSTART.md](runbooks/QUICKSTART.md) (5-minute setup)
-- **First time contributing?** See [../CONTRIBUTING.md](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)
-- **Need a quick reference?** Jump to [Quick Links](#quick-links) below
+- **On-call?** → [CREDENTIAL_RUNBOOK.md](CREDENTIAL_RUNBOOK.md#normal-operations)
+- **First time contributing?** → [../CONTRIBUTING.md](../CONTRIBUTING.md)
+- **Need a quick reference?** → [INDEX.md](INDEX.md#-quick-reference-guide)
+- **Operational issue?** → [INDEX.md](INDEX.md#-getting-started) (full troubleshooting paths)
 
 ---
 
