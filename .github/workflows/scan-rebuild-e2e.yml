@@ -1,115 +1,105 @@
 name: Trivy Alert → Rebuild → Test → SBOM → Promote
-
-on:
+true:
   repository_dispatch:
-    types: [trivy_alert]
+    types:
+    - trivy_alert
   workflow_dispatch:
     inputs:
       image:
-        description: 'Image to operate on (repo/name:tag)'
+        description: Image to operate on (repo/name:tag)
         required: 'false'
-
 permissions:
   contents: write
   id-token: write
   packages: write
   actions: write
-
 jobs:
   rebuild-test-promote:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Determine image
+      id: image
+    - name: Get Credential [VAULT_ADDR]
+      id: cred_vault_addr
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: VAULT_ADDR
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+      run: "if [\"${{ github.event.client_payload.image }}\" != \"\"]; then\n  echo\
+        \ \"IMAGE=${{ github.event.client_payload.image }}\" >> $GITHUB_ENV\nelif\
+        \ [\"${{ github.event.inputs.image }}\" != \"\"]; then\n  echo \"IMAGE=${{\
+        \ github.event.inputs.image }}\" >> $GITHUB_ENV\nelse\n  echo \"IMAGE=ghcr.io/kushin77/runner:latest\"\
+        \ >> $GITHUB_ENV\nfi\necho \"Image set to $IMAGE\"\n"
+    - name: Set up QEMU and Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Pull rebuilt image
+      run: 'echo "Pulling $IMAGE"
 
-      - name: Determine image
-        id: image
-      - name: Get Credential [VAULT_ADDR]
-        id: cred_vault_addr
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: VAULT_ADDR
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        docker pull "$IMAGE" || true
 
-        run: |
-          if ["${{ github.event.client_payload.image }}" != ""]; then
-            echo "IMAGE=${{ github.event.client_payload.image }}" >> $GITHUB_ENV
-          elif ["${{ github.event.inputs.image }}" != ""]; then
-            echo "IMAGE=${{ github.event.inputs.image }}" >> $GITHUB_ENV
-          else
-            echo "IMAGE=ghcr.io/kushin77/runner:latest" >> $GITHUB_ENV
-          fi
-          echo "Image set to $IMAGE"
+        '
+    - name: Fetch cosign private key from Vault
+      if: ${{ steps.cred_vault_addr.outputs.credential }}
+      env:
+        VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+        AUDIENCE: vault
+      run: "bash scripts/vault_oidc_login.sh\n# retrieve the private key (KV v2) and\
+        \ set as env for later steps\nKEY_JSON=$(curl -sS -H \"X-Vault-Token: $VAULT_TOKEN\"\
+        \ \"$VAULT_ADDR/v1/secret/data/cosign\" || true)\nKEY=$(echo \"$KEY_JSON\"\
+        \ | jq -r '.data.data.key // empty')\nif [-n \"$KEY\"]; then\n  echo \"COSIGN_PRIVATE_KEY=$(echo\
+        \ $KEY | base64 -w0)\" >> $GITHUB_ENV\nelse\n  echo \"No cosign private key\
+        \ found in Vault; proceeding without signing\"\nfi\n"
+    - name: Run integration tests
+      run: 'IMG="$IMAGE"
 
-      - name: Set up QEMU and Buildx
-        uses: docker/setup-buildx-action@v3
+        docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed"
+        && exit 10)
 
-      - name: Pull rebuilt image
-        run: |
-          echo "Pulling $IMAGE"
-          docker pull "$IMAGE" || true
+        '
+    - name: Request Vault OIDC token (for signing)
+      if: ${{ steps.cred_vault_addr.outputs.credential }}
+      env:
+        VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+        AUDIENCE: vault
+      run: 'bash scripts/vault_oidc_login.sh
 
-      - name: Fetch cosign private key from Vault
-        if: ${{ steps.cred_vault_addr.outputs.credential }}
-        env:
-          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
-          AUDIENCE: vault
-        run: |
-          bash scripts/vault_oidc_login.sh
-          # retrieve the private key (KV v2) and set as env for later steps
-          KEY_JSON=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/secret/data/cosign" || true)
-          KEY=$(echo "$KEY_JSON" | jq -r '.data.data.key // empty')
-          if [-n "$KEY"]; then
-            echo "COSIGN_PRIVATE_KEY=$(echo $KEY | base64 -w0)" >> $GITHUB_ENV
-          else
-            echo "No cosign private key found in Vault; proceeding without signing"
-          fi
+        '
+    - name: Get Vault role (ephemeral)
+      id: vault_role
+      uses: ./.github/actions/get-ephemeral-credential
+      with:
+        credential-name: VAULT_ROLE
+    - name: Generate SBOM and sign
+      env:
+        COSIGN_KEY_SECRET_PATH: secret/data/cosign
+        VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+        VAULT_ROLE: github-actions-role
+      run: '# get SBOM and signature
 
-      - name: Run integration tests
-        run: |
-          IMG="$IMAGE"
-          docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed" && exit 10)
+        ./scripts/produce_sbom_and_sign.sh "$IMAGE"
 
-      - name: Request Vault OIDC token (for signing)
-        if: ${{ steps.cred_vault_addr.outputs.credential }}
-        env:
-          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
-          AUDIENCE: vault
-        run: |
-          bash scripts/vault_oidc_login.sh
+        '
+    - name: Verify SBOM signature
+      env:
+        VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+        VAULT_ROLE: github-actions-role
+      run: './scripts/verify_sbom_signature.sh "$IMAGE"
 
-      - name: Get Vault role (ephemeral)
-        id: vault_role
-        uses: ./.github/actions/get-ephemeral-credential
-        with:
-          credential-name: VAULT_ROLE
+        '
+    - name: Update Terraform image pins and open PR
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: 'python3 .github/scripts/terraform_pin_updater.py --image "$IMAGE"
 
-      - name: Generate SBOM and sign
-        env:
-          COSIGN_KEY_SECRET_PATH: secret/data/cosign
-          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
-          VAULT_ROLE: github-actions-role
-        run: |
-          # get SBOM and signature
-          ./scripts/produce_sbom_and_sign.sh "$IMAGE"
-
-      - name: Verify SBOM signature
-        env:
-          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
-          VAULT_ROLE: github-actions-role
-        run: |
-          ./scripts/verify_sbom_signature.sh "$IMAGE"
-
-      - name: Update Terraform image pins and open PR
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python3 .github/scripts/terraform_pin_updater.py --image "$IMAGE"
-
-      - name: Upload SBOM artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom
-          path: sbom-*.json
+        '
+    - name: Upload SBOM artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom
+        path: sbom-*.json
+    timeout-minutes: 30
+    name: Rebuild Test Promote
