@@ -1,0 +1,86 @@
+name: 'Secure: Store leaked credentials in GSM and remove file'
+
+on:
+  workflow_dispatch:
+  workflow_call: {}
+
+permissions:
+  contents: write
+  id-token: write
+  issues: write
+
+jobs:
+  store-and-remove:
+    runs-on: ubuntu-latest
+    env:
+      FILE_PATH: .github/workflows/tmp
+      SECRET_ID_PREFIX: leaked-app-credentials
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch Ephemeral Credentials
+        uses: kushin77/get-ephemeral-credential@v1
+        id: creds
+        with:
+          credential-names: |
+            GCP_PROJECT_ID
+            GCP_WORKLOAD_IDENTITY_PROVIDER
+            GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          audit-log: true
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ steps.creds.outputs.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ steps.creds.outputs.GCP_SERVICE_ACCOUNT_EMAIL }}
+          create_credentials_file: true
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Ensure file exists and prepare secret payload
+        id: prepare
+        run: |
+          set -euo pipefail
+          if [[! -f "$FILE_PATH"]]; then
+            echo "file_missing=true" >> $GITHUB_OUTPUT
+            echo "File $FILE_PATH not found; aborting storage step"
+            exit 0
+          fi
+          cp "$FILE_PATH" /tmp/leaked_secret
+          echo "file_missing=false" >> $GITHUB_OUTPUT
+
+      - name: Create or update GSM secret
+        if: steps.prepare.outputs.file_missing == 'false'
+        env:
+          PROJECT_ID: ${{ steps.creds.outputs.GCP_PROJECT_ID }}
+          SECRET_NAME: ${{ env.SECRET_ID_PREFIX }}-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID" || true
+          gcloud secrets versions add "$SECRET_NAME" --data-file=/tmp/leaked_secret --project="$PROJECT_ID"
+
+          gh issue create --owner ${{ github.repository_owner }} --repo ${{ github.event.repository.name }} \
+            --title "Security: leaked credentials stored in GSM" \
+            --body "Leaked file at \`${FILE_PATH}\` was stored as Secret Manager secret \`${SECRET_NAME}\` in project \`${PROJECT_ID}\`. A branch has been created to remove the file. Please rotate credentials immediately."
+
+      - name: Create branch and remove sensitive file
+        if: steps.prepare.outputs.file_missing == 'false'
+        env:
+          BRANCH_NAME: remove-leaked-file-${{ github.run_id }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH_NAME"
+          git rm --ignore-unmatch "${FILE_PATH}"
+          if ! git diff --staged --quiet; then
+            git commit -m "security: remove leaked credentials file"
+            git push origin "$BRANCH_NAME"
+            gh pr create --title "Security: remove leaked credentials" --body "Automated removal of leaked file stored in GSM." --base main --head "$BRANCH_NAME"
+          fi

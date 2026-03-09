@@ -1,0 +1,413 @@
+name: Daily Credential Rotation
+
+on:
+  schedule:
+    # Daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: 'Rotate credentials for specific provider (vault/gsm/aws/all)'
+        required: 'false'
+        default: 'all'
+
+permissions:
+  contents: read
+  id-token: write
+  issues: write
+
+jobs:
+  rotate-vault:
+    if: github.event.inputs.provider == 'all' || github.event.inputs.provider == 'vault' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT]
+        id: cred_gcp_service_account
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [SLACK_WEBHOOK_URL]
+        id: cred_slack_webhook_url
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: SLACK_WEBHOOK_URL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_TOKEN]
+        id: cred_vault_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+        run: pip install -r requirements.txt
+
+      - name: Rotate Vault secrets
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from datetime import datetime
+          from self_healing_orchestrator.credential_manager import CredentialManager
+          from self_healing_orchestrator.monitoring import DeploymentObserver
+
+          vault_addr = os.environ.get('VAULT_ADDR')
+          vault_token = os.environ.get('VAULT_TOKEN')
+
+          if not vault_addr or not vault_token:
+              print("ℹ️  VAULT_ADDR and VAULT_TOKEN not set, skipping Vault rotation")
+              exit(0)
+
+          deployment_id = f"credential-rotation-vault-{datetime.now().isoformat()}"
+          observer = DeploymentObserver(deployment_id, "production")
+          cm = CredentialManager("vault", {
+              "vault_addr": vault_addr,
+              "vault_token": vault_token,
+          })
+
+          secrets_to_rotate = ["github-token",
+              "slack-webhook",
+              "pagerduty-key",]
+
+          print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from Vault...")
+
+          for secret_name in secrets_to_rotate:
+              try:
+                  # Rotate the secret (implementation depends on backend)
+                  print(f"  → {secret_name}...", end=" ", flush=True)
+                  cm.rotate(secret_name)
+                  observer.record_event("secret_rotated", {
+                      "secret_name": secret_name,
+                      "provider": "vault",
+                      "timestamp": datetime.now().isoformat(),
+                  })
+                  print("✅")
+              except Exception as e:
+                  print(f"❌ {e}")
+                  observer.record_event("secret_rotation_failed", {
+                      "secret_name": secret_name,
+                      "provider": "vault",
+                      "error": str(e),
+                      "timestamp": datetime.now().isoformat(),
+                  })
+
+          # Save deployment report
+          report = observer.get_metrics()
+          with open(f"deployment-report-vault-{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
+              json.dump(report, f, indent=2)
+
+          print(f"✅ Vault rotation complete")
+          EOF
+        env:
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+          VAULT_TOKEN: ${{ steps.cred_vault_token.outputs.credential }}
+
+      - name: Upload Vault deployment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-reports
+          path: deployment-report-vault-*.json
+
+  rotate-gsm:
+    if: github.event.inputs.provider == 'all' || github.event.inputs.provider == 'gsm' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - uses: google-github-actions/auth@v2
+        if: vars.GCP_PROJECT_ID != ''
+        with:
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account.outputs.credential }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Rotate GSM secrets
+        if: vars.GCP_PROJECT_ID != ''
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from datetime import datetime
+          from self_healing_orchestrator.credential_manager import CredentialManager
+          from self_healing_orchestrator.monitoring import DeploymentObserver
+
+          gcp_project_id = os.environ.get('GCP_PROJECT_ID')
+
+          if not gcp_project_id:
+              print("ℹ️  GCP_PROJECT_ID not set, skipping GSM rotation")
+              exit(0)
+
+          deployment_id = f"credential-rotation-gsm-{datetime.now().isoformat()}"
+          observer = DeploymentObserver(deployment_id, "production")
+          cm = CredentialManager("gsm", {
+              "gcp_project_id": gcp_project_id,
+          })
+
+          secrets_to_rotate = ["orchestrator-github-token",
+              "orchestrator-slack-webhook",
+              "orchestrator-pagerduty-key",]
+
+          print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from Google Secret Manager...")
+
+          for secret_name in secrets_to_rotate:
+              try:
+                  print(f"  → {secret_name}...", end=" ", flush=True)
+                  cm.rotate(secret_name)
+                  observer.record_event("secret_rotated", {
+                      "secret_name": secret_name,
+                      "provider": "gsm",
+                      "timestamp": datetime.now().isoformat(),
+                  })
+                  print("✅")
+              except Exception as e:
+                  print(f"❌ {e}")
+                  observer.record_event("secret_rotation_failed", {
+                      "secret_name": secret_name,
+                      "provider": "gsm",
+                      "error": str(e),
+                      "timestamp": datetime.now().isoformat(),
+                  })
+
+          # Save deployment report
+          report = observer.get_metrics()
+          with open(f"deployment-report-gsm-{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
+              json.dump(report, f, indent=2)
+
+          print(f"✅ GSM rotation complete")
+          EOF
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Upload GSM deployment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-reports
+          path: deployment-report-gsm-*.json
+
+  rotate-aws:
+    if: github.event.inputs.provider == 'all' || github.event.inputs.provider == 'aws' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        if: secrets.AWS_ROLE_ARN != ''
+        with:
+          role-to-assume: ${{ steps.cred_aws_role_arn.outputs.credential }}
+          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Rotate AWS Secrets Manager secrets
+        if: secrets.AWS_ROLE_ARN != ''
+        run: |
+          python3 << 'EOF'
+          import os
+          import json
+          from datetime import datetime
+          from self_healing_orchestrator.credential_manager import CredentialManager
+          from self_healing_orchestrator.monitoring import DeploymentObserver
+
+          aws_region = os.environ.get('AWS_REGION', 'us-east-1')
+
+          deployment_id = f"credential-rotation-aws-{datetime.now().isoformat()}"
+          observer = DeploymentObserver(deployment_id, "production")
+          cm = CredentialManager("aws", {
+              "region_name": aws_region,
+          })
+
+          secrets_to_rotate = ["orchestrator/github-token",
+              "orchestrator/slack-webhook",
+              "orchestrator/pagerduty-key",]
+
+          print(f"🔄 Rotating {len(secrets_to_rotate)} secrets from AWS Secrets Manager...")
+
+          for secret_name in secrets_to_rotate:
+              try:
+                  print(f"  → {secret_name}...", end=" ", flush=True)
+                  cm.rotate(secret_name)
+                  observer.record_event("secret_rotated", {
+                      "secret_name": secret_name,
+                      "provider": "aws",
+                      "timestamp": datetime.now().isoformat(),
+                  })
+                  print("✅")
+              except Exception as e:
+                  print(f"❌ {e}")
+                  observer.record_event("secret_rotation_failed", {
+                      "secret_name": secret_name,
+                      "provider": "aws",
+                      "error": str(e),
+                      "timestamp": datetime.now().isoformat(),
+                  })
+
+          # Save deployment report
+          report = observer.get_metrics()
+          with open(f"deployment-report-aws-{datetime.now().strftime('%Y%m%d_%H%M%S')}.json", "w") as f:
+              json.dump(report, f, indent=2)
+
+          print(f"✅ AWS rotation complete")
+          EOF
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+
+      - name: Upload AWS deployment report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-reports
+          path: deployment-report-aws-*.json
+
+  notify-completion:
+    needs: [rotate-vault, rotate-gsm, rotate-aws]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: deployment-reports
+
+      - name: Check results and create issue if failed
+        run: |
+          set +e
+
+          # Check for any failed rotations
+          failed=0
+          for f in deployment-report-*.json; do
+            if grep -q '"secret_rotation_failed"' "$f"; then
+              failed=$((failed + 1))
+              echo "❌ Found failed rotation in $f"
+            fi
+          done
+
+          if [$failed -gt 0]; then
+            echo "🚨 Credential rotation failed!"
+
+            # Create GitHub issue
+            gh issue create \
+              --title "🚨 Credential rotation failed" \
+              --body "Credential rotation job failed. Check the following reports:
+
+              $(ls -1 deployment-report-*.json | sed 's/^/* [/' | sed 's/$](/](/' | sed 's/$/)/')" \
+              --label bug \
+              --label urgent \
+              --repo ${{ github.repository }}
+
+            exit 1
+          else
+            echo "✅ All credential rotations succeeded"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Send Slack notification (on failure)
+        if: failure()
+        run: |
+          curl -X POST ${{ steps.cred_slack_webhook_url.outputs.credential }} \
+            -H 'Content-Type: application/json' \
+            -d '{
+              "text": "🚨 Credential rotation failed",
+              "blocks": [{
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "🚨 *Credential Rotation Failed*\n\nDaily credential rotation encountered errors. Check GitHub issues for details."
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [{
+                      "type": "button",
+                      "text": {"type": "plain_text", "text": "View Logs"},
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }]
+                }]
+            }' || echo "Failed to send Slack notification (webhook not configured)"
