@@ -1,0 +1,71 @@
+# Filebeat Configuration for Deployment Audit Logs
+# File: /etc/filebeat/filebeat.yml
+
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /run/app-deployment-state/deployed.state
+    fields:
+      log_type: 'deployment_audit'
+      environment: 'production'
+      host: 'dev-elevatediq-2'
+    # Parse JSON from audit log
+    json.keys_under_root: true
+    json.add_error_key: true
+    processors:
+      - add_fields:
+          target: ''
+          fields:
+            source: deployment_audit
+            cluster: production
+
+# Ship to Elasticsearch (ELK Stack)
+output.elasticsearch:
+  enabled: true
+  hosts:
+    - "elasticsearch.example.com:9200"
+    # Multiple nodes for HA:
+    # - "es-node1.example.com:9200"
+    # - "es-node2.example.com:9200"
+    # - "es-node3.example.com:9200"
+  index: "deployment-audit-%{+yyyy.MM.dd}"
+  
+  # Optional: TLS/SSL
+  # protocol: "https"
+  # ssl.verification_mode: "full"
+  # ssl.certificate_authorities: ["/etc/filebeat/certs/ca.crt"]
+  
+  # Optional: Basic auth
+  # username: "filebeat"
+  # password: "${ELASTICSEARCH_PASSWORD}"
+
+# Alternative: Ship to Datadog (uncomment to use instead of Elasticsearch)
+# output.datadog:
+#   enabled: false
+#   api.key: "${DATADOG_API_KEY}"
+#   site: "datadoghq.com"  # or "datadoghq.eu" for EU
+#   tags:
+#     - "env:production"
+#     - "service:deployment-audit"
+
+# Logging
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# General
+filebeat.registry.path: /var/lib/filebeat
+processors:
+  - add_host_metadata: ~
+  - add_process_metadata: ~
+
+# Monitoring (optional: ship Filebeat metrics to Elasticsearch/Datadog)
+# xpack.monitoring:
+#   enabled: true
+#   elasticsearch:
+#     hosts: ["elasticsearch.example.com:9200"]
