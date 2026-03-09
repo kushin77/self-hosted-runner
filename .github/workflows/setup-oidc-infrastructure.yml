@@ -53,6 +53,7 @@ jobs:
         run: |
           chmod +x .github/scripts/setup-oidc-wif.sh
           .github/scripts/setup-oidc-wif.sh "$GCP_PROJECT_ID" .github/scripts false
+
       - name: Get Credential [AWS_ACCOUNT_ID]
         id: cred_aws_account_id
         uses: kushin77/get-ephemeral-credential@v1
