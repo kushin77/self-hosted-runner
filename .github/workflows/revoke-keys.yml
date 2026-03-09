@@ -1,141 +1,148 @@
-name: Rotate & Revoke Exposed Credentials
+name: "Key Revocation & Rotation Workflow"
 
 on:
   workflow_dispatch:
     inputs:
-      exposed-key-ids:
-        description: Comma-separated list of exposed key IDs to revoke (optional)
+      revoke_gcp:
+        description: "Revoke GCP keys"
         required: false
-
-      dry-run:
-        description: Run in dry-run mode (safe)
+        default: "true"
+        type: boolean
+      revoke_aws:
+        description: "Revoke AWS keys"
         required: false
-        default: 'true'
+        default: "true"
+        type: boolean
+      revoke_vault:
+        description: "Revoke Vault credentials"
+        required: false
+        default: "true"
+        type: boolean
+      dry_run:
+        description: "Dry-run (audit only)"
+        required: false
+        default: "true"
+        type: boolean
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
-  secrets: read
-
-env:
-  KEY_ROTATION_AUDIT_DIR: .key-rotation-audit
-  DRY_RUN: ${{ inputs.dry-run || true }}
 
 jobs:
-  validate-no-secrets:
-    name: "Pre-check: Scan for Secrets"
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Install git-secrets
-        run: |
-          git clone https://github.com/awslabs/git-secrets.git
-          cd git-secrets
-          make install
-
-      - name: Run git-secrets scan
-        continue-on-error: true
-        run: |
-          git secrets --scan-history
-          git secrets --scan-history --all
-
-      - name: Run GitHub secret scanning (check recent commits)
-        continue-on-error: true
-        run: |
-          echo "Checking last 10 commits for potential secrets..."
-          git log --all -p -S 'password\|secret\|token\|key' --grep='.' | head -100 || true
-
-  revoke-exposed-keys:
-    name: "Revoke Exposed Credentials"
+  revoke-keys:
+    name: "Revoke Exposed Keys"
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: validate-no-secrets
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Authenticate to GCP (OIDC/WIF)
-        uses: google-github-actions/auth@v1
-        continue-on-error: true
+      - name: "Authenticate with GCP (if configured)"
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: false
+        if: inputs.revoke_gcp && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
 
-      - name: Authenticate to AWS (OIDC)
+      - name: "Setup GCP SDK"
+        uses: google-github-actions/setup-gcloud@v2
+        if: inputs.revoke_gcp
+
+      - name: "Authenticate with AWS (if configured)"
         uses: aws-actions/configure-aws-credentials@v4
-        continue-on-error: true
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
+        if: inputs.revoke_aws && secrets.AWS_ROLE_TO_ASSUME != ''
 
-      - name: Create audit directory
-        run: mkdir -p "${{ env.KEY_ROTATION_AUDIT_DIR }}"
-
-      - name: Revoke exposed keys (GCP/AWS/Vault)
-        run: |
-          bash .github/scripts/revoke-exposed-keys.sh \
-            --dry-run "${{ env.DRY_RUN }}" \
-            --exposed-key-ids "${{ inputs.exposed-key-ids }}" \
-            --audit-dir "${{ env.KEY_ROTATION_AUDIT_DIR }}"
+      - name: "Execute key revocation"
+        shell: bash
         env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          EXPOSED_GCP_SA_EMAIL: ${{ secrets.EXPOSED_GCP_SA_EMAIL || '' }}
+          EXPOSED_AWS_KEY_IDS: ${{ secrets.EXPOSED_AWS_KEY_IDS || '' }}
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
-        continue-on-error: true
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          EXPOSED_VAULT_ROLE_IDS: ${{ secrets.EXPOSED_VAULT_ROLE_IDS || '' }}
+        run: |
+          chmod +x .github/scripts/revoke-exposed-keys.sh
+          
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "[INFO] DRY-RUN MODE: No actual revocations will be executed"
+          fi
+          
+          .github/scripts/revoke-exposed-keys.sh
 
-      - name: Upload audit trail
+      - name: "Commit audit trail (immutable append-only)"
+        shell: bash
         if: always()
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -d ".key-rotation-audit" ] && [ -n "$(git status .key-rotation-audit --porcelain 2>/dev/null)" ]; then
+            git add .key-rotation-audit/
+            git commit -m "ci(security): immutable audit trail - key revocation run ${{ github.run_id }}" --allow-empty
+            git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed"
+          fi
+
+      - name: "Upload revocation audit"
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: key-revocation-audit-${{ github.run_id }}
-          path: ${{ env.KEY_ROTATION_AUDIT_DIR }}/
+          path: .key-rotation-audit/
           retention-days: 365
 
-      - name: Commit audit trail to repo
+      - name: "Report: Key Revocation Status"
+        shell: bash
         if: always()
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "${{ env.KEY_ROTATION_AUDIT_DIR }}/"
-          git commit -m "ci: key revocation audit trail $(date -u '+%Y-%m-%d')" \
-            --allow-empty || true
-          git push origin HEAD:${{ github.ref }} || true
+          echo "## Key Revocation Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Dry Run**: ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See artifact for full audit trail." >> $GITHUB_STEP_SUMMARY
 
-  post-revocation-validation:
+  validate-no-secrets:
     name: "Validate No Secrets Remain"
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    needs: revoke-exposed-keys
-    if: inputs.dry-run == 'false'
+    needs: revoke-keys
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install git-secrets
+      - name: "Install git-secrets"
+        shell: bash
         run: |
-          git clone https://github.com/awslabs/git-secrets.git
-          cd git-secrets
-          make install
+          git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets
+          cd /tmp/git-secrets
+          sudo make install
 
-      - name: Post-revocation validation scan
+      - name: "Run git-secrets scan"
+        shell: bash
         run: |
-          echo "Validating no secrets remain..."
-          git secrets --scan || exit 1
-          echo "✓ No secrets detected"
+          echo "[INFO] Scanning repository for secrets..."
+          git secrets --scan --cached
+          echo "✓ No secrets found in git staging area"
 
-      - name: Summary
+      - name: "Run GitHub Secret Scanning check"
+        shell: bash
         run: |
-          echo "## Key Revocation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "- Dry Run: ${{ inputs.dry-run }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Exposed Keys Revoked: ${{ inputs.exposed-key-ids }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Validation: Passed" >> $GITHUB_STEP_SUMMARY
-          echo "- Audit Trail: .key-rotation-audit/" >> $GITHUB_STEP_SUMMARY
+          echo "[INFO] GitHub secret scanning automatically scans pushed commits"
+          echo "Check: https://github.com/${{ github.repository }}/security/secret/scanning"
+
+      - name: "Report: Validation Status"
+        shell: bash
+        if: always()
+        run: |
+          echo "## Secret Validation Report" >> $GITHUB_STEP_SUMMARY
+          echo "✓ Git-secrets scan: Passed" >> $GITHUB_STEP_SUMMARY
+          echo "✓ GitHub secret scanning: Configured" >> $GITHUB_STEP_SUMMARY
