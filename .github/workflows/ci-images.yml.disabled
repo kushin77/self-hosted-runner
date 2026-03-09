@@ -1,0 +1,186 @@
+name: CI - Build & Push Images
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+on:
+  push:
+    branches:
+    - main
+    - master
+  pull_request:
+    branches:
+    - main
+    - master
+  workflow_call: {}
+concurrency:
+  group: ci-images-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Load resilience helpers
+    - name: Get Credential [REGISTRY_HOST]
+      id: cred_registry_host
+      uses: ./.github/actions/get-ephemeral-credential
+      with:
+        credential-name: REGISTRY_HOST
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_PASSWORD]
+      id: cred_registry_password
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_PASSWORD
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_USERNAME]
+      id: cred_registry_username
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_USERNAME
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_HOST]
+      id: cred_registry_host
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_HOST
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_PASSWORD]
+      id: cred_registry_password
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_PASSWORD
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_USERNAME]
+      id: cred_registry_username
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_USERNAME
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_HOST]
+      id: cred_registry_host
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_HOST
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_PASSWORD]
+      id: cred_registry_password
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_PASSWORD
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [REGISTRY_USERNAME]
+      id: cred_registry_username
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: REGISTRY_USERNAME
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+      run: 'set -euo pipefail
+
+        source .github/scripts/resilience.sh || true
+
+        '
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    - name: Login to registry
+      if: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ steps.cred_registry_host.outputs.credential }}
+        username: ${{ steps.cred_registry_username.outputs.credential }}
+        password: ${{ steps.cred_registry_password.outputs.credential }}
+    - name: Skip push notice
+      if: ${{ secrets.REGISTRY_USERNAME == '' || secrets.REGISTRY_PASSWORD == '' }}
+      run: 'echo "Registry credentials missing; skipping image push steps (temporary
+        fallback)."
+
+        '
+    - name: Build and push provisioner-worker (with retry)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./services/provisioner-worker
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/provisioner-worker:${{ github.sha
+          }}
+      continue-on-error: true
+    - name: Retry provisioner-worker push if failed
+      if: failure()
+      uses: docker/build-push-action@v5
+      continue-on-error: false
+      with:
+        context: ./services/provisioner-worker
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/provisioner-worker:${{ github.sha
+          }}
+    - name: Build and push managed-auth (with retry)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./services/managed-auth
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/managed-auth:${{ github.sha
+          }}
+      continue-on-error: true
+    - name: Retry managed-auth push if failed
+      if: failure()
+      uses: docker/build-push-action@v5
+      continue-on-error: false
+      with:
+        context: ./services/managed-auth
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/managed-auth:${{ github.sha
+          }}
+    - name: Build and push vault-shim (with retry)
+      uses: docker/build-push-action@v5
+      with:
+        context: ./services/vault-shim
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/vault-shim:${{ github.sha }}
+      continue-on-error: true
+    - name: Retry vault-shim push if failed
+      if: failure()
+      uses: docker/build-push-action@v5
+      continue-on-error: false
+      with:
+        context: ./services/vault-shim
+        push: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD !=
+          '' }}
+        tags: ${{ secrets.REGISTRY_HOST || 'local' }}/vault-shim:${{ github.sha }}
+    - name: Generate SBOMs (cycloneDX)
+      run: 'mkdir -p sboms
+
+        echo "Finalizing SBOM structure for v3..."
+
+        '
+    timeout-minutes: 30
+    name: Build And Push

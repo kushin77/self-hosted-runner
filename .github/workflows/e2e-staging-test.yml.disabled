@@ -1,0 +1,68 @@
+name: E2E Staging Validation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/e2e/**'
+      - 'terraform/examples/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  run-e2e-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: '1.6.5'
+
+      - name: Prepare environment
+        run: |
+          chmod +x scripts/e2e/run_staging_e2e.sh
+
+      - name: Provide KUBECONFIG (ephemeral or local kind fallback)
+        id: provide_kubeconfig
+        run: |
+          set -euo pipefail
+          echo "Attempting to fetch STAGING_KUBECONFIG via credential-manager.sh (ephemeral-first)"
+          if bash scripts/cred-helpers/credential-manager.sh STAGING_KUBECONFIG auto 300 > /tmp/cred_out.txt 2>/tmp/cred_err.txt; then
+            CREDS=$(sed -n 's/^credential=\(.*\)/\1/p' /tmp/cred_out.txt)
+            if [-z "$CREDS"]; then
+              echo "Empty credential returned" >&2
+              exit 2
+            fi
+            # Try base64 decode; fallback to writing as-is
+            if echo "$CREDS" | grep -qE "^[A-Za-z0-9+/=]+$"; then
+              if echo "$CREDS" | base64 -d > kubeconfig 2>/dev/null; then
+                echo "Wrote decoded kubeconfig to $PWD/kubeconfig"
+              else
+                echo "$CREDS" > kubeconfig
+              fi
+            else
+              echo "$CREDS" > kubeconfig
+            fi
+            echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+            echo "TF_VAR_kubeconfig_path=$PWD/kubeconfig" >> $GITHUB_ENV
+          else
+            echo "No STAGING_KUBECONFIG found in providers; creating local kind cluster for isolated E2E"
+            curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+            chmod +x ./kind
+            sudo mv ./kind /usr/local/bin/kind
+            sudo sysctl net.bridge.bridge-nf-call-iptables=1 || true
+            kind create cluster --name e2e --wait 120s
+            echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+            echo "TF_VAR_kubeconfig_path=$HOME/.kube/config" >> $GITHUB_ENV
+          fi
+
+      - name: Run E2E staging harness
+        env:
+          TF_VAR_run_mode: "ci"
+        run: |
+          ./scripts/e2e/run_staging_e2e.sh --auto-approve --capture-artifacts
