@@ -19,11 +19,38 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get Credential [STAGING_KUBECONFIG_B64]
+        id: cred_staging_kubeconfig_b64
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: STAGING_KUBECONFIG_B64
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_ROLE]
+        id: cred_vault_role
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ROLE
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
       - name: Request Vault OIDC token
         id: vault_auth
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+          VAULT_ROLE: ${{ steps.cred_vault_role.outputs.credential }}
           AUDIENCE: vault
         run: |
           if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_ROLE" ]; then
@@ -36,7 +63,7 @@ jobs:
       - name: Fetch secrets from Vault
         if: env.VAULT_TOKEN != ''
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
         run: |
           # Fetch trivy webhook secret from Vault
@@ -67,7 +94,7 @@ jobs:
 
       - name: Decode kubeconfig
         env:
-          KUBE_CONFIG_BASE64: ${{ secrets.STAGING_KUBECONFIG_B64 }}
+          KUBE_CONFIG_BASE64: ${{ steps.cred_staging_kubeconfig_b64.outputs.credential }}
         run: |
           echo "$KUBE_CONFIG_BASE64" | base64 -d > kubeconfig
           # Ensure kubeconfig points to the staging worker node (avoid localhost)

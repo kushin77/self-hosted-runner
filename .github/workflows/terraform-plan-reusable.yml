@@ -102,6 +102,23 @@ jobs:
 
       - name: 'Auth: Generate OIDC token'
         id: oidc
+      - name: Get Credential [GCP_SA_KEY]
+        id: cred_gcp_sa_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SA_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           # Get OIDC token from GitHub
           TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
@@ -147,7 +164,7 @@ jobs:
         run: |
           # Vault JWT auth with OIDC token
           JWT_RESPONSE=$(curl -s -X POST \
-            "${{ secrets.VAULT_ADDR }}/v1/auth/jwt/login" \
+            "${{ steps.cred_vault_addr.outputs.credential }}/v1/auth/jwt/login" \
             -d "{\"role\":\"${{ inputs.vault_role }}\",\"jwt\":\"${{ steps.oidc.outputs.oidc_token }}\"}")
           
           VAULT_TOKEN=$(echo "$JWT_RESPONSE" | jq -r '.auth.client_token // empty')
@@ -161,7 +178,7 @@ jobs:
           
           # Get AWS creds from Vault
           AWS_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" \
-            "${{ secrets.VAULT_ADDR }}/v1/aws/creds/github-plan" | jq '.data.access_key, .data.secret_key // empty')
+            "${{ steps.cred_vault_addr.outputs.credential }}/v1/aws/creds/github-plan" | jq '.data.access_key, .data.secret_key // empty')
           
           read -r AWS_KEY AWS_SECRET <<< "$AWS_RESPONSE"
           echo "::add-mask::${AWS_KEY}"
@@ -201,7 +218,7 @@ jobs:
         id: gcp-gsm
         if: matrix.cloud == 'gcp' && steps.gcp-oidc.outputs.gcp_auth == 'false' && secrets.GCP_SA_KEY != ''
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > /tmp/sa-key.json
+          echo "${{ steps.cred_gcp_sa_key.outputs.credential }}" > /tmp/sa-key.json
           chmod 600 /tmp/sa-key.json
           
           gcloud auth activate-service-account --key-file=/tmp/sa-key.json
