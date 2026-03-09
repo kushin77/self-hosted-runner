@@ -51,8 +51,8 @@ jobs:
         id: auth
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account_email.outputs.credential }}
           token_format: 'access_token'
           access_token_lifetime: '1200s'  # 20 minutes
 
@@ -247,8 +247,8 @@ jobs:
       - name: Authenticate to GCP (Ephemeral)
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account_email.outputs.credential }}
           token_format: 'access_token'
           access_token_lifetime: '600s'
 
@@ -322,6 +322,24 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
+      - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+        id: cred_gcp_service_account_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
       - name: Close Phase 3 Operator Issue if Deployed
         uses: actions/github-script@v7
