@@ -56,60 +56,38 @@ jobs:
 
       - name: Get Credential [AWS_ACCOUNT_ID]
         id: cred_aws_account_id
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: AWS_ACCOUNT_ID
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.AWS_ACCOUNT_ID }}" ]; then echo "credential=${{ secrets.AWS_ACCOUNT_ID }}" >> $GITHUB_OUTPUT; elif [ -n "$AWS_ACCOUNT_ID" ]; then echo "credential=$AWS_ACCOUNT_ID" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [AWS_ROLE_TO_ASSUME]
         id: cred_aws_role_to_assume
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: AWS_ROLE_TO_ASSUME
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.AWS_ROLE_TO_ASSUME }}" ]; then echo "credential=${{ secrets.AWS_ROLE_TO_ASSUME }}" >> $GITHUB_OUTPUT; elif [ -n "$AWS_ROLE_TO_ASSUME" ]; then echo "credential=$AWS_ROLE_TO_ASSUME" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [GCP_PROJECT_ID]
         id: cred_gcp_project_id
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: GCP_PROJECT_ID
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.GCP_PROJECT_ID }}" ]; then echo "credential=${{ secrets.GCP_PROJECT_ID }}" >> $GITHUB_OUTPUT; elif [ -n "$GCP_PROJECT_ID" ]; then echo "credential=$GCP_PROJECT_ID" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [GCP_SERVICE_ACCOUNT]
         id: cred_gcp_service_account
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: GCP_SERVICE_ACCOUNT
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.GCP_SERVICE_ACCOUNT }}" ]; then echo "credential=${{ secrets.GCP_SERVICE_ACCOUNT }}" >> $GITHUB_OUTPUT; elif [ -n "$GCP_SERVICE_ACCOUNT" ]; then echo "credential=$GCP_SERVICE_ACCOUNT" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
         id: cred_gcp_workload_identity_provider
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then echo "credential=${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" >> $GITHUB_OUTPUT; elif [ -n "$GCP_WORKLOAD_IDENTITY_PROVIDER" ]; then echo "credential=$GCP_WORKLOAD_IDENTITY_PROVIDER" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [VAULT_ADDR]
         id: cred_vault_addr
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: VAULT_ADDR
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.VAULT_ADDR }}" ]; then echo "credential=${{ secrets.VAULT_ADDR }}" >> $GITHUB_OUTPUT; elif [ -n "$VAULT_ADDR" ]; then echo "credential=$VAULT_ADDR" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
+
       - name: Get Credential [VAULT_TOKEN]
         id: cred_vault_token
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: VAULT_TOKEN
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+        run: |
+          if [ -n "${{ secrets.VAULT_TOKEN }}" ]; then echo "credential=${{ secrets.VAULT_TOKEN }}" >> $GITHUB_OUTPUT; elif [ -n "$VAULT_TOKEN" ]; then echo "credential=$VAULT_TOKEN" >> $GITHUB_OUTPUT; else echo "credential=" >> $GITHUB_OUTPUT; fi
 
 
       - name: "Upload setup log"
