@@ -15,6 +15,118 @@ readonly AWS_REGION="${AWS_REGION:-us-east-1}"
 readonly VAULT_ADDR="${VAULT_ADDR:-https://vault.example.com:8200}"
 readonly VAULT_NAMESPACE="${VAULT_NAMESPACE:-github-actions}"
 
+# Location for local credential caches (created by provisioning/CI)
+readonly CRED_DIR="${CRED_DIR:-$(pwd)/.credentials}"
+
+# Load secrets from secure cache and authenticate non-interactively
+load_secrets_and_auth() {
+    # GCP service account (optional) - use for gcloud non-interactive actions
+    if [[ -f "$CRED_DIR/gcp-admin-sa-key.json" ]]; then
+        export GOOGLE_APPLICATION_CREDENTIALS="$CRED_DIR/gcp-admin-sa-key.json"
+        if command -v gcloud &>/dev/null; then
+            gcloud auth activate-service-account --key-file="$GOOGLE_APPLICATION_CREDENTIALS" --quiet || true
+            log_info "Using GCP service account from $GOOGLE_APPLICATION_CREDENTIALS"
+        fi
+    fi
+
+    # AWS credentials (optional)
+    if [[ -f "$CRED_DIR/aws_access_key_id" && -f "$CRED_DIR/aws_secret_access_key" ]]; then
+        export AWS_ACCESS_KEY_ID="$(< "$CRED_DIR/aws_access_key_id")"
+        export AWS_SECRET_ACCESS_KEY="$(< "$CRED_DIR/aws_secret_access_key")"
+        export AWS_DEFAULT_REGION="${AWS_REGION}"
+        log_info "AWS credentials loaded from $CRED_DIR"
+    fi
+
+    # Vault token (prefer AppRole if role_id/secret_id present)
+    if [[ -f "$CRED_DIR/vault-token" ]]; then
+        export VAULT_TOKEN="$(< "$CRED_DIR/vault-token")"
+        log_info "VAULT_TOKEN loaded from $CRED_DIR/vault-token"
+    else
+        # Try AppRole
+        if [[ -f "$CRED_DIR/vault-credentials.role_id.cache" && -f "$CRED_DIR/vault-credentials.secret_id.cache" ]]; then
+            local role_id secret_id
+            role_id="$(< "$CRED_DIR/vault-credentials.role_id.cache")"
+            secret_id="$(< "$CRED_DIR/vault-credentials.secret_id.cache")"
+            if command -v vault &>/dev/null; then
+                # login via AppRole and export token to env (do not persist to disk)
+                local token
+                token=$(vault write -field=token auth/approle/login role_id="$role_id" secret_id="$secret_id" 2>/dev/null || true)
+                if [[ -n "$token" ]]; then
+                    export VAULT_TOKEN="$token"
+                    log_info "Logged into Vault via AppRole (token from AppRole)"
+                else
+                    log_info "Vault AppRole login failed or Vault unreachable"
+                fi
+            fi
+        fi
+    fi
+
+    # Sanity: report which layers are authenticated
+    if [[ -n "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
+        log_info "GCP: service account available"
+    fi
+    if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
+        log_info "AWS: credentials available"
+    fi
+    if [[ -n "${VAULT_TOKEN:-}" ]]; then
+        log_info "Vault: token available"
+    fi
+}
+
+# ============================================================================
+# Secret retrieval helpers: prefer Vault -> GCP Secret Manager -> local cache
+# ============================================================================
+get_secret() {
+    local name="$1"
+    local project="${GCP_PROJECT:-}"
+
+    # 1) Vault (KV v2 path: secret/data/<name> or secret/<name>)
+    if [[ -n "${VAULT_TOKEN:-}" && -n "${VAULT_ADDR:-}" ]] && command -v vault &>/dev/null; then
+        # try v2 first
+        local out
+        out=$(vault kv get -field=value "secret/$name" 2>/dev/null || true)
+        if [[ -n "$out" ]]; then
+            printf '%s' "$out"
+            return 0
+        fi
+        # try generic read
+        out=$(vault read -field=value "secret/$name" 2>/dev/null || true)
+        if [[ -n "$out" ]]; then
+            printf '%s' "$out"
+            return 0
+        fi
+    fi
+
+    # 2) GCP Secret Manager
+    if command -v gcloud &>/dev/null && [[ -n "$project" ]]; then
+        local gsm_out
+        gsm_out=$(gcloud secrets versions access latest --secret="$name" --project="$project" 2>/dev/null || true)
+        if [[ -n "$gsm_out" ]]; then
+            printf '%s' "$gsm_out"
+            return 0
+        fi
+    fi
+
+    # 3) Local cache
+    if [[ -f "$CRED_DIR/$name" ]]; then
+        cat "$CRED_DIR/$name"
+        return 0
+    fi
+
+    return 1
+}
+
+# Decrypt a KMS-encrypted file (binary) and print plaintext
+decrypt_kms_file() {
+    local file="$1"
+    if [[ -f "$file" && -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
+        # aws kms decrypt returns base64-encoded Plaintext
+        aws kms decrypt --ciphertext-blob fileb://"$file" --output text --query Plaintext 2>/dev/null | base64 --decode || return 1
+    else
+        return 1
+    fi
+}
+
 # ============================================================================
 # LOGGING
 # ============================================================================
@@ -180,24 +292,48 @@ populate_github_secrets() {
     if [[ -f "${STATE_DIR:-.}/aws_oidc_arn.txt" ]]; then
         local oidc_arn
         oidc_arn=$(cat "${STATE_DIR:-.}/aws_oidc_arn.txt")
+        # fallback: try to fetch from Vault/GSM
+        if [[ -z "$oidc_arn" ]]; then
+            oidc_arn=$(get_secret aws_oidc_arn || true)
+        fi
         log_info "  Setting AWS_OIDC_ARN secret..."
-        gh secret set AWS_OIDC_ARN --body "$oidc_arn" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        if [[ -n "$oidc_arn" ]]; then
+            gh secret set AWS_OIDC_ARN --body "$oidc_arn" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        else
+            log_info "    (No AWS_OIDC_ARN available to set)"
+        fi
     fi
     
     if [[ -f "${STATE_DIR:-.}/aws_kms_key_id.txt" ]]; then
         local kms_key_id
         kms_key_id=$(cat "${STATE_DIR:-.}/aws_kms_key_id.txt")
+        # fallback: try to fetch from secret backends
+        if [[ -z "$kms_key_id" ]]; then
+            kms_key_id=$(get_secret aws_kms_key_id || true)
+        fi
         log_info "  Setting AWS_KMS_KEY_ID secret..."
-        gh secret set AWS_KMS_KEY_ID --body "$kms_key_id" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        if [[ -n "$kms_key_id" ]]; then
+            gh secret set AWS_KMS_KEY_ID --body "$kms_key_id" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        else
+            log_info "    (No AWS_KMS_KEY_ID available to set)"
+        fi
     fi
     
     # Vault secrets
     if [[ -n "${VAULT_ADDR:-}" ]]; then
         log_info "  Setting VAULT_ADDR secret..."
         gh secret set VAULT_ADDR --body "$VAULT_ADDR" 2>/dev/null || log_info "    (Secret already exists or skipped)"
-        
+
         log_info "  Setting VAULT_NAMESPACE secret..."
         gh secret set VAULT_NAMESPACE --body "$VAULT_NAMESPACE" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+
+        # Optionally populate VAULT_TOKEN if available from backends (short-lived tokens not recommended in repo)
+        local vault_token
+        vault_token=$(get_secret vault-token || true)
+        if [[ -n "$vault_token" ]]; then
+            log_info "  Setting VAULT_TOKEN as GitHub secret (from Vault/GSM/local cache)..."
+            gh secret set VAULT_TOKEN --body "$vault_token" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        fi
     fi
     
     log_success "GitHub Secrets populated"
@@ -239,6 +375,8 @@ verify_setup() {
     fi
     
     mkdir -p "$STATE_DIR"
+    # Load cached credentials and authenticate non-interactively (if available)
+    load_secrets_and_auth
     if $all_good; then
         log_success "Setup verification passed"
         log_audit "verify_success" "SUCCESS"
