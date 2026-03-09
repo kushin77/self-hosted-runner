@@ -1,3 +1,40 @@
+#!/bin/bash
+set -euo pipefail
+
+##############################################################################
+# Helper: Unified Credential Manager (copy)
+# This file is a copy of ../credential-manager.sh to provide the helper path used
+# by some action/workflow references. Keep in sync with the root script.
+##############################################################################
+
+CREDENTIAL_NAME="${1:-}"
+RETRIEVE_FROM="${2:-auto}"
+CACHE_DIR="${CACHE_DIR:-.cache}"
+AUDIT_LOG="${AUDIT_LOG:-./credential-access.log}"
+
+# Configuration (via environment)
+GCP_PROJECT_ID="${GCP_PROJECT_ID:-}"
+VAULT_ADDR="${VAULT_ADDR:-}"
+AWS_KMS_KEY_ID="${AWS_KMS_KEY_ID:-}"
+
+log_info() { echo "[INFO] $1" >&2; }
+log_pass() { echo "[PASS] $1" >&2; }
+log_warn() { echo "[WARN] $1" >&2; }
+log_fail() { echo "[FAIL] $1" >&2; }
+
+audit_log() {
+  local msg="$1"
+  local timestamp=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+  echo "{\"timestamp\":\"$timestamp\",\"credential\":\"$CREDENTIAL_NAME\",\"source\":\"$2\",\"status\":\"$3\",\"msg\":\"$msg\"}" >> "$AUDIT_LOG"
+}
+
+# Very small wrapper that delegates to the repository root script if present
+if [ -x "$(dirname "$0")/../credential-manager.sh" ]; then
+  exec "$(dirname "$0")/../credential-manager.sh" "$@"
+fi
+
+echo "No delegate credential-manager found" >&2
+exit 2
 #!/usr/bin/env bash
 set -euo pipefail
 # Unified credential manager: tries specified layer or auto fallback (GSM -> Vault -> KMS)
