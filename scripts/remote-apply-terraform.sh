@@ -8,20 +8,20 @@ set -euo pipefail
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 DEPLOY_DIR="/opt/self-hosted-runner"
 TF_DIR="${DEPLOY_DIR}/terraform/environments/staging-tenant-a"
-TFPLAN_FILE="/tmp/tfplan"
+TFPLAN_FILE="${TF_DIR}/tfplan"
 
 echo "[${TIMESTAMP}] Starting remote terraform apply..."
 echo "[${TIMESTAMP}] Working directory: ${TF_DIR}"
 
-# Ensure tfplan exists
-if [[ ! -f "$TFPLAN_FILE" ]]; then
-  echo "ERROR: tfplan not found at ${TFPLAN_FILE}"
-  echo "Please ensure tfplan was copied to /tmp/ before running this script"
+# Navigate to terraform directory
+cd "$TF_DIR"
+
+# Regenerate plan on this system (avoids version mismatch issues)
+echo "[${TIMESTAMP}] Generating terraform plan on remote (local terraform version)..."
+if ! terraform plan -out="${TFPLAN_FILE}"; then
+  echo "ERROR: Failed to generate plan on remote"
   exit 1
 fi
-
-# Run terraform apply
-cd "$TF_DIR"
 
 echo "[${TIMESTAMP}] Running: terraform apply -auto-approve ${TFPLAN_FILE}"
 
