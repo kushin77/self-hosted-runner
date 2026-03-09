@@ -15,3 +15,9 @@ variable "prometheus_adapter_version" {
   type        = string
   default     = "2.21.0"
 }
+
+variable "install_prometheus_adapter" {
+  description = "Whether to install the Prometheus adapter via Helm (default: false)"
+  type        = bool
+  default     = false
+}

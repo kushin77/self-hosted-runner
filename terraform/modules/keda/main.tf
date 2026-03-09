@@ -19,8 +19,9 @@ resource "helm_release" "keda" {
 }
 
 resource "helm_release" "prometheus_adapter" {
+  count      = var.install_prometheus_adapter ? 1 : 0
   name       = "prometheus-adapter"
-  repository = "https://kubernetes-sigs.github.io/prometheus-adapter"
+  repository = "https://prometheus-community.github.io/helm-charts"
   chart      = "prometheus-adapter"
   version    = var.prometheus_adapter_version
   namespace  = var.namespace
