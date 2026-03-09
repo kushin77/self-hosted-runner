@@ -137,3 +137,20 @@ bash scripts/audit-secrets.sh --json > secrets-manifest.json
 - For policy exceptions, request an exception via an issue and tag `security` and `ops` for review.
 
 Thank you for keeping CI secure and reliable.
+
+## Direct Development & Deployment (MANDATED)
+
+- Effective immediately, authorized development and deployment activity for this repository SHALL be performed directly on the approved worker node at 192.168.168.42. This is a temporary operational directive while CI/CD is paused.
+- Do NOT attempt to re-enable or rely on GitHub Actions workflows in this repository until Ops signals reactivation.
+- Who may deploy: only users with explicit Ops authorization and SSH access to `192.168.168.42` (use the `deploy` account or the account specified by Ops). All deployments must be performed over SSH using approved tooling (`rsync`, `scp`, or the documented `deploy.sh` helper) and must use ephemeral credentials fetched via GSM/VAULT/KMS.
+- Required steps for a direct deploy:
+  1. Create a branch for the change and open a draft issue referencing the emergency record `#2064`.
+  2. Run local validation and unit tests on your workstation.
+  3. Prepare a deployment bundle (tar.gz) and an integrity hash (SHA256).
+  4. Transfer the bundle to `192.168.168.42` via `scp`/`rsync` and verify the SHA256 on the node.
+  5. On `192.168.168.42`, run the documented deploy script `./deploy.sh` (or Ops-approved alternative). Capture and upload deployment logs to the central observability store and reference them in the associated issue.
+  6. Close or update the draft issue with deployment outcome and artifact links.
+- Secrets and credential handling: all credentials used on `192.168.168.42` must be fetched at runtime via GSM/VAULT/KMS; never embed secrets in the bundle or in plain text on the host.
+- Audit and logging: every direct deployment MUST be recorded in an issue and include the deployer username, UTC timestamp, bundle SHA256, and a pointer to logs.
+
+Non-compliance: unauthorized direct deploys or attempts to reintroduce workflows will be treated as policy violations and may result in temporary access revocation. If you require an exception, open an issue and tag `ops` and `security`.
