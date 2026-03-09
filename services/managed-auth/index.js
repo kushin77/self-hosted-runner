@@ -57,6 +57,8 @@ app.use((req, res, next) => {
 // simple in-memory stores for runners and usage
 const runners = [];
 const billingRecords = [];
+const heartbeats = {}; // track heartbeat timestamp per runner
+const auditLogs = []; // audit trail
 
 app.use(express.json());
 
@@ -129,6 +131,300 @@ app.post('/instant-deploy', (req, res) => {
   res.json({ deployId, mode, status: 'initiated', runnerUrl: `https://runnercloud.example.com/${deployId}` });
 });
 
+// helper function for audit logging
+function auditLog(eventType, runnerId, actor, details, result) {
+  const entry = {
+    timestamp: new Date().toISOString(),
+    event_type: eventType,
+    runner_id: runnerId,
+    actor: actor || 'system',
+    details: details || {},
+    result: result || 'success',
+    audit_id: `audit-${crypto.randomBytes(8).toString('hex')}`
+  };
+  auditLogs.push(entry);
+  if (auditLogs.length > 10000) auditLogs.shift(); // keep last 10k entries
+  return entry;
+}
+
+// ===== API v1: Token Management =====
+
+// POST /api/v1/auth/token - Request new ephemeral token
+app.post('/api/v1/auth/token', (req, res) => {
+  const { ttl_seconds = 3600, job_type = 'ci-build', resource_tags = {} } = req.body;
+  
+  if (ttl_seconds < 60 || ttl_seconds > 28800) {
+    return res.status(400).json({ error: 'invalid_request', error_description: 'ttl_seconds must be between 60 and 28800' });
+  }
+  
+  const accessToken = `ep_${crypto.randomBytes(16).toString('hex')}`;
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + ttl_seconds * 1000);
+  
+  res.status(201).json({
+    access_token: accessToken,
+    token_type: 'Bearer',
+    expires_in: ttl_seconds,
+    ttl_seconds: ttl_seconds,
+    issued_at: issuedAt.toISOString(),
+    expires_at: expiresAt.toISOString(),
+    job_type: job_type
+  });
+});
+
+// POST /api/v1/auth/refresh - Refresh token
+app.post('/api/v1/auth/refresh', (req, res) => {
+  const { refresh_token, ttl_seconds = 3600 } = req.body;
+  
+  if (!refresh_token) {
+    return res.status(401).json({ error: 'invalid_token', error_description: 'refresh_token required' });
+  }
+  
+  const newAccessToken = `ep_${crypto.randomBytes(16).toString('hex')}`;
+  const newRefreshToken = `rt_${crypto.randomBytes(16).toString('hex')}`;
+  const issuedAt = new Date();
+  const expiresAt = new Date(issuedAt.getTime() + ttl_seconds * 1000);
+  
+  res.status(201).json({
+    access_token: newAccessToken,
+    refresh_token: newRefreshToken,
+    expires_in: ttl_seconds,
+    issued_at: issuedAt.toISOString(),
+    expires_at: expiresAt.toISOString()
+  });
+});
+
+// POST /api/v1/auth/revoke - Revoke token
+app.post('/api/v1/auth/revoke', (req, res) => {
+  const { token, reason = 'manual_revoke' } = req.body;
+  
+  if (!token) {
+    return res.status(400).json({ error: 'invalid_request', error_description: 'token required' });
+  }
+  
+  // In production, would store revoked tokens in a blacklist
+  res.status(204).end();
+});
+
+// ===== API v1: Runner Registration & Management =====
+
+// POST /api/v1/runners/register - Register new runner
+app.post('/api/v1/runners/register', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'invalid_token' });
+  
+  const { name, os, arch = 'x86_64', labels = [], pool = 'default', vpc_id, region, max_jobs = 4, network_config = {} } = req.body;
+  
+  if (!name || !os) {
+    return res.status(400).json({ error: 'invalid_request', error_description: 'name and os required' });
+  }
+  
+  const runnerId = `r-${crypto.randomBytes(8).toString('hex')}`;
+  const registrationToken = `reg_${crypto.randomBytes(16).toString('hex')}`;
+  
+  const runner = {
+    runner_id: runnerId,
+    name: name,
+    os: os,
+    arch: arch,
+    labels: labels,
+    pool: pool,
+    vpc_id: vpc_id,
+    region: region,
+    max_jobs: max_jobs,
+    status: 'provisioning',
+    created_at: new Date().toISOString(),
+    registration_expires_at: new Date(Date.now() + 600000).toISOString(), // 10 min
+    last_heartbeat: null,
+    current_job: null,
+    metrics: { cpu_percent: 0, memory_percent: 0, disk_percent: 0 }
+  };
+  
+  runners.push(runner);
+  auditLog('runner_registered', runnerId, token.substring(0, 20) + '...', { os, pool, vpc_id }, 'success');
+  
+  // Mark as running after a short delay
+  setTimeout(() => {
+    const r = runners.find(x => x.runner_id === runnerId);
+    if (r) r.status = 'running';
+  }, 1000);
+  
+  res.status(201).json({
+    runner_id: runnerId,
+    registration_token: registrationToken,
+    status: runner.status,
+    created_at: runner.created_at,
+    registration_expires_at: runner.registration_expires_at,
+    heartbeat: {
+      required: true,
+      interval_seconds: parseInt(process.env.HEARTBEAT_INTERVAL || '30'),
+      timeout_seconds: parseInt(process.env.HEARTBEAT_TIMEOUT || '60')
+    },
+    config: {
+      auth_method: 'bearer',
+      control_plane_url: `${process.env.CONTROL_PLANE_URL || 'https://managed-auth.example.com'}`,
+      certificate_chain: 'TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384'
+    }
+  });
+});
+
+// GET /api/v1/runners/:runner_id - Get runner status
+app.get('/api/v1/runners/:runner_id', (req, res) => {
+  const { runner_id } = req.params;
+  const runner = runners.find(r => r.runner_id === runner_id);
+  
+  if (!runner) {
+    return res.status(404).json({ error: 'resource_not_found', error_description: 'Runner not found' });
+  }
+  
+  res.json({
+    runner_id: runner.runner_id,
+    name: runner.name,
+    status: runner.status,
+    created_at: runner.created_at,
+    last_heartbeat: runner.last_heartbeat,
+    current_job: runner.current_job,
+    metrics: runner.metrics,
+    next_ephemeral_token_at: new Date(Date.now() + 3600000).toISOString() // 1 hour
+  });
+});
+
+// DELETE /api/v1/runners/:runner_id - Deregister runner (graceful shutdown)
+app.delete('/api/v1/runners/:runner_id', (req, res) => {
+  const { runner_id } = req.params;
+  const { reason = 'scheduled_maintenance', drain_timeout = 300 } = req.body;
+  
+  const runner = runners.find(r => r.runner_id === runner_id);
+  if (!runner) {
+    return res.status(404).json({ error: 'resource_not_found' });
+  }
+  
+  runner.status = 'draining';
+  const drainStartedAt = new Date();
+  const drainDeadline = new Date(drainStartedAt.getTime() + drain_timeout * 1000);
+  
+  auditLog('runner_deregistered', runner_id, 'system', { reason, drain_timeout }, 'success');
+  
+  // Auto-terminate after drain timeout
+  setTimeout(() => {
+    const idx = runners.findIndex(r => r.runner_id === runner_id);
+    if (idx >= 0) {
+      runners[idx].status = 'terminated';
+    }
+  }, drain_timeout * 1000);
+  
+  res.status(202).json({
+    runner_id: runner_id,
+    status: 'draining',
+    drain_timeout: drain_timeout,
+    drain_started_at: drainStartedAt.toISOString(),
+    drain_deadline: drainDeadline.toISOString()
+  });
+});
+
+// ===== API v1: Heartbeat & Health Monitoring =====
+
+// POST /api/v1/runners/:runner_id/heartbeat - Send periodic heartbeat
+app.post('/api/v1/runners/:runner_id/heartbeat', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'invalid_token' });
+  
+  const { runner_id } = req.params;
+  const { timestamp, status = 'idle', current_job_id, job_history = [], metrics = {}, system_info = {} } = req.body;
+  
+  const runner = runners.find(r => r.runner_id === runner_id);
+  if (!runner) {
+    return res.status(404).json({ error: 'resource_not_found' });
+  }
+  
+  // Update runner state
+  runner.last_heartbeat = timestamp || new Date().toISOString();
+  runner.status = status;
+  runner.current_job = current_job_id ? { id: current_job_id } : null;
+  runner.metrics = { ...metrics };
+  
+  heartbeats[runner_id] = runner.last_heartbeat;
+  auditLog('heartbeat_received', runner_id, 'runner', { status, metrics }, 'success');
+  
+  const nextHeartbeatAt = new Date(Date.now() + (parseInt(process.env.HEARTBEAT_INTERVAL || '30') * 1000));
+  const nextTokenRotationAt = new Date(Date.now() + 3000000); // ~50 min
+  
+  res.json({
+    runner_id: runner_id,
+    heartbeat_received: true,
+    next_heartbeat_at: nextHeartbeatAt.toISOString(),
+    next_token_rotation_at: nextTokenRotationAt.toISOString(),
+    commands: [] // Server can send commands here
+  });
+});
+
+// POST /api/v1/runners/:runner_id/healthcheck - Detailed health check
+app.post('/api/v1/runners/:runner_id/healthcheck', (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  if (!token) return res.status(401).json({ error: 'invalid_token' });
+  
+  const { runner_id } = req.params;
+  const { timestamp, health = {} } = req.body;
+  
+  const runner = runners.find(r => r.runner_id === runner_id);
+  if (!runner) {
+    return res.status(404).json({ error: 'resource_not_found' });
+  }
+  
+  let healthStatus = 'healthy';
+  const recommendations = [];
+  
+  if (health.disk_available_gb < 10) {
+    healthStatus = 'degraded';
+    recommendations.push('Low disk space available');
+  }
+  if (!health.vault_connectivity) {
+    healthStatus = 'critical';
+    recommendations.push('Cannot connect to Vault');
+  }
+  
+  auditLog('healthcheck_received', runner_id, 'runner', health, 'success');
+  
+  res.json({
+    health_status: healthStatus,
+    last_check: timestamp || new Date().toISOString(),
+    recommendations: recommendations
+  });
+});
+
+// GET /api/v1/audit/logs - Retrieve audit logs
+app.get('/api/v1/audit/logs', (req, res) => {
+  const { runner_id, event_type, start_time, end_time, limit = 100 } = req.query;
+  
+  let filtered = auditLogs;
+  
+  if (runner_id) {
+    filtered = filtered.filter(log => log.runner_id === runner_id);
+  }
+  
+  if (event_type) {
+    filtered = filtered.filter(log => log.event_type === event_type);
+  }
+  
+  if (start_time || end_time) {
+    const start = start_time ? new Date(start_time) : new Date(0);
+    const end = end_time ? new Date(end_time) : new Date();
+    filtered = filtered.filter(log => {
+      const time = new Date(log.timestamp);
+      return time >= start && time <= end;
+    });
+  }
+  
+  const total = filtered.length;
+  const paginated = filtered.slice(-parseInt(limit));
+  
+  res.json({
+    logs: paginated,
+    total: total,
+    has_more: total > parseInt(limit)
+  });
+});
+
 // record usage (called by runner agents periodically)
 app.post('/usage', (req, res) => {
   const { runnerId, seconds } = req.body;
@@ -138,7 +434,12 @@ app.post('/usage', (req, res) => {
 });
 
 // healthcheck
-app.get('/health', (req, res) => res.send('ok'));
+app.get('/health', (req, res) => res.json({
+  status: 'ok',
+  timestamp: new Date().toISOString(),
+  version: '1.0.0',
+  runners: { total: runners.length, active: runners.filter(r => r.status === 'running').length }
+}));
 
 app.listen(port, '0.0.0.0', () => {
   logger.info('managed-auth service listening', { port });
