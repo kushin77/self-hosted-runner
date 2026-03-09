@@ -1,0 +1,57 @@
+name: Auto Deploy Phase 3B
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    name: Deploy Phase 3B (AWS + Vault)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    env:
+      AWS_REGION: us-east-1
+      VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+      VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Ensure scripts are executable
+        run: |
+          chmod +x scripts/phase3b-credentials-aws-vault.sh || true
+          chmod +x scripts/monitor-workflows.sh || true
+
+      - name: Configure AWS credentials (from repo secrets)
+        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY }}
+        run: |
+          echo "Configuring AWS credentials from secrets"
+          mkdir -p ~/.aws
+          cat > ~/.aws/credentials <<'EOF'
+[default]
+aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}
+aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+region = ${{ env.AWS_REGION }}
+EOF
+
+      - name: Run Phase 3B provisioning (non-interactive)
+        run: |
+          set -euo pipefail
+          echo "Starting Phase 3B provisioning"
+          bash scripts/phase3b-credentials-aws-vault.sh
+
+      - name: Run post-deploy verification
+        run: |
+          echo "Running monitor workflows"
+          bash scripts/monitor-workflows.sh || true
+
+      - name: Create deployment comment on Issue #2129
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh issue comment 2129 --repo ${{ github.repository }} --body "Phase 3B deployment executed on ${{ github.sha }} (push to main). Check logs and audit trail."
