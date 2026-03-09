@@ -167,7 +167,7 @@ jobs:
             fi
 
             ISSUE_DETAILS="$ISSUE_DETAILS
-$ICON #$issue_num: $TITLE (updated: $UPDATED)"
+          $ICON #$issue_num: $TITLE (updated: $UPDATED)"
 
             # Check if recently updated (last 2 hours)
             UPDATED_EPOCH=$(date -d "$UPDATED" +%s)
