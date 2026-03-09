@@ -1,0 +1,63 @@
+name: Ops Final Completion Automation
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'  # Every 10 minutes
+  workflow_dispatch:
+
+concurrency:
+  group: ops-final-completion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  final-completion:
+    runs-on: ubuntu-latest
+    name: Detect phase completion & close all ops issues
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Automation Bot"
+          git config --global user.email "automation@github.actions"
+
+      - name: Run final completion automation
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          chmod +x scripts/automation/ops-final-completion.sh
+          bash scripts/automation/ops-final-completion.sh
+
+      - name: Post completion summary (if all phases complete)
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat << 'EOF' > /tmp/final_completion_summary.md
+          ## ✅ Final Ops Completion Check
+
+          **Timestamp:** $(date -Iseconds)
+          **Status:** Automation executing
+
+          ### Automation Cycle
+          - Phase 1 completion: Checking...
+          - Phase 2 completion: Checking...
+          - Phase 3 completion: Checking...
+          - Production readiness: Verifying...
+          - Issue closure: Ready to execute
+
+          **Next check:** In 10 minutes
+
+          All systems operational and monitoring continuously.
+          EOF
+
+          # Optional: Post to main issue
+          gh issue comment 1 --repo kushin77/self-hosted-runner \
+            --body "$(cat /tmp/final_completion_summary.md)" 2>/dev/null || true

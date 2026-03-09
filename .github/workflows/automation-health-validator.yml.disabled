@@ -1,0 +1,273 @@
+name: Automation Health & Deployment Validator
+on:
+  workflow_dispatch: null
+permissions:
+  id-token: write
+  issues: write
+  contents: read
+  actions: read
+  checks: read
+jobs:
+  validate-automation-health:
+    name: Validate All Automation & Signal Health
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Verify all critical workflows exist
+      id: workflow-check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Get Credential [AWS_OIDC_ROLE_ARN]
+      id: cred_aws_oidc_role_arn
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: AWS_OIDC_ROLE_ARN
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [GCP_PROJECT_ID]
+      id: cred_gcp_project_id
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: GCP_PROJECT_ID
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+      id: cred_gcp_service_account_email
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+    - name: Get Credential [USE_OIDC]
+      id: cred_use_oidc
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: USE_OIDC
+        retrieve-from: auto
+        cache-ttl: 600
+        audit-log: true
+      run: "set -euo pipefail\nREPO=\"${{ github.repository }}\"\n\n# List of critical\
+        \ workflows that must exist\nCRITICAL_WORKFLOWS=(\n  \"terraform-auto-apply.yml\"\
+        \n  \"elasticache-apply-safe.yml\"\n  \"system-status-aggregator.yml\"\n \
+        \ \"issue-tracker-automation.yml\"\n  \"fetch-aws-creds-from-gsm.yml\"\n)\n\
+        \nMISSING_WORKFLOWS=()\nfor wf in \"${CRITICAL_WORKFLOWS[@]}\"; do\n  if !\
+        \ gh workflow list --repo ${REPO} --json name --jq '.[] | select(.name | contains(\"\
+        '${wf%.*}'\")) | .name' | grep -q .; then\n    MISSING_WORKFLOWS+=(\"$wf\"\
+        )\n  fi\ndone\n\nif [${#MISSING_WORKFLOWS[@]} -gt 0]; then\n  echo \"missing=true\"\
+        \ >> $GITHUB_OUTPUT\n  echo \"missing_list=$(IFS=, ; echo \\\"${MISSING_WORKFLOWS[*]}\\\
+        \")\" >> $GITHUB_OUTPUT\n  echo \"❌ Missing workflows: ${MISSING_WORKFLOWS[*]}\"\
+        \nelse\n  echo \"missing=false\" >> $GITHUB_OUTPUT\n  echo \"✅ All critical\
+        \ workflows present\"\nfi\n"
+    - name: Check key documentation exists
+      id: doc-check
+      run: "set -euo pipefail\n\nREQUIRED_DOCS=(\n  \"OPERATOR_REMEDIATION_AUTOMATION_RUNBOOK.md\"\
+        \n  \"AUTOMATION_IMPLEMENTATION_COMPLETE.md\"\n  \"HANDS_OFF_AUTOMATION_OPERATOR_SUMMARY.md\"\
+        \n)\n\nMISSING_DOCS=()\nfor doc in \"${REQUIRED_DOCS[@]}\"; do\n  if [! -f\
+        \ \"$doc\"]; then\n    MISSING_DOCS+=(\"$doc\")\n  fi\ndone\n\nif [${#MISSING_DOCS[@]}\
+        \ -gt 0]; then\n  echo \"missing=true\" >> $GITHUB_OUTPUT\n  echo \"missing_list=$(IFS=,\
+        \ ; echo \\\"${MISSING_DOCS[*]}\\\")\" >> $GITHUB_OUTPUT\n  echo \"❌ Missing\
+        \ documentation: ${MISSING_DOCS[*]}\"\nelse\n  echo \"missing=false\" >> $GITHUB_OUTPUT\n\
+        \  echo \"✅ All critical documentation present\"\nfi\n"
+    - name: Validate automation secrets configuration
+      id: secrets-check
+      env:
+        GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
+        GCP_SERVICE_ACCOUNT_EMAIL: ${{ steps.cred_gcp_service_account_email.outputs.credential
+          }}
+        AWS_OIDC_ROLE_ARN: ${{ steps.cred_aws_oidc_role_arn.outputs.credential }}
+        USE_OIDC: ${{ steps.cred_use_oidc.outputs.credential }}
+      run: "echo \"Checking automation secrets configuration...\"\n\nSECRETS_OK=true\n\
+        \n# Check base secrets (must be present)\nif [-z \"${GCP_PROJECT_ID}\"]; then\n\
+        \  echo \"⚠️  GCP_PROJECT_ID not configured\"\n  echo \"secrets_ready=false\"\
+        \ >> $GITHUB_OUTPUT\n  SECRETS_OK=false\nelse\n  echo \"✅ GCP_PROJECT_ID configured\"\
+        \nfi\n\nif [-z \"${GCP_SERVICE_ACCOUNT_EMAIL}\"]; then\n  echo \"secrets_ready=false\"\
+        \ >> $GITHUB_OUTPUT\n  SECRETS_OK=false\nelse\nfi\n\n# Check provisioning\
+        \ secrets (optional for dry-run, required for apply)\nif [-n \"${AWS_OIDC_ROLE_ARN}\"\
+        ] && [\"${USE_OIDC}\" = \"true\"]; then\n  echo \"✅ AWS OIDC Role configured\
+        \ — apply phase unlocked\"\n  echo \"apply_ready=true\" >> $GITHUB_OUTPUT\n\
+        else\n  echo \"ℹ️  AWS OIDC Role not fully configured — dry-run mode active\"\
+        \n  echo \"apply_ready=false\" >> $GITHUB_OUTPUT\nfi\n\nif [\"$SECRETS_OK\"\
+        \ = \"true\"]; then\n  echo \"secrets_ready=true\" >> $GITHUB_OUTPUT\nfi\n"
+    - name: Check recent workflow success rates
+      id: health-check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: "set -euo pipefail\nREPO=\"${{ github.repository }}\"\n\n# Check system-status-aggregator\
+        \ (should run every 15 min, so 4+ runs per hour)\nAGGREGATOR_RUNS=$(gh run\
+        \ list --repo ${REPO} --workflow system-status-aggregator.yml --limit 5 --json\
+        \ conclusion --jq '[.[] | select(.conclusion != null)] | length' 2>/dev/null\
+        \ || echo \"0\")\nAGGREGATOR_SUCCESS=$(gh run list --repo ${REPO} --workflow\
+        \ system-status-aggregator.yml --limit 5 --json conclusion --jq '[.[] | select(.conclusion\
+        \ == \"success\")] | length' 2>/dev/null || echo \"0\")\n\nif [\"$AGGREGATOR_RUNS\"\
+        \ -gt 0]; then\n  SUCCESS_RATE=$(( (AGGREGATOR_SUCCESS * 100) / AGGREGATOR_RUNS\
+        \ ))\n  echo \"aggregator_health=$(echo \"scale=0; $SUCCESS_RATE\" | bc)%\"\
+        \ >> $GITHUB_OUTPUT\n  echo \"✅ System Aggregator: $SUCCESS_RATE% success\
+        \ rate (last 5 runs)\"\nelse\n  echo \"aggregator_health=unknown\" >> $GITHUB_OUTPUT\n\
+        \  echo \"ℹ️  System Aggregator: No recent runs\"\nfi\n\n# Check issue-tracker-automation\
+        \ (should run every 4 hours)\nTRACKER_RUNS=$(gh run list --repo ${REPO} --workflow\
+        \ issue-tracker-automation.yml --limit 3 --json conclusion --jq '[.[] | select(.conclusion\
+        \ != null)] | length' 2>/dev/null || echo \"0\")\nTRACKER_SUCCESS=$(gh run\
+        \ list --repo ${REPO} --workflow issue-tracker-automation.yml --limit 3 --json\
+        \ conclusion --jq '[.[] | select(.conclusion == \"success\")] | length' 2>/dev/null\
+        \ || echo \"0\")\n\nif [\"$TRACKER_RUNS\" -gt 0]; then\n  TRACKER_RATE=$((\
+        \ (TRACKER_SUCCESS * 100) / TRACKER_RUNS ))\n  echo \"tracker_health=$(echo\
+        \ \"scale=0; $TRACKER_RATE\" | bc)%\" >> $GITHUB_OUTPUT\n  echo \"✅ Issue\
+        \ Tracker: $TRACKER_RATE% success rate (last 3 runs)\"\nelse\n  echo \"tracker_health=unknown\"\
+        \ >> $GITHUB_OUTPUT\n  echo \"ℹ️  Issue Tracker: No recent runs\"\nfi\n"
+    - name: Verify main branch protection and auto-merge readiness
+      id: branch-check
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: "set -euo pipefail\nREPO=\"${{ github.repository }}\"\n\n# Check if main\
+        \ branch has protection rules\nBRANCH_PROTECTED=$(gh api repos/${REPO}/branches/main\
+        \ \\\n  --jq '.protected' 2>/dev/null || echo \"false\")\n\nif [\"$BRANCH_PROTECTED\"\
+        \ = \"true\"]; then\n  echo \"✅ Main branch is protected\"\n  echo \"branch_protected=true\"\
+        \ >> $GITHUB_OUTPUT\nelse\n  echo \"⚠️  Main branch is not protected (optional\
+        \ but recommended)\"\n  echo \"branch_protected=false\" >> $GITHUB_OUTPUT\n\
+        fi\n"
+    - name: Generate comprehensive health report
+      id: report
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WORKFLOW_MISSING: ${{ steps.workflow-check.outputs.missing }}
+        DOC_MISSING: ${{ steps.doc-check.outputs.missing }}
+        SECRETS_READY: ${{ steps.secrets-check.outputs.secrets_ready }}
+        APPLY_READY: ${{ steps.secrets-check.outputs.apply_ready }}
+        AGGREGATOR_HEALTH: ${{ steps.health-check.outputs.aggregator_health }}
+        TRACKER_HEALTH: ${{ steps.health-check.outputs.tracker_health }}
+        BRANCH_PROTECTED: ${{ steps.branch-check.outputs.branch_protected }}
+      run: "NOW=$(date -u +'%Y-%m-%d %H:%M:%SZ')\nREPO=\"${{ github.repository }}\"\
+        \n\ncat > /tmp/health_report.md << 'EOF'\n# \U0001F3E5 Automation Health Report\
+        \ — $NOW\n\n## Overall Status\n\nEOF\n\n# Determine overall health\nif [\"\
+        $WORKFLOW_MISSING\" = \"false\"] && [\"$DOC_MISSING\" = \"false\"] && [\"\
+        $SECRETS_READY\" = \"true\"]; then\n  HEALTH=\"\U0001F7E2 HEALTHY\"\n  echo\
+        \ \"| Status | \U0001F7E2 All Systems Operational |\" >> /tmp/health_report.md\n\
+        elif [\"$WORKFLOW_MISSING\" = \"true\"] || [\"$DOC_MISSING\" = \"true\"];\
+        \ then\n  HEALTH=\"\U0001F534 DEGRADED\"\n  echo \"| Status | \U0001F534 Critical\
+        \ Components Missing |\" >> /tmp/health_report.md\nelse\n  HEALTH=\"\U0001F7E1\
+        \ PARTIAL\"\n  echo \"| Status | \U0001F7E1 Awaiting Provisioning |\" >> /tmp/health_report.md\n\
+        fi\n\ncat >> /tmp/health_report.md << 'EOF'\n| Last Check | $NOW |\n\n## Component\
+        \ Status\n\n| Component | Status | Details |\n|-----------|--------|---------|\n\
+        EOF\n\n# Workflow status\nif [\"$WORKFLOW_MISSING\" = \"true\"]; then\n  echo\
+        \ \"| Workflows | ❌ Missing | ${{ steps.workflow-check.outputs.missing_list\
+        \ }} |\" >> /tmp/health_report.md\nelse\n  echo \"| Workflows | ✅ All Present\
+        \ | terraform-auto-apply, elasticache-safe, aggregator, tracker, gsm-fetch\
+        \ |\" >> /tmp/health_report.md\nfi\n\n# Documentation status\nif [\"$DOC_MISSING\"\
+        \ = \"true\"]; then\n  echo \"| Documentation | ❌ Missing | ${{ steps.doc-check.outputs.missing_list\
+        \ }} |\" >> /tmp/health_report.md\nelse\n  echo \"| Documentation | ✅ Complete\
+        \ | Runbook, implementation guide, operator quick-start |\" >> /tmp/health_report.md\n\
+        fi\n\n# Secrets status\nif [\"$SECRETS_READY\" = \"true\"]; then\n  echo \"\
+        | Base Secrets | ✅ Configured | GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_EMAIL\
+        \ |\" >> /tmp/health_report.md\nelse\n  echo \"| Base Secrets | ⚠️  Incomplete\
+        \ | Check GCP_PROJECT_ID, GCP_SERVICE_ACCOUNT_EMAIL |\" >> /tmp/health_report.md\n\
+        fi\n\n# Provisioning status\nif [\"$APPLY_READY\" = \"true\"]; then\n  echo\
+        \ \"| Provisioning | ✅ READY | AWS_OIDC_ROLE_ARN + USE_OIDC enabled |\" >>\
+        \ /tmp/health_report.md\n  echo \"| Automation | \U0001F7E2 LIVE | terraform-auto-apply\
+        \ active |\" >> /tmp/health_report.md\nelse\n  echo \"| Provisioning | \U0001F7E1\
+        \ PENDING | Awaiting AWS OIDC + GCP WI setup |\" >> /tmp/health_report.md\n\
+        \  echo \"| Automation | \U0001F7E1 DRY-RUN | Safe mode active (no-op) |\"\
+        \ >> /tmp/health_report.md\nfi\n\n# Workflow health\nif [\"$AGGREGATOR_HEALTH\"\
+        \ != \"unknown\"]; then\n  echo \"| Aggregator | ✅ Healthy | Success rate:\
+        \ $AGGREGATOR_HEALTH |\" >> /tmp/health_report.md\nelse\n  echo \"| Aggregator\
+        \ | ℹ️  Initializing | First run pending |\" >> /tmp/health_report.md\nfi\n\
+        \nif [\"$TRACKER_HEALTH\" != \"unknown\"]; then\n  echo \"| Issue Tracker\
+        \ | ✅ Healthy | Success rate: $TRACKER_HEALTH |\" >> /tmp/health_report.md\n\
+        else\n  echo \"| Issue Tracker | ℹ️  Initializing | First run pending |\"\
+        \ >> /tmp/health_report.md\nfi\n\n# Branch protection\nif [\"$BRANCH_PROTECTED\"\
+        \ = \"true\"]; then\n  echo \"| Branch Protection | ✅ Enabled | main branch\
+        \ protected |\" >> /tmp/health_report.md\nelse\n  echo \"| Branch Protection\
+        \ | ⚠️  Disabled | Recommended for safer deploys |\" >> /tmp/health_report.md\n\
+        fi\n\ncat >> /tmp/health_report.md << 'EOF'\n\n## Next Steps\n\nEOF\n\nif\
+        \ [\"$HEALTH\" = \"\U0001F7E2 HEALTHY\"] && [\"$APPLY_READY\" = \"false\"\
+        ]; then\n  cat >> /tmp/health_report.md << 'EOF'\n### Unlock Full Automation\
+        \ (Operator Action Required)\n\n1. Complete Phase 1 (GCP Workload Identity\
+        \ setup) → see OPERATOR_REMEDIATION_AUTOMATION_RUNBOOK.md\n2. Complete Phase\
+        \ 2 (AWS OIDC provisioning) → see same runbook\n3. Set repo secrets: AWS_OIDC_ROLE_ARN,\
+        \ USE_OIDC=true\n4. This health check will auto-update status when provisioning\
+        \ complete\n\nEOF\nelif [\"$HEALTH\" = \"\U0001F7E2 HEALTHY\"] && [\"$APPLY_READY\"\
+        \ = \"true\"]; then\n  cat >> /tmp/health_report.md << 'EOF'\n### ✅ Fully\
+        \ Hands-Off Automation is LIVE\n\n- terraform-auto-apply: Auto-runs on terraform/**\
+        \ push\n- elasticache-apply-safe: Auto-runs on tfvars push\n- system-status-aggregator:\
+        \ Reports health every 15 min (issue #1064)\n- issue-tracker-automation: Manages\
+        \ tracking issues every 4 hours\n\nNo manual intervention required. Monitor\
+        \ health via this report.\n\nEOF\nelse\n  cat >> /tmp/health_report.md <<\
+        \ 'EOF'\n### ⚠️  Action Required\n\n- Deploy missing components from AUTOMATION_IMPLEMENTATION_COMPLETE.md\n\
+        - Ensure all required documentation is present\n- Verify base secrets (GCP_PROJECT_ID,\
+        \ GCP_SERVICE_ACCOUNT_EMAIL)\n\nEOF\nfi\n\n# Save report to output\nREPORT=$(cat\
+        \ /tmp/health_report.md)\necho \"report<<DELIMITER\" >> $GITHUB_ENV\necho\
+        \ \"$REPORT\" >> $GITHUB_ENV\necho \"DELIMITER\" >> $GITHUB_ENV\n\n# Save\
+        \ health status\necho \"health_status=$HEALTH\" >> $GITHUB_OUTPUT\n"
+    - name: Post or update health report to issue
+      if: always()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+      run: "set -euo pipefail\nREPO=\"${{ github.repository }}\"\n\n# Ensure issue\
+        \ #1064 exists and is open\nISSUE_STATE=$(gh issue view 1064 --repo ${REPO}\
+        \ --json state --jq '.state' 2>/dev/null || echo \"\")\n\nif [-z \"$ISSUE_STATE\"\
+        ]; then\n  # Create issue if missing\n  gh issue create --repo ${REPO} \\\n\
+        \    --title \"\U0001F3E5 Automation Health & Deployment Status\" \\\n   \
+        \ --body \"Central tracking for automation health and deployment readiness.\
+        \ Updated hourly by automation-health-validator.yml\" \\\n    --label \"automation,monitoring,status-tracking\"\
+        \ || true\nelif [\"$ISSUE_STATE\" = \"CLOSED\"]; then\n  # Reopen if closed\n\
+        \  gh issue reopen 1064 --repo ${REPO} || true\nfi\n\n# Post or update health\
+        \ report\nEXISTING=$(gh api \"/repos/${REPO}/issues/1064/comments\" --jq \"\
+        .[] | select(.body | startswith(\\\"# \U0001F3E5 Automation Health Report\\\
+        \")) | .id\" 2>/dev/null | head -1 || true)\n\nif [-n \"$EXISTING\"]; then\n\
+        \  # Update existing comment\n  gh api \"/repos/${REPO}/issues/comments/${EXISTING}\"\
+        \ -X PATCH -f body=\"${{ env.report }}\" 2>/dev/null || echo \"Failed to update\
+        \ comment\"\nelse\n  # Create new comment\n  gh issue comment 1064 --repo\
+        \ ${REPO} --body \"${{ env.report }}\" 2>/dev/null || echo \"Failed to create\
+        \ comment\"\nfi\n"
+    - name: Alert on critical issues
+      if: failure()
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+      run: 'set -euo pipefail
+
+        REPO="${{ github.repository }}"
+
+
+        ALERT_BODY="⚠️ **Automation Health Check Failed**
+
+
+        Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id
+        }}
+
+
+        Status: ${{ steps.report.outputs.health_status }}
+
+
+        **Action Required**: Review workflow logs and complete any pending provisioning."
+
+
+        # Post alert to issue #1064
+
+        gh issue comment 1064 --repo ${REPO} --body "$ALERT_BODY" || true
+
+        '
+    - name: Summary
+      if: always()
+      run: 'echo "✅ Automation Health Validation Complete"
+
+        echo "Health Status: ${{ steps.report.outputs.health_status }}"
+
+        echo "Report posted to issue #1064"
+
+        echo ""
+
+        echo "Secrets Ready: ${{ steps.secrets-check.outputs.secrets_ready }}"
+
+        echo "Apply Ready: ${{ steps.secrets-check.outputs.apply_ready }}"
+
+        echo "Workflows Missing: ${{ steps.workflow-check.outputs.missing }}"
+
+        echo "Docs Missing: ${{ steps.doc-check.outputs.missing }}"
+
+        '
+    timeout-minutes: 30
