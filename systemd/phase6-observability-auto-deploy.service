@@ -1,0 +1,20 @@
+[Unit]
+Description=Phase 6 Observability Auto-Deployment (oneshot)
+After=network-online.target
+Wants=network-online.target
+Documentation=file:///home/akushnir/self-hosted-runner/docs/PHASE_6_OBSERVABILITY_AUTOMATION.md
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash /home/akushnir/self-hosted-runner/runners/phase6-observability-auto-deploy.sh
+User=akushnir
+Group=akushnir
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=3600
+SuccessExitStatus=0-1
+Environment="SECRETS_BACKEND=gsm"
+Environment="DEBUG=0"
+
+[Install]
+WantedBy=multi-user.target
