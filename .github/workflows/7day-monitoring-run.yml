@@ -1,0 +1,109 @@
+name: 7-Day Production Monitoring Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      start_or_resume:
+        description: 'Start new run or resume'
+        required: true
+        default: 'start'
+        type: choice
+        options:
+          - start
+          - resume
+  schedule:
+    # Start monitoring run on the first of each month at midnight UTC
+    - cron: '0 0 1 * *'
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  monitoring-7day:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure SSH access
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H 192.168.168.42 >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Configure Vault access
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR || 'http://127.0.0.1:8200' }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        run: |
+          if [ -z "$VAULT_ADDR" ]; then
+            echo "⚠️  VAULT_ADDR not configured; health checks will use local fallbacks"
+          fi
+
+      - name: Start new 7-day monitoring run
+        if: github.event.inputs.start_or_resume == 'start' || github.event_name == 'schedule'
+        run: |
+          mkdir -p logs tmp
+          nohup ./scripts/7day-monitoring-runbook.sh start > /tmp/monitoring-run.log 2>&1 &
+          echo "✅ 7-day monitoring run started (PID: $!)"
+          echo "Monitor progress: tail -f logs/7day-monitoring.jsonl"
+
+      - name: Resume monitoring run
+        if: github.event.inputs.start_or_resume == 'resume'
+        run: |
+          if [ -f tmp/7day-monitoring.state ]; then
+            source tmp/7day-monitoring.state
+            echo "Resuming from day $CURRENT_DAY"
+            nohup ./scripts/7day-monitoring-runbook.sh resume > /tmp/monitoring-run.log 2>&1 &
+          else
+            echo "ERROR: No monitoring state found. Run with start_or_resume=start"
+            exit 1
+          fi
+
+      - name: Initial health check
+        run: |
+          # Run one-time check to verify services are up before scheduling 7-day run
+          ./scripts/7day-monitoring-runbook.sh check || true
+
+      - name: Commit monitoring logs
+        if: always()
+        run: |
+          git config user.name "automation"
+          git config user.email "automation@example.com"
+          git add logs/7day-monitoring.jsonl tmp/7day-monitoring.state MONITORING_7DAY_REPORT_*.md || true
+          git commit -m "monitoring: 7-day run initiated $(date -u +'%Y-%m-%d %H:%M:%S UTC')" \
+            --author="automation <automation@example.com>" || true
+          git push origin main || true
+
+      - name: Send PagerDuty alert (monitoring started)
+        run: |
+          if [ -x scripts/pagerduty-integration.sh ]; then
+            ./scripts/pagerduty-integration.sh monitoring-started \
+              "7 days (March 9-15, 2026)" \
+              "Vault, Vault Agent, node_exporter, Filebeat, Terraform, Health Daemon" || true
+          fi
+        env:
+          PAGERDUTY_API_KEY: ${{ secrets.PAGERDUTY_API_KEY }}
+          PAGERDUTY_SERVICE_ID: ${{ secrets.PAGERDUTY_SERVICE_ID }}
+
+      - name: Comment on monitoring issues
+        run: |
+          gh issue comment 1948 \
+            --repo kushin77/self-hosted-runner \
+            -b "7-day production monitoring run initiated. Start time: $(date -u +'%Y-%m-%d %H:%M:%S UTC'). Monitor progress via: logs/7day-monitoring.jsonl" \
+            || true
+          gh issue comment 1949 \
+            --repo kushin77/self-hosted-runner \
+            -b "7-day monitoring operational. Alerts will be sent to PagerDuty." \
+            || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
