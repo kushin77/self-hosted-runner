@@ -1,0 +1,43 @@
+{
+  "deployment_id": "deploy-2026-03-08T23-28-55.406426",
+  "timestamp": "2026-03-08T23:28:55.406633",
+  "components": {
+    "deployed": [],
+    "failed": [
+      "revoke-exposed-keys"
+    ]
+  },
+  "summary": {
+    "deployment_id": "deploy-2026-03-08T23-28-55.406426",
+    "timestamp": "2026-03-08T23:28:55.406633",
+    "total_events": 3,
+    "events": [
+      {
+        "timestamp": "2026-03-08T23:28:55.407209",
+        "event_type": "deployment_start",
+        "component_id": "revoke-exposed-keys",
+        "status": "in-progress",
+        "details": {},
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:28:55.443477",
+        "event_type": "step_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {
+          "step": "revoke-gcp-keys"
+        },
+        "error": null
+      },
+      {
+        "timestamp": "2026-03-08T23:28:55.443712",
+        "event_type": "deployment_failed",
+        "component_id": "revoke-exposed-keys",
+        "status": "failed",
+        "details": {},
+        "error": "Step failed: revoke-gcp-keys"
+      }
+    ]
+  }
+}
