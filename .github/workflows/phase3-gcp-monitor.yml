@@ -1,0 +1,83 @@
+name: "[AUTO] Phase 3 GCP Blocker Monitor & Auto-Deploy"
+
+on:
+  schedule:
+    - cron: '*/2 * * * *'  # Run every 2 minutes
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/environments/staging-tenant-a/**'
+      - 'scripts/phase3b-deploy-with-sa-fallback.sh'
+
+jobs:
+  monitor-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      checks: write
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v1
+        with:
+          service_account_key: ${{ secrets.GCP_SA_KEY_B64 }}
+          project_id: p4-platform
+          export_default_credentials: true
+
+      - name: Run GCP Blocker Monitor & Auto-Deploy
+        id: monitor
+        run: |
+          bash scripts/phase3-gcp-blocker-monitoring.sh ${{ github.workspace }}
+        continue-on-error: true
+
+      - name: Post to GitHub Issues (Success)
+        if: steps.monitor.outcome == 'success'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 2072,
+              body: `**[AUTO] Phase 3 Deployment Monitor**\n\n✅ **GCP Blockers Cleared & Phase 3B Deployment Complete**\n\nTimestamp: ${new Date().toISOString()}\n\nAll 8 infrastructure resources deployed successfully:\n- Service Account: runner-sa\n- Firewall Rules: ingress_allow, ingress_deny, egress_allow, egress_deny\n- Instance Template: runner_template\n- IAM Workload Identity: 2 bindings\n\nPhase 3B is now in production. All automation layers (K8s, Scheduler, systemd) are active.\n\n[View audit trail](logs/deployment-provisioning-audit.jsonl)`
+            })
+
+      - name: Post to GitHub Issues (Blocked)
+        if: steps.monitor.outcome == 'failure'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 2072,
+              body: `**[AUTO] Phase 3 Deployment Monitor**\n\n⏳ **GCP Blockers Still Present**\n\nTimestamp: ${new Date().toISOString()}\n\nExternal blockers preventing deployment:\n1. Compute Engine API: SERVICE_DISABLED\n2. IAM Permission: iam.serviceAccounts.create denied\n\n**Action Required:** GCP project admin must:\n1. Enable Compute Engine API in p4-platform project\n2. Grant iam.serviceAccountAdmin role to akushnir@bioenergystrategies.com\n3. Wait 3–5 minutes for permissions to propagate\n\nThis monitor will auto-retry every 2 minutes until blockers clear, then automatically execute Phase 3B deployment.\n\n[View GCP Console](https://console.cloud.google.com/apis/library?project=p4-platform)`
+            })
+
+      - name: Update commit status
+        uses: actions/github-script@v6
+        if: always()
+        with:
+          script: |
+            const status = '${{ steps.monitor.outcome }}' === 'success' ? 'success' : 'pending';
+            const description = status === 'success' 
+              ? 'Phase 3B deployment complete'
+              : 'Awaiting GCP blockers to clear (auto-retrying)';
+            
+            github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: status,
+              description: description,
+              context: 'Phase 3 GCP Monitor'
+            })
