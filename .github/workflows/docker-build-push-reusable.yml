@@ -165,7 +165,7 @@ jobs:
           # Get OIDC token
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.token')
-          
+
           # Assume role
           CREDS=$(aws sts assume-role-with-web-identity \
             --role-arn "${{ inputs.aws_role_arn }}" \
@@ -173,19 +173,19 @@ jobs:
             --web-identity-token "$OIDC_TOKEN" \
             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
             --output text)
-          
+
           read -r AWS_KEY AWS_SECRET AWS_TOKEN <<< "$CREDS"
           echo "::add-mask::${AWS_KEY}"
           echo "::add-mask::${AWS_SECRET}"
-          
+
           export AWS_ACCESS_KEY_ID="${AWS_KEY}"
           export AWS_SECRET_ACCESS_KEY="${AWS_SECRET}"
           export AWS_SESSION_TOKEN="${AWS_TOKEN}"
-          
+
           # Get ECR login token
           aws ecr get-login-password --region us-east-1 | docker login \
             --username AWS --password-stdin "${{ inputs.aws_account_id }}.dkr.ecr.us-east-1.amazonaws.com"
-          
+
           echo "ecr_registry=${{ inputs.aws_account_id }}.dkr.ecr.us-east-1.amazonaws.com" >> $GITHUB_OUTPUT
           echo "✅ ECR authenticated via OIDC"
 
@@ -196,14 +196,14 @@ jobs:
           # Workload Identity Federation
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.token')
-          
+
           # Assume service account
           gcloud auth login --cred-file=/dev/stdin <<< "$OIDC_TOKEN"
           gcloud config set project "${{ inputs.gcp_project_id }}"
-          
+
           # Get GCR token
           gcloud auth configure-docker gcr.io
-          
+
           echo "gcr_registry=gcr.io/${{ inputs.gcp_project_id }}" >> $GITHUB_OUTPUT
           echo "✅ GCR authenticated via Workload Identity"
 
@@ -237,7 +237,7 @@ jobs:
           if [ -n "${{ inputs.docker_build_args }}" ]; then
             BUILD_ARGS="${{ inputs.docker_build_args }}"
           fi
-          
+
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --tag "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
@@ -245,7 +245,7 @@ jobs:
             --output type=docker \
             ${BUILD_ARGS} \
             .
-          
+
           echo "image_digest=$(docker inspect --type=image ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --format='{{index .RepoDigests 0}}')" >> $GITHUB_OUTPUT
           echo "✅ Docker image built"
 
@@ -255,16 +255,16 @@ jobs:
         run: |
           # Install cyclonedx-bom
           npm install -g @cyclonedx/npm
-          
+
           # Generate SBOM
           cyclonedx-npm --output-file sbom.json --json
-          
+
           # Also generate image SBOM
           docker run --rm \
             -v $(pwd):/workspace \
             anchore/syft:latest \
             /workspace -o cyclonedx-json -o cyclonedx-json=/workspace/image-sbom.json
-          
+
           echo "sbom_file=sbom.json" >> $GITHUB_OUTPUT
           echo "✅ SBOM generated"
 

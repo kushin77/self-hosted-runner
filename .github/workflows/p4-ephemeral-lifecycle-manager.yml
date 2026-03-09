@@ -45,13 +45,13 @@ jobs:
   # =========================================================================
   # Check Runner Health & TTL Status
   # =========================================================================
-  
+
   check-runner-health:
     name: "Check Runner Health"
     runs-on: ubuntu-latest
     if: contains(github.event.schedule, '*/5') || contains(github.event.inputs.action, 'check')
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -82,10 +82,10 @@ jobs:
         id: health-check
         run: |
           python3 scripts/ephemeral-lifecycle-controller.py info
-          
+
           # Collect metrics
           echo "=== Runner Lifecycle Summary ===" >> $GITHUB_STEP_SUMMARY
-          
+
           # Count runners by TTL status
           RUNNING=$(python3 -c "
           import json, os
@@ -93,7 +93,7 @@ jobs:
           runner_dirs = list(Path('/tmp/runner-lifecycle').glob('*/'))
           print(f'Total runners tracked: {len(runner_dirs)}')
           ")
-          
+
           echo "$RUNNING" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload health report
@@ -108,7 +108,7 @@ jobs:
   # =========================================================================
   # Reap Expired Runners
   # =========================================================================
-  
+
   reap-expired-runners:
     name: "Reap Expired Runners"
     runs-on: ubuntu-latest
@@ -116,7 +116,7 @@ jobs:
     if: contains(github.event.schedule, '*/5') || contains(github.event.inputs.action, 'reap')
     timeout-minutes: 15
     continue-on-error: true
-    
+
     strategy:
       matrix:
         runner_group:
@@ -147,20 +147,20 @@ jobs:
           import json
           import subprocess
           from pathlib import Path
-          
+
           # Get all runners
           result = subprocess.run(
               ["gh", "runner", "list", "--json", "name,status,labels"],
               capture_output=True,
               text=True
           )
-          
+
           if result.returncode != 0:
               print("Failed to get runners")
               exit(1)
-          
+
           runners = json.loads(result.stdout) if result.stdout else []
-          
+
           expired_runners = []
           for runner in runners:
               # Check if runner state file indicates TTL expired
@@ -171,16 +171,16 @@ jobs:
                       # Check if TTL expired
                       if is_ttl_expired(state):
                           expired_runners.append(runner['name'])
-          
+
           print(f"::set-output name=expired::{json.dumps(expired_runners)}")
-          
+
           def is_ttl_expired(state):
               from datetime import datetime, timedelta
               assigned = datetime.fromisoformat(state.get('assigned_at', ''))
               ttl = state.get('ttl_assigned', 0)
               expiry = assigned + timedelta(seconds=ttl)
               return datetime.utcnow() > expiry
-          
+
           for runner in expired_runners:
               print(f"Found expired runner: {runner}")
           EOF
@@ -193,7 +193,7 @@ jobs:
   # =========================================================================
   # Drain Runners Before Shutdown
   # =========================================================================
-  
+
   drain-runners-gracefully:
     name: "Drain Runners Gracefully"
     runs-on: ubuntu-latest
@@ -217,7 +217,7 @@ jobs:
       - name: Initiate graceful drain
         run: |
           echo "Initiating graceful drain of all ephemeral runners..."
-          
+
           python3 scripts/ephemeral-lifecycle-controller.py drain \
             --strategy graceful \
             --timeout 300
@@ -231,13 +231,13 @@ jobs:
           import json
           from pathlib import Path
           from datetime import datetime
-          
+
           print("\n=== Drain Progress Monitor ===\n")
-          
+
           start_time = datetime.utcnow()
           max_duration = 300  # 5 minutes
           check_interval = 10
-          
+
           while (datetime.utcnow() - start_time).seconds < max_duration:
               # Check status of each runner
               result = subprocess.run(
@@ -245,14 +245,14 @@ jobs:
                   capture_output=True,
                   text=True
               )
-              
+
               elapsed = (datetime.utcnow() - start_time).seconds
               print(f"[{elapsed}s] {result.stdout}")
-              
+
               if result.returncode == 0:  # Safe to reap
                   print("\n✓ Drain complete")
                   break
-              
+
               time.sleep(check_interval)
           else:
               print("\n⚠ Drain timeout - forcing shutdown")
@@ -265,7 +265,7 @@ jobs:
   # =========================================================================
   # Collect Lifecycle Metrics
   # =========================================================================
-  
+
   collect-metrics:
     name: "Collect Lifecycle Metrics"
     runs-on: ubuntu-latest
@@ -293,7 +293,7 @@ jobs:
           from pathlib import Path
           from datetime import datetime
           import glob
-          
+
           metrics = {
               "timestamp": datetime.utcnow().isoformat() + "Z",
               "runners": {
@@ -308,11 +308,11 @@ jobs:
                   "events_by_type": {}
               }
           }
-          
+
           # Count state files and analyze
           state_files = glob.glob("/tmp/runner-lifecycle/*/state.json")
           metrics["runners"]["total_tracked"] = len(state_files)
-          
+
           for state_file in state_files:
               try:
                   with open(state_file) as f:
@@ -321,7 +321,7 @@ jobs:
                           metrics["runners"]["ttl_assigned"] += 1
               except:
                   pass
-          
+
           # Count audit log entries
           audit_logs = glob.glob("/tmp/runner-lifecycle/audit-logs/*.jsonl")
           for log_file in audit_logs:
@@ -336,11 +336,11 @@ jobs:
                               metrics["audit_trail"]["total_events"] += 1
               except:
                   pass
-          
+
           # Write metrics
           with open("/tmp/metrics.json", "w") as f:
               json.dump(metrics, f, indent=2)
-          
+
           print("Metrics collected:")
           print(json.dumps(metrics, indent=2))
           EOF
@@ -361,7 +361,7 @@ jobs:
   # =========================================================================
   # Audit Log Maintenance
   # =========================================================================
-  
+
   maintain-audit-logs:
     name: "Maintain Audit Logs"
     runs-on: ubuntu-latest
@@ -375,15 +375,15 @@ jobs:
       - name: Archive old audit logs
         run: |
           CUTOFF_DATE=$(date -d '30 days ago' +%Y%m%d)
-          
+
           echo "Archiving audit logs older than $CUTOFF_DATE..."
-          
+
           # Archive logs
           tar -czf /tmp/audit-logs-archived-$CUTOFF_DATE.tar.gz \
             /tmp/runner-lifecycle/audit-logs/ \
             --exclude "audit-2[0]2[6]-*" \
             2>/dev/null || true
-          
+
           echo "Audit logs archived"
 
       - name: Upload archived logs
@@ -401,7 +401,7 @@ jobs:
   # =========================================================================
   # Summary Report
   # =========================================================================
-  
+
   summary-report:
     name: "Lifecycle Management Summary"
     runs-on: ubuntu-latest
@@ -427,11 +427,11 @@ jobs:
       - name: Check workflow results
         run: |
           echo "Workflow completed successfully"
-          
+
           if [[ "${{ needs.check-runner-health.result }}" != "success" ]]; then
             echo "⚠ Runner health check had issues"
           fi
-          
+
           if [[ "${{ needs.reap-expired-runners.result }}" != "success" ]]; then
             echo "⚠ Reap operation had issues"
           fi
