@@ -35,11 +35,9 @@ jobs:
         run: |
           if [ -z "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" ]; then
             echo "status=missing_gcp_key" >> $GITHUB_OUTPUT
-<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
             exit 1
           else
             echo "status=gcp_key_present" >> $GITHUB_OUTPUT
-<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
           fi
 
       - name: Validate GCP key structure (Enhanced)
