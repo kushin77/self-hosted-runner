@@ -74,6 +74,31 @@ jobs:
       # Immutable: Generate execution fingerprint for audit trail
       - name: Generate Execution ID & Audit Trail
         id: execution_id
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GOOGLE_CREDENTIALS]
+        id: cred_google_credentials
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GOOGLE_CREDENTIALS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           EXEC_ID="consolidation-$(date +%s)-${GITHUB_RUN_ID}"
           TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
@@ -118,13 +143,13 @@ jobs:
           
           # Check: Credentials available (GSM > VAULT > KMS)
           CREDS_OK="false"
-          if [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then
+          if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
             echo "✓ GSM credentials available"
             CREDS_OK="true"
-          elif [ -n "${{ secrets.VAULT_ADDR }}" ]; then
+          elif [ -n "${{ steps.cred_vault_addr.outputs.credential }}" ]; then
             echo "✓ VAULT credentials available"
             CREDS_OK="true"
-          elif [ -n "${{ secrets.AWS_ROLE_ARN }}" ]; then
+          elif [ -n "${{ steps.cred_aws_role_arn.outputs.credential }}" ]; then
             echo "✓ KMS/AWS credentials available"
             CREDS_OK="true"
           else
@@ -176,15 +201,15 @@ jobs:
           echo "🔐 Initializing multi-layer credential chain (GSM > VAULT > KMS)..."
           
           # Layer 1: Google Secrets Manager (ephemeral federated tokens)
-          if [ -n "${{ secrets.GOOGLE_CREDENTIALS }}" ]; then
+          if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
             echo "✓ Layer 1: GSM initialized"
             ACTIVE_CRED_LAYER="GSM"
           # Layer 2: HashiCorp Vault (auto-rotating secrets)
-          elif [ -n "${{ secrets.VAULT_ADDR }}" ]; then
+          elif [ -n "${{ steps.cred_vault_addr.outputs.credential }}" ]; then
             echo "✓ Layer 2: VAULT initialized"
             ACTIVE_CRED_LAYER="VAULT"
           # Layer 3: AWS KMS (encrypted credential storage)
-          elif [ -n "${{ secrets.AWS_ROLE_ARN }}" ]; then
+          elif [ -n "${{ steps.cred_aws_role_arn.outputs.credential }}" ]; then
             echo "✓ Layer 3: KMS initialized"
             ACTIVE_CRED_LAYER="KMS"
           else

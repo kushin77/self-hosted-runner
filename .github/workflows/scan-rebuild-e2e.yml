@@ -24,6 +24,15 @@ jobs:
 
       - name: Determine image
         id: image
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           if [ "${{ github.event.client_payload.image }}" != "" ]; then
             echo "IMAGE=${{ github.event.client_payload.image }}" >> $GITHUB_ENV
@@ -43,9 +52,9 @@ jobs:
           docker pull "$IMAGE" || true
 
       - name: Fetch cosign private key from Vault
-        if: ${{ secrets.VAULT_ADDR }}
+        if: ${{ steps.cred_vault_addr.outputs.credential }}
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           AUDIENCE: vault
         run: |
           bash scripts/vault_oidc_login.sh
@@ -64,9 +73,9 @@ jobs:
           docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed" && exit 10)
 
       - name: Request Vault OIDC token (for signing)
-        if: ${{ secrets.VAULT_ADDR }}
+        if: ${{ steps.cred_vault_addr.outputs.credential }}
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           AUDIENCE: vault
         run: |
           bash scripts/vault_oidc_login.sh
@@ -80,7 +89,7 @@ jobs:
       - name: Generate SBOM and sign
         env:
           COSIGN_KEY_SECRET_PATH: secret/data/cosign
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           VAULT_ROLE: github-actions-role
         run: |
           # get SBOM and signature
@@ -88,7 +97,7 @@ jobs:
 
       - name: Verify SBOM signature
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           VAULT_ROLE: github-actions-role
         run: |
           ./scripts/verify_sbom_signature.sh "$IMAGE"
