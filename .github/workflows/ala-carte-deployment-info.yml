@@ -11,33 +11,33 @@ jobs:
   generate-deployment-info:
     runs-on: ubuntu-latest
     name: Generate Ala Carte Deployment Information
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Generate deployment information
         run: |
           chmod +x ./scripts/ala-carte-deployment-info.sh
           bash ./scripts/ala-carte-deployment-info.sh
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      
+
       - name: Commit generated artifacts (if any changes)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           # Check if there are new deployment info files
           if git status --porcelain | grep -q "^?? DEPLOYMENT_INFO_"; then
             git add DEPLOYMENT_INFO_*.md
             git commit -m "docs: Auto-generated deployment status ($(date -u '+%Y-%m-%d %H:%M UTC'))"
             git push origin main
           fi
-      
+
       - name: Set job summary
         if: always()
         run: |

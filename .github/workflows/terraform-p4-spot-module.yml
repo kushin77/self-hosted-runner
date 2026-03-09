@@ -117,7 +117,7 @@ jobs:
           import json
           with open('spot-cost-analysis-${{ github.run_id }}.json', 'r') as f:
               data = json.load(f)
-          
+
           print('::notice::Spot Instance Cost Analysis')
           print('::notice::Instance Type | On-Demand | Spot | Savings %')
           print('::notice::' + '-'*50)
@@ -143,20 +143,20 @@ jobs:
           script: |
             const fs = require('fs');
             const path = require('path');
-            
+
             let comment = '## 💰 Spot Instance Cost Analysis\n\n';
             comment += '| Instance Type | On-Demand Price | Spot Price (Avg) | Savings |\n';
             comment += '|---|---|---|---|\n';
-            
+
             try {
               const analysisFile = fs.readdirSync('scripts/spot-cost-analysis')
                 .filter(f => f.includes('spot-cost-analysis-'))
                 .find(f => f.includes('${{ github.run_id }}'));
-              
+
               if (analysisFile) {
                 const data = JSON.parse(fs.readFileSync(path.join('scripts/spot-cost-analysis', analysisFile), 'utf8'));
                 for (const instance of data.instances || []) {
-                  const savings = instance.on_demand_price > 0 
+                  const savings = instance.on_demand_price > 0
                     ? ((instance.on_demand_price - instance.average_spot_price) / instance.on_demand_price * 100).toFixed(1)
                     : 'N/A';
                   comment += `| ${instance.type} | $${instance.on_demand_price.toFixed(4)}/hr | $${instance.average_spot_price.toFixed(4)}/hr | ${savings}% |\n`;
@@ -165,7 +165,7 @@ jobs:
             } catch (e) {
               console.log('Could not parse cost analysis:', e);
             }
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
@@ -183,13 +183,13 @@ jobs:
       - name: Check Documentation Exists
         run: |
           echo "::notice::Checking for spot module documentation..."
-          
+
           files=(
             "terraform/modules/aws_spot_runner/README.md"
             "docs/SPOT_MARKET_SIZING.md"
             "docs/SPOT_INSTANCE_COST_OPTIMIZATION.md"
           )
-          
+
           missing=0
           for file in "${files[@]}"; do
             if [ ! -f "$file" ]; then
@@ -199,7 +199,7 @@ jobs:
               echo "::notice::Found: $file"
             fi
           done
-          
+
           if [ $missing -gt 0 ]; then
             echo "::warning::$missing documentation files missing"
           fi
@@ -220,7 +220,7 @@ jobs:
         working-directory: services/spot-lifecycle
         run: |
           echo "::notice::Validating Spot lifecycle Lambda handler..."
-          
+
           if [ ! -f "handler.py" ]; then
             echo "::warning::Spot lifecycle handler not found"
           else
@@ -232,9 +232,9 @@ jobs:
         working-directory: services/spot-lifecycle
         run: |
           echo "::notice::Checking handler for critical functions..."
-          
+
           required_functions=("lambda_handler" "drain_runner" "notify_webhook")
-          
+
           for func in "${required_functions[@]}"; do
             if grep -q "def $func" handler.py 2>/dev/null; then
               echo "::notice::✓ Found function: $func"
