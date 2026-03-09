@@ -1,0 +1,140 @@
+name: Ansible Runbooks
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      dns_provider:
+        description: 'DNS provider to use (manual|route53|cloudflare)'
+        required: 'false'
+        default: 'manual'
+
+jobs:
+  fetch-aws-creds:
+    name: Fetch AWS Credentials from GSM
+    uses: ./.github/workflows/fetch-aws-creds-from-gsm.yml
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+      GCP_SERVICE_ACCOUNT_EMAIL: ${{ steps.cred_gcp_service_account_email.outputs.credential }}
+      GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
+
+  provision-dns:
+    name: Provision DNS (manual dispatch)
+    needs: [fetch-aws-creds]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+      - name: Get Credential [ANSIBLE_PRIVATE_KEY]
+        id: cred_ansible_private_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: ANSIBLE_PRIVATE_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [CLOUDFLARE_API_TOKEN]
+        id: cred_cloudflare_api_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: CLOUDFLARE_API_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DNS_PROVIDER]
+        id: cred_dns_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DNS_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+        id: cred_gcp_service_account_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [ANSIBLE_PRIVATE_KEY]
+        id: cred_ansible_private_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: ANSIBLE_PRIVATE_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Run provision DNS record playbook
+        env:
+          DNS_PROVIDER: ${{ steps.cred_dns_provider.outputs.credential }}
+          AWS_ACCESS_KEY_ID: ${{ needs.fetch-aws-creds.outputs.aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY: ${{ needs.fetch-aws-creds.outputs.aws_secret_access_key }}
+          AWS_DEFAULT_REGION: ${{ needs.fetch-aws-creds.outputs.aws_region }}
+          CLOUDFLARE_API_TOKEN: ${{ steps.cred_cloudflare_api_token.outputs.credential }}
+        run: |
+          ansible-playbook playbooks/provision_dns_record.yml -e "dns_provider=${{ github.event.inputs.dns_provider || secrets.DNS_PROVIDER }}" -e "dns_name=gitlab.internal.elevatediq.com" -e "dns_value=192.168.168.42" -e "dns_zone=internal.elevatediq.com"
+
+  distribute-ca:
+    name: Distribute internal CA (manual dispatch)
+    runs-on: ubuntu-latest
+    needs: provision-dns
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Load resilience helpers
+        run: |
+          set -euo pipefail
+          source .github/scripts/resilience.sh || true
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible
+
+      - name: Distribute internal CA to operators (requires SSH credentials)
+        env:
+          ANSIBLE_PRIVATE_KEY: ${{ steps.cred_ansible_private_key.outputs.credential }}
+        run: |
+          mkdir -p ~/.ssh && echo "${{ steps.cred_ansible_private_key.outputs.credential }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+          ansible-playbook playbooks/distribute_internal_ca.yml -i inventories/operators --private-key=~/.ssh/id_rsa
