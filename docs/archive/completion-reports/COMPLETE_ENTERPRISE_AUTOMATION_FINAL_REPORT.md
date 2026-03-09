@@ -46,7 +46,7 @@ Successfully designed, implemented, tested, and deployed a **complete enterprise
 - Idempotent execution (safe to retry)
 - Ephemeral cleanup (auto-removal of stale resources)
 
-**GitHub PRs Merged:**
+**GitHub Draft issues Merged:**
 - #1921: State recovery module
 - #1923: Predictive healing module
 - #1925: PR prioritization & auto-merge
@@ -344,7 +344,7 @@ Documentation:
 
 ### Session 1: Self-Healing Framework
 - Duration: Multiple hours
-- Outcome: 5 modules, 3 PRs merged, 5 issues closed
+- Outcome: 5 modules, 3 Draft issues merged, 5 issues closed
 - Status: ✅ PRODUCTION
 
 ### Session 2: Credential Management  

@@ -92,7 +92,7 @@ This will:
 
 - A fresh enterprise-friendly theme was applied to the Portal UI to improve readability and accessibility.
 - Key changes: neutral palette, refined buttons, panels, badges, improved typography (Inter), and global focus outlines.
-- PR: https://github.com/kushin77/self-hosted-runner/pull/260
+- Draft Issue: https://github.com/kushin77/self-hosted-runner/pull/260
 - Review & QA: Issue https://github.com/kushin77/self-hosted-runner/issues/259
 
 ---

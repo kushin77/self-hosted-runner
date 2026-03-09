@@ -12,7 +12,7 @@ Recommended follow-up manual steps:
 1. Review the remediation branch diffs carefully; validate that no functional code was broken.
 2. Rotate all affected credentials (GSM/Vault/AWS/GCP/GitHub) that were exposed. Treat all findings as compromised until rotation completes.
 3. Re-run `gitleaks-scan` locally or via CI to confirm no remaining leaks.
-4. Merge the remediation PR and then merge the documentation PRs once `gitleaks-scan` passes.
-5. Improve developer guidance: add pre-commit gitleaks hook and CI preflight check to block accidental secrets in PRs.
+4. Merge the remediation PR and then merge the documentation Draft issues once `gitleaks-scan` passes.
+5. Improve developer guidance: add pre-commit gitleaks hook and CI preflight check to block accidental secrets in Draft issues.
 
 Emergency contact: Security team and service owners must be notified immediately for rotation actions.

@@ -261,7 +261,7 @@ Deploy Phase P1 components to production with canary rollout and monitoring.
 ### Columns
 1. **Backlog** - Not yet started
 2. **In Progress** - Currently being worked on
-3. **Code Review** - Pull request pending review
+3. **Code Review** - Draft issue pending review
 4. **Testing** - In testing phase
 5. **Done** - Completed and merged
 

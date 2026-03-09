@@ -13,7 +13,7 @@ This repository now includes **fully automated**, **hands-off** CI/CD operations
 1. **Retry Resilience** — Transient failures are automatically retried using an idempotent exponential-backoff wrapper.
 2. **Self-Healing Runners** — Offline runners are detected and restarted (with Ansible/SSH key).
 3. **Scheduled Watcher** — Runs every 10 minutes to detect failed runs and prepare bulk reruns.
-4. **Auto-Merge Monitoring** — PRs with green checks are automatically merged when safe.
+4. **Auto-Merge Monitoring** — Draft issues with green checks are automatically merged when safe.
 5. **Issue Auto-Close** — Admin issues requesting token provisioning are auto-closed once runners are healthy.
 
 ---
@@ -162,7 +162,7 @@ To enable **full hands-off automation**, add these secrets to the repository:
 - ✅ Restart offline runners every 5 minutes.
 - ✅ Close admin request issues when runners healthy.
 - ✅ Reduce flakiness via retry wrapper on key steps.
-- ✅ Auto-merge PRs with green checks (via scheduled merge script).
+- ✅ Auto-merge Draft issues with green checks (via scheduled merge script).
 
 **Monitoring (optional):**
 ```bash

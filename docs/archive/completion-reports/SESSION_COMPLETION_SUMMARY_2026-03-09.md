@@ -88,7 +88,7 @@ This broke YAML parsing in multiple ways:
 🟡 18 workflows with YAML errors (documented, manually callable)  
 
 ### Awaiting Resolution
-⏳ #1944, #1938, #1930 (PRs need merge conflict resolution)  
+⏳ #1944, #1938, #1930 (Draft issues need merge conflict resolution)  
 ⏳ Credential rotation full integration (blocked on #1979)  
 ⏳ Multi-phase orchestration activation  
 
@@ -105,7 +105,7 @@ This broke YAML parsing in multiple ways:
 3. Verify master router can be triggered manually
 
 ### Short-term (This session)
-1. Fix merge conflicts in PRs #1944, #1938, #1930
+1. Fix merge conflicts in Draft issues #1944, #1938, #1930
 2. Systematically remediate high-priority workflows
 3. Resume multi-phase orchestration execution
 
@@ -155,7 +155,7 @@ scripts/fix-multiline-yaml.py
 
 ## Recommendations
 
-1. **Merge PRs:** Resolve merge conflicts in #1944, #1938, #1930 when appropriate
+1. **Merge Draft issues:** Resolve merge conflicts in #1944, #1938, #1930 when appropriate
 2. **Resume Orchestration:** Once workflows stabilized, trigger master router
 3. **Credential Migration:** Begin testing OIDC/WIF credential retrieval
 4. **Documentation:** Update runbooks with disabled workflow status

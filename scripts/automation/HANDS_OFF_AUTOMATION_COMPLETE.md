@@ -8,13 +8,13 @@
 
 ## Executive Summary
 
-Fully automated hands-off CI/CD orchestration has been successfully deployed. All infrastructure changes are committed to the main branch. Target PRs merged. Legacy cleanup completed. System awaits sole Ops action: registry credential restoration.
+Fully automated hands-off CI/CD orchestration has been successfully deployed. All infrastructure changes are committed to the main branch. Target Draft issues merged. Legacy cleanup completed. System awaits sole Ops action: registry credential restoration.
 
 ---
 
 ## Completed Automation Tasks
 
-### ✅ Infrastructure & PRs Merged
+### ✅ Infrastructure & Draft issues Merged
 - **PR #862**: `ci(e2e): add runner-discovery + hosted-fallback` → MERGED
 - **PR #866**: `Make MinIO credentials explicit in reusable Terraform plan callable` → MERGED
 - **PR #868**: `portal-sync-validate: switch upload to ci/scripts/upload_to_minio.sh, wire MINIO` → MERGED
@@ -44,7 +44,7 @@ Fully automated hands-off CI/CD orchestration has been successfully deployed. Al
 ## System Readiness
 
 ### Current State
-- All target PRs successfully merged to main
+- All target Draft issues successfully merged to main
 - All infrastructure code in place and tested
 - Legacy infrastructure cleanup completed
 - Branch protection checks all passing
@@ -98,7 +98,7 @@ Review artifacts in `/tmp/legacy_cleanup_run_22786053495` on the automation runn
 
 | Component | Status | Evidence |
 |-----------|--------|----------|
-| Target PRs merged | ✅ MERGED | #862, #866, #868, #872 all merged to main |
+| Target Draft issues merged | ✅ MERGED | #862, #866, #868, #872 all merged to main |
 | Legacy cleanup run | ✅ SUCCESS | Run 22786053495: conclusion=success |
 | Issue tracking | ✅ COMPLETE | #787 CLOSED, #900/#901 updated |
 | Branch protection | ✅ PASSING | All required checks passing |

@@ -10,7 +10,7 @@
 - Scanned entire repo for literal Vault secrets, tokens, and credential-like values
 - Normalized all placeholder values to use consistent `<VAULT_ROLE_ID_PLACEHOLDER>`, `<VAULT_SECRET_ID_PLACEHOLDER>` format
 - Updated `.gitignore` to exclude runner workspace and test-log artifacts
-- Committed and merged all hygiene/sanitization PRs
+- Committed and merged all hygiene/sanitization Draft issues
 - **Result**: Repo is clean and free of tracked credentials
 
 ### 2. E2E Automation Scripts

@@ -185,7 +185,7 @@ USE_TERRAFORM_CLI=0  // Stub mode (always succeeds, for testing)
 - Dry-run mode of deployment script works
 - All services found and validated
 - Documentation complete and accurate
-- Git repo in valid state (13 PRs merged)
+- Git repo in valid state (13 Draft issues merged)
 - Dependencies configured
 
 ### Smoke Tests ✅
@@ -269,7 +269,7 @@ P4: Hardening           (Apr 1 – May 15)
 | Documentation | 1,000+ lines |
 | Code (Services) | ~1,500 lines |
 | Deployment Script | 390 lines |
-| PRs Merged (P2) | 10 core + 3 wrap-up = 13 |
+| Draft issues Merged (P2) | 10 core + 3 wrap-up = 13 |
 | GitHub Issues | 7 (planning + tracking) |
 | Stages (Deployment) | 5 (fully automated) |
 | Stages (Validation) | 10 (comprehensive) |

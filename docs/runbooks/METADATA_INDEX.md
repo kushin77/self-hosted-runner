@@ -383,7 +383,7 @@ Every metadata entry must include:
 ```
 1. Update JSON file
 2. Run ./scripts/validate-metadata.sh
-3. Create a pull request
+3. Create a Draft issue
 4. Review and approve
 5. Merge to main
 6. Automated sync runs
@@ -522,7 +522,7 @@ Create a GitHub issue with:
 To improve the system:
 1. Make changes to scripts or documentation
 2. Test thoroughly
-3. Create a pull request
+3. Create a Draft issue
 4. Get review from platform team
 5. Merge and deploy
 

@@ -9,7 +9,7 @@ For production use, prefer the official Harbor Helm chart and configure:
 - TLS and ingress
 - Persistent volumes and backups
 
-This chart is intended as a starting point for integration testing and will be hardened in follow-up PRs.
+This chart is intended as a starting point for integration testing and will be hardened in follow-up Draft issues.
 
 Examples:
 - `deploy/harbor/examples/postgres-secret.yaml` — template for external Postgres credentials.

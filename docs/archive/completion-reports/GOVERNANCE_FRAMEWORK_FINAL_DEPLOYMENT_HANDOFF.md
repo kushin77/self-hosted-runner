@@ -38,7 +38,7 @@
 
 - [x] **Ephemeral** ✅ VERIFIED
   - Stale branches auto-cleanup (daily, > 60 days)
-  - Stale PRs auto-close (weekly, > 21 days)
+  - Stale Draft issues auto-close (weekly, > 21 days)
   - Credentials auto-rotate (daily)
   - Nothing accumulates indefinitely
 
@@ -100,7 +100,7 @@
 ### ✅ Requirement: "Ephemeral resources"
 **Status:** ✅ AUTO-CLEANUP SCHEDULED  
 - Branches (> 60 days)
-- PRs (> 21 days)
+- Draft issues (> 21 days)
 - Credentials (daily rotation)
 - All ephemeral
 
@@ -140,7 +140,7 @@
 |-----------|-----------------|--------|--------------|
 | **Immutable** | Append-only logs | ✅ | All ops logged, no deletions |
 | **Idempotent** | State-aware workflows | ✅ | Safe to rerun, no side-effects |
-| **Ephemeral** | Auto-cleanup scheduled | ✅ | Branches/PRs/creds cleaned daily |
+| **Ephemeral** | Auto-cleanup scheduled | ✅ | Branches/Draft issues/creds cleaned daily |
 | **No-Ops** | 5 scheduled workflows | ✅ | Daily 2/3/4 AM, Weekly Sun 1 AM |
 | **FAANG-Grade** | 120+ enhancements | ✅ | Enterprise standards implemented |
 | **GSM/VAULT/KMS** | Multi-layer creds | ✅ | External storage, auto-rotation |
@@ -165,7 +165,7 @@
 1. Stale branch cleanup runs Saturday morning
 2. Credential rotation runs daily (3 AM UTC)
 3. Compliance audit generates reports
-4. PRs get auto-closed if > 21 days
+4. Draft issues get auto-closed if > 21 days
 5. Release automation triggers on main merge
 ```
 

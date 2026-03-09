@@ -450,7 +450,7 @@ Incident Escalation   | Trigger, actions taken   | 1 year
 
 **Branch Protection**:
 ```bash
-✅ Require pull request reviews (minimum 2)
+✅ Require Draft issue reviews (minimum 2)
 ✅ Require status checks to pass
 ✅ Require branches to be up to date
 ✅ Dismiss stale PR approvals

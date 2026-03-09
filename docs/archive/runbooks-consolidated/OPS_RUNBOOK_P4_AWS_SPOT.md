@@ -57,7 +57,7 @@ Post-apply verification
 Contacts and references
 - PR to fill tfvars: #317
 - Ops escalation issue: #325
-- Portal live-channels PR: #337
+- Portal live-channels Draft Issue: #337
 - CI workflows: `.github/workflows/p4-aws-spot-deploy-plan.yml`, `.github/workflows/p4-aws-spot-apply.yml`
 - Ops helper script: `scripts/ops/p4-aws-spot-setup.sh`
 

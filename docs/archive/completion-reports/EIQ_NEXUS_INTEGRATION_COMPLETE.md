@@ -274,7 +274,7 @@ When Copilot generates code in this repo, it will follow these principles automa
 ### Short-term (Next 2 Weeks)
 1. Start implementing core APIs
 2. Deploy observability stack
-3. Get first PRs following governance
+3. Get first Draft issues following governance
 4. Validate Copilot behavior
 
 ### Medium-term (Next Month)

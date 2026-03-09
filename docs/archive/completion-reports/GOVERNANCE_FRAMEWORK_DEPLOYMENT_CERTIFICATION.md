@@ -20,7 +20,7 @@
 - [x] #1835 - Task: Credentials setup (GSM/VAULT/KMS)
 - [x] #1836 - Task: Automation workflows (5 workflows)
 - [x] #1837 - Task: Branch protection rules
-- [x] #1839 - Main PR: Ready for review & merge
+- [x] #1839 - Main Draft Issue: Ready for review & merge
 
 ### ✅ Deployment Pipeline
 - [x] Governance branch created: `governance/INFRA-999-faang-git-governance`
@@ -32,7 +32,7 @@
 ### ✅ Architecture Principles Implemented
 - [x] **Immutable** - Append-only audit trails, zero destructive operations
 - [x] **Idempotent** - All scripts safe to run repeatedly without side effects
-- [x] **Ephemeral** - Auto-cleanup scheduled (branches, PRs, credentials)
+- [x] **Ephemeral** - Auto-cleanup scheduled (branches, Draft issues, credentials)
 - [x] **No-Ops** - Fully automated, zero manual intervention required
 - [x] **FAANG-Compliant** - Enterprise governance standards applied
 
@@ -57,7 +57,7 @@
 ### ✅ Automation Workflows Ready
 - [x] `credential-rotation.yml` - Daily 3 AM UTC (GSM 90d, Vault 24h, KMS auto)
 - [x] `stale-cleanup.yml` - Daily 2 AM UTC (branches > 60 days)
-- [x] `stale-pr-cleanup.yml` - Weekly Sunday 1 AM (PRs > 21 days)
+- [x] `stale-pr-cleanup.yml` - Weekly Sunday 1 AM (Draft issues > 21 days)
 - [x] `compliance-audit.yml` - Daily 4 AM UTC (governance checks)
 - [x] `release-automation.yml` - On main merge (auto-release)
 
@@ -150,7 +150,7 @@
 
 ### 4️⃣ Automated Cleanup (Ephemeral)
 - Stale branches (>60 days) auto-deleted daily
-- Stale PRs (>21 days) auto-closed weekly
+- Stale Draft issues (>21 days) auto-closed weekly
 - Credentials auto-rotated daily
 - All operations logged & audited
 
@@ -321,7 +321,7 @@
 
 ### Short-term (Week 1)
 ✅ Stale branch cleanup removes > 60-day branches  
-✅ Stale PRs auto-close (> 21 days)  
+✅ Stale Draft issues auto-close (> 21 days)  
 ✅ Credential rotation executes  
 ✅ Team trains on new governance  
 

@@ -60,7 +60,7 @@ This repository has been configured for **immutable, sovereign, ephemeral, indep
 | Workflow | Trigger | Purpose |
 |----------|---------|---------|
 | `auto-bootstrap-vault-secrets` | 2-hourly | Auto-provisions Vault AppRole for secure secret rotation |
-| `enforce-workflow-sequencing` | PR | Validates workflow execution order and gates PRs if sequencing violated |
+| `enforce-workflow-sequencing` | PR | Validates workflow execution order and gates Draft issues if sequencing violated |
 | `autonomous-health-check` | 15-min | Monitors runner health, restarts unhealthy runners, creates issues |
 | `ephemeral-runner-lifecycle` | Scheduled | Enforces runner TTL, cleans up stale instances |
 | `e2e-validate` | Pre-deploy | End-to-end validation gate before infrastructure changes |
@@ -141,7 +141,7 @@ Recommended checks to enforce:
 
 2. **Enable Branch Protection on `main`** (Admin)
    - Location: https://github.com/kushin77/self-hosted-runner/settings/branches
-   - Require pull request reviews: ✓ 1-2 reviewers
+   - Require Draft issue reviews: ✓ 1-2 reviewers
    - Require status checks: ✓ precommit-ci, continuous-secrets-scan, terraform-validate
    - Restrict who can push: ✓ Admins only (recommended)
    - Dismiss stale approvals: ✓ Yes

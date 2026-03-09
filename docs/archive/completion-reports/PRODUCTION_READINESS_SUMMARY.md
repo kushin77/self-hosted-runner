@@ -161,7 +161,7 @@ All 8 enterprise requirements verified:
 - rotation_schedule.yml (12 KB, 180 lines)
 
 ### Git History
-- PRs Merged: 7 core + 1 documentation = 8 total ✅
+- Draft issues Merged: 7 core + 1 documentation = 8 total ✅
 - Issues Closed: 30+ (consolidation) ✅
 - Latest Commit: 99dc7e156 (Production Deployment Certificate)
 

@@ -14,7 +14,7 @@
 **All Issues Closed:** ✅ P0/P1/P2/P3 sub-issues closed  
 **Master Issue:** ✅ #1743 closed with final status  
 
-| Phase | Items | Status | PRs Merged | Issues |
+| Phase | Items | Status | Draft issues Merged | Issues |
 |-------|-------|--------|-----------|--------|
 | P0: Foundation | 3 | ✅ COMPLETE | 3 merged | CLOSED |
 | P1: Consolidation | 5 | ✅ COMPLETE | #1775 ready | CLOSED |
@@ -297,7 +297,7 @@ git log --oneline -5  # Verify latest commits
 ls -la config/schema.json scripts/deploy-10x-enhancements.sh  # Verify files
 ```
 
-### Step 2: Merge Pending PRs
+### Step 2: Merge Pending Draft issues
 ```bash
 # PR #1775 (P1 Foundation) - Awaiting gitleaks check
 # Auto-merges when security check completes
@@ -467,7 +467,7 @@ bash scripts/secret-management.sh --kms-health
 - ✅ Idempotency implemented and tested
 - ✅ GitHub issues closed (P0-P3 sub-issues)
 - ✅ Master issue updated with completion status
-- ✅ PRs merged or approved (1786 merged, 1775 approved)
+- ✅ Draft issues merged or approved (1786 merged, 1775 approved)
 - ✅ Documentation complete and auto-generated
 - ✅ Grafana dashboard deployed and ready
 - ✅ API documentation generated and accessible

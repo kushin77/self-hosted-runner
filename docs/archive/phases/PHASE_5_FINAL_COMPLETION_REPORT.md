@@ -241,7 +241,7 @@ gh workflow run rotate-vault-approle.yml --repo kushin77/self-hosted-runner
 - PR #1061: Manual debug diagnostics trigger
 - PR #1068: Vault retry monitor (scheduled + dispatch)
 - PR #1070: Continuous operations dashboard
-- TOTAL: 5 major feature PRs merged
+- TOTAL: 5 major feature Draft issues merged
 
 ### Scheduled Workflows Active
 - 6 credential management workflows (rotation, sync, monitoring)
@@ -291,7 +291,7 @@ gh workflow run rotate-vault-approle.yml --repo kushin77/self-hosted-runner
 
 ### Execution Summary
 - **Duration**: Single session (full automation from design to production)
-- **PRs Created**: 5 major feature pull requests
+- **Draft issues Created**: 5 major feature pull requests
 - **Workflows Deployed**: 11 active in production
 - **Issues Super Resolved**: 6 issues (auto-closed by automation)
 - **Zero Manual Ops**: All provisioning automated

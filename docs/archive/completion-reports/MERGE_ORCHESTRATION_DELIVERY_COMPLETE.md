@@ -105,7 +105,7 @@ Phased Consolidation:
 
 ### 5. Idempotency & Safety Patterns
 **Implemented**:
-- ✅ Merge de-duplication (already-merged PRs skipped)
+- ✅ Merge de-duplication (already-merged Draft issues skipped)
 - ✅ Safe re-execution (can retry unlimited times)
 - ✅ Resume-on-failure (picks up from last point)
 - ✅ Non-blocking conflicts (don't halt orchestration)
@@ -123,7 +123,7 @@ Phased Consolidation:
 **Start Time**: 2026-03-08 ~19:00 UTC  
 **ETA Completion**: 2026-03-08 ~19:20 UTC (15-20 min)
 
-**Target PRs**:
+**Target Draft issues**:
 - PR #1724 - fix/trivy-remediation-dockerfile-update (CVE REMEDIATION)
 - PR #1727 - fix/envoy-manifest-patches (STABILITY)
 - PR #1728 - fix/pipeline-repair-tar-override (TAR CVE FIX)
@@ -231,7 +231,7 @@ Phased Consolidation:
 ### Phase 2: Phase 3 Vault & Core Features
 **ETA**: 2026-03-08 ~19:30 UTC (after Phase 1)
 **Duration**: 30-40 minutes
-**PRs**: 6 major feature merges
+**Draft issues**: 6 major feature merges
   - PR #1802: Phase 3 ephemeral Vault credentials
   - PR #1775: P1 Workflow consolidation
   - PR #1773: Automation delivery documentation
@@ -279,7 +279,7 @@ gh workflow run auto-merge-orchestration.yml -f phase=2
 
 ### Re-Run Phase 1 (If Issues)
 ```bash
-# Safe re-execution (already-merged PRs skipped)
+# Safe re-execution (already-merged Draft issues skipped)
 gh workflow run auto-merge-orchestration.yml -f phase=1
 ```
 
@@ -297,7 +297,7 @@ gh run view <run-id> --log
 ### If Phase 1 Times Out
 1. Check GitHub Issue #1805 for current status
 2. Re-run Phase 1 (idempotent - safe to retry)
-3. Already-merged PRs automatically skipped
+3. Already-merged Draft issues automatically skipped
 4. Resumption from last PR automatic
 
 ### If Conflict Detected
@@ -308,7 +308,7 @@ gh run view <run-id> --log
 
 ### If Need Rollback
 1. Identify merge commit with `git log`
-2. Create revert PR: `git revert <sha>`
+2. Create revert Draft Issue: `git revert <sha>`
 3. Standard GitHub PR process
 4. All history preserved, zero data loss
 
@@ -338,7 +338,7 @@ gh run view <run-id> --log
 - [ ] Archive logs for compliance
 
 **Phase 2** (Pending - ~19:30 UTC):
-- [ ] 6 feature PRs merged
+- [ ] 6 feature Draft issues merged
 - [ ] P0-P3 automation operational
 - [ ] Issue #1805 updated
 

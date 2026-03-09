@@ -173,8 +173,8 @@ concurrency:
 ## 📈 NEXT STEPS
 
 ### Immediate (Today)
-1. ✅ Review & test all PRs (#1101-1112)
-2. ✅ Merge PRs to main branch
+1. ✅ Review & test all Draft issues (#1101-1112)
+2. ✅ Merge Draft issues to main branch
 3. ✅ Verify audit passes in CI
 
 ### Short-Term (This Week)
@@ -194,7 +194,7 @@ concurrency:
 - **Completion Report:** [SEQUENCING_GUARDS_COMPLETE.md](SEQUENCING_GUARDS_COMPLETE.md)
 - **Audit Script:** `.github/scripts/check_workflow_sequencing.py`
 - **Audit Report:** `workflow-audit-report.txt`
-- **Open PRs:** #1101, #1105, #1106, #1112
+- **Open Draft issues:** #1101, #1105, #1106, #1112
 
 ---
 
@@ -208,7 +208,7 @@ concurrency:
 - [x] Monitoring & observability in place
 - [x] Documentation complete
 - [x] Tracking issues updated/closed
-- [x] PRs created for review & merge
+- [x] Draft issues created for review & merge
 - [x] Repository ready for hands-off operation
 
 ---

@@ -125,7 +125,7 @@ bash scripts/audit-scripts.sh --critical
 ```
 What secrets exist?          → SECRETS_INDEX.md
 How to add a secret?         → DEVELOPER_SECRETS_GUIDE.md
-Secrets rules for PRs?       → CONTRIBUTING.md#secrets
+Secrets rules for Draft issues?       → CONTRIBUTING.md#secrets
 
 Which workflow does X?       → WORKFLOWS_INDEX.md
 Workflow is failing?         → ERROR_CODES_GUIDE.md

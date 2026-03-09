@@ -25,7 +25,7 @@ This runbook documents the fully automated, idempotent deploy key installation s
 
 ### Design Principles
 
-- **Immutable**: All changes via code + PRs (no manual operations in runners)
+- **Immutable**: All changes via code + Draft issues (no manual operations in runners)
 - **Ephemeral**: Workflow generates temporary test keys on-demand; no persistent state
 - **Idempotent**: Safe to re-run; operations are repeatable without side effects
 - **Noop-Safe**: Default is dry-run (check mode); apply mode optional
@@ -267,7 +267,7 @@ When combined with auto-remediation pipelines, apply-mode can be triggered based
 ### Access Control
 
 - **Who can dispatch**: Repo maintainers + CI/CD automation
-- **Who can modify**: Maintainers (PRs required)
+- **Who can modify**: Maintainers (Draft issues required)
 - **Keys stored**: Repository secrets (encrypted)
 
 ### Audit Trail
