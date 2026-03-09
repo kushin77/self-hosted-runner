@@ -108,10 +108,8 @@ resource "google_compute_instance_template" "runner_template" {
   disk {
     auto_delete = true
     boot        = true
-    initialize_params {
-      disk_size_gb = var.boot_disk_size_gb
-      disk_type    = var.boot_disk_type
-    }
+    disk_size_gb = var.boot_disk_size_gb
+    disk_type    = var.boot_disk_type
   }
 
   network_interface {
