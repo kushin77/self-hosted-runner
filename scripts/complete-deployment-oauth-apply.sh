@@ -60,7 +60,7 @@ fi
 
 echo ""
 echo "  Running: gcloud auth login"
-gcloud auth login --no-browser=false
+gcloud auth login
 
 echo ""
 echo "  Running: gcloud auth application-default login"
