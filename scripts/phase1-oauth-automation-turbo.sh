@@ -10,8 +10,10 @@ readonly SCRIPT_VERSION="2.1.0-turbo"
 readonly AUDIT_LOG_DIR="${HOME}/.phase1-oauth-automation"
 readonly AUDIT_LOG="${AUDIT_LOG_DIR}/oauth-apply.jsonl"
 readonly STATE_FILE="${AUDIT_LOG_DIR}/oauth.state"
-readonly TERRAFORM_DIR="terraform/environments/staging-tenant-a"
-readonly GCP_PROJECT="p4-platform"
+# Use autonomous deployment terraform config (org-governance project)
+readonly TERRAFORM_DIR="terraform/environments/org-governance"
+# Use accessible org project 
+readonly GCP_PROJECT="${GCP_PROJECT:-gcp-eiq}"
 
 # ============================================================================
 # LOGGING
@@ -136,7 +138,6 @@ terraform_plan_apply() {
     # Create fresh plan (idempotent - always creates new plan)
     log_info "Creating Terraform plan..."
     if terraform plan \
-        -var="project_id=$GCP_PROJECT" \
         -lock=false \
         -out=tfplan 2>&1 | tee /tmp/tf_plan.log; then
         log_success "Terraform plan created"
