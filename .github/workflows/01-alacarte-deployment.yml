@@ -34,6 +34,7 @@ on:
         default: false
 
 permissions:
+  id-token: write
   issues: write
   contents: read
   actions: read
