@@ -78,7 +78,7 @@ resource "google_compute_instance" "automation_runner" {
   }
 
   # Enable Shielded VM for org policy compliance
-  shielded_vm_config {
+  shielded_instance_config {
     enable_secure_boot          = true
     enable_vtpm                 = true
     enable_integrity_monitoring = true
