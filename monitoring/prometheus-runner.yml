@@ -1,0 +1,7 @@
+# Prometheus scrape configuration for runner worker
+scrape_configs:
+  - job_name: 'runner-worker'
+    static_configs:
+      - targets: ['192.168.168.42:9100']
+        labels:
+          role: runner
