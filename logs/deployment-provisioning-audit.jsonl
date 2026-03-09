@@ -29,3 +29,4 @@
   "description": "Final operational handoff documentation for direct-deploy framework - all systems operational"
 }
 {"timestamp":"2026-03-09T16:26:18Z","operation":"operational-handoff","status":"complete","commit":"0d8fb442b","documentation":"OPERATIONAL_HANDOFF_MARCH_9_2026.md","lines":389}
+{"timestamp":"2026-03-09T16:39:36Z","operation":"terraform-apply-blocker-analysis","status":"blocked","root_cause":"GCP IAM permissions (iam.serviceAccounts.create denied)","user":"akushnir@bioenergystrategies.com","project":"p4-platform","resolution_paths":3,"commit":"ab27f9cca","documentation":"TERRAFORM_APPLY_BLOCKER_2026-03-09.md"}
