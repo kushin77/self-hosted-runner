@@ -1,7 +1,12 @@
 name: E2E: Scan→Rebuild→Promote Integration Test
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Simulate the flow without external secrets'
+        required: false
+        default: 'true'
 
 permissions:
   contents: read
@@ -25,4 +30,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          python3 .github/scripts/e2e_trigger_and_assert.py
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            python3 .github/scripts/e2e_trigger_and_assert.py --dry-run
+          else
+            python3 .github/scripts/e2e_trigger_and_assert.py
+          fi

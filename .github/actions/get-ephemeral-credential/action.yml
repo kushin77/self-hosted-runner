@@ -1,3 +1,43 @@
+name: "Get Ephemeral Credential"
+description: "Composite action to retrieve ephemeral credentials from GSM/Vault/KMS via helper scripts."
+inputs:
+  credential-name:
+    description: "Credential name to fetch"
+    required: true
+  retrieve-from:
+    description: "Which provider to retrieve from: gsm|vault|kms|auto"
+    required: false
+    default: "auto"
+  cache-ttl:
+    description: "Seconds to consider credential valid (for caller)"
+    required: false
+    default: "300"
+outputs:
+  credential:
+    description: "The credential value"
+  cached:
+    description: "Whether value was returned from cache"
+  expires-at:
+    description: "ISO8601 expiry timestamp"
+  source-layer:
+    description: "Which layer provided the credential"
+  audit-id:
+    description: "Audit ID for retrieval event"
+runs:
+  using: "composite"
+  steps:
+    - name: Fetch credential
+      shell: bash
+      run: |
+        set -euo pipefail
+        CRED="${{ inputs.credential-name }}"
+        RET="${{ inputs.retrieve-from }}"
+        TTL="${{ inputs.cache-ttl }}"
+        # Run the credential manager and forward its key=value lines to GITHUB_OUTPUT
+        OUTPUT=$(bash scripts/cred-helpers/credential-manager.sh "$CRED" "$RET" "$TTL" 2>&1) || (echo "Credential retrieval failed:\n$OUTPUT" >&2; exit 1)
+        echo "$OUTPUT" | while IFS= read -r line; do
+          echo "$line" >> "$GITHUB_OUTPUT"
+        done
 name: 'Get Ephemeral Credential'
 description: 'Retrieve ephemeral credentials from GSM/Vault/KMS via OIDC'
 

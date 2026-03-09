@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-import os, sys, time, requests, json
+import os, sys, time, requests, json, argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--dry-run', action='store_true', help='Simulate dispatch and PR detection without external calls')
+args = parser.parse_args()
+
+if args.dry_run:
+    print('Dry-run mode: simulating dispatch and PR detection')
+    print('Simulated: dispatch sent')
+    print('Simulated: found PR: https://github.com/OWNER/REPO/pull/123')
+    sys.exit(0)
 
 REPO = os.environ.get('GITHUB_REPOSITORY')
 TOKEN = os.environ.get('GITHUB_TOKEN')
