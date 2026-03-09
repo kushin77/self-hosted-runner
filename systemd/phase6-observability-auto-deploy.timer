@@ -1,0 +1,12 @@
+[Unit]
+Description=Phase 6 Observability Auto-Deployment Timer
+Documentation=file:///home/akushnir/self-hosted-runner/docs/PHASE_6_OBSERVABILITY_AUTOMATION.md
+
+[Timer]
+OnCalendar=*-*-* 01:00:00
+OnBootSec=5min
+Persistent=true
+AccuracySec=1s
+
+[Install]
+WantedBy=timers.target
