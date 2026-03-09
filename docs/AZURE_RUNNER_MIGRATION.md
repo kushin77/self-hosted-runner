@@ -563,8 +563,8 @@ az monitor metrics list \
 
 For issues or questions:
 
-1. Check [Azure Scale Set Capacity Planning Guide](./AZURE_SCALE_SET_CAPACITY_PLANNING.md)
-2. Review [Terraform module documentation](../terraform/modules/azure_scale_set/README.md)
+1. Check [Azure Scale Set Capacity Planning Guide](AZURE_SCALE_SET_CAPACITY_PLANNING.md)
+2. Review [Terraform module documentation](../self_healing/README.md)
 3. Consult [GitHub Actions documentation](https://docs.github.com/en/actions)
 4. Check Azure diagnostics and monitoring
 

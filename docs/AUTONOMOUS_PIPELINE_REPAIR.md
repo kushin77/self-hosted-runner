@@ -654,7 +654,7 @@ AutonomousRepair:
 
 ## Related Documentation
 
-- [AI Development](../../AI_DEVELOPMENT.md)
-- [AI Agent Safety](../AI_AGENT_SAFETY_FRAMEWORK.md)
+- [AI Development](architecture/AI_DEVELOPMENT.md)
+- [AI Agent Safety](AI_AGENT_SAFETY_FRAMEWORK.md)
 - [Architecture](../../ARCHITECTURE.md)
-- [Contributing](../../CONTRIBUTING.md)
+- [Contributing](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)

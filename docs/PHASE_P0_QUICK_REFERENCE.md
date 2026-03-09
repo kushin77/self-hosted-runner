@@ -233,8 +233,8 @@ sqlite3 /var/lib/runner-queue.db \
 |----------|---------|-----------|
 | [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) | Complete implementation guide | 30 min |
 | [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) | What was built and why | 20 min |
-| [ENHANCEMENTS_10X.md](ENHANCEMENTS_10X.md) | Full 10X vision (P0-P3) | 45 min |
-| [README.md](README.md) | Project overview | 10 min |
+| [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) | Full 10X vision (P0-P3) | 45 min |
+| [README.md](../self_healing/README.md) | Project overview | 10 min |
 
 ---
 
@@ -362,4 +362,4 @@ done
 **Last Updated**: March 4, 2024  
 **Phase**: P0 ✅ **COMPLETE**  
 **Next**: P1 (6 weeks) - Graceful cancellation, secrets rotation, ML prediction  
-**Questions?** See [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md#support--questions) troubleshooting section
+**Questions?** See [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md#support--questions) troubleshooting section

@@ -663,5 +663,5 @@ Runners:
 ## Related Documentation
 
 - [Architecture](../../ARCHITECTURE.md)
-- [AI Development](../../AI_DEVELOPMENT.md)
-- [Contributing](../../CONTRIBUTING.md)
+- [AI Development](architecture/AI_DEVELOPMENT.md)
+- [Contributing](../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)

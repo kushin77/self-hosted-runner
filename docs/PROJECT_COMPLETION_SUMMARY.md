@@ -41,7 +41,7 @@ This project has successfully delivered an **enterprise-grade, self-healing infr
 ### Phase P0 Components
 
 #### 1. Ephemeral Workspace Manager ✅
-**File**: [scripts/automation/pmo/ephemeral-workspace-manager.sh](scripts/automation/pmo/ephemeral-workspace-manager.sh)  
+**File**: [scripts/automation/pmo/ephemeral-workspace-manager.sh](../scripts/automation/pmo/ephemeral-workspace-manager.sh)  
 **Lines**: 748 | **Tests**: Passing | **Status**: Production-ready
 
 **Capabilities**:
@@ -58,7 +58,7 @@ This project has successfully delivered an **enterprise-grade, self-healing infr
 ```
 
 #### 2. Declarative Capability Store ✅
-**File**: [scripts/automation/pmo/capability-store.sh](scripts/automation/pmo/capability-store.sh)  
+**File**: [scripts/automation/pmo/capability-store.sh](../scripts/automation/pmo/capability-store.sh)  
 **Lines**: 1,180 | **Tests**: Passing | **Status**: Production-ready
 
 **Capabilities**:
@@ -88,7 +88,7 @@ spec:
 ```
 
 #### 3. OpenTelemetry Tracing ✅
-**File**: [scripts/automation/pmo/otel-tracer.sh](scripts/automation/pmo/otel-tracer.sh)  
+**File**: [scripts/automation/pmo/otel-tracer.sh](../scripts/automation/pmo/otel-tracer.sh)  
 **Lines**: 1,010 | **Tests**: Passing | **Status**: Production-ready
 
 **Capabilities**:
@@ -105,7 +105,7 @@ spec:
 - `job.cleanup` - Cleanup duration
 
 #### 4. Fair Job Scheduler ✅
-**File**: [scripts/automation/pmo/fair-job-scheduler.sh](scripts/automation/pmo/fair-job-scheduler.sh)  
+**File**: [scripts/automation/pmo/fair-job-scheduler.sh](../scripts/automation/pmo/fair-job-scheduler.sh)  
 **Lines**: 1,200 | **Tests**: Passing | **Status**: Production-ready
 
 **Capabilities**:
@@ -122,7 +122,7 @@ spec:
 - Preemption support for critical jobs
 
 #### 5. Drift Detection & Auto-Remediation ✅
-**File**: [scripts/automation/pmo/drift-detector.sh](scripts/automation/pmo/drift-detector.sh)  
+**File**: [scripts/automation/pmo/drift-detector.sh](../scripts/automation/pmo/drift-detector.sh)  
 **Lines**: 1,100 | **Tests**: Passing | **Status**: Production-ready
 
 **Capabilities**:
@@ -142,10 +142,10 @@ spec:
 
 | Document | Lines | Purpose |
 |----------|-------|---------|
-| [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) | 3,000+ | Complete implementation guide with examples |
-| [PHASE_P0_COMPLETION_SUMMARY.md](docs/PHASE_P0_COMPLETION_SUMMARY.md) | 533 | Technical deep-dive and architecture analysis |
-| [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) | 365 | Operator cheat sheet for common tasks |
-| [PHASE_P0_FINAL_REPORT.md](docs/PHASE_P0_FINAL_REPORT.md) | 313 | Project sign-off and approval checklist |
+| [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) | 3,000+ | Complete implementation guide with examples |
+| [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) | 533 | Technical deep-dive and architecture analysis |
+| [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) | 365 | Operator cheat sheet for common tasks |
+| [PHASE_P0_FINAL_REPORT.md](PHASE_P0_FINAL_REPORT.md) | 313 | Project sign-off and approval checklist |
 | Configuration Examples | 500 | 3 runner profiles + quota policies |
 
 **Total**: 6,398 lines of documentation
@@ -195,7 +195,7 @@ b975481 docs: Add Phase P0 comprehensive completion summary
 ### Phase P1 Components
 
 #### 1. Graceful Job Cancellation (Weeks 1-3) ⏱️
-**File**: [scripts/automation/pmo/job-cancellation-handler.sh](scripts/automation/pmo/job-cancellation-handler.sh)  
+**File**: [scripts/automation/pmo/job-cancellation-handler.sh](../scripts/automation/pmo/job-cancellation-handler.sh)  
 **Size**: 6.3 KB (skeleton complete)  
 **Status**: ✅ Skeleton ready for development
 
@@ -229,7 +229,7 @@ job-cancellation:
 - Checkpoint recovery: Zero data loss
 
 #### 2. Secrets Rotation Vault Integration (Weeks 2-4) 🔐
-**File**: [scripts/automation/pmo/vault-integration.sh](scripts/automation/pmo/vault-integration.sh)  
+**File**: [scripts/automation/pmo/vault-integration.sh](../scripts/automation/pmo/vault-integration.sh)  
 **Size**: 9.4 KB (skeleton complete)  
 **Status**: ✅ Skeleton ready for development
 
@@ -270,7 +270,7 @@ vault-rotation:
 - Zero credential leaks in logs
 
 #### 3. ML-Based Failure Prediction (Weeks 5-7) 🤖
-**File**: [scripts/automation/pmo/failure-predictor.sh](scripts/automation/pmo/failure-predictor.sh)  
+**File**: [scripts/automation/pmo/failure-predictor.sh](../scripts/automation/pmo/failure-predictor.sh)  
 **Size**: 8.7 KB (skeleton complete)  
 **Status**: ✅ Skeleton ready for development
 
@@ -332,8 +332,8 @@ c5bf30d feat: Phase P1 scaffolding and planning - Graceful cancellation, secrets
 
 | Document | Lines | Purpose |
 |----------|-------|---------|
-| [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) | 1,500+ | Complete 6-week roadmap with success metrics |
-| [GITHUB_ISSUES_TRACKER.md](docs/GITHUB_ISSUES_TRACKER.md) | 600+ | GitHub issues catalog for team tracking |
+| [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) | 1,500+ | Complete 6-week roadmap with success metrics |
+| [GITHUB_ISSUES_TRACKER.md](GITHUB_ISSUES_TRACKER.md) | 600+ | GitHub issues catalog for team tracking |
 | Component Skeletons | 24.4K | 3 production-ready stubs with CLI interfaces |
 | Configuration Templates | 300+ | Real-world examples for all 3 components |
 
@@ -461,7 +461,7 @@ Total Commits: 10
 
 2. **Phase P1 Team Kickoff** (1-2 days)
    - [ ] Assign component owners
-   - [ ] Create GitHub issues (use [GITHUB_ISSUES_TRACKER.md](docs/GITHUB_ISSUES_TRACKER.md))
+   - [ ] Create GitHub issues (use [GITHUB_ISSUES_TRACKER.md](GITHUB_ISSUES_TRACKER.md))
    - [ ] Setup GitHub project board
    - [ ] Schedule design review meeting
    - [ ] Distribute Phase P1 planning document
@@ -486,7 +486,7 @@ Total Commits: 10
 
 ### Before Phase P0 Staging
 
-- [ ] Review [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md)
+- [ ] Review [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md)
 - [ ] Review all Phase P0 components
 - [ ] Staging environment prepared
 - [ ] Monitoring/alerting configured
@@ -507,19 +507,19 @@ Total Commits: 10
 ## 📚 COMPLETE DOCUMENTATION INDEX
 
 ### Phase P0 Documentation
-- [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) - Complete implementation guide
-- [PHASE_P0_COMPLETION_SUMMARY.md](docs/PHASE_P0_COMPLETION_SUMMARY.md) - Technical deep-dive
-- [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) - Operator quick reference
-- [PHASE_P0_FINAL_REPORT.md](docs/PHASE_P0_FINAL_REPORT.md) - Approval & sign-off
+- [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) - Complete implementation guide
+- [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) - Technical deep-dive
+- [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) - Operator quick reference
+- [PHASE_P0_FINAL_REPORT.md](PHASE_P0_FINAL_REPORT.md) - Approval & sign-off
 
 ### Phase P1 Documentation
-- [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) - 6-week development roadmap
-- [GITHUB_ISSUES_TRACKER.md](docs/GITHUB_ISSUES_TRACKER.md) - GitHub issues catalog
+- [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) - 6-week development roadmap
+- [GITHUB_ISSUES_TRACKER.md](GITHUB_ISSUES_TRACKER.md) - GitHub issues catalog
 
 ### Project Documentation
-- [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) - Approval checklist & next steps
-- [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) - Complete 10X roadmap vision
-- [README.md](README.md) - Project overview with Phase P0/P1 sections
+- [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) - Approval checklist & next steps
+- [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) - Complete 10X roadmap vision
+- [README.md](../self_healing/README.md) - Project overview with Phase P0/P1 sections
 
 ---
 
@@ -569,12 +569,12 @@ Total Commits: 10
 ## 📞 SUPPORT & CONTACT
 
 **For Phase P0 Questions**:
-- See [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)
-- See [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md)
+- See [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)
+- See [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md)
 
 **For Phase P1 Planning**:
-- See [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md)
-- See [GITHUB_ISSUES_TRACKER.md](docs/GITHUB_ISSUES_TRACKER.md)
+- See [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md)
+- See [GITHUB_ISSUES_TRACKER.md](GITHUB_ISSUES_TRACKER.md)
 
 **Escalation Path**:
 1. Check documentation
@@ -610,4 +610,4 @@ This project has successfully delivered:
 
 ---
 
-*For the complete self-hosted runner platform evolution, see [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) for the full 10X vision roadmap.*
+*For the complete self-hosted runner platform evolution, see [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) for the full 10X vision roadmap.*
