@@ -1,5 +1,5 @@
-# PR Prioritization Implementation
+# Multi-Layer Escalation Implementation
 
-Risk-based PR scheduling with 4-tier merge strategy.
+Automatic incident escalation with de-duplication.
 
 See main README for full framework overview.
