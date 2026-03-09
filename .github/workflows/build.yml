@@ -16,6 +16,24 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      - name: Get Credential [GPG_KEY_ID]
+        id: cred_gpg_key_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GPG_KEY_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [GPG_PRIVATE_KEY]
+        id: cred_gpg_private_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GPG_PRIVATE_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -55,6 +73,6 @@ jobs:
     - name: Sign distributions (if secrets available)
       if: secrets.GPG_PRIVATE_KEY != null
       run: |
-        echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
-        for f in dist/*; do gpg --detach-sign -u ${{ secrets.GPG_KEY_ID }} "$f"; done
+        echo "${{ steps.cred_gpg_private_key.outputs.credential }}" | gpg --import
+        for f in dist/*; do gpg --detach-sign -u ${{ steps.cred_gpg_key_id.outputs.credential }} "$f"; done
       continue-on-error: true
