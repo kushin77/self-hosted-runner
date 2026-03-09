@@ -43,8 +43,7 @@ services/provisioner-worker/lib/vault*.js @kushin77
 
 # Documentation & Governance
 docs/ @kushin77
-*.md @kushin77
-.github/PULL_REQUEST_TEMPLATE.md @kushin77
+.md @kushin77
 
 # AI Agent Safety & Approval Framework
 services/pipeline-repair/lib/approval*.js @kushin77

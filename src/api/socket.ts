@@ -6,7 +6,7 @@ import { useStore } from './store'
 // Simple typed socket factory and React hook for Phase 2 WebSocket migration.
 // Usage: const socketRef = useSocket({ url: 'http://localhost:9090' })
 
-export function createSocket(url = 'http://localhost:9090') {
+export function createSocket(url = 'http://192.168.168.42:9090') {
   return io<ClientToServerEvents, ServerToClientEvents>(url, {
     path: '/socket.io',
     autoConnect: false,
@@ -24,7 +24,7 @@ export function useSocket(opts?: { url?: string; autoConnect?: boolean }) {
   const ref = useRef<Socket<ClientToServerEvents, ServerToClientEvents> | null>(null)
 
   useEffect(() => {
-    const url = opts?.url ?? 'http://localhost:9090'
+    const url = opts?.url ?? 'http://192.168.168.42:9090'
     const sock = createSocket(url)
     ref.current = sock
 
