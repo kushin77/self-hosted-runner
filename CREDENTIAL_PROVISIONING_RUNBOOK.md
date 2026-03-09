@@ -47,7 +47,7 @@ This runbook covers provisioning deployment credentials for the **immutable, eph
          └─────────────┬──────────────────┘
                        │
          ┌─────────────▼──────────────────┐
-         │ Bastion (192.168.168.31)       │
+         │ Bastion (192.168.168.42)       │
          │ - Watcher service              │
          │ - Auto-detect provider         │
          │ - Fetch & store credentials    │
@@ -97,11 +97,11 @@ vault kv get -format=json secret/runner-deploy | jq '.data.data'
 }
 ```
 
-### 3️⃣ Configure Watcher on Bastion (192.168.168.31)
+### 3️⃣ Configure Watcher on Bastion (192.168.168.42)
 
 ```bash
 # SSH to bastion
-ssh akushnir@192.168.168.31
+ssh akushnir@192.168.168.42
 
 # Create systemd drop-in environment file
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
@@ -225,7 +225,7 @@ echo "export AWS_REGION='us-east-1'"
 
 ```bash
 # SSH to bastion
-ssh akushnir@192.168.168.31
+ssh akushnir@192.168.168.42
 
 # Update systemd drop-in to use AWS
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
@@ -297,7 +297,7 @@ gcloud projects get-iam-policy elevatediq-runner \
 
 ```bash
 # SSH to bastion
-ssh akushnir@192.168.168.31
+ssh akushnir@192.168.168.42
 
 # Authenticate with gcloud
 gcloud auth application-default login
@@ -351,7 +351,7 @@ echo "SECRET_ID=$SECRET_ID"
 
 ```bash
 # SSH to bastion
-ssh akushnir@192.168.168.31
+ssh akushnir@192.168.168.42
 
 # Create Vault Agent config
 sudo tee /etc/vault-agent.hcl <<EOF
@@ -559,7 +559,7 @@ cat /tmp/deployment-audit.jsonl | jq 'select(.status=="success")'
 gh issue view 2072 --json comments | jq '.comments[-1]'
 
 # 4. Verify watcher auto-detection
-ssh akushnir@192.168.168.31
+ssh akushnir@192.168.168.42
 sudo journalctl -u wait-and-deploy.service --since "1 hour ago" | grep "Detected provider"
 ```
 
