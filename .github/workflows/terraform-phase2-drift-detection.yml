@@ -12,7 +12,7 @@ on:
     inputs:
       check_type:
         description: 'Check type to run'
-        required: false
+        required: 'false'
         default: 'full'
         type: choice
         options:
@@ -527,9 +527,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
-
         run: |
           set -euo pipefail
           echo "::group::Setup Terraform"
@@ -545,7 +542,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY || secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           set -euo pipefail
-          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+          if [-z "$GOOGLE_APPLICATION_CREDENTIALS_JSON"]; then
             echo "::warning::GCP credentials not available"
           else
             echo "$GOOGLE_APPLICATION_CREDENTIALS_JSON" > /tmp/gcp-sa.json
@@ -638,7 +635,7 @@ jobs:
       - name: Report drift status
         if: always()
         run: |
-          if [ "$DRIFT_STATUS" == "dirty" ]; then
+          if ["$DRIFT_STATUS" == "dirty"]; then
             echo "::error::Terraform drift detected. An automated remediation workflow can be triggered."
           else
             echo "::notice::Infrastructure state is clean"
@@ -745,7 +742,7 @@ jobs:
           DRIFT_RESULT="${{ needs.terraform-drift-detection.result }}"
           HEALTH_RESULT="${{ needs.health-check-runners.result }}"
 
-          if [ "$DRIFT_RESULT" == "failure" ] || [ "$HEALTH_RESULT" == "failure" ]; then
+          if ["$DRIFT_RESULT" == "failure"] || ["$HEALTH_RESULT" == "failure"]; then
             echo "::error::Drift or health check failed - review artifacts"
             exit 1
           else
@@ -755,6 +752,6 @@ jobs:
       - name: Optional Slack notification
         if: failure()
         run: |
-          if [ -n "${{ steps.cred_slack_webhook_url.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_slack_webhook_url.outputs.credential }}"]; then
             echo "::notice::Slack notification can be sent via webhook (optional)"
           fi

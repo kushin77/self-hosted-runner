@@ -8,7 +8,7 @@ on:
     inputs:
       mode:
         description: "Execute mode"
-        required: true
+        required: 'true'
         default: "dry-run"
         type: choice
         options:
@@ -58,7 +58,7 @@ jobs:
         id: audit-results
         shell: bash
         run: |
-          if [ -d ".compliance-audit" ]; then
+          if [-d ".compliance-audit"]; then
             AUDIT_FILES=$(ls -1 .compliance-audit/compliance-fixes-*.jsonl 2>/dev/null | wc -l)
             echo "audit_files_count=$AUDIT_FILES" >> $GITHUB_OUTPUT
             # Show summary
@@ -72,7 +72,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-          if [ -d ".compliance-audit" ] && [ -n "$(git status .compliance-audit --porcelain)" ]; then
+          if [-d ".compliance-audit"] && [-n "$(git status .compliance-audit --porcelain)"]; then
             git add .compliance-audit/
             git commit -m "ci(compliance): immutable audit trail update" --allow-empty
             git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed; skipping"
@@ -122,7 +122,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-          if [ -n "$(git status .compliance-audit --porcelain 2>/dev/null)" ]; then
+          if [-n "$(git status .compliance-audit --porcelain 2>/dev/null)"]; then
             git add -A .compliance-audit/
             git commit -m "ci(compliance): ephemeral cleanup of stale audit logs" --allow-empty
             git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed"

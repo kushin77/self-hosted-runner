@@ -5,7 +5,7 @@ on:
     inputs:
       dry_run:
         description: 'Simulate the flow without external secrets'
-        required: false
+        required: 'false'
         default: 'true'
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if ["${{ github.event.inputs.dry_run }}" = "true"]; then
             python3 .github/scripts/e2e_trigger_and_assert.py --dry-run
           else
             python3 .github/scripts/e2e_trigger_and_assert.py

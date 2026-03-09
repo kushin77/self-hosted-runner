@@ -5,17 +5,17 @@ on:
     inputs:
       aws_account_id:
         description: 'AWS Account ID'
-        required: true
+        required: 'true'
       aws_region:
         description: 'AWS Region'
-        required: false
+        required: 'false'
         default: 'us-east-1'
       terraform_state_bucket:
         description: 'Terraform State S3 Bucket Name'
-        required: true
+        required: 'true'
       terraform_lock_table:
         description: 'Terraform Lock DynamoDB Table Name'
-        required: true
+        required: 'true'
 
 permissions:
   contents: read
@@ -44,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           PROVIDER_ARN=$(aws iam list-open-id-connect-providers --query "OpenIDConnectProviderList[?contains(OpenIDConnectProviderArn, 'token.actions.githubusercontent.com')].OpenIDConnectProviderArn" --output text || true)
-          if [ -z "$PROVIDER_ARN" ]; then
+          if [-z "$PROVIDER_ARN"]; then
             echo "Creating OIDC provider for GitHub..."
             PROVIDER_ARN=$(aws iam create-open-id-connect-provider \
               --url https://token.actions.githubusercontent.com \
@@ -64,13 +64,12 @@ jobs:
           ROLE_NAME="github-actions-terraform-backend"
           ROLE_ARN=$(aws iam get-role --role-name "$ROLE_NAME" --query "Role.Arn" --output text 2>/dev/null || true)
 
-          if [ -z "$ROLE_ARN" ]; then
+          if [-z "$ROLE_ARN"]; then
             echo "Creating role $ROLE_NAME..."
             TRUST_POLICY=$(cat <<EOF
           {
             "Version": "2012-10-17",
-            "Statement": [
-              {
+            "Statement": [{
                 "Effect": "Allow",
                 "Principal": {
                   "Federated": "arn:aws:iam::$AWS_ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com"
@@ -82,8 +81,7 @@ jobs:
                     "token.actions.githubusercontent.com:sub": "repo:$GITHUB_REPOSITORY:ref:refs/heads/main"
                   }
                 }
-              }
-            ]
+              }]
           }
           EOF
           )

@@ -5,7 +5,7 @@ on:
     inputs:
       vault-addr:
         description: 'Vault Address'
-        required: true
+        required: 'true'
         type: string
     outputs:
       vault-token:

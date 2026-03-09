@@ -8,7 +8,7 @@ on:
     inputs:
       deployment_type:
         description: 'Type of deployment'
-        required: true
+        required: 'true'
         type: choice
         options:
           - full-suite
@@ -20,18 +20,18 @@ on:
         default: 'full-suite'
       custom_components:
         description: 'Comma-separated component IDs'
-        required: false
+        required: 'false'
         type: string
       dry_run:
         description: 'Dry-run mode'
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
       skip_approval:
         description: 'Skip approval'
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
 
 permissions:
   issues: write
@@ -153,7 +153,7 @@ jobs:
           echo "🚀 Deploying: ${{ needs.init.outputs.deployment_id }}"
           echo "   Components: ${{ needs.init.outputs.components }}"
           DRY_RUN="${{ github.event.inputs.dry_run }}"
-          if [ "$DRY_RUN" = "true" ]; then
+          if ["$DRY_RUN" = "true"]; then
             echo "   Mode: DRY-RUN (no changes)"
           else
             echo "   Mode: APPLY"

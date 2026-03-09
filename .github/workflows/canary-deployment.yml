@@ -9,23 +9,23 @@ on:
     inputs:
       playbook:
         description: 'Ansible playbook path (relative)'
-        required: true
+        required: 'true'
         default: 'ansible/playbooks/deploy-rotation.yml'
       inventory:
         description: 'Ansible inventory path'
-        required: true
+        required: 'true'
         default: 'ansible/inventory/canary'
       canary_limit:
         description: 'Canary hosts limit (Ansible --limit expression)'
-        required: false
+        required: 'false'
         default: 'canary'
       health_endpoint:
         description: 'Health check endpoint (http://host:port/health)'
-        required: false
+        required: 'false'
         default: 'http://localhost:9093/-/healthy'
       rollback_playbook:
         description: 'Rollback playbook (optional)'
-        required: false
+        required: 'false'
         default: 'ansible/playbooks/rollback.yml'
 
 jobs:
