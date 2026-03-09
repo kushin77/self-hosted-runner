@@ -15,39 +15,37 @@ jobs:
   phase3b:
     name: Phase 3B Provisioning (hands-off)
     runs-on: ubuntu-latest
+    env:
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SA_EMAIL: ${{ secrets.GCP_SA_EMAIL }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+      AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+      VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+      VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
+      GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Authenticate to GCP (optional)
+        if: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER && env.GCP_SA_EMAIL }}
         uses: google-github-actions/auth@v1
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SA_EMAIL }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SA_EMAIL }}
 
       - name: Configure AWS credentials via OIDC (optional)
+        if: ${{ env.AWS_ROLE_TO_ASSUME }}
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Install prerequisites
         run: |
           sudo apt-get update -y
           sudo apt-get install -y jq
 
-      - name: Export environment
-        run: |
-          echo "VAULT_ADDR=${{ secrets.VAULT_ADDR }}" >> $GITHUB_ENV
-          echo "VAULT_NAMESPACE=${{ secrets.VAULT_NAMESPACE }}" >> $GITHUB_ENV
-          echo "GCP_PROJECT=${{ secrets.GCP_PROJECT }}" >> $GITHUB_ENV
-          echo "AWS_REGION=${{ secrets.AWS_REGION || 'us-east-1' }}" >> $GITHUB_ENV
-
       - name: Run Phase 3B provisioning (non-interactive)
-        env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE }}
-          GCP_PROJECT: ${{ secrets.GCP_PROJECT }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
         run: |
           set -euo pipefail
           bash scripts/phase3b-credentials-aws-vault.sh
