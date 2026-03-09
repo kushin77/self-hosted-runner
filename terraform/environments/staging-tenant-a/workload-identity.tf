@@ -1,6 +1,6 @@
 module "runner_workload_identity" {
   source             = "../../modules/workload-identity"
-  project            = "<replace-with-staging-project>"
+  project            = "p4-platform"
   service_account_id = "runner-staging-a"
   display_name       = "Runner service account (staging)"
   roles              = [
