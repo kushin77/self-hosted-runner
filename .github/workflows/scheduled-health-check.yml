@@ -1,9 +1,6 @@
 name: "[SCHEDULED] Multi-Layer Secrets Health Check — Every 15 Minutes"
 
 on:
-  schedule:
-    # Every 15 minutes — continuous health monitoring
-    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
