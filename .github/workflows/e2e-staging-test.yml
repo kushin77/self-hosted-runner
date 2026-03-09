@@ -27,6 +27,30 @@ jobs:
         run: |
           chmod +x scripts/e2e/run_staging_e2e.sh
 
+      - name: Retrieve STAGING kubeconfig (ephemeral)
+        id: fetch_kubeconfig
+        run: |
+          set -euo pipefail
+          echo "Fetching STAGING_KUBECONFIG via credential-manager.sh"
+          OUTPUT=$(bash scripts/cred-helpers/credential-manager.sh STAGING_KUBECONFIG auto 300 2>&1) || (echo "Credential retrieval failed:\n$OUTPUT" >&2; exit 1)
+          echo "$OUTPUT" > /tmp/cred_out.txt
+          CREDS=$(echo "$OUTPUT" | sed -n 's/^credential=\(.*\)/\1/p')
+          if [ -z "$CREDS" ]; then
+            echo "No credential output found" >&2
+            exit 2
+          fi
+          # Try base64 decode; fallback to writing as-is
+          if echo "$CREDS" | grep -qE "^[A-Za-z0-9+/=]+$"; then
+            if echo "$CREDS" | base64 -d > kubeconfig 2>/dev/null; then
+              echo "Wrote decoded kubeconfig to $PWD/kubeconfig"
+            else
+              echo "$CREDS" > kubeconfig
+            fi
+          else
+            echo "$CREDS" > kubeconfig
+          fi
+          echo "KUBECONFIG=$PWD/kubeconfig" >> $GITHUB_ENV
+
       - name: Run E2E staging harness
         env:
           TF_VAR_run_mode: "ci"

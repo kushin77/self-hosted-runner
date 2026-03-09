@@ -42,10 +42,36 @@ jobs:
           echo "Pulling $IMAGE"
           docker pull "$IMAGE" || true
 
+      - name: Fetch cosign private key from Vault
+        if: ${{ secrets.VAULT_ADDR && secrets.VAULT_ROLE }}
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          AUDIENCE: vault
+        run: |
+          bash scripts/vault_oidc_login.sh
+          # retrieve the private key (KV v2) and set as env for later steps
+          KEY_JSON=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/secret/data/cosign" || true)
+          KEY=$(echo "$KEY_JSON" | jq -r '.data.data.key // empty')
+          if [ -n "$KEY" ]; then
+            echo "COSIGN_PRIVATE_KEY=$(echo $KEY | base64 -w0)" >> $GITHUB_ENV
+          else
+            echo "No cosign private key found in Vault; proceeding without signing"
+          fi
+
       - name: Run integration tests
         run: |
           IMG="$IMAGE"
           docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed" && exit 10)
+
+      - name: Request Vault OIDC token (for signing)
+        if: ${{ secrets.VAULT_ADDR && secrets.VAULT_ROLE }}
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          AUDIENCE: vault
+        run: |
+          bash scripts/vault_oidc_login.sh
 
       - name: Generate SBOM and sign
         env:
