@@ -34,13 +34,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Authenticate to Google Cloud (service account or OIDC)
-        uses: google-github-actions/auth@v2
-        with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account_email: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-          credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-          create_credentials_file: true
-          export_environment_variables: true
+        # Retrieve service account key at runtime instead of using repository secret
+        - name: Get GCP service account key
+          uses: ./.github/actions/get-ephemeral-credential
+          id: gcp_sa
+          with:
+            credential-name: GCP_SERVICE_ACCOUNT_KEY
+
+        - name: Authenticate to Google Cloud (service account or OIDC)
+          uses: google-github-actions/auth@v2
+          with:
+            workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+            service_account_email: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+            credentials_json: ${{ steps.gcp_sa.outputs.credential }}
+            create_credentials_file: true
+            export_environment_variables: true
 
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
