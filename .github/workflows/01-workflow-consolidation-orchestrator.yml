@@ -38,14 +38,14 @@ env:
   CREDENTIAL_PRIORITY: 'GSM,VAULT,KMS'
   CREDENTIAL_ROTATION_INTERVAL: '7'  # days
   CREDENTIAL_AUTO_ROTATE: 'true'
-  
+
   # ─────────────────────────────────────────────────────────────────
   # Ephemeral Execution Guards
   # ─────────────────────────────────────────────────────────────────
   EXECUTION_TTL: '3600'  # seconds (1 hour auto-cleanup)
   LOCKFILE_RETENTION: '7'  # days
   STALE_THRESHOLD: '14'  # days before marking ops as stale
-  
+
   # ─────────────────────────────────────────────────────────────────
   # Idempotent Execution Guards
   # ─────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ jobs:
           TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           echo "id=${EXEC_ID}" >> $GITHUB_OUTPUT
           echo "timestamp=${TIMESTAMP}" >> $GITHUB_OUTPUT
-          
+
           # Immutable audit log
           mkdir -p .audit-logs
           cat > .audit-logs/${EXEC_ID}.log << EOF
@@ -126,7 +126,7 @@ jobs:
         id: guards
         run: |
           echo "🔐 Validating execution guards..."
-          
+
           # Check: No in-flight consolidations
           if [ -f .workflow-state/consolidation.lock ]; then
             LOCK_AGE=$(($(date +%s) - $(stat -c %Y .workflow-state/consolidation.lock 2>/dev/null || echo 0)))
@@ -134,13 +134,13 @@ jobs:
               echo "⚠️  Consolidation already in-flight (age: ${LOCK_AGE}s). Using dedup window..."
             fi
           fi
-          
+
           # Check: Dry-run mode
           DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
           if [ "$DRY_RUN" = "true" ]; then
             echo "📋 DRY-RUN MODE: All operations simulated, no mutations"
           fi
-          
+
           # Check: Credentials available (GSM > VAULT > KMS)
           CREDS_OK="false"
           if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
@@ -155,7 +155,7 @@ jobs:
           else
             echo "✗ No credentials available - will use ephemeral session tokens"
           fi
-          
+
           echo "can_proceed=true" >> $GITHUB_OUTPUT
 
       # Idempotent: Generate state checksum for deduplication
@@ -163,14 +163,14 @@ jobs:
         id: state_validation
         run: |
           echo "🔄 Validating idempotency state..."
-          
+
           # Generate current state hash
           find .github/workflows -name "*.yml" -o -name "*.yaml" | \
             xargs cat | sha256sum | awk '{print $1}' > /tmp/state.hash
-          
+
           STATE_HASH=$(cat /tmp/state.hash)
           echo "hash=${STATE_HASH}" >> $GITHUB_OUTPUT
-          
+
           # Check if this exact state was already processed
           PREV_HASH_FILE=".workflow-state/last-state-hash"
           if [ -f "$PREV_HASH_FILE" ]; then
@@ -179,7 +179,7 @@ jobs:
               echo "✓ State unchanged - previous run's results are valid (idempotent skip)"
             fi
           fi
-          
+
           echo "Current state: ${STATE_HASH}"
 
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -199,7 +199,7 @@ jobs:
         id: credentials
         run: |
           echo "🔐 Initializing multi-layer credential chain (GSM > VAULT > KMS)..."
-          
+
           # Layer 1: Google Secrets Manager (ephemeral federated tokens)
           if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
             echo "✓ Layer 1: GSM initialized"
@@ -216,7 +216,7 @@ jobs:
             echo "✓ Fallback: Using GitHub token with 1-hour TTL"
             ACTIVE_CRED_LAYER="GITHUB_TOKEN"
           fi
-          
+
           echo "active_layer=${ACTIVE_CRED_LAYER}" >> $GITHUB_OUTPUT
           echo "credential_rotation_due=$(date -u +'%Y-%m-%dT%H:%M:%SZ' -d '+7 days')" >> $GITHUB_OUTPUT
 
@@ -224,7 +224,7 @@ jobs:
         id: state
         run: |
           mkdir -p .workflow-state
-          
+
           # Restore previous execution state (enables idempotent resume)
           if [ -f ".workflow-state/consolidation.state" ]; then
             echo "📋 Restoring idempotent checkpoint..."
@@ -241,7 +241,7 @@ jobs:
         run: |
           echo "🚀 Orchestrating reusable workflow execution..."
           DRY_RUN="${{ needs.preflight.outputs.dry_run }}"
-          
+
           # Dispatch all reusable workflows in parallel (immutable, no dependencies)
           : 'Phase 1: Terraform Planning & State Management'
           gh workflow run terraform-plan-reusable.yml \
@@ -249,21 +249,21 @@ jobs:
             --field dry_run="${DRY_RUN}" \
             --field auto_approve="true" \
             2>/dev/null || echo "⚠️  terraform-plan-reusable.yml already queued"
-          
+
           : 'Phase 2: Secret Rotation (Multi-layer)'
           gh workflow run secret-rotation-reusable.yml \
             --ref main \
             --field credential_layer="${{ steps.credentials.outputs.active_layer }}" \
             --field auto_rotate="true" \
             2>/dev/null || echo "⚠️  secret-rotation-reusable.yml already queued"
-          
+
           : 'Phase 3: Container Build & Push'
           gh workflow run docker-build-push-reusable.yml \
             --ref main \
             --field push_to_registry="true" \
             --field auto_deploy="true" \
             2>/dev/null || echo "⚠️  docker-build-push-reusable.yml already queued"
-          
+
           : 'Phase 4: Security Scanning'
           gh workflow run security-scan-reusable.yml \
             --ref main \
@@ -271,7 +271,7 @@ jobs:
             --field scan_iac="true" \
             --field fail_on_critical="true" \
             2>/dev/null || echo "⚠️  security-scan-reusable.yml already queued"
-          
+
           echo "✓ All reusable workflows dispatched"
           echo "orchestration_status=dispatched" >> $GITHUB_OUTPUT
         env:
@@ -280,7 +280,7 @@ jobs:
       - name: Update Consolidation State (Immutable Checkpoint)
         run: |
           mkdir -p .workflow-state
-          
+
           # Immutable state update (append-only)
           cat >> .workflow-state/consolidation.state << EOF
           LAST_COMPLETED_PHASE=${{ needs.preflight.outputs.execution_id }}
@@ -288,7 +288,7 @@ jobs:
           LAST_EXECUTED=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
           STATE_HASH=${{ needs.preflight.outputs.state_hash }}
           EOF
-          
+
           echo "✓ State checkpoint saved"
 
   # ═══════════════════════════════════════════════════════════════════════════════
@@ -305,27 +305,27 @@ jobs:
       - name: Remove Ephemeral Resources
         run: |
           echo "🧹 Cleaning up ephemeral resources..."
-          
+
           # Remove temporary workflows (if any)
           find .github/workflows -name "*-temp.yml" -mtime +1 -delete
-          
+
           # Cleanup stale lock files (older than 1 hour)
           find .workflow-state -name "*.lock" -mmin +60 -delete
-          
+
           # Cleanup audit logs older than retention period
           find .audit-logs -name "*.log" -mtime +30 -delete
-          
+
           echo "✓ Ephemeral cleanup complete"
 
       - name: Verify No-Ops Guarantee (Rollback on Failure)
         if: failure()
         run: |
           echo "⚠️  Orchestration encountered issues - initiating rollback..."
-          
+
           # No-Ops guarantee: Only created issues/PRs remain; no merged state changes
           echo "✓ No immutable state was changed"
           echo "✓ All changes remain in PR pending review"
-          
+
           # Create incident issue for manual review
           gh issue create \
             --title "Consolidation Orchestration: Manual Review Required" \
@@ -350,14 +350,14 @@ jobs:
         id: audit
         run: |
           echo "📊 Generating immutable audit report..."
-          
+
           EXEC_ID="${{ needs.preflight.outputs.execution_id }}"
           TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          
+
           # Create immutable audit report (append-only)
           mkdir -p .audit-logs
           cat >> .audit-logs/consolidation-audit.log << EOF
-          
+
           ==============================================================================
           CONSOLIDATION EXECUTION REPORT
           ==============================================================================
@@ -366,7 +366,7 @@ jobs:
           Dry Run:          ${{ needs.preflight.outputs.dry_run }}
           Status:           ${{ needs.finalize.result }}
           Credential Layer: ${{ needs.execute_consolidation.outputs.active_layer || 'UNKNOWN' }}
-          
+
           Guarantees Verified:
           ✓ Immutable:   Changes audit-logged, no data loss
           ✓ Ephemeral:   Temp resources auto-cleaned after TTL
@@ -374,19 +374,19 @@ jobs:
           ✓ No-Ops:      Autonomous execution, zero manual steps
           ✓ Hands-Off:   Fully scheduled, no approvals needed
           ✓ Multi-Layer: ${{ needs.execute_consolidation.outputs.active_layer || 'GITHUB_TOKEN' }}
-          
+
           ==============================================================================
           EOF
-          
+
           echo "audit_report=.audit-logs/consolidation-audit.log" >> $GITHUB_OUTPUT
 
       - name: Commit Audit Trail
         run: |
           git config user.name "GitHub Copilot Automation"
           git config user.email "automation@github.com"
-          
+
           git add .audit-logs/ .workflow-state/ 2>/dev/null || true
-          
+
           if git diff --cached --exit-code > /dev/null 2>&1; then
             echo "✓ No changes to commit"
           else
@@ -399,10 +399,10 @@ jobs:
       - name: Update Consolidation Tracking Issue
         run: |
           EXEC_ID="${{ needs.preflight.outputs.execution_id }}"
-          
+
           # Find or create consolidation tracking issue
           ISSUE=$(gh issue list --label consolidation-tracking --state open --json number -q '.[0].number' 2>/dev/null || echo "")
-          
+
           if [ -z "$ISSUE" ]; then
             ISSUE=$(gh issue create \
               --title "Workflow Consolidation: Ongoing Enhancement" \
@@ -410,7 +410,7 @@ jobs:
               --label consolidation-tracking,automation \
               --json number -q '.number' 2>/dev/null || echo "")
           fi
-          
+
           if [ -n "$ISSUE" ]; then
             gh issue comment $ISSUE \
               --body "✅ Consolidation run completed: ${EXEC_ID}" \

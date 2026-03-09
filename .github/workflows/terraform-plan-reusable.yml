@@ -142,7 +142,7 @@ jobs:
             --duration-seconds 900 \
             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
             --output text 2>/dev/null || echo "FAILED")
-          
+
           if [ "$CREDS" = "FAILED" ]; then
             echo "⚠️  AWS OIDC failed, trying Vault..."
             echo "aws_auth=false" >> $GITHUB_OUTPUT
@@ -166,20 +166,20 @@ jobs:
           JWT_RESPONSE=$(curl -s -X POST \
             "${{ steps.cred_vault_addr.outputs.credential }}/v1/auth/jwt/login" \
             -d "{\"role\":\"${{ inputs.vault_role }}\",\"jwt\":\"${{ steps.oidc.outputs.oidc_token }}\"}")
-          
+
           VAULT_TOKEN=$(echo "$JWT_RESPONSE" | jq -r '.auth.client_token // empty')
           if [ -z "$VAULT_TOKEN" ]; then
             echo "❌ Vault JWT auth failed"
             exit 1
           fi
-          
+
           echo "::add-mask::${VAULT_TOKEN}"
           echo "vault_token=${VAULT_TOKEN}" >> $GITHUB_OUTPUT
-          
+
           # Get AWS creds from Vault
           AWS_RESPONSE=$(curl -s -H "X-Vault-Token: ${VAULT_TOKEN}" \
             "${{ steps.cred_vault_addr.outputs.credential }}/v1/aws/creds/github-plan" | jq '.data.access_key, .data.secret_key // empty')
-          
+
           read -r AWS_KEY AWS_SECRET <<< "$AWS_RESPONSE"
           echo "::add-mask::${AWS_KEY}"
           echo "::add-mask::${AWS_SECRET}"
@@ -195,15 +195,15 @@ jobs:
           IDENTITY_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=https://iamcredentials.googleapis.com/google.iam.credentials.v1.projects/-/serviceAccounts/" \
             | jq -r '.token')
-          
+
           SERVICE_ACCOUNT="github-actions@${{ inputs.gcp_project_id }}.iam.gserviceaccount.com"
-          
+
           ACCESS_TOKEN=$(curl -s -X POST \
             "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/${SERVICE_ACCOUNT}:generateAccessToken" \
             -H "Authorization: Bearer ${IDENTITY_TOKEN}" \
             -d '{"scope":["https://www.googleapis.com/auth/cloud-platform"]}' \
             | jq -r '.accessToken // empty')
-          
+
           if [ -z "$ACCESS_TOKEN" ]; then
             echo "⚠️  GCP Workload Identity failed, trying GSM..."
             echo "gcp_auth=false" >> $GITHUB_OUTPUT
@@ -220,9 +220,9 @@ jobs:
         run: |
           echo "${{ steps.cred_gcp_sa_key.outputs.credential }}" > /tmp/sa-key.json
           chmod 600 /tmp/sa-key.json
-          
+
           gcloud auth activate-service-account --key-file=/tmp/sa-key.json
-          
+
           gcloud config set project "${{ inputs.gcp_project_id }}"
           echo "✅ GCP via GSM (fallback auth)"
           rm -f /tmp/sa-key.json
@@ -233,9 +233,9 @@ jobs:
         run: |
           # Azure managed identity via OIDC
           MANAGED_IDENTITY_ENDPOINT="http://169.254.169.254/metadata/identity/oauth2/token?api-version=2017-09-01&resource=https://management.azure.com/"
-          
+
           ACCESS_TOKEN=$(curl -s -H "Metadata:true" "$MANAGED_IDENTITY_ENDPOINT" | jq -r '.access_token // empty')
-          
+
           if [ -z "$ACCESS_TOKEN" ]; then
             echo "⚠️  Azure Managed Identity failed"
             echo "azure_auth=false" >> $GITHUB_OUTPUT
@@ -260,7 +260,7 @@ jobs:
         run: |
           echo "🔧 Initializing Terraform (idempotent)..."
           terraform init -input=false -upgrade=false
-          
+
           # Verify backend is locked (distributed mutex)
           if [ -d .terraform ]; then
             echo "✅ Terraform backend initialized"
@@ -271,16 +271,16 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: |
           echo "📋 Planning infrastructure changes..."
-          
+
           PLAN_FILE="tfplan-${EXECUTION_ID}.json"
-          
+
           if [ "$DRY_RUN" = "true" ]; then
             terraform plan -out=/tmp/$PLAN_FILE -json > /tmp/plan.log 2>&1 || true
             echo "🏜️  DRY RUN mode (no state changes)"
           else
             terraform plan -out=/tmp/$PLAN_FILE -json > /tmp/plan.log 2>&1
           fi
-          
+
           # Save plan for next step
           cat /tmp/plan.log | jq {
             "execution_id": "'$EXECUTION_ID'",
@@ -289,7 +289,7 @@ jobs:
             "terraform_dir": "'${{ env.TF_DIR }}'",
             "changes": .
           } > /tmp/plan-audit.json
-          
+
           echo "plan_file=$PLAN_FILE" >> $GITHUB_OUTPUT
           echo "✅ Terraform plan completed"
 
@@ -302,14 +302,14 @@ jobs:
         run: |
           AUDIT_TIMESTAMP=$(date -u +'%Y%m%d_%H%M%S_UTC')
           AUDIT_KEY="${{ github.repository }}/terraform-plans/${EXECUTION_ID}/${AUDIT_TIMESTAMP}.json"
-          
+
           # Append-only: use versioning
           gsutil -h "Cache-Control: no-cache,no-store" \
             cp /tmp/plan-audit.json \
             "${LOG_BUCKET}/${AUDIT_KEY}"
-          
+
           echo "📝 Audit log: ${AUDIT_KEY}"
-          
+
           # Immutable: write lock
           gsutil acl ch -u StorageAdmin@google.com:W "${LOG_BUCKET}/${AUDIT_KEY}" || true
 
@@ -322,10 +322,10 @@ jobs:
           unset AWS_SESSION_TOKEN
           unset GOOGLE_OAUTH_ACCESS_TOKEN
           unset AZURE_ACCESS_TOKEN
-          
+
           # Remove temporary files
           rm -f /tmp/plan*.json /tmp/plan*.log /tmp/sa-key.json
-          
+
           echo "✅ Ephemeral credentials cleaned"
 
       - name: 'Summary: Plan Results'
