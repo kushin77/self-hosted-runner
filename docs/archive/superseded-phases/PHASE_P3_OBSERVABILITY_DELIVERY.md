@@ -161,7 +161,7 @@ Deploy workflow:
 
 ---
 
-## Merged PRs & Issues
+## Merged Draft issues & Issues
 
 | PR/Issue | Title | Status |
 |----------|-------|--------|

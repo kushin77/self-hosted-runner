@@ -329,7 +329,7 @@ gsutil ls -L gs://gcp-eiq-terraform-state
 ### Finalization Steps
 
 1. **Close Issue #1800** (original Phase 3 activation)
-2. **Merge PRs #1802, #1807** (Phase 3 improvements)
+2. **Merge Draft issues #1802, #1807** (Phase 3 improvements)
 3. **Create Phase 4 tracking issue** (if needed)
 4. **Update master status** (20/20 deliverables complete)
 

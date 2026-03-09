@@ -1,4 +1,4 @@
-# Test PR: auto-fix workflow validation
+# Test Draft Issue: auto-fix workflow validation
 
 ## Purpose
 +Create a short-lived test branch and PR to exercise the `auto-fix` workflow end-to-end in staging (completed).

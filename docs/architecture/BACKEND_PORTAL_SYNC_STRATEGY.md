@@ -966,7 +966,7 @@ jobs:
             --title "${{ github.event.issue.title }}" \
             --body "${{ github.event.issue.body }}"
       
-      - name: Create pull request for review
+      - name: Create Draft issue for review
         uses: peter-evans/create-pull-request@v4
         with:
           commit-message: "feat: Add function stub for #${{ github.event.issue.number }}"

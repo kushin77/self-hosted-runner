@@ -160,17 +160,17 @@ AccessControl:
       Cannot:
         - Merge to main
         - Deploy to production
-        - Approve others' PRs
+        - Approve others' Draft issues
         - Delete production data
         
     Tech Lead:
       Can:
-        - Merge PRs
+        - Merge Draft issues
         - Deploy to staging
         - Approve production deployments
         - Review security changes
       Cannot:
-        - Approve own PRs
+        - Approve own Draft issues
         - Delete production data
         - Disable security controls
         

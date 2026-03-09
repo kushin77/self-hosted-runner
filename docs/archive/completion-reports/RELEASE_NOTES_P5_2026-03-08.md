@@ -1,6 +1,6 @@
 Release: Phase P5 Post-Deployment Validation (2026-03-08)
 
-This is a metadata-only commit to create a pull request that triggers CI for final validation and merge.
+This is a metadata-only commit to create a Draft issue that triggers CI for final validation and merge.
 
 Contents:
 - .github/workflows/phase-p5-post-deployment-validation.yml

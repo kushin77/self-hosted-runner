@@ -11,7 +11,7 @@ Phase P2 successfully implemented a production-ready, managed-mode provisioning 
 
 **Key Metrics**:
 - 31 technical tasks completed
-- 8 major PRs merged (#61, #77, #88, #124, #130, #133, #142, #143)
+- 8 major Draft issues merged (#61, #77, #88, #124, #130, #133, #142, #143)
 - 0 production blockers
 - 100% code review coverage with automated CI
 
@@ -352,7 +352,7 @@ provision_flow.sh - Enqueue dummy job, verify jobStore, check status
 ## Additional Resources
 
 - **Code Repository**: https://github.com/kushin77/self-hosted-runner
-- **Phase P2 PRs**: #61, #77, #88, #124, #130, #133, #142, #143
+- **Phase P2 Draft issues**: #61, #77, #88, #124, #130, #133, #142, #143
 - **Phase P3 Planning**: Issue #146
 - **Phase P4 Planning**: Issue #148
 - **Production Rollout Execution**: Issue #147

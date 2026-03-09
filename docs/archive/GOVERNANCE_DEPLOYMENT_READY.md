@@ -144,7 +144,7 @@
                      Coverage verification
 
 🕐 Weekly Sun 1 AM → stale-pr-cleanup.yml
-                     Close PRs > 21 days
+                     Close Draft issues > 21 days
                      Leave notification
                      Allow reopening
 
@@ -214,7 +214,7 @@
 
 **4. Ephemeral Resources**
 - Branches auto-cleanup (60 days)
-- PRs auto-close (21 days)
+- Draft issues auto-close (21 days)
 - Credentials auto-rotate (daily)
 - Impact: Zero technical debt
 

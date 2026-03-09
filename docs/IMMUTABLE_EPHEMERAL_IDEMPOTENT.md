@@ -181,7 +181,7 @@ After a successful deployment, verify:
 - Check systemd logs: `journalctl -u vault-integration.service -n 50`
 - Verify permissions and paths: `ls -la /usr/libexec/vault-integration*`
 
-## Related Issues & PRs
+## Related Issues & Draft issues
 
 - Issue #711: Initiative to make build immutable/ephemeral/idempotent
 - PR #708: Deploy workflow with Vault integration

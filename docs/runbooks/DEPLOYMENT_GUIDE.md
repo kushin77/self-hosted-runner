@@ -46,12 +46,12 @@ pytest self_healing_orchestrator/ -v
 # ======================== 26 passed in 2.34s ==========================
 ```
 
-**3. Merge all PRs to main** (in sequence):
+**3. Merge all Draft issues to main** (in sequence):
 ```bash
 # Pull all feature branches
 git fetch origin
 
-# Merge PRs in order
+# Merge Draft issues in order
 gh pr merge 1912 --squash   # Orchestration framework
 gh pr merge 1924 --squash   # Integration adapters  
 gh pr merge 1929 --squash   # Credential providers
@@ -301,7 +301,7 @@ AWS_ROLE_ARN = arn:aws:iam::123456789012:role/orchestrator-role
 
 ### Deploy Workflow
 
-Once PRs are merged, the deployment workflow runs automatically:
+Once Draft issues are merged, the deployment workflow runs automatically:
 
 ```yaml
 # .github/workflows/deploy.yml

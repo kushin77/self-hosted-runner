@@ -89,7 +89,7 @@ EOF
 ```
 
 ### Deploy to Production
-1. Merge PRs #1912, #1924, #1927, #1929, #1928, #1930, #1938
+1. Merge Draft issues #1912, #1924, #1927, #1929, #1928, #1930, #1938
 2. Configure GitHub Secrets (VAULT_ADDR, VAULT_TOKEN, etc.)
 3. Workflows activate automatically on push/merge
 4. Monitor via Prometheus + Grafana + Slack alerts
@@ -225,7 +225,7 @@ jobs:
       - run: python3 -m self_healing_orchestrator.integration  # User-initiated, fully auto
 ```
 
-### ✅ Enterprise: Pull Request Status Check
+### ✅ Enterprise: Draft Issue Status Check
 ```yaml
 on: pull_request
 
@@ -337,7 +337,7 @@ credential_rotations_total{provider, status}— Rotation count
 |-------|----------|-------|------|
 | **1. Test** | Week 1-2 | Dev/staging only; manual trigger | Low |
 | **2. Validate** | Week 3-4 | Prod deployment; monitor metrics | Medium |
-| **3. Scale** | Week 5-6 | Auto-retry on all PRs; escalation enabled | Medium |
+| **3. Scale** | Week 5-6 | Auto-retry on all Draft issues; escalation enabled | Medium |
 | **4. Harden** | Week 7-8 | Block merges on orchestration failure; credential rotation | High |
 | **5. Mature** | Ongoing | Full observability + alerting; cost optimization | Low |
 
@@ -369,4 +369,4 @@ Report vulnerabilities to security@example.com (do not open public issues for se
 ---
 
 **Last Updated:** March 8, 2026  
-**Status:** ✅ Production Ready (7/7 PRs ready for merge + final docs)
+**Status:** ✅ Production Ready (7/7 Draft issues ready for merge + final docs)

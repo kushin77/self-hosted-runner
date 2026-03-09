@@ -156,16 +156,16 @@
 - [ ] #500 billing: Payment updated? Actions running?
 - [ ] #1355 auto-merge: GitHub settings enabled?
 - [ ] #1309 + #1346 OIDC: Is operator executing steps?
-- [ ] #1349 Dependabot: Triage started? PRs opened?
+- [ ] #1349 Dependabot: Triage started? Draft issues opened?
 
 **By end of day:**
 - [ ] #500 - Billing issue RESOLVED
 - [ ] #1355 - Auto-merge ENABLED
 - [ ] #1309 - Phase 1 secrets set or RUNNING
 - [ ] #1346 - Phase 2 secrets set or RUNNING
-- [ ] #1349 - 5+ Dependabot PRs opened
+- [ ] #1349 - 5+ Dependabot Draft issues opened
 - [ ] #505 - npm ci issue PR ready
-- [ ] #583 - npm vulnerability PRs ready
+- [ ] #583 - npm vulnerability Draft issues ready
 
 **Track time:** Should take ~3-4 hours total
 

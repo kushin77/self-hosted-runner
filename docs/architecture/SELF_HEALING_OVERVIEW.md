@@ -31,5 +31,5 @@ Next steps / Integrations:
 
 1. Implement integration adapters for GitHub (merge/PR APIs), Slack
    notifications, PagerDuty, and secret stores (GSM/VAULT/KMS).
-2. Add CI pipeline jobs to run unit tests and security scans on PRs.
+2. Add CI pipeline jobs to run unit tests and security scans on Draft issues.
 3. Add observability: metrics and tracing for all components.

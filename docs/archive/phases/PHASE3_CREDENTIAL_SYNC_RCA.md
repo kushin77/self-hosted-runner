@@ -220,7 +220,7 @@ gcloud iam workload-identity-pools create-cred-config \
 
 ---
 
-## RELATED ISSUES & PRs
+## RELATED ISSUES & Draft issues
 
 | Item | Status | Details |
 |------|--------|---------|

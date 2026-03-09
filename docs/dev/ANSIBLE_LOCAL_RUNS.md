@@ -65,7 +65,7 @@ Then conditionally guard privileged tasks:
 
 6) Quick checklist for contributors
 
-- [ ] Run `ansible-playbook --syntax-check` before opening PRs that change playbooks.
+- [ ] Run `ansible-playbook --syntax-check` before opening Draft issues that change playbooks.
 - [ ] Prefer CI/staging for `--check` idempotence runs.
 - [ ] Document any changes to privileged tasks in the playbook's header comments.
 

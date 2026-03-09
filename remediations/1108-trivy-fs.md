@@ -18,4 +18,4 @@ Recommended next steps (automated-first):
 Notes:
 
 - This file was created automatically by the security automation. Treat it as an ephemeral, audit-only artifact; the authoritative tracking is in issue #1108.
-- If you want me to attempt automated PRs that bump versions, reply with "auto-pr" and I'll proceed.
+- If you want me to attempt automated Draft issues that bump versions, reply with "auto-pr" and I'll proceed.

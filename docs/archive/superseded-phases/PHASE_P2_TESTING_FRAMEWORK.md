@@ -593,7 +593,7 @@ alidated
 - **Status**: Production-Ready
 - **Version**: 1.0
 - **Related Issues**: #149 (Production-Ready Testing Suite)
-- **Related PRs**: TBD (feature/p2-production-testing-framework)
+- **Related Draft issues**: TBD (feature/p2-production-testing-framework)
 
 ---
 

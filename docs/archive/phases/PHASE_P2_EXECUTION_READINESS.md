@@ -241,7 +241,7 @@
 - Delivery Roadmap: [ROADMAP.md](../../../actions-runner/externals.2.332.0/node24/lib/node_modules/npm/node_modules/smart-buffer/docs/ROADMAP.md)
 - GitHub Issues: [#8–#18](https://github.com/kushin77/self-hosted-runner/issues?q=is%3Aissue+milestone%3A%22Phase+P2%22)
 - Phase P1 Completion: [Issue #1 (closed)](https://github.com/kushin77/self-hosted-runner/issues/1)
-- Phase P1.1 PR: [PR #7 (merged)](https://github.com/kushin77/self-hosted-runner/pull/7)
+- Phase P1.1 Draft Issue: [PR #7 (merged)](https://github.com/kushin77/self-hosted-runner/pull/7)
 
 ---
 

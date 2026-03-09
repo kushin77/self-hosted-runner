@@ -15,7 +15,7 @@
 - ✅ Real-time branch hygiene monitoring (every 5 minutes, not daily)
 - ✅ Intelligent stale branch cleanup (ML-aware, archive branches)
 - ✅ Advanced secret scanning (24/7, TruffleHog + GitLeaks)
-- ✅ PR quality gates (auto-block non-compliant PRs)
+- ✅ PR quality gates (auto-block non-compliant Draft issues)
 - ✅ Commit message validation (conventional format mandatory)
 
 ### Tier 2: Security & Integrity (2 Hours)
@@ -129,7 +129,7 @@ See 100X_ACTIVATION_GUIDE.md
 - [ ] 100% branch naming compliance (all new branches follow pattern)
 - [ ] 100% commit signing (all new commits GPG/SSH signed)
 - [ ] Zero secret exposures (24/7 scanning, zero detections)
-- [ ] PR quality gates auto-blocking non-compliant PRs
+- [ ] PR quality gates auto-blocking non-compliant Draft issues
 - [ ] Daily compliance score generated ≥950/1000
 - [ ] Team trained on new standards (.github/CONTRIBUTING.md)
 - [ ] Audit trail operational and immutable
