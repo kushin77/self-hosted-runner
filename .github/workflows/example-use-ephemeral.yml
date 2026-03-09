@@ -1,0 +1,20 @@
+name: Example: Use Ephemeral Credential
+on: [workflow_dispatch]
+jobs:
+  use-credential:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get ephemeral credential
+        uses: ./.github/actions/get-ephemeral-credential
+        id: getcred
+        with:
+          credential-name: TERRAFORM_BACKEND_PASSWD
+
+      - name: Show retrieved (masked)
+        run: |
+          echo "Credential retrieved from ${{ steps.getcred.outputs.source-layer }} and expires at ${{ steps.getcred.outputs.expires-at }}"
+          # Use the credential in a command (example)
+          # terraform apply -var "backend_password=${{ steps.getcred.outputs.credential }}"
