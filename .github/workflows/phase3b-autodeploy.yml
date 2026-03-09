@@ -28,6 +28,7 @@ jobs:
 
       - name: Authenticate to GCP (optional)
         if: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER && env.GCP_SA_EMAIL }}
+        continue-on-error: true
         uses: google-github-actions/auth@v1
         with:
           workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
@@ -35,6 +36,7 @@ jobs:
 
       - name: Configure AWS credentials via OIDC (optional)
         if: ${{ env.AWS_ROLE_TO_ASSUME }}
+        continue-on-error: true
         uses: aws-actions/configure-aws-credentials@v2
         with:
           role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
