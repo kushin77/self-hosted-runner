@@ -1,0 +1,22 @@
+name: YAML Lint Check
+
+on:
+  push:
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - '.github/workflows/**'
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install yamllint
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install yamllint
+      - name: Run yamllint (strict)
+        run: |
+          yamllint -d relaxed .github/workflows || { echo 'yamllint found issues'; exit 1; }
