@@ -1,229 +1,121 @@
 name: Compliance & Audit Log
-
-on:
+true:
   workflow_run:
-    types: [completed]
+    types:
+    - completed
   issues:
-    types: [opened, closed]
-
+    types:
+    - opened
+    - closed
 permissions:
   id-token: write
   issues: write
   contents: read
   actions: read
-
 jobs:
   log-automation-actions:
     name: Store automation audit trail
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_run'
     steps:
-      - name: Log workflow execution
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          REPO="${{ github.repository }}"
-          RUN_ID=${{ github.event.workflow_run.id }}
-          WF_NAME="${{ github.event.workflow_run.name }}"
-          CONCLUSION="${{ github.event.workflow_run.conclusion }}"
-          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-
-          # Create audit log entry
-          AUDIT_ENTRY=$(cat << EOF
-          {
-            "timestamp": "$TIMESTAMP",
-            "event_type": "workflow_execution",
-            "workflow_name": "$WF_NAME",
-            "run_id": $RUN_ID,
-            "conclusion": "$CONCLUSION",
-            "repository": "$REPO",
-            "event_action": "completed"
-          }
-          EOF
-          )
-
-          # Append to audit log file (in workflow artifacts)
-          echo "$AUDIT_ENTRY" >> /tmp/audit_log.jsonl
-
-          echo "✅ Logged: $WF_NAME ($CONCLUSION)"
-
+    - name: Log workflow execution
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nREPO=\"${{ github.repository }}\"\nRUN_ID=${{ github.event.workflow_run.id\
+        \ }}\nWF_NAME=\"${{ github.event.workflow_run.name }}\"\nCONCLUSION=\"${{\
+        \ github.event.workflow_run.conclusion }}\"\nTIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')\n\
+        \n# Create audit log entry\nAUDIT_ENTRY=$(cat << EOF\n{\n  \"timestamp\":\
+        \ \"$TIMESTAMP\",\n  \"event_type\": \"workflow_execution\",\n  \"workflow_name\"\
+        : \"$WF_NAME\",\n  \"run_id\": $RUN_ID,\n  \"conclusion\": \"$CONCLUSION\"\
+        ,\n  \"repository\": \"$REPO\",\n  \"event_action\": \"completed\"\n}\nEOF\n\
+        )\n\n# Append to audit log file (in workflow artifacts)\necho \"$AUDIT_ENTRY\"\
+        \ >> /tmp/audit_log.jsonl\n\necho \"✅ Logged: $WF_NAME ($CONCLUSION)\"\n"
+    timeout-minutes: 30
   log-issue-lifecycle:
     name: Track issue lifecycle for compliance
     runs-on: ubuntu-latest
     if: github.event_name == 'issues'
     steps:
-      - name: Log issue action
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          ISSUE=${{ github.event.issue.number }}
-          ACTION="${{ github.event.action }}"
-          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
-          LABELS="${{ join(github.event.issue.labels.*.name, ',') }}"
-
-          AUDIT_ENTRY=$(cat << EOF
-          {
-            "timestamp": "$TIMESTAMP",
-            "event_type": "issue_lifecycle",
-            "issue": $ISSUE,
-            "action": "$ACTION",
-            "labels": "$LABELS",
-            "repository": "${{ github.repository }}"
-          }
-          EOF
-          )
-
-          echo "$AUDIT_ENTRY" >> /tmp/audit_log.jsonl
-
-          echo "✅ Logged Issue #$ISSUE: $ACTION"
-
+    - name: Log issue action
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nISSUE=${{ github.event.issue.number }}\nACTION=\"\
+        ${{ github.event.action }}\"\nTIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')\n\
+        LABELS=\"${{ join(github.event.issue.labels.*.name, ',') }}\"\n\nAUDIT_ENTRY=$(cat\
+        \ << EOF\n{\n  \"timestamp\": \"$TIMESTAMP\",\n  \"event_type\": \"issue_lifecycle\"\
+        ,\n  \"issue\": $ISSUE,\n  \"action\": \"$ACTION\",\n  \"labels\": \"$LABELS\"\
+        ,\n  \"repository\": \"${{ github.repository }}\"\n}\nEOF\n)\n\necho \"$AUDIT_ENTRY\"\
+        \ >> /tmp/audit_log.jsonl\n\necho \"✅ Logged Issue #$ISSUE: $ACTION\"\n"
+    timeout-minutes: 30
   generate-daily-compliance-report:
     name: Generate daily compliance summary
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Collect audit data
-        id: audit
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          REPO="${{ github.repository }}"
-          TODAY=$(date -u +'%Y-%m-%d')
-          START_TIME="${TODAY}T00:00:00Z"
-
-          # Query workflow runs
-          RUNS=$(gh run list --repo "${REPO}" \
-            --created ">=${START_TIME}" \
-            --json name,conclusion,createdAt \
-            --jq 'length')
-
-          # Query issues
-          ISSUES=$(gh issue list --repo "${REPO}" \
-            --since "${START_TIME}" \
-            --state all \
-            --json number \
-            --jq 'length')
-
-          # Count successes/failures
-          SUCCESSES=$(gh run list --repo "${REPO}" \
-            --created ">=${START_TIME}" \
-            --json conclusion \
-            --jq '[.[] | select(.conclusion=="success")] | length')
-
-          FAILURES=$(gh run list --repo "${REPO}" \
-            --created ">=${START_TIME}" \
-            --json conclusion \
-            --jq '[.[] | select(.conclusion=="failure")] | length')
-
-          echo "runs=$RUNS" >> $GITHUB_OUTPUT
-          echo "issues=$ISSUES" >> $GITHUB_OUTPUT
-          echo "successes=$SUCCESSES" >> $GITHUB_OUTPUT
-          echo "failures=$FAILURES" >> $GITHUB_OUTPUT
-
-      - name: Generate compliance report
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          REPO="${{ github.repository }}"
-          TODAY=$(date -u +'%Y-%m-%d')
-
-          REPORT=$(cat << EOF
-          ## 📋 Daily Compliance Report — $TODAY
-
-          ### Automation Activity
-          - **Workflow Runs**: ${{ steps.audit.outputs.runs }}
-            - ✅ Successful: ${{ steps.audit.outputs.successes }}
-            - ❌ Failed: ${{ steps.audit.outputs.failures }}
-          - **Issues Created/Updated**: ${{ steps.audit.outputs.issues }}
-
-          ### Compliance Status
-          - **Immutable Deployment**: ✅ All workflows in Git
-          - **Audit Trail**: ✅ Logged in GitHub Issues
-          - **Hands-Off Automation**: ✅ No manual approvals required
-          - **Error Handling**: ✅ Auto-escalation enabled
-
-          ### Security Posture
-          - **Secrets Management**: GSM integration active
-          - **OIDC Authentication**: ✅ Configured
-          - **Idempotent Operations**: ✅ Safe to re-run
-
-          ### Incident Management
-          - **Detection**: Automated
-          - **Response**: Auto-escalation workflow
-          - **Resolution Time**: [See Issue #1064](https://github.com/$REPO/issues/1064)
-
-          ### Recommendations
-          - Continue monitoring workflow health (Issue #1064)
-          - Review any failed runs for root causes
-          - Maintain GSM secrets for external integrations
-
-          _Generated by Compliance & Audit Log (nightly)_
-          EOF
-          )
-
-          # Post to tracking issue
-          gh issue comment 1064 --repo "${REPO}" --body "$REPORT" 2>/dev/null || true
-
-          echo "✅ Compliance report generated for $TODAY"
-
-      - name: Verify audit trail completeness
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          REPO="${{ github.repository }}"
-
-          # Verify key workflows have audit trail entries
-          REQUIRED=(
-            "self-healing-orchestrator"
-            "monitor-ingestion"
-            "dr-smoke-test"
-            "recovery-completion-handler"
-          )
-
-          for workflow in "${REQUIRED[@]}"; do
-            RUNS=$(gh run list --repo "${REPO}" --workflow "$workflow" --limit 5 --json id --jq 'length')
-
-            if [$RUNS -gt 0]; then
-              echo "✅ $workflow: audit trail complete ($RUNS recent runs)"
-            else
-              echo "⚠️ $workflow: no recent runs; audit trail incomplete"
-            fi
-          done
-
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Collect audit data
+      id: audit
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nREPO=\"${{ github.repository }}\"\nTODAY=$(date -u\
+        \ +'%Y-%m-%d')\nSTART_TIME=\"${TODAY}T00:00:00Z\"\n\n# Query workflow runs\n\
+        RUNS=$(gh run list --repo \"${REPO}\" \\\n  --created \">=${START_TIME}\"\
+        \ \\\n  --json name,conclusion,createdAt \\\n  --jq 'length')\n\n# Query issues\n\
+        ISSUES=$(gh issue list --repo \"${REPO}\" \\\n  --since \"${START_TIME}\"\
+        \ \\\n  --state all \\\n  --json number \\\n  --jq 'length')\n\n# Count successes/failures\n\
+        SUCCESSES=$(gh run list --repo \"${REPO}\" \\\n  --created \">=${START_TIME}\"\
+        \ \\\n  --json conclusion \\\n  --jq '[.[] | select(.conclusion==\"success\"\
+        )] | length')\n\nFAILURES=$(gh run list --repo \"${REPO}\" \\\n  --created\
+        \ \">=${START_TIME}\" \\\n  --json conclusion \\\n  --jq '[.[] | select(.conclusion==\"\
+        failure\")] | length')\n\necho \"runs=$RUNS\" >> $GITHUB_OUTPUT\necho \"issues=$ISSUES\"\
+        \ >> $GITHUB_OUTPUT\necho \"successes=$SUCCESSES\" >> $GITHUB_OUTPUT\necho\
+        \ \"failures=$FAILURES\" >> $GITHUB_OUTPUT\n"
+    - name: Generate compliance report
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nREPO=\"${{ github.repository }}\"\nTODAY=$(date -u\
+        \ +'%Y-%m-%d')\n\nREPORT=$(cat << EOF\n## \U0001F4CB Daily Compliance Report\
+        \ — $TODAY\n\n### Automation Activity\n- **Workflow Runs**: ${{ steps.audit.outputs.runs\
+        \ }}\n  - ✅ Successful: ${{ steps.audit.outputs.successes }}\n  - ❌ Failed:\
+        \ ${{ steps.audit.outputs.failures }}\n- **Issues Created/Updated**: ${{ steps.audit.outputs.issues\
+        \ }}\n\n### Compliance Status\n- **Immutable Deployment**: ✅ All workflows\
+        \ in Git\n- **Audit Trail**: ✅ Logged in GitHub Issues\n- **Hands-Off Automation**:\
+        \ ✅ No manual approvals required\n- **Error Handling**: ✅ Auto-escalation\
+        \ enabled\n\n### Security Posture\n- **Secrets Management**: GSM integration\
+        \ active\n- **OIDC Authentication**: ✅ Configured\n- **Idempotent Operations**:\
+        \ ✅ Safe to re-run\n\n### Incident Management\n- **Detection**: Automated\n\
+        - **Response**: Auto-escalation workflow\n- **Resolution Time**: [See Issue\
+        \ #1064](https://github.com/$REPO/issues/1064)\n\n### Recommendations\n- Continue\
+        \ monitoring workflow health (Issue #1064)\n- Review any failed runs for root\
+        \ causes\n- Maintain GSM secrets for external integrations\n\n_Generated by\
+        \ Compliance & Audit Log (nightly)_\nEOF\n)\n\n# Post to tracking issue\n\
+        gh issue comment 1064 --repo \"${REPO}\" --body \"$REPORT\" 2>/dev/null ||\
+        \ true\n\necho \"✅ Compliance report generated for $TODAY\"\n"
+    - name: Verify audit trail completeness
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nREPO=\"${{ github.repository }}\"\n\n# Verify key\
+        \ workflows have audit trail entries\nREQUIRED=(\n  \"self-healing-orchestrator\"\
+        \n  \"monitor-ingestion\"\n  \"dr-smoke-test\"\n  \"recovery-completion-handler\"\
+        \n)\n\nfor workflow in \"${REQUIRED[@]}\"; do\n  RUNS=$(gh run list --repo\
+        \ \"${REPO}\" --workflow \"$workflow\" --limit 5 --json id --jq 'length')\n\
+        \n  if [$RUNS -gt 0]; then\n    echo \"✅ $workflow: audit trail complete ($RUNS\
+        \ recent runs)\"\n  else\n    echo \"⚠️ $workflow: no recent runs; audit trail\
+        \ incomplete\"\n  fi\ndone\n"
+    timeout-minutes: 30
   enforce-audit-retention:
     name: Ensure audit logs retained
     runs-on: ubuntu-latest
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     steps:
-      - name: Verify issue-based audit trail
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-
-          REPO="${{ github.repository }}"
-
-          # Verify key tracking issues exist
-          for issue in 1064 1239 1327 1329 1331; do
-            if gh issue view ${issue} --repo "${REPO}" > /dev/null 2>&1; then
-              echo "✅ Issue #${issue}: audit trail present"
-            else
-              echo "⚠️ Issue #${issue}: missing audit trail"
-            fi
-          done
-
-          echo ""
-          echo "✅ All audit trails verified and retained"
+    - name: Verify issue-based audit trail
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: "set -euo pipefail\n\nREPO=\"${{ github.repository }}\"\n\n# Verify key\
+        \ tracking issues exist\nfor issue in 1064 1239 1327 1329 1331; do\n  if gh\
+        \ issue view ${issue} --repo \"${REPO}\" > /dev/null 2>&1; then\n    echo\
+        \ \"✅ Issue #${issue}: audit trail present\"\n  else\n    echo \"⚠️ Issue\
+        \ #${issue}: missing audit trail\"\n  fi\ndone\n\necho \"\"\necho \"✅ All\
+        \ audit trails verified and retained\"\n"
+    timeout-minutes: 30

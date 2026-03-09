@@ -1,14 +1,12 @@
 name: 10X Auto-Fix Delete & Rebuild (Immutable Actions)
-on:
-  workflow_dispatch:
+true:
+  workflow_dispatch: null
   schedule:
-    - cron: '0 2 * * *'  # Daily at 2 AM UTC
-
+  - cron: 0 2 * * *
 env:
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
   AWS_KMS_KEY_ID: ${{ secrets.AWS_KMS_KEY_ID }}
-
 jobs:
   mandate-rebuild-debugged-actions:
     name: Mandate Rebuild Debugged Actions
@@ -17,259 +15,159 @@ jobs:
       contents: write
       pull-requests: write
       issues: write
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          pip install gcloud pyyaml requests -q
-      
-      - name: Authenticate to GCP (GSM)
-        uses: google-github-actions/auth@v1
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
-      
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v1
-      
-      - name: Authenticate to Vault
-        env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
-        run: |
-          echo "✅ Vault authentication configured"
-      
-      - name: Discover all actions
-        id: discover
-        run: |
-          python3 scripts/immutable-action-lifecycle.py discover > /tmp/actions.txt
-          count=$(wc -l < /tmp/actions.txt)
-          echo "action_count=$count" >> $GITHUB_OUTPUT
-      
-      - name: Run mandate rebuild for all debugged actions
-        id: mandate
-        run: |
-          python3 scripts/immutable-action-lifecycle.py mandate-all \
-            --output /tmp/mandate-results.json
-      
-      - name: Generate audit report
-        id: audit
-        run: |
-          python3 scripts/immutable-action-lifecycle.py audit \
-            --output /tmp/audit-report.json
-      
-      - name: Upload reports as artifacts
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: action-rebuild-reports
-          path: |
-            /tmp/mandate-results.json
-            /tmp/audit-report.json
-          retention-days: 90
-      
-      - name: Parse and display results
-        id: results
-        run: |
-          if [ -f /tmp/mandate-results.json ]; then
-            python3 << 'EOF'
-          import json
-          
-          with open('/tmp/mandate-results.json') as f:
-            results = json.load(f)
-          
-          print("\n" + "="*70)
-          print("🔄 IMMUTABLE ACTION REBUILD MANDATE RESULTS")
-          print("="*70)
-          print(f"Total Actions Scanned:     {results.get('total_actions', 0)}")
-          print(f"Actions Flagged (Debugged): {len(results.get('debugged_actions', []))}")
-          print(f"Successfully Rebuilt:      {len(results.get('rebuilt_actions', []))}")
-          print(f"Failed Rebuilds:           {len(results.get('failed_rebuilds', []))}")
-          print("="*70)
-          
-          if results.get('debugged_actions'):
-            print("\n📋 Debugged Actions:")
-            for action in results['debugged_actions']:
-              print(f"  • {action}")
-          
-          if results.get('rebuilt_actions'):
-            print("\n✅ Successfully Rebuilt:")
-            for rebuild in results['rebuilt_actions']:
-              print(f"  • {rebuild['name']} -> {rebuild['version']}")
-          
-          if results.get('failed_rebuilds'):
-            print("\n❌ Failed Rebuilds:")
-            for failed in results['failed_rebuilds']:
-              print(f"  • {failed['name']}: {failed['error']}")
-          
-          print("\n")
-            EOF
-          fi
-      
-      - name: Check audit integrity
-        run: |
-          if [ -f /tmp/audit-report.json ]; then
-            python3 << 'EOF'
-          import json
-          
-          with open('/tmp/audit-report.json') as f:
-            report = json.load(f)
-          
-          summary = report.get('summary', {})
-          print("\n" + "="*70)
-          print("🔐 ACTION INTEGRITY AUDIT")
-          print("="*70)
-          print(f"Total Actions:          {summary.get('total', 0)}")
-          print(f"Active Actions:         {summary.get('active', 0)}")
-          print(f"Integrity Verified:     {summary.get('integrity_verified', 0)}")
-          print(f"Rebuild Required:       {summary.get('rebuild_required', 0)}")
-          print("="*70 + "\n")
-          
-          # Alert if integrity issues
-          total = summary.get('total', 0)
-          verified = summary.get('integrity_verified', 0)
-          if total > 0 and verified < total:
-            missing = total - verified
-            print(f"⚠️  WARNING: {missing} actions have integrity issues")
-            exit(1)
-            EOF
-          fi
-      
-      - name: Create summary comment
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const mandateResults = JSON.parse(fs.readFileSync('/tmp/mandate-results.json', 'utf8'));
-            const auditReport = JSON.parse(fs.readFileSync('/tmp/audit-report.json', 'utf8'));
-            
-            const summary = auditReport.summary;
-            
-            const comment = `## 🔄 Immutable Action Rebuild Mandate Report
-            
-            ### Summary
-            - **Total Actions:** ${summary.total}
-            - **Active Actions:** ${summary.active}
-            - **Integrity Verified:** ${summary.integrity_verified}/${summary.total}
-            - **Rebuild Required:** ${summary.rebuild_required}
-            
-            ### Mandate Results
-            - **Debugged Actions:** ${mandateResults.debugged_actions.length}
-            - **Successfully Rebuilt:** ${mandateResults.rebuilt_actions.length}
-            - **Failed Rebuilds:** ${mandateResults.failed_rebuilds.length}
-            
-            ### Architecture
-            ✅ **Immutable** - All actions versioned with hash-based integrity  
-            ✅ **Ephemeral** - Auto-deleted after debug-rebuild cycle  
-            ✅ **Idempotent** - Safe to run repeatedly  
-            ✅ **No-Ops** - All credentials via GSM/VAULT/KMS  
-            ✅ **Fully Automated** - Zero manual intervention  
-            ✅ **Hands-Off** - Metrics-driven operations  
-            
-            [View detailed reports](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
-            
-            core.notice(comment);
-      
-      - name: Commit changes if rebuilds occurred
-        if: always()
-        run: |
-          if [ -f /tmp/mandate-results.json ]; then
-            python3 << 'EOF'
-          import json
-          
-          with open('/tmp/mandate-results.json') as f:
-            results = json.load(f)
-          
-          if results.get('rebuilt_actions'):
-            import subprocess
-            
-            # Stage rebuilt actions
-            subprocess.run(['git', 'add', '.github/actions/*/'], check=False)
-            
-            # Create commit
-            rebuilt_count = len(results['rebuilt_actions'])
-            subprocess.run([
-              'git', 'commit', '-m',
-              f'chore: rebuild {rebuilt_count} immutable actions after debug cycles\n\n' +
-              f'- Mandate: All debugged actions rebuild fresh\n' +
-              f'- Pattern: Delete and rebuild (immutable, ephemeral, idempotent)\n' +
-              f'- Credentials: GSM/VAULT/KMS only (no plaintext)\n' +
-              f'- Automation: Fully hands-off, zero manual ops\n'
-            ], check=False)
-            
-            # Push to main
-            subprocess.run(['git', 'push', 'origin', 'main'], check=False)
-            
-            print(f"\n✅ Committed {rebuilt_count} rebuilt actions")
-            EOF
-          fi
-      
-      - name: Notify on failures
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number || 1,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '❌ Action rebuild mandate workflow failed. Check logs at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'
-            });
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: Install dependencies
+      run: 'pip install gcloud pyyaml requests -q
 
+        '
+    - name: Authenticate to GCP (GSM)
+      uses: google-github-actions/auth@v1
+      with:
+        credentials_json: ${{ secrets.GCP_SA_KEY }}
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+    - name: Authenticate to Vault
+      env:
+        VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+        VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+      run: 'echo "✅ Vault authentication configured"
+
+        '
+    - name: Discover all actions
+      id: discover
+      run: 'python3 scripts/immutable-action-lifecycle.py discover > /tmp/actions.txt
+
+        count=$(wc -l < /tmp/actions.txt)
+
+        echo "action_count=$count" >> $GITHUB_OUTPUT
+
+        '
+    - name: Run mandate rebuild for all debugged actions
+      id: mandate
+      run: "python3 scripts/immutable-action-lifecycle.py mandate-all \\\n  --output\
+        \ /tmp/mandate-results.json\n"
+    - name: Generate audit report
+      id: audit
+      run: "python3 scripts/immutable-action-lifecycle.py audit \\\n  --output /tmp/audit-report.json\n"
+    - name: Upload reports as artifacts
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: action-rebuild-reports
+        path: '/tmp/mandate-results.json
+
+          /tmp/audit-report.json
+
+          '
+        retention-days: 90
+    - name: Parse and display results
+      id: results
+      run: "if [ -f /tmp/mandate-results.json ]; then\n  python3 << 'EOF'\nimport\
+        \ json\n\nwith open('/tmp/mandate-results.json') as f:\n  results = json.load(f)\n\
+        \nprint(\"\\n\" + \"=\"*70)\nprint(\"\U0001F504 IMMUTABLE ACTION REBUILD MANDATE\
+        \ RESULTS\")\nprint(\"=\"*70)\nprint(f\"Total Actions Scanned:     {results.get('total_actions',\
+        \ 0)}\")\nprint(f\"Actions Flagged (Debugged): {len(results.get('debugged_actions',\
+        \ []))}\")\nprint(f\"Successfully Rebuilt:      {len(results.get('rebuilt_actions',\
+        \ []))}\")\nprint(f\"Failed Rebuilds:           {len(results.get('failed_rebuilds',\
+        \ []))}\")\nprint(\"=\"*70)\n\nif results.get('debugged_actions'):\n  print(\"\
+        \\n\U0001F4CB Debugged Actions:\")\n  for action in results['debugged_actions']:\n\
+        \    print(f\"  • {action}\")\n\nif results.get('rebuilt_actions'):\n  print(\"\
+        \\n✅ Successfully Rebuilt:\")\n  for rebuild in results['rebuilt_actions']:\n\
+        \    print(f\"  • {rebuild['name']} -> {rebuild['version']}\")\n\nif results.get('failed_rebuilds'):\n\
+        \  print(\"\\n❌ Failed Rebuilds:\")\n  for failed in results['failed_rebuilds']:\n\
+        \    print(f\"  • {failed['name']}: {failed['error']}\")\n\nprint(\"\\n\"\
+        )\n  EOF\nfi\n"
+    - name: Check audit integrity
+      run: "if [ -f /tmp/audit-report.json ]; then\n  python3 << 'EOF'\nimport json\n\
+        \nwith open('/tmp/audit-report.json') as f:\n  report = json.load(f)\n\nsummary\
+        \ = report.get('summary', {})\nprint(\"\\n\" + \"=\"*70)\nprint(\"\U0001F510\
+        \ ACTION INTEGRITY AUDIT\")\nprint(\"=\"*70)\nprint(f\"Total Actions:    \
+        \      {summary.get('total', 0)}\")\nprint(f\"Active Actions:         {summary.get('active',\
+        \ 0)}\")\nprint(f\"Integrity Verified:     {summary.get('integrity_verified',\
+        \ 0)}\")\nprint(f\"Rebuild Required:       {summary.get('rebuild_required',\
+        \ 0)}\")\nprint(\"=\"*70 + \"\\n\")\n\n# Alert if integrity issues\ntotal\
+        \ = summary.get('total', 0)\nverified = summary.get('integrity_verified',\
+        \ 0)\nif total > 0 and verified < total:\n  missing = total - verified\n \
+        \ print(f\"⚠️  WARNING: {missing} actions have integrity issues\")\n  exit(1)\n\
+        \  EOF\nfi\n"
+    - name: Create summary comment
+      if: always()
+      uses: actions/github-script@v7
+      with:
+        script: "const fs = require('fs');\nconst mandateResults = JSON.parse(fs.readFileSync('/tmp/mandate-results.json',\
+          \ 'utf8'));\nconst auditReport = JSON.parse(fs.readFileSync('/tmp/audit-report.json',\
+          \ 'utf8'));\n\nconst summary = auditReport.summary;\n\nconst comment = `##\
+          \ \U0001F504 Immutable Action Rebuild Mandate Report\n\n### Summary\n- **Total\
+          \ Actions:** ${summary.total}\n- **Active Actions:** ${summary.active}\n\
+          - **Integrity Verified:** ${summary.integrity_verified}/${summary.total}\n\
+          - **Rebuild Required:** ${summary.rebuild_required}\n\n### Mandate Results\n\
+          - **Debugged Actions:** ${mandateResults.debugged_actions.length}\n- **Successfully\
+          \ Rebuilt:** ${mandateResults.rebuilt_actions.length}\n- **Failed Rebuilds:**\
+          \ ${mandateResults.failed_rebuilds.length}\n\n### Architecture\n✅ **Immutable**\
+          \ - All actions versioned with hash-based integrity  \n✅ **Ephemeral** -\
+          \ Auto-deleted after debug-rebuild cycle  \n✅ **Idempotent** - Safe to run\
+          \ repeatedly  \n✅ **No-Ops** - All credentials via GSM/VAULT/KMS  \n✅ **Fully\
+          \ Automated** - Zero manual intervention  \n✅ **Hands-Off** - Metrics-driven\
+          \ operations  \n\n[View detailed reports](https://github.com/${{ github.repository\
+          \ }}/actions/runs/${{ github.run_id }})`;\n\ncore.notice(comment);\n"
+    - name: Commit changes if rebuilds occurred
+      if: always()
+      run: "if [ -f /tmp/mandate-results.json ]; then\n  python3 << 'EOF'\nimport\
+        \ json\n\nwith open('/tmp/mandate-results.json') as f:\n  results = json.load(f)\n\
+        \nif results.get('rebuilt_actions'):\n  import subprocess\n  \n  # Stage rebuilt\
+        \ actions\n  subprocess.run(['git', 'add', '.github/actions/*/'], check=False)\n\
+        \  \n  # Create commit\n  rebuilt_count = len(results['rebuilt_actions'])\n\
+        \  subprocess.run([\n    'git', 'commit', '-m',\n    f'chore: rebuild {rebuilt_count}\
+        \ immutable actions after debug cycles\\n\\n' +\n    f'- Mandate: All debugged\
+        \ actions rebuild fresh\\n' +\n    f'- Pattern: Delete and rebuild (immutable,\
+        \ ephemeral, idempotent)\\n' +\n    f'- Credentials: GSM/VAULT/KMS only (no\
+        \ plaintext)\\n' +\n    f'- Automation: Fully hands-off, zero manual ops\\\
+        n'\n  ], check=False)\n  \n  # Push to main\n  subprocess.run(['git', 'push',\
+        \ 'origin', 'main'], check=False)\n  \n  print(f\"\\n✅ Committed {rebuilt_count}\
+        \ rebuilt actions\")\n  EOF\nfi\n"
+    - name: Notify on failures
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: "github.rest.issues.createComment({\n  issue_number: context.issue.number\
+          \ || 1,\n  owner: context.repo.owner,\n  repo: context.repo.repo,\n  body:\
+          \ '❌ Action rebuild mandate workflow failed. Check logs at: ${{ github.server_url\
+          \ }}/${{ github.repository }}/actions/runs/${{ github.run_id }}'\n});\n"
+    timeout-minutes: 30
   validate-ephemeral-cleanup:
     name: Validate Ephemeral Cleanup
     runs-on: ubuntu-latest
     needs: mandate-rebuild-debugged-actions
-    
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Verify no stale action backups
-        run: |
-          stale_backups=$(find .github/actions -type d -name '.backup-*' -mtime +7)
-          if [ -n "$stale_backups" ]; then
-            echo "❌ Found stale backups older than 7 days:"
-            echo "$stale_backups"
-            exit 1
-          fi
-          echo "✅ No stale backup files found"
-      
-      - name: Verify action manifests
-        run: |
-          python3 << 'EOF'
-          import json
-          import os
-          from pathlib import Path
-          
-          manifests_found = 0
-          invalid_manifests = 0
-          
-          for manifest_file in Path('.github/actions').rglob('action-manifest.json'):
-            manifests_found += 1
-            try:
-              with open(manifest_file) as f:
-                manifest = json.load(f)
-              
-              required_fields = ['version', 'integrity_hash', 'lifecycle_state']
-              if not all(field in manifest for field in required_fields):
-                print(f"❌ Invalid manifest: {manifest_file}")
-                invalid_manifests += 1
-            except Exception as e:
-              print(f"❌ Failed to parse {manifest_file}: {e}")
-              invalid_manifests += 1
-          
-          print(f"\nManifest validation: {manifests_found} found, {invalid_manifests} invalid")
-          if invalid_manifests > 0:
-            exit(1)
-          EOF
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Verify no stale action backups
+      run: "stale_backups=$(find .github/actions -type d -name '.backup-*' -mtime\
+        \ +7)\nif [ -n \"$stale_backups\" ]; then\n  echo \"❌ Found stale backups\
+        \ older than 7 days:\"\n  echo \"$stale_backups\"\n  exit 1\nfi\necho \"✅\
+        \ No stale backup files found\"\n"
+    - name: Verify action manifests
+      run: "python3 << 'EOF'\nimport json\nimport os\nfrom pathlib import Path\n\n\
+        manifests_found = 0\ninvalid_manifests = 0\n\nfor manifest_file in Path('.github/actions').rglob('action-manifest.json'):\n\
+        \  manifests_found += 1\n  try:\n    with open(manifest_file) as f:\n    \
+        \  manifest = json.load(f)\n    \n    required_fields = ['version', 'integrity_hash',\
+        \ 'lifecycle_state']\n    if not all(field in manifest for field in required_fields):\n\
+        \      print(f\"❌ Invalid manifest: {manifest_file}\")\n      invalid_manifests\
+        \ += 1\n  except Exception as e:\n    print(f\"❌ Failed to parse {manifest_file}:\
+        \ {e}\")\n    invalid_manifests += 1\n\nprint(f\"\\nManifest validation: {manifests_found}\
+        \ found, {invalid_manifests} invalid\")\nif invalid_manifests > 0:\n  exit(1)\n\
+        EOF\n"
+    timeout-minutes: 30
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  secrets: none

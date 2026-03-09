@@ -1,57 +1,62 @@
-name: "Terraform Phase 2: Final Plan/Apply"
-
-on:
+name: 'Terraform Phase 2: Final Plan/Apply'
+true:
   workflow_dispatch:
     inputs:
       auto_apply:
-        description: 'Auto-apply after plan approval'
+        description: Auto-apply after plan approval
         required: 'false'
         default: 'false'
         type: choice
         options:
-          - 'false'
-          - 'true'
-
+        - 'false'
+        - 'true'
 permissions:
   contents: read
   id-token: write
   actions: read
-
 jobs:
   setup:
     name: Setup Phase 2 Plan/Apply
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    - name: Fetch Ephemeral Credentials
+      uses: kushin77/get-ephemeral-credential@v1
+      id: creds
+      with:
+        credential-names: 'GCP_PROJECT_ID
 
-      - name: Fetch Ephemeral Credentials
-        uses: kushin77/get-ephemeral-credential@v1
-        id: creds
-        with:
-          credential-names: |
-            GCP_PROJECT_ID
-            GCP_WORKLOAD_IDENTITY_PROVIDER
-            GCP_SERVICE_ACCOUNT_EMAIL
-            MINIO_ACCESS_KEY
-            MINIO_SECRET_KEY
-            TERRAFORM_RUNNER_TOKEN
-          retrieve-from: 'auto'
-          audit-log: true
+          GCP_WORKLOAD_IDENTITY_PROVIDER
 
-      - name: Initialize
-        run: |
-          echo "::notice::Terraform Phase 2 Final Plan/Apply"
-          echo "::notice::Auto-apply: ${{ github.event.inputs.auto_apply }}"
+          GCP_SERVICE_ACCOUNT_EMAIL
 
+          MINIO_ACCESS_KEY
+
+          MINIO_SECRET_KEY
+
+          TERRAFORM_RUNNER_TOKEN
+
+          '
+        retrieve-from: auto
+        audit-log: true
+    - name: Initialize
+      run: 'echo "::notice::Terraform Phase 2 Final Plan/Apply"
+
+        echo "::notice::Auto-apply: ${{ github.event.inputs.auto_apply }}"
+
+        '
+    timeout-minutes: 30
   plan:
     name: Terraform Plan
-    needs: [setup]
+    needs:
+    - setup
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Run Plan
-        run: echo "Terraform plan placeholder"
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Run Plan
+      run: echo "Terraform plan placeholder"
+    timeout-minutes: 30
