@@ -41,9 +41,9 @@ Runner-level files (SSH keys, configs)?
 ### Adding a New Secret
 1. **Find it**: `bash scripts/audit-secrets.sh --search "PATTERN"` to see existing secrets
 2. **Index it**: Read [SECRETS_INDEX.md](SECRETS_INDEX.md) — all secrets are cataloged here
-3. **Add it**: Create secret, use in workflow, update documentation
-4. **Validate it**: `bash scripts/audit-secrets.sh --validate` before submitting PR
-5. **Reference it**: PR must include link to [SECRETS_INDEX.md](SECRETS_INDEX.md) update
+3. **Add it**: Create secret, update documentation
+4. **Validate it**: `bash scripts/audit-secrets.sh --validate` before creating a draft issue for deployment
+5. **Reference it**: The draft issue or deployment record must include a link to [SECRETS_INDEX.md](SECRETS_INDEX.md) updates
 
 ### Required Reading Before Adding Secrets
 - **[SECRETS_INDEX.md](SECRETS_INDEX.md)** — Complete catalog + how to search programmatically
@@ -111,10 +111,10 @@ bash scripts/audit-secrets.sh --json > secrets-manifest.json
 - **GSM access denied**: Check service account has `roles/secretmanager.secretAccessor`
 - **Rotation overdue**: Check [SECRETS_INDEX.md](SECRETS_INDEX.md) rotation schedule
 
-## PR / Review Policy
-- All changes that would affect CI/workflows remain subject to strict review, but are currently on hold until reactivation. Open any proposed workflow or runner changes as a draft issue and reference the emergency issue #2064; do NOT open PRs that would reintroduce workflows to `main`.
-- When reactivation is authorized, workflow changes MUST have at least one review from a code owner listed in `.github/CODEOWNERS` and include Ops approval for runner or secrets changes.
-- Tests that exercise CI behavior should be added only after CI is restored and will run on the approved runner fleet.
+## Change & Review Policy (PRs Deprecated)
+- Pull requests are deprecated while CI/CD is paused. All proposed changes must be recorded as a draft issue and reference the emergency record `#2064`.
+- For operational changes (deployments, runner updates, secrets), open a draft issue and include: deployer username, UTC timestamp, bundle SHA256, and a pointer to logs; then perform the approved direct-deploy to `192.168.168.42`.
+- When CI is re-enabled, the team will reconvene to agree the PR process and reinstate any governance rules.
 
 ## Branch Protection and Enforcement
 - Enable branch protection on `main` (or default branch): require status checks, PR reviews, and restrict who can push.
