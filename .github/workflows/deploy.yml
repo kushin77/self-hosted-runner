@@ -18,6 +18,42 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_TOKEN]
+        id: cred_vault_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -32,8 +68,8 @@ jobs:
     - name: Run self-healing orchestration
       env:
         VAULT_ADDR: ${{ secrets.VAULT_ADDR || 'http://localhost:8200' }}
-        VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
-        GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        VAULT_TOKEN: ${{ steps.cred_vault_token.outputs.credential }}
+        GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
         AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
       run: |
         python3 << 'DEPLOY'
