@@ -215,6 +215,6 @@ terraform apply
 
 ## See Also
 
-- [Health Monitoring](./RUNNER_HEALTH_MONITORING_SYSTEM.md)
+- [Health Monitoring](RUNNER_HEALTH_MONITORING_SYSTEM.md)
 - [Governance Policies](../governance/runners.md)
 - [AWS Best Practices](https://aws.amazon.com/articles/best-practices-for-github-actions/)

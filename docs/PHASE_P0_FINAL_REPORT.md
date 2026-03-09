@@ -18,25 +18,25 @@
 **Total Implementation**: 5,238 lines of production code
 
 ### Documentation: 4 Major Guides
-1. ✅ [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) - 3000 lines (complete guide)
-2. ✅ [PHASE_P0_COMPLETION_SUMMARY.md](docs/PHASE_P0_COMPLETION_SUMMARY.md) - 533 lines (achievements)
-3. ✅ [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) - 365 lines (cheat sheet)
-4. ✅ [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) - 2500 lines (full roadmap)
+1. ✅ [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) - 3000 lines (complete guide)
+2. ✅ [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) - 533 lines (achievements)
+3. ✅ [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) - 365 lines (cheat sheet)
+4. ✅ [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) - 2500 lines (full roadmap)
 
 **Total Documentation**: 6,398 lines
 
 ### Configuration Examples: 3
-1. ✅ [runner-crd-manifests.yaml](scripts/automation/pmo/examples/runner-crd-manifests.yaml)
+1. ✅ [runner-crd-manifests.yaml](../scripts/automation/pmo/examples/runner-crd-manifests.yaml)
    - GPU runner (g4dn.xlarge, NVIDIA T4)
    - Standard runner (t3.large, 2vCPU/8GB)
    - Memory runner (r5.2xlarge, 64GB)
 
-2. ✅ [runner-quotas.yaml](scripts/automation/pmo/examples/runner-quotas.yaml)
+2. ✅ [runner-quotas.yaml](../scripts/automation/pmo/examples/runner-quotas.yaml)
    - Organization-wide repo quotas
    - Priority allocation rules
    - Fairsharing policies
 
-3. ✅ [.runner-config/capabilities.yaml](scripts/automation/pmo/examples/.runner-config/capabilities.yaml)
+3. ✅ [.runner-config/capabilities.yaml](../scripts/automation/pmo/examples/.runner-config/capabilities.yaml)
    - System capability specs
    - Package requirements
    - Tool validation rules
@@ -204,7 +204,7 @@ packer/
 
 ### Immediate (Day 1)
 1. Clone repository
-2. Review [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)
+2. Review [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)
 3. Test components locally
 
 ### Short-term (Week 1)
@@ -231,11 +231,11 @@ Each component can be independently disabled with no impact on runners.
 
 | Document | Purpose | Audience | Read Time |
 |----------|---------|----------|-----------|
-| [README.md](README.md) | Project overview | Everyone | 5 min |
-| [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) | Quick commands | Operators | 10 min |
-| [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) | Complete guide | Engineers | 30 min |
-| [PHASE_P0_COMPLETION_SUMMARY.md](docs/PHASE_P0_COMPLETION_SUMMARY.md) | What was built | Architects | 20 min |
-| [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) | Long-term vision | Leadership | 45 min |
+| [README.md](../self_healing/README.md) | Project overview | Everyone | 5 min |
+| [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) | Quick commands | Operators | 10 min |
+| [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) | Complete guide | Engineers | 30 min |
+| [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) | What was built | Architects | 20 min |
+| [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) | Long-term vision | Leadership | 45 min |
 
 ---
 
@@ -246,7 +246,7 @@ Each component can be independently disabled with no impact on runners.
 - ✏️ Secrets rotation integration (Vault)
 - ✏️ ML-based failure prediction (anomaly detection)
 
-See [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) for full P1 roadmap.
+See [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) for full P1 roadmap.
 
 ---
 
@@ -286,8 +286,8 @@ Implementers will understand:
 ## 📞 SUPPORT
 
 For questions or issues:
-1. Read [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)
-2. Check [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md#troubleshooting)
+1. Read [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)
+2. Check [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md#troubleshooting)
 3. Review component logs: `/var/log/runner-*.log`
 4. Generate drift report: `./drift-detector.sh report`
 

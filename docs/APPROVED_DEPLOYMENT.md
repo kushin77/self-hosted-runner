@@ -258,13 +258,13 @@ Week 7: Production deployment (staggered)
 ## 📞 SUPPORT & ESCALATION
 
 ### Phase P0 Issues
-- **Quick questions**: See [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)
-- **Implementation help**: See [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md)
+- **Quick questions**: See [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)
+- **Implementation help**: See [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md)
 - **Troubleshooting**: See implementation guide troubleshooting section
 - **Escalation**: Platform team lead
 
 ### Phase P1 Discussions
-- **Architecture questions**: See [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md)
+- **Architecture questions**: See [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md)
 - **Component details**: See component-specific planning sections
 - **Timeline concerns**: See deployment roadmap section
 - **Escalation**: Program manager
@@ -315,12 +315,12 @@ Week 7: Production deployment (staggered)
 
 | Document | Purpose | Location |
 |----------|---------|----------|
-| This Document | Approval & Action Items | [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) |
-| Phase P0 Quick Start | Operator Reference | [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) |
-| Phase P0 Implementation | Complete Guide | [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) |
-| Phase P0 Summary | Technical Details | [PHASE_P0_COMPLETION_SUMMARY.md](docs/PHASE_P0_COMPLETION_SUMMARY.md) |
-| Phase P1 Planning | Development Roadmap | [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) |
-| Full Vision | 10X Platform Roadmap | [ENHANCEMENTS_10X.md](docs/ENHANCEMENTS_10X.md) |
+| This Document | Approval & Action Items | [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) |
+| Phase P0 Quick Start | Operator Reference | [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) |
+| Phase P0 Implementation | Complete Guide | [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) |
+| Phase P0 Summary | Technical Details | [PHASE_P0_COMPLETION_SUMMARY.md](PHASE_P0_COMPLETION_SUMMARY.md) |
+| Phase P1 Planning | Development Roadmap | [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) |
+| Full Vision | 10X Platform Roadmap | [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md) |
 
 ---
 

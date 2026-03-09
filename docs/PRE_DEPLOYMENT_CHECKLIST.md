@@ -53,9 +53,9 @@ Run deployment validation:
   - Links working
 
 - [ ] **Implementation docs complete**
-  - [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md)
-  - [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md)
-  - [DEPLOYMENT_MONITORING_SETUP.md](docs/DEPLOYMENT_MONITORING_SETUP.md)
+  - [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md)
+  - [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md)
+  - [DEPLOYMENT_MONITORING_SETUP.md](DEPLOYMENT_MONITORING_SETUP.md)
 
 - [ ] **Configuration examples present**
   - `scripts/automation/pmo/examples/.runner-config/` directory exists

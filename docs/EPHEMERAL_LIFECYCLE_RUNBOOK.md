@@ -699,7 +699,7 @@ This enables compliance audits, debugging, and cost analysis.
 For issues, questions, or feature requests:
 
 - **GitHub Issues:** [Issue Tracker](https://github.com/kushin77/self-hosted-runner/issues)
-- **Documentation:** [Main README](../../README.md)
+- **Documentation:** [Main README](../self_healing/README.md)
 - **Slack:** #infrastructure-support
 
 ---

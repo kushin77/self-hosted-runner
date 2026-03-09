@@ -22,19 +22,19 @@ Location: [Repository Settings → Secrets and variables → Actions](https://gi
 ### GCP Secret Manager (GSM) Secrets
 Location: [GCP Cloud Console → Security → Secret Manager](https://console.cloud.google.com/security/secret-manager)
 
-All GitHub Actions secrets are mirrored in GSM for centralized IAM and audit logging. See [GSM_VAULT_INTEGRATION.md](./GSM_VAULT_INTEGRATION.md) for setup and access details.
+All GitHub Actions secrets are mirrored in GSM for centralized IAM and audit logging. See [GSM_VAULT_INTEGRATION.md](GSM_VAULT_INTEGRATION.md) for setup and access details.
 
 ### HashiCorp Vault Secrets
 Location: `secret/runner/*` in Vault instance at `$VAULT_ADDR`
 
-Dynamic credentials are stored and rotated via Vault AppRole. See [GSM_VAULT_INTEGRATION.md](./GSM_VAULT_INTEGRATION.md) for rotation procedures.
+Dynamic credentials are stored and rotated via Vault AppRole. See [GSM_VAULT_INTEGRATION.md](GSM_VAULT_INTEGRATION.md) for rotation procedures.
 
 ---
 
 ## Runbooks & Operational Documentation
 
 ### Phase 3 Closure
-- **Document**: [DEPLOYMENT_READY.md](../DEPLOYMENT_READY.md)
+- **Document**: [DEPLOYMENT_READY.md](archive/DEPLOYMENT_READY.md)
 - **Status**: ✅ Complete
 - **Coverage**:
   - Artifact release to GitHub (immutable, checksummed)
@@ -43,7 +43,7 @@ Dynamic credentials are stored and rotated via Vault AppRole. See [GSM_VAULT_INT
 - **Emergency Procedure**: If Phase 3 artifacts are lost, restore from GitHub Release or MinIO
 
 ### Phase 4 Self-Healing
-- **Document**: [ROADMAP.md](../ROADMAP.md) (Section: Phase 4 — Operational Resilience)
+- **Document**: [ROADMAP.md](../actions-runner/externals.2.332.0/node24/lib/node_modules/npm/node_modules/smart-buffer/docs/ROADMAP.md) (Section: Phase 4 — Operational Resilience)
 - **Workflows**: 
   - [runner-self-heal.yml](../.github/workflows/runner-self-heal.yml) — Automated recovery
   - [credential-monitor.yml](../.github/workflows/credential-monitor.yml) — Trigger detection
@@ -55,7 +55,7 @@ Dynamic credentials are stored and rotated via Vault AppRole. See [GSM_VAULT_INT
 - **Emergency Procedure**: Manual Ansible playbook execution at `ansible/playbooks/provision-self-hosted-runner-noninteractive.yml`
 
 ### Credential Rotation
-- **Document**: [GSM_VAULT_INTEGRATION.md](./GSM_VAULT_INTEGRATION.md) (Section: AppRole Rotation)
+- **Document**: [GSM_VAULT_INTEGRATION.md](GSM_VAULT_INTEGRATION.md) (Section: AppRole Rotation)
 - **Workflow**: `.github/workflows/rotate-vault-approle.yml` (quarterly)
 - **Status**: 📝 To be implemented
 - **Coverage**:
@@ -77,7 +77,7 @@ Dynamic credentials are stored and rotated via Vault AppRole. See [GSM_VAULT_INT
 - **Emergency Procedure**: Manual upload via `scripts/minio/upload.sh` if workflow fails
 
 ### Security & Audit
-- **Document**: This file ([SECRETS_RUNBOOKS_AUDIT.md](./SECRETS_RUNBOOKS_AUDIT.md))
+- **Document**: This file ([SECRETS_RUNBOOKS_AUDIT.md](SECRETS_RUNBOOKS_AUDIT.md))
 - **Audit Scope**:
   - GitHub Actions secrets audit log (GitHub Dashboard)
   - GCP GSM audit logs (Cloud Logging)

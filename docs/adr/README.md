@@ -46,6 +46,6 @@ Each ADR captures:
 ## Links
 
 - [ADR Template](ADR-TEMPLATE.md)
-- [Contributing Guidelines](../../CONTRIBUTING.md)
+- [Contributing Guidelines](../../ElevatedIQ-Mono-Repo/apps/portal/node_modules/recharts/CONTRIBUTING.md)
 - [Architecture](../../ARCHITECTURE.md)
-- [Governance](../../GOVERNANCE.md)
+- [Governance](../../actions-runner/externals.2.312.0/node16/lib/node_modules/npm/node_modules/node-gyp/node_modules/tap-mocha-reporter/node_modules/readable-stream/GOVERNANCE.md)

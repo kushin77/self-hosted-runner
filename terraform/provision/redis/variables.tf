@@ -30,5 +30,5 @@ variable "harbor_redis_secret_name" {
 
 variable "kubeconfig_path" {
   type    = string
-  default = "~/.kube/config"
+  default = "/etc/rancher/k3s/k3s.yaml"
 }
