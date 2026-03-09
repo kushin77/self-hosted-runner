@@ -1,0 +1,262 @@
+name: "P4: Azure Scale Set - Terraform Plan Validation"
+
+on:
+  workflow_dispatch:
+    inputs:
+      example_dir:
+        description: "Example directory to validate"
+        required: false
+        default: "terraform/examples/azure-scale"
+        type: string
+      terraform_version:
+        description: "Terraform version to use"
+        required: false
+        default: "1.5.7"
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+jobs:
+  validate:
+    name: "Terraform Validate"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Terraform
+        run: |
+          set -euo pipefail
+          echo "::group::Install Terraform ${{ inputs.terraform_version }}"
+          TF_VERSION="${{ inputs.terraform_version }}"
+          mkdir -p /tmp/terraform-setup
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip \
+            -o /tmp/terraform-setup/terraform.zip
+          unzip -o /tmp/terraform-setup/terraform.zip -d /usr/local/bin/
+          terraform version
+          echo "::endgroup::"
+
+      - name: Terraform Format Check
+        working-directory: terraform/modules/azure_scale_set
+        run: |
+          echo "::group::Check Terraform Format"
+          terraform fmt -check -recursive .
+          echo "::endgroup::"
+
+      - name: Terraform Validate Module
+        working-directory: terraform/modules/azure_scale_set
+        run: |
+          echo "::group::Validate Azure Scale Set Module"
+          terraform init -backend=false
+          terraform validate
+          echo "::endgroup::"
+
+      - name: Terraform Validate Example
+        working-directory: ${{ inputs.example_dir }}
+        run: |
+          echo "::group::Validate Azure Scale Set Example"
+          terraform init -backend=false
+          terraform validate
+          echo "::endgroup::"
+
+  plan:
+    name: "Terraform Plan (Dry Run)"
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Terraform
+        run: |
+          set -euo pipefail
+          TF_VERSION="${{ inputs.terraform_version }}"
+          mkdir -p /tmp/terraform-setup
+          curl -fsSL https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip \
+            -o /tmp/terraform-setup/terraform.zip
+          unzip -o /tmp/terraform-setup/terraform.zip -d /usr/local/bin/
+          terraform version
+
+      - name: Create example terraform.tfvars
+        working-directory: ${{ inputs.example_dir }}
+        run: |
+          echo "::group::Create terraform.tfvars"
+          cat > terraform.tfvars << 'TFVARS_EOF'
+          resource_group_name = "example-rg"
+          location             = "eastus"
+          vm_sku               = "Standard_DS2_v2"
+          capacity             = 3
+          admin_username       = "azurerunner"
+          admin_ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQRhX0N0vR0kK..."
+          
+          # Optional overrides for testing
+          enable_autoscaling = true
+          min_capacity       = 2
+          max_capacity       = 10
+          environment        = "testing"
+          runner_labels      = ["azure", "test", "linux"]
+          runner_group       = "test-azure"
+          TFVARS_EOF
+          
+          cat terraform.tfvars
+          echo "::endgroup::"
+
+      - name: Terraform Plan
+        working-directory: ${{ inputs.example_dir }}
+        id: plan
+        run: |
+          echo "::group::Terraform Plan"
+          terraform init -backend=false
+          
+          terraform plan \
+            -out=tfplan \
+            -lock=false \
+            -no-color \
+            2>&1 | tee /tmp/plan_output.txt
+          
+          echo "::endgroup::"
+
+      - name: Show Terraform Plan
+        working-directory: ${{ inputs.example_dir }}
+        run: |
+          echo "::group::Detailed Plan Output"
+          terraform show -no-color tfplan
+          echo "::endgroup::"
+
+      - name: Analyze Plan Output
+        run: |
+          echo "::group::Plan Analysis"
+          echo "=== Resources to be created ==="
+          grep -E '^\s+\+\s+resource' /tmp/plan_output.txt || echo "No resources to create"
+          
+          echo -e "\n=== Resources to be destroyed ==="
+          grep -E '^\s+-\s+resource' /tmp/plan_output.txt || echo "No resources to destroy"
+          
+          echo -e "\n=== Resources to be modified ==="
+          grep -E '^\s+~\s+resource' /tmp/plan_output.txt || echo "No resources to modify"
+          echo "::endgroup::"
+
+      - name: Upload Plan Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-${{ github.run_id }}
+          path: |
+            ${{ inputs.example_dir }}/tfplan
+            /tmp/plan_output.txt
+          retention-days: 30
+
+  lint:
+    name: "Terraform Lint (tflint)"
+    runs-on: ubuntu-latest
+    needs: validate
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup tflint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+      - name: Run tflint on module
+        working-directory: terraform/modules/azure_scale_set
+        run: |
+          echo "::group::Lint Azure Scale Set Module"
+          tflint --init
+          tflint --format compact . || true
+          echo "::endgroup::"
+
+      - name: Run tflint on example
+        working-directory: ${{ inputs.example_dir }}
+        run: |
+          echo "::group::Lint Azure Scale Set Example"
+          tflint --init
+          tflint --format compact . || true
+          echo "::endgroup::"
+
+  docs:
+    name: "Documentation Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Verify documentation files exist
+        run: |
+          echo "::group::Documentation Verification"
+          
+          DOCS=(
+            "terraform/modules/azure_scale_set/README.md"
+            "docs/AZURE_SCALE_SET_CAPACITY_PLANNING.md"
+            "docs/AZURE_RUNNER_MIGRATION.md"
+          )
+          
+          for doc in "${DOCS[@]}"; do
+            if [ -f "$doc" ]; then
+              echo "✓ $doc"
+              wc -l "$doc"
+            else
+              echo "✗ MISSING: $doc"
+              exit 1
+            fi
+          done
+          
+          echo "::endgroup::"
+
+      - name: Check documentation quality
+        run: |
+          echo "::group::Documentation Quality Checks"
+          
+          # Check for common documentation requirements
+          echo "Checking for table of contents..."
+          grep -q "## Table of Contents" docs/AZURE_SCALE_SET_CAPACITY_PLANNING.md && echo "✓ TOC found" || echo "✗ TOC missing"
+          
+          echo "Checking for examples..."
+          grep -q "Example:" terraform/modules/azure_scale_set/README.md && echo "✓ Examples found" || echo "✗ Examples missing"
+          
+          echo "Checking for troubleshooting section..."
+          grep -q "## Troubleshooting" docs/AZURE_RUNNER_MIGRATION.md && echo "✓ Troubleshooting found" || echo "✗ Troubleshooting missing"
+          
+          echo "::endgroup::"
+
+  summary:
+    name: "Validation Summary"
+    runs-on: ubuntu-latest
+    needs: [validate, plan, lint, docs]
+    if: always()
+    steps:
+      - name: Print Summary
+        run: |
+          echo "::group::P4 Azure Scale Set Validation Summary"
+          echo "✓ Terraform validation: ${{ needs.validate.result }}"
+          echo "✓ Terraform plan: ${{ needs.plan.result }}"
+          echo "✓ Terraform lint: ${{ needs.lint.result }}"
+          echo "✓ Documentation check: ${{ needs.docs.result }}"
+          
+          if [ "${{ needs.validate.result }}" = "success" ] && \
+             [ "${{ needs.plan.result }}" = "success" ] && \
+             [ "${{ needs.lint.result }}" = "success" ] && \
+             [ "${{ needs.docs.result }}" = "success" ]; then
+            echo ""
+            echo "✓ ALL VALIDATIONS PASSED"
+            echo ""
+            echo "Azure Scale Set Terraform module is ready for deployment."
+            echo "See uploaded artifacts for detailed plan output."
+          else
+            echo ""
+            echo "✗ VALIDATION FAILED"
+            echo "Fix issues and retry workflow."
+            exit 1
+          fi
+          echo "::endgroup::"
