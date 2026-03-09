@@ -1,0 +1,194 @@
+groups:
+  - name: deployment_alerts
+    interval: 30s
+    rules:
+      - alert: DeploymentFailureRate
+        expr: |
+          (sum(rate(deployment_status_total{status="failed"}[5m])) / 
+           sum(rate(deployment_status_total[5m]))) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High deployment failure rate detected ({{ $value | humanizePercentage }})"
+          description: "Deployment failures exceeding 10% threshold. Check logs for details."
+          runbook_url: "https://github.com/kushin77/self-hosted-runner/docs/DEPLOYMENT_RUNBOOK.md"
+
+      - alert: DeploymentLongDuration
+        expr: |
+          deployment_duration_seconds > 300
+        for: 2m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Deployment taking longer than expected ({{ $value | humanizeDuration }})"
+          description: "Deployment duration exceeds 5 minutes. May indicate performance issues."
+
+      - alert: NoRecentDeployments
+        expr: |
+          increase(deployment_total[30m]) == 0
+        for: 30m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "No deployments in the last 30 minutes"
+          description: "Expected regular deployments but none detected. Check if deployment system is operational."
+
+      - alert: DeploymentAuditLogsNotIngested
+        expr: |
+          increase(audit_events_total[5m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Audit logs not being ingested"
+          description: "No new audit events in last 5 minutes. Check logging pipeline."
+
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      - alert: NodeDown
+        expr: |
+          up{job="runner-worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Runner worker node is down: {{ $labels.instance }}"
+          description: "Node {{ $labels.instance }} has been unreachable for over 1 minute."
+          runbook_url: "https://github.com/kushin77/self-hosted-runner/docs/WORKER_RECOVERY.md"
+
+      - alert: HighCPUUsage
+        expr: |
+          (100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)) > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}: {{ $value | humanize }}%"
+          description: "CPU usage has been above 85% for the last 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: |
+          ((node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}: {{ $value | humanizePercentage }}"
+          description: "Memory usage exceeds 90%. Consider scaling or investigating memory leaks."
+
+      - alert: DiskSpaceLow
+        expr: |
+          ((node_filesystem_size_bytes{fstype!="tmpfs",fstype!="fuse.lxcfs"} - node_filesystem_avail_bytes{fstype!="tmpfs",fstype!="fuse.lxcfs"}) / 
+           node_filesystem_size_bytes{fstype!="tmpfs",fstype!="fuse.lxcfs"}) > 0.85
+        for: 5m
+        labels:
+          severity: critical
+          team: infrastructure
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}: {{ $value | humanizePercentage }}"
+          description: "Disk usage on {{ $labels.mountpoint }} exceeds 85%. Immediate action required."
+          runbook_url: "https://github.com/kushin77/self-hosted-runner/docs/DISK_SPACE_RUNBOOK.md"
+
+      - alert: HighLoadAverage
+        expr: |
+          node_load5 > 4
+        for: 10m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High load average on {{ $labels.instance }}: {{ $value | humanize }}"
+          description: "5-minute load average exceeds 4. System may be under stress."
+
+      - alert: NetworkInterfaceDown
+        expr: |
+          node_network_up{device!="lo"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Network interface down on {{ $labels.instance }}: {{ $labels.device }}"
+          description: "Interface {{ $labels.device }} has been down for 2 minutes."
+
+      - alert: HighNetworkErrors
+        expr: |
+          rate(node_network_receive_errs_total[5m]) + rate(node_network_transmit_errs_total[5m]) > 100
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "High network errors on {{ $labels.instance }}: {{ $value }}/sec"
+          description: "Network errors detected. Check physical connectivity and driver health."
+
+      - alert: ProcessesBuildingUp
+        expr: |
+          node_procs_running > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: infrastructure
+        annotations:
+          summary: "Many running processes on {{ $labels.instance }}: {{ $value }}"
+          description: "High number of running processes may indicate runaway task"
+
+  - name: filebeat_alerts
+    interval: 30s
+    rules:
+      - alert: FilebeatDown
+        expr: |
+          up{job="filebeat"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: observability
+        annotations:
+          summary: "Filebeat is not responding: {{ $labels.instance }}"
+          description: "Filebeat on {{ $labels.instance }} has been unreachable for 2 minutes. Audit logs not being shipped."
+
+      - alert: FilebeatBacklog
+        expr: |
+          filebeat_registry_writes_pending > 1000
+        for: 5m
+        labels:
+          severity: warning
+          team: observability
+        annotations:
+          summary: "Filebeat backlog building up on {{ $labels.instance }}"
+          description: "{{ $value }} events pending. Check Elasticsearch connectivity and throughput."
+
+  - name: vault_alerts
+    interval: 30s
+    rules:
+      - alert: VaultSealed
+        expr: |
+          vault_core_unsealed == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "HashiCorp Vault is sealed"
+          description: "Vault instance is sealed. Manual unseal required."
+          runbook_url: "https://github.com/kushin77/self-hosted-runner/docs/VAULT_UNSEAL_RUNBOOK.md"
+
+      - alert: VaultMetricsError
+        expr: |
+          increase(vault_core_metrics_scrape_failure[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+          team: observability
+        annotations:
+          summary: "Vault metrics collection errors"
+          description: "Vault is reporting errors during metrics scrape. Check configuration."
