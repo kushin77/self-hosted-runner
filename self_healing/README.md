@@ -1,5 +1,5 @@
-# PR Prioritization Implementation
+# Predictive Workflow Healing Implementation
 
-Risk-based PR scheduling with 4-tier merge strategy.
+Pattern-based remediation with cooldown tracking.
 
 See main README for full framework overview.
