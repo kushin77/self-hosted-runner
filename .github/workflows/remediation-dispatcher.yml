@@ -12,11 +12,13 @@ on:
     types: [remediation-request, remediation-fallback]
 
 permissions:
+  id-token: write
   contents: read
   actions: write
   issues: write
 
 permissions:
+  id-token: write
   issues: write
   actions: write
   contents: read
