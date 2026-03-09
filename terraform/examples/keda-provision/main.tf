@@ -21,7 +21,9 @@ provider "kubernetes" {
 }
 
 provider "helm" {
-  kubeconfig = file(pathexpand(var.kubeconfig_path))
+  kubernetes {
+    config_path = pathexpand(var.kubeconfig_path)
+  }
 }
 
 module "keda" {
