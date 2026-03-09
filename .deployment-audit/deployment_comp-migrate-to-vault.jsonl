@@ -1,6 +1,0 @@
-{"timestamp": "2026-03-08T23:00:14.485887", "event_type": "deployment_start", "component_id": "migrate-to-vault", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:00:24.577722", "event_type": "step_failed", "component_id": "migrate-to-vault", "status": "failed", "details": {"step": "inventory-secrets"}, "error": null}
-{"timestamp": "2026-03-08T23:00:24.578312", "event_type": "deployment_failed", "component_id": "migrate-to-vault", "status": "failed", "details": {}, "error": "Step failed: inventory-secrets"}
-{"timestamp": "2026-03-08T23:01:42.745381", "event_type": "deployment_start", "component_id": "migrate-to-vault", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T23:01:52.809928", "event_type": "step_failed", "component_id": "migrate-to-vault", "status": "failed", "details": {"step": "setup-vault"}, "error": null}
-{"timestamp": "2026-03-08T23:01:52.810290", "event_type": "deployment_failed", "component_id": "migrate-to-vault", "status": "failed", "details": {}, "error": "Step failed: setup-vault"}

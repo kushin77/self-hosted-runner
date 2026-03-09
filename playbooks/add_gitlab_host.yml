@@ -1,9 +1,0 @@
----
-- name: Add temporary GitLab hosts entry
-  hosts: runners
-  become: true
-  gather_facts: no
-  roles:
-    - role: gitlab_host
-
-# Usage: ansible-playbook playbooks/add_gitlab_host.yml -e "gitlab_host_ip=10.0.0.42"

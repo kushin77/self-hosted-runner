@@ -1,4 +1,0 @@
-FROM hashicorp/vault:1.15.4
-COPY vault-init-simple.sh /usr/local/bin/vault-init.sh
-RUN chmod +x /usr/local/bin/vault-init.sh
-ENTRYPOINT ["/usr/local/bin/vault-init.sh"]
