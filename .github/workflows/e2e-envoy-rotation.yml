@@ -1,4 +1,6 @@
 name: E2E — Envoy cert rotation smoke test
+permissions:
+  id-token: write
 
 on:
   workflow_dispatch:
