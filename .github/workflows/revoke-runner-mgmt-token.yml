@@ -39,6 +39,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         id: check-token
+
+      - name: Check RUNNER_MGMT_TOKEN validity
         env:
           RUNNER_MGMT_TOKEN: ${{ secrets.RUNNER_MGMT_TOKEN }}
         run: |
