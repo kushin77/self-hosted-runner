@@ -19,6 +19,7 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
+  id-token: write
 
 jobs:
   revoke-keys:
@@ -31,20 +32,35 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure credentials
+      - name: Authenticate to GCP via OIDC (ephemeral)
+        uses: google-github-actions/auth@v1
+        continue-on-error: true
+        if: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER && secrets.GCP_SA_EMAIL }}
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+
+      - name: Authenticate to AWS via OIDC (ephemeral)
+        uses: aws-actions/configure-aws-credentials@v2
+        continue-on-error: true
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+          duration-seconds: 3600
+
+      - name: Authenticate to Vault via AppRole (ephemeral tokens)
         env:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR || 'http://127.0.0.1:8200' }}
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GCP_SA_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          VAULT_APPROLE_ROLE_ID: ${{ secrets.VAULT_APPROLE_ROLE_ID }}
+          VAULT_APPROLE_SECRET_ID: ${{ secrets.VAULT_APPROLE_SECRET_ID }}
         run: |
-          # Validate credentials available
-          if [ -z "$VAULT_ADDR" ]; then
-            echo "ERROR: VAULT_ADDR not set"
-            exit 1
+          if [[ -n "${VAULT_ADDR}" && -n "${VAULT_APPROLE_ROLE_ID}" && -n "${VAULT_APPROLE_SECRET_ID}" ]]; then
+            echo "✅ Using Vault AppRole for ephemeral token auth"
+          else
+            echo "⚠️  Vault AppRole not configured; falling back to VAULT_NAMESPACE/VAULT_TOKEN"
           fi
-          echo "✅ Credentials configured"
+        continue-on-error: true
 
       - name: Run key revocation (audit mode)
         if: github.event.inputs.audit_only == 'true' || github.event_name == 'schedule'

@@ -27,10 +27,19 @@ jobs:
           chmod +x scripts/phase3b-credentials-aws-vault.sh || true
           chmod +x scripts/monitor-workflows.sh || true
 
-      - name: Configure AWS credentials (from repo secrets)
-        if: ${{ secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY }}
+      - name: Configure AWS credentials via OIDC (ephemeral)
+        uses: aws-actions/configure-aws-credentials@v2
+        continue-on-error: true
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+          duration-seconds: 3600
+
+      - name: Configure AWS credentials (fallback to long-lived for backward compatibility)
+        if: ${{ !secrets.AWS_ROLE_TO_ASSUME && secrets.AWS_ACCESS_KEY_ID && secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          echo "Configuring AWS credentials from secrets"
+          echo "⚠️  Using long-lived AWS keys (fallback). Please migrate to OIDC (see issue #2159)"
           mkdir -p ~/.aws
           cat > ~/.aws/credentials <<'EOF'
 [default]
