@@ -65,31 +65,27 @@ jobs:
 
       - name: Post Dependency Status
         run: |
-          DepsStatus="## 🔗 Issue Dependencies - Auto Update
-
-**Last Updated:** $(date -u)
-
-### Blocked Issues (Awaiting Action)
-- ⏳ #311 (KEDA) - Blocked by #343 (cluster online)
-- ⏳ #266 (Terraform plan) - Blocked by #325 (AWS secrets)
-- ⏳ #340 (Validation) - Blocked by #266
-
-### Ready to Execute
-- ✅ Terraform automation (ready when #325 complete)
-- ✅ KEDA smoke test (ready when #343 complete)
-- ✅ Post-deployment validation (ready in sequence)
-
-### Automation Status
-- ✅ Master orchestrator running (every 5 min)
-- ✅ Dependency tracking running (every 30 min)
-- ✅ Secret detection running (every 3 min)
-
-Next phase will auto-trigger when blockers resolve.
-"
-
+          cat > /tmp/deps-status.txt << 'EOFSTATUS'
+          ## Issue Dependencies - Auto Update
+          **Last Updated:** $(date -u)
+          ### Blocked Issues (Awaiting Action)
+          - #311 (KEDA) - Blocked by #343
+          - #266 (Terraform plan) - Blocked by #325
+          - #340 (Validation) - Blocked by #266
+          ### Ready to Execute
+          - Terraform automation (ready when #325 complete)
+          - KEDA smoke test (ready when #343 complete)
+          - Post-deployment validation (ready in sequence)
+          ### Automation Status  
+          - Master orchestrator running (every 5 min)
+          - Dependency tracking running (every 30 min)
+          - Secret detection running (every 3 min)
+          Next phase will auto-trigger when blockers resolve.
+          EOFSTATUS
+          
           gh issue comment 1379 \
             --repo ${{ github.repository }} \
-            --body "$DepsStatus" || true
+            --body "$(cat /tmp/deps-status.txt)" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true

@@ -55,7 +55,7 @@ jobs:
       - name: Audit signing start
       - name: Get Credential [ARTIFACT_BUCKET]
         id: cred_artifact_bucket
-        uses: kushin77/get-ephemeral-credential@v1
+        uses: ./.github/actions/get-ephemeral-credential
         with:
           credential-name: ARTIFACT_BUCKET
           retrieve-from: 'auto'
