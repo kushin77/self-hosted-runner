@@ -78,16 +78,16 @@ jobs:
           TF_IN_AUTOMATION: true
         run: |
           set -euo pipefail
-          
+
           echo "📋 Planning ElastiCache changes..."
-          
+
           terraform plan \
             -var-file="elasticache-params.tfvars" \
             -var="environment=${{ github.event.inputs.environment || 'prod' }}" \
             -no-color \
             -input=false \
             -out=tfplan.binary
-          
+
           echo "✅ Plan completed"
 
       - name: Package terraform plan for MinIO
@@ -151,14 +151,14 @@ jobs:
           TF_IN_AUTOMATION: true
         run: |
           set -euo pipefail
-          
+
           echo "⚙️ Applying Terraform changes..."
-          
+
           terraform apply \
             -no-color \
             -input=false \
             tfplan.binary
-          
+
           echo "✅ Apply completed"
 
       - name: Capture Outputs
@@ -166,10 +166,10 @@ jobs:
         working-directory: ./terraform/elasticache
         run: |
           set -euo pipefail
-          
+
           echo "📊 ElastiCache Outputs:"
           terraform output -no-color -json > outputs.json
-          
+
           # Display key outputs
           echo ""
           echo "Cluster Endpoint: $(terraform output -no-color primary_endpoint_address 2>/dev/null || echo 'N/A')"
@@ -207,24 +207,24 @@ jobs:
         id: validate
         run: |
           set -euo pipefail
-          
+
           echo "🔍 Validating ElastiCache deployment..."
-          
+
           # Get cluster information
           CLUSTERS=$(aws elasticache describe-cache-clusters \
             --region "$AWS_REGION" \
             --query 'CacheClusters[?Engine==`redis`].{Name:CacheClusterId,Status:CacheClusterStatus,Node:CacheNodeType}' \
             --output table)
-          
+
           echo "ElastiCache Clusters:"
           echo "$CLUSTERS"
-          
+
           # Check cluster status
           CLUSTER_COUNT=$(aws elasticache describe-cache-clusters \
             --region "$AWS_REGION" \
             --query 'length(CacheClusters)' \
             --output text)
-          
+
           if [ "$CLUSTER_COUNT" -gt 0 ]; then
             echo "✅ Validation successful: $CLUSTER_COUNT cluster(s) found"
           else
@@ -244,19 +244,19 @@ jobs:
           ═══════════════════════════════════════════════════════════════
                     ElastiCache Apply Workflow Summary
           ═══════════════════════════════════════════════════════════════
-          
+
           📅 Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')
           🔐 Credentials Source: GCP Secret Manager (OIDC)
           🏗️  Environment: ${{ github.event.inputs.environment || 'prod' }}
           ⚙️  Apply Requested: ${{ github.event.inputs.apply == 'true' && 'YES' || 'NO (Plan only)' }}
-          
+
           Job Status:
             ✅ Fetch AWS Credentials: ${{ needs.fetch-aws-creds.result }}
             ✅ Plan: ${{ needs.plan.result }}
             ⚙️  Apply: ${{ needs.apply.result }}
             ✅ Validate: ${{ needs.validate.result }}
-          
+
           📋 Logs: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          
+
           ═══════════════════════════════════════════════════════════════
           EOF
