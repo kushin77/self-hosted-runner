@@ -30,7 +30,7 @@ jobs:
     name: "Scan Workflows & Auto-Remediate"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -71,7 +71,7 @@ jobs:
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if [ -d ".compliance-audit" ] && [ -n "$(git status .compliance-audit --porcelain)" ]; then
             git add .compliance-audit/
             git commit -m "ci(compliance): immutable audit trail update" --allow-empty
@@ -101,7 +101,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: github.event.schedule != ''
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -121,7 +121,7 @@ jobs:
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if [ -n "$(git status .compliance-audit --porcelain 2>/dev/null)" ]; then
             git add -A .compliance-audit/
             git commit -m "ci(compliance): ephemeral cleanup of stale audit logs" --allow-empty

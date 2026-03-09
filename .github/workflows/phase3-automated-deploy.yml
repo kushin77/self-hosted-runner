@@ -33,11 +33,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 30
-    
+
     outputs:
       deployment_status: ${{ steps.deploy.outputs.status }}
       workload_identity_provider: ${{ steps.deploy.outputs.wip }}
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -63,11 +63,11 @@ jobs:
         id: verify
         run: |
           echo "🔐 Verifying ephemeral OIDC access to GCP..."
-          
+
           # Get current project
           PROJECT=$(gcloud config get-value project 2>/dev/null)
           echo "Project: $PROJECT"
-          
+
           # List existing secrets (verify access)
           echo "✅ OIDC authentication successful"
           echo "authenticated=true" >> $GITHUB_OUTPUT
@@ -99,7 +99,7 @@ jobs:
         with:
           script: |
             const comment = `## 🚀 Phase 3 Deployment Started
-            
+
 **Workflow:** Phase 3 Automated Deployment (Ephemeral OIDC)
 **Run:** ${context.runId}
 **Status:** 🟡 In Progress
@@ -138,7 +138,7 @@ jobs:
             terraform apply tfplan
             APPLY_STATUS="success"
           fi
-          
+
           # Capture outputs
           WIP=$(terraform output -raw workload_identity_provider 2>/dev/null || echo "")
           echo "status=deployed" >> $GITHUB_OUTPUT
@@ -159,7 +159,7 @@ jobs:
         if: ${{ github.event.inputs.dry_run != 'true' && steps.deploy.outputs.apply_status == 'success' }}
         run: |
           echo "🔍 Verifying Phase 3 infrastructure..."
-          
+
           # Verify Workload Identity Pool exists
           if gcloud iam workload-identity-pools list --location=global --project=${{ env.GCP_PROJECT_ID }} --filter="displayName:GitHub" | grep -q github-pool; then
             echo "✅ GitHub Workload Identity Pool created"
@@ -167,14 +167,14 @@ jobs:
             echo "❌ Workload Identity Pool not found"
             exit 1
           fi
-          
+
           # Verify Service Account
           if gcloud iam service-accounts list --project=${{ env.GCP_PROJECT_ID }} | grep -q github-actions; then
             echo "✅ GitHub Actions service account created"
           else
             echo "⚠️  Service account configuration pending"
           fi
-          
+
           echo "verify_status=passed" >> $GITHUB_OUTPUT
 
       - name: Update Issue with Success
@@ -184,7 +184,7 @@ jobs:
         with:
           script: |
             const status = `## ✅ Phase 3 Deployment Complete
-            
+
 **Status:** 🟢 DEPLOYED
 **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 **Deployment Type:** Ephemeral OIDC (auto-revoke after 20 min)
@@ -209,7 +209,7 @@ jobs:
 4. Close #1816 operator activation issue
 
 **Phase 3:** ✅ COMPLETE & PRODUCTION READY`;
-            
+
             github.rest.issues.createComment({
               issue_number: 1816,
               owner: context.repo.owner,
@@ -235,11 +235,11 @@ jobs:
     needs: phase3-deploy
     runs-on: ubuntu-latest
     if: ${{ needs.phase3-deploy.outputs.deployment_status == 'deployed' }}
-    
+
     permissions:
       id-token: write
       contents: read
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -259,18 +259,18 @@ jobs:
         id: test-wif
         run: |
           echo "🧪 Testing Workload Identity Federation..."
-          
+
           WIP="${{ needs.phase3-deploy.outputs.workload_identity_provider }}"
-          
+
           if [[ -n "$WIP" ]]; then
             echo "✅ Workload Identity Provider: $WIP"
-            
+
             # Verify it exists in GCP
             gcloud iam workload-identity-pools providers describe github \
               --workload-identity-pool=github-pool \
               --project=gcp-eiq \
               --location=global 2>&1 | head -5
-            
+
             echo "test_status=passed" >> $GITHUB_OUTPUT
           else
             echo "⚠️  WIP not configured yet"
@@ -316,10 +316,10 @@ jobs:
     name: Close Blocking Issues
     runs-on: ubuntu-latest
     if: ${{ always() }}
-    
+
     permissions:
       issues: write
-    
+
     steps:
       - uses: actions/checkout@v4
       - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
@@ -353,7 +353,7 @@ jobs:
               issue_number: 1816,
               state: 'closed'
             });
-            
+
             console.log('✅ Closed #1816: Phase 3 Operator Activation');
 
       - name: Update Issue #1824 (Phase 3 GCP OIDC)

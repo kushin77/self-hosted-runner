@@ -74,12 +74,12 @@ jobs:
       - name: 'Install: git-secret-tools'
         run: |
           mkdir -p ~/.git-secret-tools
-          
+
           # Install git-secrets
           git clone https://github.com/awslabs/git-secrets.git /tmp/git-secrets
           cd /tmp/git-secrets
           sudo make install
-          
+
           # Configure patterns
           git secrets --register-aws
           git secrets --add-aws-provider
@@ -89,9 +89,9 @@ jobs:
         continue-on-error: true
         run: |
           echo "🔍 Scanning for hardcoded secrets..."
-          
+
           FINDINGS=0
-          
+
           # Scan all files
           if git secrets --scan; then
             echo "✅ No secrets detected"
@@ -101,10 +101,10 @@ jobs:
             echo "findings=${FINDINGS}" >> $GITHUB_OUTPUT
             echo "❌ Secrets found: $FINDINGS"
           fi
-          
+
           # Also check for common patterns
           echo "📝 Checking for common secret patterns..."
-          
+
           PATTERNS=(
             "AKIA[0-9A-Z]{16}"  # AWS access key
             "-----BEGIN RSA PRIVATE KEY-----"  # RSA private key
@@ -112,13 +112,13 @@ jobs:
             "api[_-]?key['\"]?\s*[:=]"  # API keys
             "password['\"]?\s*[:=]"  # Passwords
           )
-          
+
           for PATTERN in "${PATTERNS[@]}"; do
             if grep -r "$PATTERN" . --include="*.py" --include="*.js" --include="*.yaml" --include="*.yml" 2>/dev/null; then
               FINDINGS=$((FINDINGS + 1))
             fi
           done
-          
+
           if [ $FINDINGS -gt 0 ]; then
             echo "❌ Potential secrets detected: $FINDINGS"
             exit 1
@@ -149,7 +149,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "📋 Scanning Terraform files..."
-          
+
           checkov -d terraform \
             --framework terraform \
             --skip-check CKV_AWS_1 \
@@ -157,7 +157,7 @@ jobs:
             --output json \
             --output-file terraform-checkov.json \
             2>&1 | tee terraform-scan.log || true
-          
+
           if [ -f terraform-checkov.json ]; then
             CRITICAL=$(jq '.summary.failed' terraform-checkov.json | grep -o '[0-9]*' | head -1)
             echo "critical_failures=${CRITICAL}" >> $GITHUB_OUTPUT
@@ -169,7 +169,7 @@ jobs:
         if: hashFiles('k8s/**/*.yaml', 'k8s/**/*.yml') != ''
         run: |
           echo "📋 Scanning Kubernetes manifests..."
-          
+
           checkov -d k8s \
             --framework kubernetes \
             --output cli \
@@ -183,7 +183,7 @@ jobs:
         if: hashFiles('**/*.cfn.yaml', '**/*.cfn.json') != ''
         run: |
           echo "📋 Scanning CloudFormation templates..."
-          
+
           checkov -d . \
             --framework cloudformation \
             --output json \
@@ -194,7 +194,7 @@ jobs:
         id: enforce
         run: |
           FAILURES=0
-          
+
           for FILE in terraform-checkov.json k8s-checkov.json cfn-checkov.json; do
             if [ -f "$FILE" ]; then
               FAILED=$(jq '.summary.failed' "$FILE" 2>/dev/null || echo "0")
@@ -203,7 +203,7 @@ jobs:
               fi
             fi
           done
-          
+
           if [ $FAILURES -gt 0 ]; then
             echo "❌ IaC policy violations: $FAILURES"
             exit 1
@@ -240,10 +240,10 @@ jobs:
         if: hashFiles('requirements.txt', 'setup.py', 'pyproject.toml') != ''
         run: |
           pip install pip-audit safety
-          
+
           echo "📦 Scanning Python dependencies..."
           pip-audit --desc 2>&1 | tee python-audit.log || true
-          
+
           safety check --json > python-safety.json 2>&1 || true
 
       - name: 'Scan: Node.js dependencies'
@@ -266,12 +266,12 @@ jobs:
       - name: 'Enforce: Dependency policy'
         run: |
           VULN_COUNT=0
-          
+
           if [ -f npm-audit.json ]; then
             VULN_COUNT=$(jq '.vulnerabilities | length' npm-audit.json)
             echo "📊 Node.js vulnerabilities: $VULN_COUNT"
           fi
-          
+
           if [ $VULN_COUNT -gt 0 ] && [ "${{ inputs.fail_on_severity }}" != "NONE" ]; then
             exit 1
           fi
@@ -349,7 +349,7 @@ jobs:
               <p><strong>Timestamp:</strong> $(date -u +'%Y-%m-%d %H:%M:%S UTC')</p>
               <p><strong>Scan Date:</strong> $(date -u +'%Y-%m-%d %H:%M:%S UTC')</p>
             </div>
-            
+
             <h2>📊 Scan Results</h2>
             <table>
               <tr>
@@ -376,7 +376,7 @@ jobs:
           </body>
           </html>
           EOF
-          
+
           echo "✅ HTML report generated"
 
       - name: 'Upload: Security report'

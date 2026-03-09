@@ -12,21 +12,21 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
         cache: 'pip'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements-dev.txt 2>/dev/null || pip install pytest pytest-cov requests
-    
+
     - name: Run tests
       run: |
         pytest self_healing_orchestrator/ -v \
@@ -36,7 +36,7 @@ jobs:
           --cov-report=xml \
           --cov-report=term-missing \
           || true
-    
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       if: matrix.python-version == '3.12'
@@ -44,7 +44,7 @@ jobs:
         files: ./coverage.xml
         flags: unittests
         fail_ci_if_error: false
-    
+
     - name: Publish test results
       uses: EnricoMi/publish-unit-test-result-action@v2
       if: always()
