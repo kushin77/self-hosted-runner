@@ -1,0 +1,33 @@
+name: CI using Ephemeral Registry Credentials
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch ephemeral registry creds
+        id: getcred
+        uses: ./.github/actions/get-ephemeral-credential
+        with:
+          credential-name: ci/registry
+          retrieve-from: auto
+          cache-ttl: 300
+
+      - name: Login to registry
+        run: |
+          echo "${{ steps.getcred.outputs.credential }}" | docker login $REGISTRY_URL -u "${{ steps.getcred.outputs.source_layer }}" --password-stdin
+
+      - name: Build and push image
+        run: |
+          docker build -t $REGISTRY_URL/myapp:${GITHUB_SHA::8} .
+          docker push $REGISTRY_URL/myapp:${GITHUB_SHA::8}

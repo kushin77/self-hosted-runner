@@ -1,0 +1,129 @@
+name: "Compliance Auto-Fixer (Scheduled)"
+
+on:
+  schedule:
+    # Daily at 00:00 UTC (hands-off, fully automated)
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Execute mode"
+        required: 'true'
+        default: "dry-run"
+        type: choice
+        options:
+          - dry-run
+          - auto-fix
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+env:
+  DRY_RUN: ${{ github.event.schedule != '' && 'true' || github.event.inputs.mode == 'dry-run' }}
+  VERBOSE: "true"
+  AUDIT_RETENTION_DAYS: 90
+
+jobs:
+  scan-and-fix:
+    name: "Scan Workflows & Auto-Remediate"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: "Install dependencies"
+        shell: bash
+        run: |
+          pip install -q pyyaml ruamel.yaml
+
+      - name: "Run compliance auditor (dry-run mode for scheduled)"
+        shell: bash
+        env:
+          DRY_RUN: "true"
+        run: |
+          python .github/scripts/auto-remediate-compliance.py 2>&1 | tee compliance-audit.log
+          echo "[INFO] Audit completed"
+
+      - name: "Capture audit results"
+        id: audit-results
+        shell: bash
+        run: |
+          if [-d ".compliance-audit"]; then
+            AUDIT_FILES=$(ls -1 .compliance-audit/compliance-fixes-*.jsonl 2>/dev/null | wc -l)
+            echo "audit_files_count=$AUDIT_FILES" >> $GITHUB_OUTPUT
+            # Show summary
+            find .compliance-audit -name "*.jsonl" -exec wc -l {} + | tail -1
+          fi
+
+      - name: "Commit audit trail (immutable append-only)"
+        shell: bash
+        if: always()
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [-d ".compliance-audit"] && [-n "$(git status .compliance-audit --porcelain)"]; then
+            git add .compliance-audit/
+            git commit -m "ci(compliance): immutable audit trail update" --allow-empty
+            git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed; skipping"
+          fi
+
+      - name: "Upload audit trail"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compliance-audit-${{ github.run_id }}
+          path: .compliance-audit/
+          retention-days: 30
+
+      - name: "Report: Compliance Status"
+        shell: bash
+        run: |
+          echo "## Compliance Auto-Remediation Report" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run Mode**: ${{ env.DRY_RUN == 'true' && 'Dry-Run (Audit Only)' || 'Auto-Fix (Apply Changes)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Audit Files**: ${{ steps.audit-results.outputs.audit_files_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Timestamp**: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See artifacts for full audit trail." >> $GITHUB_STEP_SUMMARY
+
+  cleanup-stale-audit:
+    name: "Cleanup Stale Audit Logs"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event.schedule != ''
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: "Remove audit logs older than retention period"
+        shell: bash
+        env:
+          RETENTION_DAYS: ${{ env.AUDIT_RETENTION_DAYS }}
+        run: |
+          echo "[INFO] Cleaning audit logs older than $RETENTION_DAYS days"
+          find .compliance-audit -name "*.jsonl" -mtime +$RETENTION_DAYS -delete -print || true
+          echo "[INFO] Cleanup completed"
+
+      - name: "Commit cleanup (if needed)"
+        shell: bash
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+          if [-n "$(git status .compliance-audit --porcelain 2>/dev/null)"]; then
+            git add -A .compliance-audit/
+            git commit -m "ci(compliance): ephemeral cleanup of stale audit logs" --allow-empty
+            git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed"
+          fi

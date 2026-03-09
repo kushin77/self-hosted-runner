@@ -1,0 +1,326 @@
+# ⚠️ DISABLED - operational-health-dashboard.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run operational-health-dashboard.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
+name: 'Operational Health Dashboard & Metrics'
+
+on:
+  workflow_dispatch:
+    inputs:
+      report_type:
+        description: "Report type (hourly, daily, or comprehensive)"
+        required: 'false'
+        default: "daily"
+        type: choice
+        options:
+          - hourly
+          - daily
+          - comprehensive
+
+  workflow_call: {}
+
+concurrency:
+  group: operational-health-dashboard-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+  issues: write
+
+jobs:
+  health-dashboard:
+    name: Health Dashboard & Metrics
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Load resilience utilities
+        run: source .github/scripts/resilience.sh
+
+      - name: Collect Workflow Health Metrics
+        id: workflow-health
+        run: |
+          echo "Collecting health metrics for all remediation workflows..."
+
+          # Track the four critical workflows
+          WORKFLOWS=(
+            "dr-reconciliation-auto-remediate.yml"
+            "ephemeral-secret-provisioning.yml"
+            "enable-auto-merge.yml"
+            "minio-dns-failover.yml"
+          )
+
+          OVERALL_SUCCESS=0
+          OVERALL_TOTAL=0
+
+          for workflow in "${WORKFLOWS[@]}"; do
+            echo ""
+            echo "📊 Workflow: $workflow"
+
+            # Get last 5 runs
+            RUNS=$(gh_safe 3 30 run list \
+              --workflow "$workflow" \
+              --repo kushin77/self-hosted-runner \
+              --limit 5 \
+              --json status,conclusion,createdAt,databaseId \
+              --jq '.' || echo "")
+
+            if [-z "$RUNS"]; then
+              echo "⚠ No runs found for $workflow"
+              continue
+            fi
+
+            # Count successes
+            SUCCESS_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "success")] | length')
+            TOTAL_COUNT=$(echo "$RUNS" | jq 'length')
+            FAILURE_COUNT=$(echo "$RUNS" | jq '[.[] | select(.conclusion == "failure")] | length')
+
+            SUCCESS_RATE=$((SUCCESS_COUNT * 100 / TOTAL_COUNT))
+
+            echo "  Last 5 runs: $SUCCESS_COUNT/$TOTAL_COUNT successful ($SUCCESS_RATE%)"
+            echo "  Failures: $FAILURE_COUNT"
+
+            # Get latest run details
+            LATEST=$(echo "$RUNS" | jq '.[0]')
+            LATEST_STATUS=$(echo "$LATEST" | jq -r '.status')
+            LATEST_CONCLUSION=$(echo "$LATEST" | jq -r '.conclusion')
+            LATEST_CREATED=$(echo "$LATEST" | jq -r '.createdAt')
+            LATEST_RUN_ID=$(echo "$LATEST" | jq -r '.databaseId')
+
+            echo "  Latest: Status=$LATEST_STATUS, Conclusion=$LATEST_CONCLUSION"
+            echo "  Latest run: $LATEST_RUN_ID (started: $LATEST_CREATED)"
+
+            # Append to metrics
+            WORKFLOW_NAME=$(echo "$workflow" | sed 's/.yml//')
+            {
+              echo "\"$WORKFLOW_NAME\": {"
+              echo "  \"success_rate\": $SUCCESS_RATE,"
+              echo "  \"successes\": $SUCCESS_COUNT,"
+              echo "  \"total_runs\": $TOTAL_COUNT,"
+              echo "  \"failures\": $FAILURE_COUNT,"
+              echo "  \"latest_status\": \"$LATEST_STATUS\","
+              echo "  \"latest_conclusion\": \"$LATEST_CONCLUSION\","
+              echo "  \"latest_run_id\": \"$LATEST_RUN_ID\","
+              echo "  \"timestamp\": \"$LATEST_CREATED\""
+              echo "},"
+            } >> /tmp/workflow_metrics.txt
+
+            OVERALL_SUCCESS=$((OVERALL_SUCCESS + SUCCESS_COUNT))
+            OVERALL_TOTAL=$((OVERALL_TOTAL + TOTAL_COUNT))
+          done
+
+          OVERALL_SUCCESS_RATE=$((OVERALL_SUCCESS * 100 / OVERALL_TOTAL))
+          echo "overall_success_rate=$OVERALL_SUCCESS_RATE" >> $GITHUB_OUTPUT
+          echo "overall_successes=$OVERALL_SUCCESS" >> $GITHUB_OUTPUT
+          echo "overall_total=$OVERALL_TOTAL" >> $GITHUB_OUTPUT
+
+          echo "✓ Overall success rate: $OVERALL_SUCCESS_RATE% ($OVERALL_SUCCESS/$OVERALL_TOTAL)"
+
+      - name: Collect Issue Closure Metrics
+        id: issue-metrics
+        run: |
+          echo "Collecting issue closure metrics..."
+
+          # Track issues that should auto-close
+          TRACKED_ISSUES=(
+            "1046"  # DR failure
+            "1021"  # DR failure
+            "1005"  # DR failure
+            "1002"  # DR failure
+            "980"   # DR failure
+            "973"   # DR failure
+            "972"   # DR failure
+            "1065"  # Missing secrets
+            "969"   # Admin action (secrets)
+            "965"   # Admin action (auto-merge)
+            "988"   # DNS failure
+          )
+
+          CLOSED_COUNT=0
+          OPEN_COUNT=0
+          UPDATED_COUNT=0
+          ISSUE_DETAILS=""
+
+          for issue_num in "${TRACKED_ISSUES[@]}"; do
+            ISSUE=$(gh_safe 3 20 issue view "$issue_num" \
+              --repo kushin77/self-hosted-runner \
+              --json state,title,updatedAt \
+              --jq '.' || echo "{}")
+
+            STATE=$(echo "$ISSUE" | jq -r '.state')
+            TITLE=$(echo "$ISSUE" | jq -r '.title')
+            UPDATED=$(echo "$ISSUE" | jq -r '.updatedAt')
+
+            if ["$STATE" = "CLOSED"]; then
+              ((CLOSED_COUNT++))
+              ICON="✅"
+            else
+              ((OPEN_COUNT++))
+              ICON="🔴"
+            fi
+
+            ISSUE_DETAILS="$ISSUE_DETAILS
+          $ICON #$issue_num: $TITLE (updated: $UPDATED)"
+
+            # Check if recently updated (last 2 hours)
+            UPDATED_EPOCH=$(date -d "$UPDATED" +%s)
+            NOW_EPOCH=$(date +%s)
+            DIFF=$((NOW_EPOCH - UPDATED_EPOCH))
+
+            if [$DIFF -lt 7200]; then
+              ((UPDATED_COUNT++))
+            fi
+          done
+
+          echo "closed_count=$CLOSED_COUNT" >> $GITHUB_OUTPUT
+          echo "open_count=$OPEN_COUNT" >> $GITHUB_OUTPUT
+          echo "updated_count=$UPDATED_COUNT" >> $GITHUB_OUTPUT
+          echo "issue_details<<EOF" >> $GITHUB_OUTPUT
+          echo "$ISSUE_DETAILS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+          echo "✓ Issues: $CLOSED_COUNT closed, $OPEN_COUNT open, $UPDATED_COUNT updated (last 2h)"
+
+      - name: Analyze Secret Provisioning Status
+        id: secrets-status
+        run: |
+          echo "Checking secret provisioning status..."
+
+          # Check if RUNNER_MGMT_TOKEN and DEPLOY_SSH_KEY are set
+          RUNNER_TOKEN_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
+            --jq '.secrets | map(select(.name == "RUNNER_MGMT_TOKEN")) | length' || echo 0)
+
+          DEPLOY_KEY_SET=$(gh_safe 3 20 api repos/kushin77/self-hosted-runner/actions/secrets \
+            --jq '.secrets | map(select(.name == "DEPLOY_SSH_KEY")) | length' || echo 0)
+
+          if ["$RUNNER_TOKEN_SET" -gt 0]; then
+            echo "runner_token_status=✅ SET" >> $GITHUB_OUTPUT
+          else
+            echo "runner_token_status=❌ MISSING" >> $GITHUB_OUTPUT
+          fi
+
+          if ["$DEPLOY_KEY_SET" -gt 0]; then
+            echo "deploy_key_status=✅ SET" >> $GITHUB_OUTPUT
+          else
+            echo "deploy_key_status=❌ MISSING" >> $GITHUB_OUTPUT
+          fi
+
+          SECRETS_HEALTHY=$(["$RUNNER_TOKEN_SET" -gt 0] && ["$DEPLOY_KEY_SET" -gt 0] && echo "true" || echo "false")
+          echo "secrets_healthy=$SECRETS_HEALTHY" >> $GITHUB_OUTPUT
+
+      - name: Check MinIO Connectivity Status
+        id: minio-status
+        continue-on-error: true
+        run: |
+          echo "Checking MinIO connectivity..."
+
+          PRIMARY_HOST="${{ secrets.MINIO_HOST || 'mc.bioenergystrategies.com' }}"
+
+          # Quick health check
+          if timeout 5 bash -c "echo >/dev/tcp/$PRIMARY_HOST/9000" 2>/dev/null; then
+            echo "minio_status=✅ HEALTHY" >> $GITHUB_OUTPUT
+            echo "minio_response_code=200" >> $GITHUB_OUTPUT
+          else
+            echo "minio_status=⚠ UNREACHABLE" >> $GITHUB_OUTPUT
+            echo "minio_response_code=000" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Daily Health Report
+        id: daily-report
+        run: |
+          TIMESTAMP=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          SUCCESS_RATE="${{ steps.workflow-health.outputs.overall_success_rate }}"
+          CLOSED_ISSUES="${{ steps.issue-metrics.outputs.closed_count }}"
+          RUNNER_TOKEN="${{ steps.secrets-status.outputs.runner_token_status }}"
+          DEPLOY_KEY="${{ steps.secrets-status.outputs.deploy_key_status }}"
+          MINIO_STATUS="${{ steps.minio-status.outputs.minio_status }}"
+
+          REPORT="Health Dashboard Report - $TIMESTAMP
+
+          SUCCESS_RATE: $SUCCESS_RATE%
+          CLOSED_ISSUES: $CLOSED_ISSUES
+          RUNNER_TOKEN: $RUNNER_TOKEN
+          DEPLOY_KEY: $DEPLOY_KEY
+          MINIO_STATUS: $MINIO_STATUS
+
+          Status: OPERATIONAL"
+
+          echo "report<<EOF" >> $GITHUB_OUTPUT
+          echo "$REPORT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post or Update Dashboard Issue
+        id: dashboard-issue
+        run: |
+          DASHBOARD_ISSUE="1056"
+          REPORT="${{ steps.daily-report.outputs.report }}"
+
+          ## Check if we should post comment or just update
+          if ["$(date +'%H')" -eq "04"]; then
+            # Daily report (04:00 UTC)
+            echo "Posting daily health report to issue #$DASHBOARD_ISSUE..."
+            gh issue comment "$DASHBOARD_ISSUE" \
+              --repo kushin77/self-hosted-runner \
+              --body "$REPORT" 2>/dev/null && echo "dashboard_action=commented" >> $GITHUB_OUTPUT || \
+              echo "dashboard_action=comment-failed" >> $GITHUB_OUTPUT
+          else
+            # Hourly metrics (just update description)
+            echo "dashboard_action=metrics-collected" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send Summary to Actions Annotations
+        run: |
+          SUCCESS_RATE="${{ steps.workflow-health.outputs.overall_success_rate }}"
+          CLOSED="${{ steps.issue-metrics.outputs.closed_count }}"
+          OPEN="${{ steps.issue-metrics.outputs.open_count }}"
+
+          if [$SUCCESS_RATE -ge 95]; then
+            echo "::notice::✅ System Healthy - Success rate: $SUCCESS_RATE%, Issues closed: $CLOSED/11"
+          elif [$SUCCESS_RATE -ge 80]; then
+            echo "::warning::⚠ System Operational - Success rate: $SUCCESS_RATE%, Issues closed: $CLOSED/11"
+          else
+            echo "::error::❌ System Issues - Success rate: $SUCCESS_RATE%, Open: $OPEN issues"
+          fi
+
+      - name: Store metrics for trending
+        run: |
+          mkdir -p .metrics
+
+          cat > .metrics/health-$(date +%Y%m%d-%H%M%S).json <<EOF
+          {
+            "timestamp": "$(date -u -Iseconds)",
+            "workflow_success_rate": ${{ steps.workflow-health.outputs.overall_success_rate }},
+            "workflow_successes": ${{ steps.workflow-health.outputs.overall_successes }},
+            "workflow_total": ${{ steps.workflow-health.outputs.overall_total }},
+            "issues_closed": ${{ steps.issue-metrics.outputs.closed_count }},
+            "issues_open": ${{ steps.issue-metrics.outputs.open_count }},
+            "issues_updated_2h": ${{ steps.issue-metrics.outputs.updated_count }},
+            "secrets_healthy": ${{ steps.secrets-status.outputs.secrets_healthy }},
+            "minio_healthy": "${{ contains(steps.minio-status.outputs.minio_status, 'HEALTHY') }}"
+          }
+          EOF
+
+      - name: Upload metrics artifact (self-hosted)
+        if: contains(runner.labels, 'self-hosted')
+        run: |
+          set -euo pipefail
+          TAR=health-dashboard-metrics-${{ github.run_id }}.tgz
+          tar -czf "$TAR" .metrics || true
+          chmod +x ci/scripts/upload_to_minio.sh || true
+          URL=$(ci/scripts/upload_to_minio.sh "$TAR") || true
+          echo "Uploaded health metrics to: $URL"
+
+      - name: Upload metrics artifact (hosted fallback)
+        if: ${{ !contains(runner.labels, 'self-hosted') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: health-dashboard-metrics
+          path: .metrics
+          retention-days: 90
