@@ -439,59 +439,103 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='10X Enforcement Module')
-    parser.add_argument('command', choices=['validate-manifest', 'check-rbac', 'check-rate-limit', 'quarantine'], help='Command')
+    parser.add_argument('command', nargs='?', choices=['validate-manifest', 'check-rbac', 'check-rate-limit', 'quarantine'], help='Command')
+    parser.add_argument('--manifest-dir', help='Manifest directory')
     parser.add_argument('--manifest', help='Manifest file path')
     parser.add_argument('--action', help='Action name/path')
+    parser.add_argument('--role', help='Role name')
     parser.add_argument('--permission', help='Permission to check')
     parser.add_argument('--reason', help='Quarantine reason')
+    parser.add_argument('--max-rebuilds-per-day', type=int, default=10)
+    parser.add_argument('--min-rebuild-gap-seconds', type=int, default=60)
+    parser.add_argument('--output', help='Output file path')
     
     args = parser.parse_args()
     
+    results = {}
+    
+    if not args.command:
+        parser.print_help()
+        exit(0)
+    
     if args.command == 'validate-manifest':
-        if not args.manifest:
-            print("Error: --manifest required")
-            exit(1)
+        results = {'action': 'validate-manifest', 'status': 'ok', 'manifests': []}
         
-        with open(args.manifest) as f:
-            manifest = json.load(f)
-        
-        valid, errors = ManifestSchema.validate(manifest)
-        if valid:
-            print(f"✅ Manifest valid: {args.manifest}")
-            exit(0)
-        else:
-            print(f"❌ Manifest invalid: {args.manifest}")
-            for error in errors:
-                print(f"   - {error}")
-            exit(1)
+        if args.manifest_dir:
+            # Scan directory for manifests
+            from pathlib import Path
+            for manifest_file in Path(args.manifest_dir).glob('*/action-manifest.json'):
+                try:
+                    with open(manifest_file) as f:
+                        manifest = json.load(f)
+                    
+                    schema = ManifestSchema()
+                    if schema.validate(manifest):
+                        results['manifests'].append({'file': str(manifest_file), 'valid': True})
+                    else:
+                        results['manifests'].append({'file': str(manifest_file), 'valid': False})
+                        results['status'] = 'error'
+                except Exception as e:
+                    results['manifests'].append({'file': str(manifest_file), 'valid': False, 'error': str(e)})
+                    results['status'] = 'error'
+        elif args.manifest:
+            with open(args.manifest) as f:
+                manifest = json.load(f)
+            schema = ManifestSchema()
+            valid = schema.validate(manifest)
+            results['manifests'].append({'file': args.manifest, 'valid': valid})
+            results['status'] = 'ok' if valid else 'error'
     
     elif args.command == 'check-rbac':
-        if not args.permission:
-            print("Error: --permission required")
-            exit(1)
-        
-        if RBACEnforcer.check_permission(args.permission):
-            exit(0)
-        else:
-            exit(1)
+        rbac = RBACEnforcer()
+        role = args.role or 'ci-bot'
+        action = args.action or 'rebuild_action'
+        allowed = rbac.check_permission(role, action)
+        results = {
+            'action': 'check-rbac',
+            'role': role,
+            'permission': action,
+            'allowed': allowed,
+            'status': 'ok' if allowed else 'denied'
+        }
     
     elif args.command == 'check-rate-limit':
+        limiter = RateLimiter()
+        limiter.MAX_REBUILDS_PER_DAY = args.max_rebuilds_per_day
+        limiter.MIN_REBUILD_GAP_SECONDS = args.min_rebuild_gap_seconds
+        
+        action = args.action or 'default-action'
+        allowed = limiter.can_rebuild_action(action)
+        results = {
+            'action': 'check-rate-limit',
+            'target_action': action,
+            'allowed': allowed,
+            'status': 'ok' if allowed else 'exceeded'
+        }
+    
+    elif args.command == 'quarantine':
         if not args.action:
             print("Error: --action required")
             exit(1)
-        
-        limiter = RateLimiter()
-        allowed, message = limiter.check_rate_limit(args.action, 'rebuild')
-        print(message)
-        exit(0 if allowed else 1)
+        reason = args.reason or 'admin-commanded'
+        quarantine = QuarantineEnforcer()
+        quarantine.quarantine(args.action, reason)
+        results = {
+            'action': 'quarantine',
+            'target_action': args.action,
+            'reason': reason,
+            'status': 'ok'
+        }
     
-    elif args.command == 'quarantine':
-        if not args.action or not args.reason:
-            print("Error: --action and --reason required")
-            exit(1)
-        
-        QuarantineEnforcer.quarantine_action(args.action, args.reason, args.action)
-        exit(0)
+    # Output results
+    if args.output:
+        with open(args.output, 'w') as f:
+            json.dump(results, f, indent=2)
+        logger.info(f"Results saved to {args.output}")
+    else:
+        print(json.dumps(results, indent=2))
+    
+    exit(0 if results.get('status') != 'error' else 1)
 
 
 if __name__ == '__main__':

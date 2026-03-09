@@ -261,47 +261,63 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='10X Monitoring & Alerts')
-    parser.add_argument('command', choices=['check-alerts', 'check-compliance', 'metrics'], help='Command')
-    parser.add_argument('--slack-webhook', help='Slack webhook URL for notifications')
+    parser.add_argument('--mode', choices=['alert', 'report', 'check', 'metrics'], default='alert', help='Operation mode')
+    parser.add_argument('--audit-log', help='Audit log file path')
+    parser.add_argument('--webhook', help='Slack webhook URL for notifications')
     
     args = parser.parse_args()
     
-    if args.command == 'check-alerts':
-        metrics = AuditMetrics()
-        alerts = metrics.check_anomalies()
-        
-        for alert in alerts:
-            logger.warning(f"{alert.severity}: {alert.title}")
-            if args.slack_webhook:
-                alert.send_slack(args.slack_webhook)
-        
-        if alerts:
-            exit(1)
+    if args.mode == 'alert':
+        # Send compliance report and anomaly alerts
+        send_compliance_report(args.webhook, args.audit_log or '.github/.immutable-audit.log')
     
-    elif args.command == 'check-compliance':
-        results = ComplianceChecker.run_full_compliance_check()
-        print(json.dumps(results, indent=2))
-        
-        exit(0 if results['failed'] == 0 else 1)
-    
-    elif args.command == 'metrics':
-        metrics = AuditMetrics()
+    elif args.mode == 'report':
+        # Print metrics report
+        metrics = AuditMetrics(args.audit_log or '.github/.immutable-audit.log')
         
         print("\n📊 AUDIT METRICS")
         print("=" * 70)
         
         velocity = metrics.get_rebuild_velocity()
-        print(f"\nRebuild Velocity (7-day):")
-        print(f"  Total: {velocity.get('total_rebuilds', 0)}")
-        print(f"  Avg/day: {velocity.get('avg_rebuilds_per_day', 0):.1f}")
+        print(f"\nRebuild Velocity (24h):")
+        print(f"  Total: {velocity.get('rebuilds', 0)}")
+        print(f"  Avg/hour: {velocity.get('avg_per_hour', 0):.2f}")
         
         failure = metrics.get_failure_rate()
-        print(f"\nFailure Rate (7-day):")
-        print(f"  Failures: {failure.get('failures', 0)}/{failure.get('total_attempts', 0)}")
-        print(f"  Rate: {failure.get('failure_rate_percent', 0):.1f}%")
+        print(f"\nFailure Rate (24h):")
+        print(f"  Failures: {failure.get('failures', 0)}/{failure.get('total', 0)}")
+        print(f"  Rate: {failure.get('rate', 0):.1f}%")
         
         integrity = metrics.get_integrity_score()
         print(f"\nIntegrity Score: {integrity:.1f}%")
+        print("=" * 70)
+    
+    elif args.mode == 'check':
+        # Run compliance check
+        compliance = ComplianceChecker(args.audit_log or '.github/.immutable-audit.log')
+        creds = compliance.verify_credentials_providers()
+        audit = compliance.verify_audit_log_integrity()
+        
+        results = {
+            'credentials_compliant': creds['compliant'],
+            'audit_log_immutable': audit,
+            'violations': creds['violations']
+        }
+        
+        print(json.dumps(results, indent=2))
+        
+        exit(0 if creds['compliant'] and audit else 1)
+    
+    elif args.mode == 'metrics':
+        # Legacy metrics mode
+        metrics = AuditMetrics(args.audit_log or '.github/.immutable-audit.log')
+        
+        print("\n📊 METRICS")
+        print("=" * 70)
+        print(f"Rebuilds (24h): {metrics.get_rebuild_velocity().get('rebuilds', 0)}")
+        print(f"Integrity Score: {metrics.get_integrity_score():.1f}%")
+        print(f"Failure Rate: {metrics.get_failure_rate().get('rate', 0):.1f}%")
+        print("=" * 70)
 
 
 if __name__ == '__main__':
