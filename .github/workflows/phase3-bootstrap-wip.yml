@@ -41,7 +41,7 @@ jobs:
       - name: Authenticate to Google Cloud (Service Account Key)
       - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
         id: cred_gcp_service_account_email
-        uses: kushin77/get-ephemeral-credential@v1
+        uses: ./.github/actions/get-ephemeral-credential
         with:
           credential-name: GCP_SERVICE_ACCOUNT_EMAIL
           retrieve-from: 'auto'
