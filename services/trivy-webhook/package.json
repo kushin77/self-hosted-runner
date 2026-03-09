@@ -1,0 +1,14 @@
+{
+  "name": "trivy-webhook",
+  "version": "0.1.0",
+  "description": "Lightweight Trivy webhook receiver that filters alerts and triggers repo dispatches",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "body-parser": "^1.20.2",
+    "node-fetch": "^2.6.7"
+  }
+}
