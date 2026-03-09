@@ -12,6 +12,7 @@ terraform {
 module "staging_tenant_a" {
   source = "../../modules/multi-tenant-runners"
 
+  project           = "p4-platform"
   tenant_id         = "staging-a"
   runner_group_name = "staging-tenant-a"
   vpc_id            = "projects/p4-platform/global/networks/p4-isolated"
