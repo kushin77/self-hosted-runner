@@ -1,3 +1,0 @@
-{"timestamp": "2026-03-08T22:58:36.852238", "event_type": "deployment_start", "component_id": "migrate-to-kms", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T22:58:46.936166", "event_type": "step_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {"step": "inventory-secrets"}, "error": null}
-{"timestamp": "2026-03-08T22:58:46.936940", "event_type": "deployment_failed", "component_id": "migrate-to-kms", "status": "failed", "details": {}, "error": "Step failed: inventory-secrets"}
