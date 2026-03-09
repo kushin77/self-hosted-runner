@@ -1,0 +1,76 @@
+name: Trivy Alert → Rebuild → Test → SBOM → Promote
+
+on:
+  repository_dispatch:
+    types: [trivy_alert]
+  workflow_dispatch:
+    inputs:
+      image:
+        description: 'Image to operate on (repo/name:tag)'
+        required: false
+
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+  actions: write
+
+jobs:
+  rebuild-test-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine image
+        id: image
+        run: |
+          if [ "${{ github.event.client_payload.image }}" != "" ]; then
+            echo "IMAGE=${{ github.event.client_payload.image }}" >> $GITHUB_ENV
+          elif [ "${{ github.event.inputs.image }}" != "" ]; then
+            echo "IMAGE=${{ github.event.inputs.image }}" >> $GITHUB_ENV
+          else
+            echo "IMAGE=ghcr.io/kushin77/runner:latest" >> $GITHUB_ENV
+          fi
+          echo "Image set to $IMAGE"
+
+      - name: Set up QEMU and Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull rebuilt image
+        run: |
+          echo "Pulling $IMAGE"
+          docker pull "$IMAGE" || true
+
+      - name: Run integration tests
+        run: |
+          IMG="$IMAGE"
+          docker run --rm --network=host "$IMG" echo test-ok || (echo "smoke tests failed" && exit 10)
+
+      - name: Generate SBOM and sign
+        env:
+          COSIGN_KEY_SECRET_PATH: secret/data/cosign
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: github-actions-role
+        run: |
+          # get SBOM and signature
+          ./scripts/produce_sbom_and_sign.sh "$IMAGE"
+
+      - name: Verify SBOM signature
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: github-actions-role
+        run: |
+          ./scripts/verify_sbom_signature.sh "$IMAGE"
+
+      - name: Update Terraform image pins and open PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 .github/scripts/terraform_pin_updater.py --image "$IMAGE"
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom-*.json

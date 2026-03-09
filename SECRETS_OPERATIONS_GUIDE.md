@@ -14,11 +14,6 @@
 | 🐛 **Something's broken** | [Troubleshooting](#troubleshooting) |
 | 🚨 **Security incident** | [Emergency Response](#emergency-response) |
 | 👤 **I need access** | [Access Control & RBAC](#access-control--rbac) |
-| ✅ **Validate my setup** | [Validation Checklist](#validation-checklist) |
-
----
-
-## Quick Start (5 Minutes)
 
 ### Scenario 1: I need to set a new secret
 
@@ -34,26 +29,20 @@ gh secret list --repo kushin77/self-hosted-runner | grep MY_SECRET_NAME
 # 3. Reference in workflow
 # In .github/workflows/my-workflow.yml:
 # env:
-#   MY_VAR: ${{ secrets.MY_SECRET_NAME }}
 ```
-
 ### Scenario 2: I broke something with secrets
 
-```bash
 # Find what went wrong
 gh run list --limit 5 --json name,conclusion | jq '.[] | select(.conclusion=="failure")'
 
 # View the failure
 gh run view <RUN_ID> --log-failed
-
 # Common issues:
 # ❌ Secret not set → Follow: https://github.com/kushin77/self-hosted-runner#quick-start
 # ❌ Secret value wrong → Validate with jq: jq . < /path/to/file.json
 # ❌ Secret expired → Check expiration in SECRETS_CLASSIFICATION.yml
 ```
-
 ### Scenario 3: My secret is about to rotate
-
 ```bash
 # Check what needs rotating
 grep "next_rotation_due:" SECRETS_CLASSIFICATION.yml | grep "202[6]"
