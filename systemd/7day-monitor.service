@@ -1,0 +1,14 @@
+[Unit]
+Description=7-Day Monitoring Runbook Service
+After=network.target
+
+[Service]
+Type=simple
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash -lc './scripts/7day-monitoring-runbook.sh start'
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
