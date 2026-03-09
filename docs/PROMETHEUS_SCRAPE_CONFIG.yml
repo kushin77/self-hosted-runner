@@ -1,0 +1,36 @@
+# Prometheus Scrape Configuration Template
+# Add this to your prometheus.yml under the `scrape_configs` section
+
+# Example 1: Scrape single worker node_exporter
+- job_name: 'node_exporter_worker'
+  static_configs:
+    - targets: ['192.168.168.42:9100']
+      labels:
+        environment: 'staging'
+        host: 'dev-elevatediq-2'
+
+# Example 2: Scrape Vault (if metrics enabled)
+- job_name: 'vault'
+  metrics_path: '/v1/sys/metrics'
+  params:
+    format: ['prometheus']
+  bearer_token: 's.REPLACE_WITH_VAULT_TOKEN'
+  static_configs:
+    - targets: ['192.168.168.42:8200']
+
+# Example 3: Auto-discovery via service SD (Optional)
+# Requires Consul or similar service discovery
+# - job_name: 'node_exporter_sd'
+#   consul_sd_configs:
+#     - server: 'consul.service.consul:8500'
+#   relabel_configs:
+#     - source_labels: [__meta_consul_service]
+#       regex: 'node-exporter'
+#       action: 'keep'
+
+# Retention and scrape interval
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'deployment-monitor'
