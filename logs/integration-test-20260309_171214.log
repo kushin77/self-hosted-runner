@@ -1,0 +1,112 @@
+Integration test started: Mon Mar  9 05:12:14 PM UTC 2026
+[1] Service statuses on worker
+● vault-agent.service - Vault Agent
+     Loaded: loaded (/etc/systemd/system/vault-agent.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:03:30 UTC; 8min ago
+   Main PID: 2952647 (vault)
+      Tasks: 12 (limit: 76719)
+     Memory: 26.4M (peak: 28.6M)
+        CPU: 257ms
+     CGroup: /system.slice/vault-agent.service
+             └─2952647 /usr/local/bin/vault agent -config=/etc/vault/agent-config.hcl
+
+Mar 09 17:11:47 dev-elevatediq vault[2952647]: 2026-03-09T17:11:47.496Z [INFO]  agent.auth.handler: authenticating
+Mar 09 17:11:47 dev-elevatediq vault[2952647]: 2026-03-09T17:11:47.498Z [ERROR] agent.auth.handler: error authenticating:
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   error=
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   | Error making API request.
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   |
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   | URL: PUT http://127.0.0.1:8200/v1/auth/approle/login
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   | Code: 400. Errors:
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   |
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:   | * invalid role ID
+Mar 09 17:11:47 dev-elevatediq vault[2952647]:    backoff=3m20.58s
+
+● node_exporter.service - Prometheus Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 15:11:44 UTC; 2h 0min ago
+   Main PID: 2470292 (node_exporter)
+      Tasks: 5 (limit: 76719)
+     Memory: 4.8M (peak: 8.1M)
+        CPU: 174ms
+     CGroup: /system.slice/node_exporter.service
+             └─2470292 /usr/local/bin/node_exporter "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys)(\$|/)" "--collector.netdev.device-exclude=^(veth.*)\$"
+
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+Mar 09 17:01:38 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T17:01:38.622Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:10878: write: broken pipe"
+
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:12:10 UTC; 4s ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2988194 (filebeat)
+      Tasks: 22 (limit: 76719)
+     Memory: 59.5M (peak: 60.7M)
+        CPU: 272ms
+     CGroup: /system.slice/filebeat.service
+             └─2988194 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.766Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/auth.log","state_id":"native::437376-64512","finished":false,"os_id":"437376-64512","harvester_id":"af85c0fb-4e05-4069-b299-d2a3cf3173a0","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.766Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/fontconfig.log","state_id":"native::401771-64512","finished":false,"os_id":"401771-64512","old_source":"/var/log/fontconfig.log","old_finished":true,"old_os_id":"401771-64512","harvester_id":"85f0fe5b-255a-49ba-8931-6d231e6dc642","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/haproxy.log","state_id":"native::393252-64512","finished":false,"os_id":"393252-64512","harvester_id":"84d89886-b636-4095-893e-cc3221c48b02","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/syslog","state_id":"native::393283-64512","finished":false,"os_id":"393283-64512","old_source":"/var/log/syslog","old_finished":true,"old_os_id":"393283-64512","harvester_id":"40750671-076f-4af6-bb49-326c42e753c5","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/alternatives.log","state_id":"native::396509-64512","finished":false,"os_id":"396509-64512","old_source":"/var/log/alternatives.log","old_finished":true,"old_os_id":"396509-64512","harvester_id":"075b443d-e935-49c9-b85b-e80e7683d0d1","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.794Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":137},"message":"Connecting to backoff(elasticsearch(http://127.0.0.1:9200))","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"error","@timestamp":"2026-03-09T17:12:10.794Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"127.0.0.1:9200","ecs.version":"1.6.0"}
+Mar 09 17:12:12 dev-elevatediq filebeat[2988194]: {"log.level":"error","@timestamp":"2026-03-09T17:12:12.692Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://127.0.0.1:9200)): Get \"http://127.0.0.1:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:12:12 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:12.692Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://127.0.0.1:9200)) with 1 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:12:12 dev-elevatediq filebeat[2988194]: {"log.level":"error","@timestamp":"2026-03-09T17:12:12.692Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"127.0.0.1:9200","ecs.version":"1.6.0"}
+[2] Prometheus metrics endpoint
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.3266e-05
+go_gc_duration_seconds{quantile="0.25"} 2.916e-05
+go_gc_duration_seconds{quantile="0.5"} 3.5934e-05
+go_gc_duration_seconds{quantile="0.75"} 4.1001e-05
+go_gc_duration_seconds{quantile="1"} 7.2732e-05
+go_gc_duration_seconds_sum 0.002377792
+go_gc_duration_seconds_count 65
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 7
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.19.3"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 882992
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+curl: (23) Failure writing output to destination
+[3] Test Vault credential retrieval via helper
+Error: No Vault token available
+Vault credential retrieval failed
+[4] Verify Filebeat is shipping (local log)
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:12:10 UTC; 4s ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2988194 (filebeat)
+      Tasks: 22 (limit: 76719)
+     Memory: 59.5M (peak: 60.7M)
+        CPU: 272ms
+     CGroup: /system.slice/filebeat.service
+             └─2988194 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.766Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/auth.log","state_id":"native::437376-64512","finished":false,"os_id":"437376-64512","harvester_id":"af85c0fb-4e05-4069-b299-d2a3cf3173a0","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.766Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/fontconfig.log","state_id":"native::401771-64512","finished":false,"os_id":"401771-64512","old_source":"/var/log/fontconfig.log","old_finished":true,"old_os_id":"401771-64512","harvester_id":"85f0fe5b-255a-49ba-8931-6d231e6dc642","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/haproxy.log","state_id":"native::393252-64512","finished":false,"os_id":"393252-64512","harvester_id":"84d89886-b636-4095-893e-cc3221c48b02","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/syslog","state_id":"native::393283-64512","finished":false,"os_id":"393283-64512","old_source":"/var/log/syslog","old_finished":true,"old_os_id":"393283-64512","harvester_id":"40750671-076f-4af6-bb49-326c42e753c5","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.767Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":311},"message":"Harvester started for paths: [/var/log/*.log /var/log/syslog]","service.name":"filebeat","input_id":"79ba1b4e-75a8-443d-b51a-348077059434","source_file":"/var/log/alternatives.log","state_id":"native::396509-64512","finished":false,"os_id":"396509-64512","old_source":"/var/log/alternatives.log","old_finished":true,"old_os_id":"396509-64512","harvester_id":"075b443d-e935-49c9-b85b-e80e7683d0d1","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:10.794Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":137},"message":"Connecting to backoff(elasticsearch(http://127.0.0.1:9200))","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:12:10 dev-elevatediq filebeat[2988194]: {"log.level":"error","@timestamp":"2026-03-09T17:12:10.794Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"127.0.0.1:9200","ecs.version":"1.6.0"}
+Mar 09 17:12:12 dev-elevatediq filebeat[2988194]: {"log.level":"error","@timestamp":"2026-03-09T17:12:12.692Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://127.0.0.1:9200)): Get \"http://127.0.0.1:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:12:12 dev-elevatediq filebeat[2988194]: {"log.level":"info","@timestamp":"2026-03-09T17:12:12.692Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://127.0.0.1:9200)) with 1 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Integration test completed: Mon Mar  9 05:12:14 PM UTC 2026
