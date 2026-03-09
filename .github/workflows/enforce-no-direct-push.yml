@@ -1,0 +1,68 @@
+name: Enforce no direct pushes to main
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  enforce-no-direct-push:
+    name: Detect and handle direct pushes
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Detect direct commits
+        id: detect
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const commits = context.payload.commits || [];
+            const offending = [];
+            for (const c of commits) {
+              // skip merge commits
+              if ((c.message || '').startsWith('Merge pull request')) continue;
+              const res = await github.rest.repos.listPullRequestsAssociatedWithCommit({ owner, repo, commit_sha: c.id });
+              if (!res.data || res.data.length === 0) offending.push({sha: c.id, message: c.message, author: c.author && c.author.name});
+            }
+            core.setOutput('offending', JSON.stringify(offending));
+
+      - name: Revert direct commits and notify
+        if: steps.detect.outputs.offending != '[]'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          offending=$(echo '${{ steps.detect.outputs.offending }}' | jq -r '. | tostring')
+          echo "Offending commits: $offending"
+          # Convert JSON to list of SHAs
+          shas=$(echo '${{ steps.detect.outputs.offending }}' | jq -r '.[].sha' || true)
+          if [[ -z "$shas" ]]; then
+            echo "No shas to revert"
+            exit 0
+          fi
+          git config user.name "repo-guard"
+          git config user.email "repo-guard@local"
+          # revert in reverse order
+          for sha in $(echo "$shas" | tac -s $'\n'); do
+            echo "Reverting $sha"
+            if git revert --no-edit $sha; then
+              echo "Reverted $sha"
+            else
+              echo "Revert failed for $sha; creating issue for manual intervention"
+              body="Automatic revert failed for commit $sha on branch main. Please review and revert manually."
+              gh issue create --title "[enforce] revert failed for $sha" --body "$body" || true
+            fi
+          done
+          # push revert
+          git push origin HEAD:main || true
+          # Create notification issue summarizing direct push
+          summary=$(printf "Offending commits:\n%s" "$(echo '${{ steps.detect.outputs.offending }}' | jq -r '.[] | "- \(.sha) by \(.author): \(.message)"')")
+          gh issue create --title "[enforce] direct push to main detected and reverted" --body "$summary" || true
