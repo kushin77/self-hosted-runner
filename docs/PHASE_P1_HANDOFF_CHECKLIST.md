@@ -70,11 +70,11 @@
 - Issue #4 → QA/Integration Lead
 - Issue #5 → DevOps/Deployment Lead
 
-**Reference**: See teams defined in [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md)
+**Reference**: See teams defined in [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md)
 
 #### 2. Distribute Team Onboarding Guide
 **Action**: Share with all Phase P1 team members
-- File: [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md)
+- File: [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md)
 - Contains: Quick start, component overview, weekly schedule, best practices
 - Time to read: 30 minutes
 
@@ -93,7 +93,7 @@
 
 #### 4. Team Development Environment Setup
 **Action**: Each team prepares their development environment
-- Install required tools (see [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md#3-setup-development-environment))
+- Install required tools (see [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md#3-setup-development-environment))
 - Clone repository
 - Review component skeleton code
 - Setup IDE/text editor
@@ -108,7 +108,7 @@
 
 #### 6. Phase P0 Staging Deployment Prep
 **Action**: Platform team prepares Phase P0 staging deployment
-- See [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md#deployment-roadmap)
+- See [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md#deployment-roadmap)
 - Configure staging environment
 - Setup monitoring dashboards
 - Prepare deployment procedures
@@ -118,7 +118,7 @@
 
 #### 7. Phase P0 Staging Deployment
 **Action**: Deploy Phase P0 to staging (2-3 days)
-- Follow deployment plan in [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md)
+- Follow deployment plan in [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md)
 - Monitor metrics closely
 - Run acceptance tests
 - Prepare go/no-go decision
@@ -140,24 +140,24 @@
 ## 📚 COMPLETE DOCUMENTATION MAP
 
 **START HERE** (for breakout after this):
-1. [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) - Next immediate steps
-2. [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md) - Team guide
+1. [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) - Next immediate steps
+2. [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md) - Team guide
 3. GitHub Issues #1-5 - Your component assignment
 
 **FOR TEAM KICKOFF**:
-- [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) - 6-week roadmap (present this!)
-- [PROJECT_COMPLETION_SUMMARY.md](docs/PROJECT_COMPLETION_SUMMARY.md) - Full context
-- [PHASE_P0_QUICK_REFERENCE.md](docs/PHASE_P0_QUICK_REFERENCE.md) - How P0 works
+- [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) - 6-week roadmap (present this!)
+- [PROJECT_COMPLETION_SUMMARY.md](PROJECT_COMPLETION_SUMMARY.md) - Full context
+- [PHASE_P0_QUICK_REFERENCE.md](PHASE_P0_QUICK_REFERENCE.md) - How P0 works
 
 **FOR COMPONENT DEVELOPMENT**:
 - Your GitHub issue (#1-5) - Source of truth
 - Component skeleton code (scripts/automation/pmo/xyz.sh)
 - Configuration template (scripts/automation/pmo/examples/xyz.yaml)
-- [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) - Your component section
+- [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) - Your component section
 
 **FOR REFERENCE**:
-- [PHASE_P0_IMPLEMENTATION.md](docs/PHASE_P0_IMPLEMENTATION.md) - Integration details
-- [README.md](README.md) - Project overview
+- [PHASE_P0_IMPLEMENTATION.md](PHASE_P0_IMPLEMENTATION.md) - Integration details
+- [README.md](../self_healing/README.md) - Project overview
 
 ---
 
@@ -205,7 +205,7 @@ Legend: ████ In Sprint | ░ Not Yet Started
 Team is ready when:
 - ✅ Component owners assigned to each issue
 - ✅ All team members have development environment setup
-- ✅ All team members read [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md)
+- ✅ All team members read [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md)
 - ✅ All team members reviewed their GitHub issue
 - ✅ All team members understand Phase P0 basics
 - ✅ Design review meeting is scheduled
@@ -218,11 +218,11 @@ Team is ready when:
 
 | Resource | Location | Purpose |
 |----------|----------|---------|
-| Roadmap | [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md) | 6-week development plan |
-| Team Guide | [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md) | New team member guide |
+| Roadmap | [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md) | 6-week development plan |
+| Team Guide | [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md) | New team member guide |
 | Component Code | `scripts/automation/pmo/xyz.sh` | Skeleton implementations |
 | Config Examples | `scripts/automation/pmo/examples/xyz.yaml` | Real-world configs |
-| Approval Status | [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) | What's approved |
+| Approval Status | [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) | What's approved |
 | GitHub Issues | Issues #1-5 | Work tracking |
 | Project Board | GitHub Projects | Kanban board (manual setup) |
 
@@ -232,10 +232,10 @@ Team is ready when:
 
 When the platform PM picks this up:
 
-- [ ] Read [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md)
+- [ ] Read [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md)
 - [ ] Assign component owners to GitHub issues
 - [ ] Schedule Phase P1 kickoff meeting
-- [ ] Distribute [PHASE_P1_TEAM_ONBOARDING.md](docs/PHASE_P1_TEAM_ONBOARDING.md) to team
+- [ ] Distribute [PHASE_P1_TEAM_ONBOARDING.md](PHASE_P1_TEAM_ONBOARDING.md) to team
 - [ ] Setup GitHub project board (if not auto-created)
 - [ ] Create Slack channel #phase-p1 for team
 - [ ] Send calendar invites for weekly standups
@@ -248,30 +248,30 @@ When the platform PM picks this up:
 ## 🎯 WHAT EACH TEAM SHOULD DO NOW
 
 ### Graceful Cancellation Team (Issue #1)
-- Read: Issue #1 + [PHASE_P1_PLANNING.md Week 1-3](docs/PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation)
+- Read: Issue #1 + [PHASE_P1_PLANNING.md Week 1-3](PHASE_P1_PLANNING.md#week-1-graceful-job-cancellation)
 - Skeleton: `job-cancellation-handler.sh`
 - Config: `job-cancellation.yaml`
 - Questions? Comment on Issue #1
 
 ### Secrets Rotation Team (Issue #2)
-- Read: Issue #2 + [PHASE_P1_PLANNING.md Week 2-4](docs/PHASE_P1_PLANNING.md#week-2-secrets-rotation)
+- Read: Issue #2 + [PHASE_P1_PLANNING.md Week 2-4](PHASE_P1_PLANNING.md#week-2-secrets-rotation)
 - Skeleton: `vault-integration.sh`
 - Config: `vault-rotation.yaml`
 - Questions? Comment on Issue #2
 
 ### ML Failure Prediction Team (Issue #3)
-- Read: Issue #3 + [PHASE_P1_PLANNING.md Week 5-7](docs/PHASE_P1_PLANNING.md#week-5-failure-prediction)
+- Read: Issue #3 + [PHASE_P1_PLANNING.md Week 5-7](PHASE_P1_PLANNING.md#week-5-failure-prediction)
 - Skeleton: `failure-predictor.sh`
 - Config: `failure-detection.yaml`
 - Questions? Comment on Issue #3
 
 ### QA & Integration Team (Issue #4)
-- Read: Issue #4 + [PHASE_P1_PLANNING.md Week 6-8](docs/PHASE_P1_PLANNING.md#week-6-integration-testing)
+- Read: Issue #4 + [PHASE_P1_PLANNING.md Week 6-8](PHASE_P1_PLANNING.md#week-6-integration-testing)
 - Prepare: Integration test plan
 - Prepare: Load test scenarios
 
 ### DevOps & Deployment Team (Issue #5)
-- Read: Issue #5 + [PHASE_P1_PLANNING.md Week 8](docs/PHASE_P1_PLANNING.md#week-8-production-deployment)
+- Read: Issue #5 + [PHASE_P1_PLANNING.md Week 8](PHASE_P1_PLANNING.md#week-8-production-deployment)
 - Prepare: Deployment procedures
 - Prepare: Rollback procedures
 - Prepare: Monitoring dashboard
@@ -343,7 +343,7 @@ Everything is ready for Phase P1 development:
 ## 📞 ESCALATION PATH
 
 **Question about this doc?**
-→ Check [README.md](README.md) section "Support & Troubleshooting"
+→ Check [README.md](../self_healing/README.md) section "Support & Troubleshooting"
 
 **Blocker on your component?**
 → Escalate in GitHub issue + #platform-blockers Slack
@@ -363,4 +363,4 @@ Everything is ready for Phase P1 development:
 
 ---
 
-*For any other questions, see [APPROVED_DEPLOYMENT.md](docs/APPROVED_DEPLOYMENT.md) or [PHASE_P1_PLANNING.md](docs/PHASE_P1_PLANNING.md)*
+*For any other questions, see [APPROVED_DEPLOYMENT.md](APPROVED_DEPLOYMENT.md) or [PHASE_P1_PLANNING.md](PHASE_P1_PLANNING.md)*

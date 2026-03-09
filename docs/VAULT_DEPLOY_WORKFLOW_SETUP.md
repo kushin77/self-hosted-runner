@@ -304,5 +304,5 @@ grep "deploy-runner" /vault/logs/audit.log | tail -20
 
 ## See Also
 
-- [VAULT_CI_SETUP.md](./VAULT_CI_SETUP.md) - General Vault CI integration
-- [IMMUTABLE_EPHEMERAL_IDEMPOTENT.md](./IMMUTABLE_EPHEMERAL_IDEMPOTENT.md) - Deploy workflow design
+- [VAULT_CI_SETUP.md](VAULT_CI_SETUP.md) - General Vault CI integration
+- [IMMUTABLE_EPHEMERAL_IDEMPOTENT.md](IMMUTABLE_EPHEMERAL_IDEMPOTENT.md) - Deploy workflow design

@@ -377,4 +377,4 @@ Drift Detector           →    Verifies secrets not leaked
 **Phase**: P1 Planning (Pre-implementation)  
 **Status**: ✏️ **READY FOR APPROVAL**
 
-For detailed Phase P0-P4 roadmap, see [ENHANCEMENTS_10X.md](ENHANCEMENTS_10X.md)
+For detailed Phase P0-P4 roadmap, see [ENHANCEMENTS_10X.md](archive/completion-reports/ENHANCEMENTS_10X.md)
