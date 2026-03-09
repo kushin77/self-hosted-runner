@@ -1,5 +1,5 @@
 name: 'Terraform Phase 2: Final Plan/Apply'
-true:
+on:
   workflow_dispatch:
     inputs:
       auto_apply:

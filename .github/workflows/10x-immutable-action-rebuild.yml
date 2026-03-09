@@ -1,5 +1,5 @@
 name: 10X Auto-Fix Delete & Rebuild (Immutable Actions)
-true:
+on:
   workflow_dispatch: null
   schedule:
   - cron: 0 2 * * *

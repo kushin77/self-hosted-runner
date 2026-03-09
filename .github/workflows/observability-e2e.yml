@@ -1,5 +1,5 @@
 name: Observability E2E Test
-true:
+on:
   workflow_dispatch:
     inputs:
       test_real:

@@ -1,5 +1,5 @@
 name: Reusable Vault OIDC Auth
-true:
+on:
   workflow_call:
     inputs:
       vault-addr:
