@@ -1,0 +1,14 @@
+# ⚠️ DISABLED - self-healing-remediation.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run self-healing-remediation.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+REPLACED BY SECURITY POLICY - SECRET REMOVED
+
+This file was removed from the repository and must be provisioned via GSM/Vault. See GOVERNANCE and contact Security/Platform.
