@@ -72,6 +72,7 @@ fetch_from_gsm() {
     if [ -n "$CRED_VALUE" ]; then
       log_pass "GSM retrieval successful (attempt $attempt)"
       audit_log "GSM retrieval successful" "gsm" "success"
+      SOURCE_LAYER="gsm"
       echo "$CRED_VALUE"
       return 0
     fi
@@ -138,6 +139,7 @@ fetch_from_vault() {
     if [ -n "$CRED_VALUE" ]; then
       log_pass "Vault retrieval successful (attempt $attempt)"
       audit_log "Vault retrieval successful" "vault" "success"
+      SOURCE_LAYER="vault"
       
       # Revoke token to maintain ephemeral nature
       curl -sS "$VAULT_ADDR/v1/auth/token/revoke-self" \
@@ -215,6 +217,7 @@ fetch_from_kms() {
       if [ -n "$CRED_VALUE" ]; then
         log_pass "KMS retrieval successful (attempt $attempt)"
         audit_log "KMS retrieval successful" "kms" "success"
+        SOURCE_LAYER="kms"
         echo "$CRED_VALUE"
         return 0
       fi
@@ -284,8 +287,34 @@ CREDENTIAL_VALUE=$(retrieve_with_failover) || {
   exit 1
 }
 
-# Output credential (no logging to prevent secrets in logs)
-echo "$CREDENTIAL_VALUE"
+# Prepare structured JSON output (emit only JSON on stdout). Keep human logs on stderr.
+# Generate an audit id
+if command -v uuidgen >/dev/null 2>&1; then
+  AUDIT_ID=$(uuidgen)
+else
+  AUDIT_ID=$(python3 - <<'PY'
+import uuid
+print(uuid.uuid4().hex)
+PY
+)
+fi
+
+# Emit JSON with proper escaping using python3
+export CREDENTIAL_VALUE
+export SOURCE_LAYER
+export AUDIT_ID
+python3 - <<'PY'
+import json,os,sys
+cred=os.environ.get('CREDENTIAL_VALUE','')
+out={
+  'credential': cred,
+  'source': os.environ.get('SOURCE_LAYER',''),
+  'cached': False,
+  'expires_at': '',
+  'audit_id': os.environ.get('AUDIT_ID','')
+}
+sys.stdout.write(json.dumps(out))
+PY
 
 log_pass "Credential retrieved successfully"
 exit 0
