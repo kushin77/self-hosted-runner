@@ -1,11 +1,12 @@
 # Contributing to self-hosted-runner
 
-This repository runs CI on local, organization-controlled self-hosted GitHub Actions runners. All contributors must follow the rules below to keep CI secure, reliable, and auditable.
+> **NOTICE (CI/CD Paused)** — As of 2026-03-09 CI/CD operations are temporarily paused and all GitHub Actions workflows have been removed from `main` and archived. Use the archive branches (archive/workflows-*) or the artifacts in `/tmp` to review previous workflows. See issue: https://github.com/kushin77/self-hosted-runner/issues/2064 for details. Do NOT reintroduce workflows or re-register runners without explicit Ops authorization.
 
-## Required Workflow Rules
-- All GitHub Actions workflows MUST use `runs-on: [self-hosted, linux]` (or a specific self-hosted label defined by ops).
-- Use `workflow_dispatch` only where manual dispatch is appropriate; otherwise rely on branch or tag triggers.
-- Avoid using `ubuntu-latest`, `windows-latest`, or `macos-latest` in this repository.
+This repository previously ran CI on local, organization-controlled self-hosted GitHub Actions runners. CI-related rules below are temporarily suspended while workflows remain archived; re-enablement will be coordinated by Ops and communicated in the emergency issue above.
+
+## Required Workflow Rules (TEMPORARILY PAUSED)
+- CI workflows are archived and NOT present on `main`. Do NOT add, modify, or re-enable workflows until Ops authorizes reactivation.
+- When CI is re-enabled, workflows must follow the original rules: prefer `runs-on: [self-hosted, linux]` (or an ops-approved label), use `workflow_dispatch` sparingly, and avoid `*-latest` runners unless explicitly approved.
 
 ## Secrets & Credentials
 
@@ -111,9 +112,9 @@ bash scripts/audit-secrets.sh --json > secrets-manifest.json
 - **Rotation overdue**: Check [SECRETS_INDEX.md](SECRETS_INDEX.md) rotation schedule
 
 ## PR / Review Policy
-- All changes to workflows, runner configuration, and provisioning code MUST have at least one review from a code owner listed in `.github/CODEOWNERS`.
-- Changes that modify runner labels, provisioning, or secrets handling MUST include an Ops approval (add `ops` reviewer or tag).
-- Tests that exercise CI behavior should be added to the relevant `test-suite.yml` or as a separate workflow that runs on the self-hosted runner.
+- All changes that would affect CI/workflows remain subject to strict review, but are currently on hold until reactivation. Open any proposed workflow or runner changes as a draft issue and reference the emergency issue #2064; do NOT open PRs that would reintroduce workflows to `main`.
+- When reactivation is authorized, workflow changes MUST have at least one review from a code owner listed in `.github/CODEOWNERS` and include Ops approval for runner or secrets changes.
+- Tests that exercise CI behavior should be added only after CI is restored and will run on the approved runner fleet.
 
 ## Branch Protection and Enforcement
 - Enable branch protection on `main` (or default branch): require status checks, PR reviews, and restrict who can push.
