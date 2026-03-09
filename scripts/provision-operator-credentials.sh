@@ -28,13 +28,29 @@
 
 set -euo pipefail
 
+# Initialize variables (before readonly)
+DRY_RUN="${DRY_RUN:-false}"
+SKIP_DEPLOY="${SKIP_DEPLOY:-false}"
+VERBOSE="${VERBOSE:-false}"
+
+# Parse arguments before setting readonly
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --dry-run) DRY_RUN=true; shift ;;
+        --no-deploy) SKIP_DEPLOY=true; shift ;;
+        --verbose) VERBOSE=true; shift ;;
+        *) echo "Unknown option: $1"; exit 1 ;;
+    esac
+done
+
+# Now set as readonly
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly REPO_DIR="$(dirname "$SCRIPT_DIR")"
 readonly DEPLOY_TARGET="${DEPLOY_TARGET:-192.168.168.42}"
 readonly DEPLOY_USER="${DEPLOY_USER:-runner}"
-readonly DRY_RUN="${DRY_RUN:-false}"
-readonly SKIP_DEPLOY="${SKIP_DEPLOY:-false}"
-readonly VERBOSE="${VERBOSE:-false}"
+readonly DRY_RUN
+readonly SKIP_DEPLOY
+readonly VERBOSE
 
 # Color codes for output
 readonly RED='\033[0;31m'
@@ -354,27 +370,5 @@ main() {
     success "=========================================="
 }
 
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --dry-run)
-            export DRY_RUN=true
-            shift
-            ;;
-        --no-deploy)
-            export SKIP_DEPLOY=true
-            shift
-            ;;
-        --verbose)
-            export VERBOSE=true
-            shift
-            ;;
-        *)
-            echo "Unknown option: $1"
-            echo "Usage: $0 [--dry-run] [--no-deploy] [--verbose]"
-            exit 1
-            ;;
-    esac
-done
-
-main "$@"
+# Execute main function
+main
