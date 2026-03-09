@@ -18,7 +18,7 @@ jobs:
       - name: Load resilience helpers
         run: |
           set -euo pipefail
-          source .github/scripts/resilience.sh || true
+          [ -f .github/scripts/resilience.sh ] && source .github/scripts/resilience.sh || true
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -32,8 +32,8 @@ jobs:
 
       - name: Run ESLint where applicable
         run: |
-          if [-f package.json]; then
-            retry_command 5 10 sh -c "npm ci" || true
+          if [ -f package.json ]; then
+            npm ci || true
             npx eslint . || true
           fi
 
