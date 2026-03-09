@@ -1,0 +1,40 @@
+groups:
+  - name: observability.rules
+    rules:
+      - alert: NodeDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Instance down"
+          description: "Instance {{ $labels.instance }} has no up metric for 5 minutes."
+
+      - alert: DeploymentFailureRate
+        expr: |
+          sum(increase(deployment_failure_total[15m]))
+            / sum(increase(deployment_total[15m])) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High deployment failure rate"
+          description: "Deployment failure rate >20% over 15m."
+
+      - alert: FilebeatDown
+        expr: up{job="filebeat"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Filebeat target down"
+          description: "Filebeat job is not reporting metrics."
+
+      - alert: VaultSealed
+        expr: vault_sealed == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Vault instance sealed"
+          description: "HashiCorp Vault reports sealed state."
