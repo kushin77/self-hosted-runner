@@ -2,7 +2,7 @@ name: Deploy (orchestration on main merge)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
       - 'self_healing_orchestrator/**'
       - '.github/workflows/deploy.yml'
@@ -17,15 +17,16 @@ jobs:
       name: production
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
       - name: Get Credential [AWS_REGION]
-        id: cred_aws_region
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: AWS_REGION
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
+      id: cred_aws_region
+      uses: kushin77/get-ephemeral-credential@v1
+      with:
+        credential-name: AWS_REGION
+        retrieve-from: 'auto'
+        cache-ttl: 600
+        audit-log: true
 
       - name: Get Credential [GCP_PROJECT_ID]
         id: cred_gcp_project_id

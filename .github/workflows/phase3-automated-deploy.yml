@@ -100,25 +100,25 @@ jobs:
           script: |
             const comment = `## 🚀 Phase 3 Deployment Started
 
-**Workflow:** Phase 3 Automated Deployment (Ephemeral OIDC)
-**Run:** ${context.runId}
-**Status:** 🟡 In Progress
-**Properties:**
-- ✅ Immutable: All configuration in code
-- ✅ Ephemeral: Using OIDC tokens (auto-revoke after 20 min)
-- ✅ Idempotent: Terraform state-based deployment
-- ✅ No-Ops: Fully automated, zero manual steps
-- ✅ Hands-Off: Event-driven execution
+            **Workflow:** Phase 3 Automated Deployment (Ephemeral OIDC)
+            **Run:** ${context.runId}
+            **Status:** 🟡 In Progress
+            **Properties:**
+            - ✅ Immutable: All configuration in code
+            - ✅ Ephemeral: Using OIDC tokens (auto-revoke after 20 min)
+            - ✅ Idempotent: Terraform state-based deployment
+            - ✅ No-Ops: Fully automated, zero manual steps
+            - ✅ Hands-Off: Event-driven execution
 
-**What's being deployed:**
-- Google Workload Identity Pool (GitHub OIDC)
-- OIDC Provider connected to GitHub Actions
-- Cloud KMS Keyring for encryption
-- Service Account IAM roles
-- Terraform state backend
+            **What's being deployed:**
+            - Google Workload Identity Pool (GitHub OIDC)
+            - OIDC Provider connected to GitHub Actions
+            - Cloud KMS Keyring for encryption
+            - Service Account IAM roles
+            - Terraform state backend
 
-**Next:** Terraform apply with auto-approve
-`;
+            **Next:** Terraform apply with auto-approve
+            `;
             github.rest.issues.createComment({
               issue_number: context.issue.number || 1816,
               owner: context.repo.owner,
@@ -185,30 +185,30 @@ jobs:
           script: |
             const status = `## ✅ Phase 3 Deployment Complete
 
-**Status:** 🟢 DEPLOYED
-**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-**Deployment Type:** Ephemeral OIDC (auto-revoke after 20 min)
+            **Status:** 🟢 DEPLOYED
+            **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            **Deployment Type:** Ephemeral OIDC (auto-revoke after 20 min)
 
-### Infrastructure Created
-- [x] GitHub Workload Identity Pool
-- [x] OIDC Provider connected to GitHub Actions
-- [x] Terraform state backend configured
-- [x] Service Account + IAM roles
+            ### Infrastructure Created
+            - [x] GitHub Workload Identity Pool
+            - [x] OIDC Provider connected to GitHub Actions
+            - [x] Terraform state backend configured
+            - [x] Service Account + IAM roles
 
-### Architecture Properties Verified ✅
-- ✅ **Immutable:** All configuration in Git (IaC)
-- ✅ **Ephemeral:** OIDC tokens with 20-min TTL
-- ✅ **Idempotent:** Terraform state-driven
-- ✅ **No-Ops:** Zero manual intervention
-- ✅ **Hands-Off:** Fully automated workflow
+            ### Architecture Properties Verified ✅
+            - ✅ **Immutable:** All configuration in Git (IaC)
+            - ✅ **Ephemeral:** OIDC tokens with 20-min TTL
+            - ✅ **Idempotent:** Terraform state-driven
+            - ✅ **No-Ops:** Zero manual intervention
+            - ✅ **Hands-Off:** Fully automated workflow
 
-### Next Steps
-1. Issue #1824 (Phase 3 GCP OIDC) → Ready
-2. Production credentials → Can now use Workload Identity
-3. Verify GSM/Vault/KMS health checks
-4. Close #1816 operator activation issue
+            ### Next Steps
+            1. Issue #1824 (Phase 3 GCP OIDC) → Ready
+            2. Production credentials → Can now use Workload Identity
+            3. Verify GSM/Vault/KMS health checks
+            4. Close #1816 operator activation issue
 
-**Phase 3:** ✅ COMPLETE & PRODUCTION READY`;
+            **Phase 3:** ✅ COMPLETE & PRODUCTION READY`;
 
             github.rest.issues.createComment({
               issue_number: 1816,
@@ -289,27 +289,27 @@ jobs:
               labels: ['deployment', 'verified', 'production'],
               body: `## 🎉 Phase 3 Infrastructure Verified
 
-**Status:** ✅ PRODUCTION READY
+              **Status:** ✅ PRODUCTION READY
 
-### Resources Deployed
-- [x] GitHub Workload Identity Pool
-- [x] OIDC Provider (GitHub Actions)
-- [x] Service Account with secrets access
-- [x] Terraform state backend
+              ### Resources Deployed
+              - [x] GitHub Workload Identity Pool
+              - [x] OIDC Provider (GitHub Actions)
+              - [x] Service Account with secrets access
+              - [x] Terraform state backend
 
-### Verification Results
-- [x] Workload Identity Federation functional
-- [x] OIDC token exchange working
-- [x] Service account authenticated
-- [x] All ephemeral (auto-expiring tokens)
+              ### Verification Results
+              - [x] Workload Identity Federation functional
+              - [x] OIDC token exchange working
+              - [x] Service account authenticated
+              - [x] All ephemeral (auto-expiring tokens)
 
-### Next Actions
-1. Enable GSM health checks
-2. Configure Vault integration
-3. Test credential rotation
-4. Activate production monitoring
+              ### Next Actions
+              1. Enable GSM health checks
+              2. Configure Vault integration
+              3. Test credential rotation
+              4. Activate production monitoring
 
-**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
+              **Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}`
             });
 
   close-blocking-issues:
@@ -367,19 +367,19 @@ jobs:
               issue_number: 1824,
               body: `## ✅ Phase 3 GCP OIDC Deployment Complete
 
-**Status:** ✅ DEPLOYED via Automated Workflow
+              **Status:** ✅ DEPLOYED via Automated Workflow
 
-### Executed
-- ✅ Terraform applied with ephemeral OIDC
-- ✅ Workload Identity Pool created
-- ✅ Service accounts configured
-- ✅ All resources immutable in Git
+              ### Executed
+              - ✅ Terraform applied with ephemeral OIDC
+              - ✅ Workload Identity Pool created
+              - ✅ Service accounts configured
+              - ✅ All resources immutable in Git
 
-### Implementation
-- 📁 Workflow: \`.github/workflows/phase3-automated-deploy.yml\`
-- 🔐 Authentication: Ephemeral OIDC tokens (20-min TTL)
-- 🔄 State: Terraform-managed (immutable)
-- 📊 Audit: GitHub Actions run log (immutable)
+              ### Implementation
+              - 📁 Workflow: \`.github/workflows/phase3-automated-deploy.yml\`
+              - 🔐 Authentication: Ephemeral OIDC tokens (20-min TTL)
+              - 🔄 State: Terraform-managed (immutable)
+              - 📊 Audit: GitHub Actions run log (immutable)
 
-**Phase 3 Unblocked!** 🎊`
+              **Phase 3 Unblocked!** 🎊`
             });
