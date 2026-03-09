@@ -111,9 +111,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-        run: |
-          chmod +x .github/scripts/setup-oidc-wif.sh
-          .github/scripts/setup-oidc-wif.sh
 
       - name: "Upload setup log"
         uses: actions/upload-artifact@v4
