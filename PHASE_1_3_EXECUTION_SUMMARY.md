@@ -73,7 +73,7 @@ bash scripts/complete-credential-provisioning.sh --phase 1 --verbose
   - systemd service setup and auto-start
   - Multi-listener support (Unix socket + TCP)
   - Template support for SSH key + AWS/GCP secret rotation
-- Usage: `bash scripts/deploy-vault-agent-to-bastion.sh --bastion 192.168.168.31 --verbose`
+- Usage: `bash scripts/deploy-vault-agent-to-bastion.sh --bastion 192.168.168.42 --verbose`
 - Status: ✅ Production-ready, tested for execution
 
 **2. scripts/operator-aws-provisioning.sh** (12 KB)

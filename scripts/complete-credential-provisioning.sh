@@ -325,7 +325,7 @@ phase_4_watcher_config() {
     
     log "Step 4.2: Watcher configuration ready for bastion deployment..."
     cat << 'EOF'
-On bastion (192.168.168.31), create systemd drop-in:
+On bastion (192.168.168.42), create systemd drop-in:
 
   sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<'SVCEOF'
 [Service]
