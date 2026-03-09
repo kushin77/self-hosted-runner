@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Wrapper: fetch-from-gsm
+# Delegates to the unified credential manager with 'gsm' retrieval.
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 CREDENTIAL_NAME" >&2
+  exit 2
+fi
+exec "$(dirname "$0")/../credential-manager.sh" "$1" gsm
+#!/usr/bin/env bash
+set -euo pipefail
 # Minimal GSM fetcher helper (placeholder for real implementation)
 # Usage: fetch-from-gsm.sh <credential-name>
 NAME="$1"

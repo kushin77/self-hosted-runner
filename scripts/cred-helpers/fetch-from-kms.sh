@@ -1,5 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+# Wrapper: fetch-from-kms
+# Delegates to the unified credential manager with 'kms' retrieval.
+if [ "$#" -lt 1 ]; then
+  echo "Usage: $0 CREDENTIAL_NAME" >&2
+  exit 2
+fi
+exec "$(dirname "$0")/../credential-manager.sh" "$1" kms
+#!/usr/bin/env bash
+set -euo pipefail
 # Minimal KMS/SecretsManager fetcher helper (placeholder for real implementation)
 # Usage: fetch-from-kms.sh <credential-name>
 NAME="$1"
