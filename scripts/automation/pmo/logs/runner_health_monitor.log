@@ -1,0 +1,24 @@
+[2026-03-07 00:25:53] Unknown option: --dry-run
+[2026-03-07 00:25:56] === Health Check Started ===
+[2026-03-07 00:25:56] ✗ Runner is not running
+[2026-03-07 00:25:56] Attempting to restart runner...
+[2026-03-07 00:25:56] Restart attempt 1/5 (backoff: 10s)
+Warning: systemctl start called with a glob pattern.
+Hint: unit globs expand to loaded units, so start will usually have no effect.
+      Passing --all will also load units which are pulled in by other units.
+      See systemctl(1) for more details.
+[2026-03-07 00:26:11] Restart attempt 2/5 (backoff: 20s)
+Warning: systemctl start called with a glob pattern.
+Hint: unit globs expand to loaded units, so start will usually have no effect.
+      Passing --all will also load units which are pulled in by other units.
+      See systemctl(1) for more details.
+[2026-03-07 00:26:17] Signal received, exiting
+[2026-03-07 00:26:17] === Health Check Started ===
+[2026-03-07 00:26:17] ✗ Runner is not running
+[2026-03-07 00:26:17] Attempting to restart runner...
+[2026-03-07 00:26:17] Restart attempt 1/5 (backoff: 10s)
+Warning: systemctl start called with a glob pattern.
+Hint: unit globs expand to loaded units, so start will usually have no effect.
+      Passing --all will also load units which are pulled in by other units.
+      See systemctl(1) for more details.
+[2026-03-07 00:26:20] Signal received, exiting
