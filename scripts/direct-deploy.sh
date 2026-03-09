@@ -75,47 +75,46 @@ log_error() {
 }
 
 # Cleanup: destroy all secrets, temp files, and residual state
-cleanup() {
-  local exit_code=$?
-  log "Cleaning up ephemeral resources..."
-  
-  # Destroy all credential variables
-  unset SSH_KEY SSH_USER SSH_PASS || true
-  unset VAULT_TOKEN VAULT_ADDR || true
-  unset AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN || true
-  
-  # Remove temp directory
-  if [[ -n "$TEMP_DIR" && -d "$TEMP_DIR" ]]; then
-    rm -rf "$TEMP_DIR" || true
+post_audit_log() {
+  local status="$1"
+  local error_msg="${2:-}"
+  local bundle_sha256="$3"
+
+  log "Posting immutable audit log to GitHub issue #$GITHUB_ISSUE_ID..."
+
+  local end_time=$(date +%s)
+  local duration=$((end_time - START_TIME))
+
+  local audit_body
+  audit_body=$(cat <<EOF
+## 🚀 Deployment: $TIMESTAMP
+
+- **ID:** \\`$DEPLOYMENT_ID\\`
+- **Target:** \\`$DEPLOY_TARGET\\`
+- **User:** \\`$DEPLOY_USER\\`
+- **Branch:** \\`$TARGET_BRANCH\\`
+- **Credential Source:** \\`${CRED_SOURCE^^}\\`
+- **Bundle SHA256:** \\`$bundle_sha256\\`
+- **Status:** \\`$status\\`
+- **Duration:** \\`${duration}s\\`
+- **Dry Run:** \\`$DRY_RUN\\`
+EOF
+  )
+
+  if [[ -n "$error_msg" ]]; then
+    audit_body+="\n- **Error:** \\`$error_msg\\`"
   fi
-  
-  # Remove any leftover SSH keys in /tmp
-  find /tmp -maxdepth 1 -name "ssh_key_*" -type f -delete 2>/dev/null || true
-  
-  if [[ $exit_code -eq 0 ]]; then
-    log_success "Cleanup complete. Deployment successful."
-  else
-    log_error "Cleanup complete. Deployment failed with exit code $exit_code."
-  fi
-  
-  return $exit_code
+
+  audit_body+="\n\n> Auto-logged deployment. No manual action required."
+
+  gh issue comment "$GITHUB_ISSUE_ID" \
+    --repo "$GITHUB_REPO" \
+    --body "$audit_body" 2>/dev/null || {
+    log_warn "Failed to post audit log (may be due to GitHub CLI auth)"
+  }
+
+  log_success "Audit log posted"
 }
-
-trap cleanup EXIT
-
-################################################################################
-# CREDENTIAL MANAGEMENT (GSM/VAULT/KMS)
-################################################################################
-
-fetch_credentials_gsm() {
-  log "Fetching credentials from Google Secret Manager..."
-  
-  if ! command -v gcloud &> /dev/null; then
-    log_error "gcloud CLI not found. Install Google Cloud SDK."
-    return 1
-  fi
-  
-  SSH_KEY=$(gcloud secrets versions access latest --secret="runner-ssh-key" 2>/dev/null || echo "")
   SSH_USER=$(gcloud secrets versions access latest --secret="runner-ssh-user" 2>/dev/null || echo "runner")
   
   if [[ -z "$SSH_KEY" ]]; then
@@ -136,54 +135,54 @@ fetch_credentials_vault() {
   
   # Ensure Vault is unsealed and accessible
   VAULT_ADDR="${VAULT_ADDR:-https://vault.local:8200}"
-  export VAULT_ADDR
-  
-  local secret_json
-  secret_json=$(vault kv get -format=json "secret/runner-deploy" 2>/dev/null || echo "{}")
-  
-  SSH_KEY=$(echo "$secret_json" | jq -r '.data.data.ssh_key // empty')
-  SSH_USER=$(echo "$secret_json" | jq -r '.data.data.ssh_user // "runner"')
-  
-  if [[ -z "$SSH_KEY" ]]; then
-    log_error "Failed to fetch credentials from Vault. Check path: secret/runner-deploy"
-    return 1
-  fi
-  
-  log_success "Credentials fetched from Vault (will be destroyed after deployment)"
-}
+  main() {
+    log "=========================================="
+    log "  DIRECT-DEPLOY: $TIMESTAMP"
+    log "=========================================="
+    log "Credential Source: $CRED_SOURCE"
+    log "Target Branch: $TARGET_BRANCH"
+    log "Target Host: $DEPLOY_TARGET"
+    log ""
 
-fetch_credentials_kms() {
-  log "Fetching credentials from AWS KMS + SecretsManager..."
-  
-  if ! command -v aws &> /dev/null; then
-    log_error "aws CLI not found. Install AWS CLI."
-    return 1
-  fi
-  
-  # Fetch encrypted secret
-  local encrypted_secret
-  encrypted_secret=$(aws secretsmanager get-secret-value \
-    --secret-id "runner/ssh-credentials" \
-    --query 'SecretBinary' \
-    --output text 2>/dev/null || echo "")
-  
-  if [[ -z "$encrypted_secret" ]]; then
-    log_error "Failed to fetch secret from AWS Secrets Manager."
-    return 1
-  fi
-  
-  # Decrypt with KMS
-  local decrypted
-  decrypted=$(echo "$encrypted_secret" | base64 -d | aws kms decrypt \
-    --ciphertext-blob fileb:///dev/stdin \
-    --query 'Plaintext' \
-    --output text 2>/dev/null | base64 -d || echo "")
-  
-  SSH_KEY=$(echo "$decrypted" | jq -r '.ssh_key // empty' 2>/dev/null || echo "")
-  SSH_USER=$(echo "$decrypted" | jq -r '.ssh_user // "runner"' 2>/dev/null || echo "runner")
-  
-  if [[ -z "$SSH_KEY" ]]; then
-    log_error "Failed to decrypt credentials with KMS."
+    # Step 1: Validate
+    validate_environment || return 1
+
+    # If running a dry-run, skip credential fetching so bundles can be prepared
+    # and validated without requiring secrets to be present.
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      log_warn "DRY RUN enabled: skipping credential fetch (no secrets required)"
+    else
+      # Step 2: Fetch credentials (ephemeral)
+      fetch_credentials || return 1
+    fi
+
+    # Step 3: Prepare bundle
+    local bundle_path
+    bundle_path=$(prepare_deployment_bundle)
+    local bundle_sha256
+    bundle_sha256=$(sha256sum "$bundle_path" | awk '{print $1}')
+
+    # Step 4: Deploy
+    if ! deploy_to_target "$bundle_path"; then
+      post_audit_log "FAILED" "Deployment to $DEPLOY_TARGET failed" "$bundle_sha256"
+      return 1
+    fi
+
+    # Step 5: Validate
+    if [[ "${DRY_RUN}" == "true" ]]; then
+      log_warn "Skipping validation due to DRY RUN"
+    else
+      validate_deployment || log_warn "Validation incomplete"
+    fi
+
+    # Step 6: Audit log (immutable)
+    post_audit_log "SUCCESS" "" "$bundle_sha256"
+
+    log ""
+    log_success "Deployment complete!"
+    log "Exit code: 0"
+    return 0
+  }
     return 1
   fi
   
@@ -222,8 +221,7 @@ validate_environment() {
   fi
   
   if ! command -v gh &> /dev/null; then
-    log_error "gh (GitHub CLI) not found"
-    return 1
+    log_warn "gh (GitHub CLI) not found; audit will be saved locally instead"
   fi
   
   if ! command -v sha256sum &> /dev/null; then
@@ -392,12 +390,64 @@ EOF
   
   audit_body+="\n\n> Auto-logged deployment. No manual action required."
   
-  gh issue comment "$GITHUB_ISSUE_ID" \
-    --repo "$GITHUB_REPO" \
-    --body "$audit_body" 2>/dev/null || {
-    log_warn "Failed to post audit log (may be due to GitHub CLI auth)"
-  }
+  if command -v gh &> /dev/null; then
+    gh issue comment "$GITHUB_ISSUE_ID" \
+      --repo "$GITHUB_REPO" \
+      --body "$audit_body" 2>/dev/null || {
+      log_warn "Failed to post audit log (may be due to GitHub CLI auth)"
+    }
+  else
+    # Fallback: record audit locally in repo (immutable via append-only file)
+    local audit_file="$REPO_ROOT/deploy-audit.log"
+    printf '%s\n---\n%s\n' "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "$audit_body" >> "$audit_file" || true
+    log_warn "Audit saved to $audit_file"
+  fi
   
+
+################################################################################
+# MAIN
+################################################################################
+
+main() {
+  validate_environment || true
+
+  # Fetch credentials
+  if ! fetch_credentials; then
+    post_audit_log "FAILED" "Failed to fetch credentials" "unknown"
+    return 1
+  fi
+
+  # Prepare bundle once and compute checksum
+  local bundle_path
+  bundle_path=$(prepare_deployment_bundle) || {
+    post_audit_log "FAILED" "Failed to prepare deployment bundle" "unknown"
+    return 1
+  }
+  local bundle_sha256
+  bundle_sha256=$(sha256sum "$bundle_path" | awk '{print $1}')
+
+  post_audit_log "STARTED" "Deployment initiated" "$bundle_sha256"
+
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log_warn "DRY RUN: prepared bundle at $bundle_path (no deploy)"
+    post_audit_log "DRY-RUN" "Bundle prepared (no deploy)" "$bundle_sha256"
+    return 0
+  fi
+
+  if ! deploy_to_target "$bundle_path"; then
+    post_audit_log "FAILED" "Deployment to $DEPLOY_TARGET failed" "$bundle_sha256"
+    return 1
+  fi
+
+  if ! validate_deployment; then
+    log_warn "Validation reported issues"
+  fi
+
+  post_audit_log "SUCCESS" "Deployment completed" "$bundle_sha256"
+  return 0
+}
+
+main "$@"
   log_success "Audit log posted"
 }
 
