@@ -1,0 +1,60 @@
+name: Validate policies and KEDA (client + optional server)
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: Validation (client + optional server)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: '1.29.0'
+
+      - name: Persist STAGING_KUBECONFIG (if provided)
+        shell: bash
+        env:
+          KUBECONFIG_B64: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          if [[ -n "$KUBECONFIG_B64" ]]; then
+            echo "STAGING_KUBECONFIG secret found, writing kubeconfig"
+            mkdir -p $GITHUB_WORKSPACE/.kube
+            echo "$KUBECONFIG_B64" | base64 -d > $GITHUB_WORKSPACE/.kube/staging.kubeconfig
+            echo "KUBECONFIG=$GITHUB_WORKSPACE/.kube/staging.kubeconfig" >> $GITHUB_ENV
+          else
+            echo "No STAGING_KUBECONFIG secret provided; skipping server-side checks"
+          fi
+
+      - name: Client-side validation (kustomize/kind/yaml lint)
+        run: |
+          if command -v yamllint >/dev/null 2>&1; then
+            yamllint -c .yamllint deploy/policies || true
+          fi
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 kubectl apply --dry-run=client -f || true
+
+      - name: Server-side dry-run (requires STAGING_KUBECONFIG)
+        if: env.KUBECONFIG != ''
+        shell: bash
+        run: |
+          echo "Running server-side validation using $KUBECONFIG"
+          kubectl --kubeconfig="$KUBECONFIG" get ns runners >/dev/null 2>&1 || kubectl --kubeconfig="$KUBECONFIG" create ns runners || true
+          find deploy/policies -type f -name '*.yaml' -or -name '*.yml' | xargs -r -n1 -I{} kubectl --kubeconfig="$KUBECONFIG" apply --dry-run=server -f {}
+
+      - name: Optional: Run KEDA smoke test (real cluster)
+        if: env.KUBECONFIG != '' && (github.event.pull_request.draft == false)
+        env:
+          STAGING_KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          chmod +x ./scripts/ci/run-keda-smoke-test.sh
+          STAGING_KUBECONFIG="$STAGING_KUBECONFIG" ./scripts/ci/run-keda-smoke-test.sh
