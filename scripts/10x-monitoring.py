@@ -261,47 +261,130 @@ def main():
     import argparse
     
     parser = argparse.ArgumentParser(description='10X Monitoring & Alerts')
-    parser.add_argument('command', choices=['check-alerts', 'check-compliance', 'metrics'], help='Command')
-    parser.add_argument('--slack-webhook', help='Slack webhook URL for notifications')
+    parser.add_argument('command', nargs='?', help='Command (backward compatibility)')
+    parser.add_argument('--mode', choices=['alert', 'report', 'check', 'metrics'], help='Operation mode')
+    parser.add_argument('--webhook', '--slack-webhook', dest='webhook', help='Slack webhook URL for notifications')
+    parser.add_argument('--audit-log', help='Audit log directory path')
+    parser.add_argument('--output', help='Output file path for JSON results')
     
     args = parser.parse_args()
     
-    if args.command == 'check-alerts':
+    # Determine mode from --mode flag or command argument (backward compatibility)
+    mode = args.mode
+    if not mode and args.command:
+        # Map old command names for backward compatibility
+        mode_mapping = {
+            'check-alerts': 'alert',
+            'check-compliance': 'check',
+            'metrics': 'metrics'
+        }
+        mode = mode_mapping.get(args.command)
+    
+    if not mode:
+        parser.print_help()
+        exit(1)
+    
+    results = {}
+    
+    if mode == 'alert':
         metrics = AuditMetrics()
         alerts = metrics.check_anomalies()
+        results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'mode': 'alert',
+            'alerts_found': len(alerts),
+            'alerts': []
+        }
         
         for alert in alerts:
             logger.warning(f"{alert.severity}: {alert.title}")
-            if args.slack_webhook:
-                alert.send_slack(args.slack_webhook)
+            results['alerts'].append({
+                'severity': alert.severity,
+                'title': alert.title,
+                'message': alert.message
+            })
+            if args.webhook:
+                alert.send_slack(args.webhook)
         
-        if alerts:
-            exit(1)
-    
-    elif args.command == 'check-compliance':
-        results = ComplianceChecker.run_full_compliance_check()
-        print(json.dumps(results, indent=2))
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(results, f, indent=2)
+        else:
+            print(json.dumps(results, indent=2))
         
-        exit(0 if results['failed'] == 0 else 1)
+        exit(1 if alerts else 0)
     
-    elif args.command == 'metrics':
+    elif mode == 'check':
+        check_results = ComplianceChecker.run_full_compliance_check()
+        results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'mode': 'check',
+            'compliance_results': check_results
+        }
+        
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(results, f, indent=2)
+        else:
+            print(json.dumps(results, indent=2))
+        
+        exit(0 if check_results.get('failed', 0) == 0 else 1)
+    
+    elif mode == 'report':
         metrics = AuditMetrics()
+        check_results = ComplianceChecker.run_full_compliance_check()
         
-        print("\n📊 AUDIT METRICS")
-        print("=" * 70)
+        report = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'mode': 'report',
+            'metrics': {
+                'velocity': metrics.get_rebuild_velocity(),
+                'failure_rate': metrics.get_failure_rate(),
+                'integrity_score': metrics.get_integrity_score()
+            },
+            'compliance': check_results
+        }
         
-        velocity = metrics.get_rebuild_velocity()
-        print(f"\nRebuild Velocity (7-day):")
-        print(f"  Total: {velocity.get('total_rebuilds', 0)}")
-        print(f"  Avg/day: {velocity.get('avg_rebuilds_per_day', 0):.1f}")
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(report, f, indent=2)
+        else:
+            print(json.dumps(report, indent=2))
         
-        failure = metrics.get_failure_rate()
-        print(f"\nFailure Rate (7-day):")
-        print(f"  Failures: {failure.get('failures', 0)}/{failure.get('total_attempts', 0)}")
-        print(f"  Rate: {failure.get('failure_rate_percent', 0):.1f}%")
+        exit(0)
+    
+    elif mode == 'metrics':
+        metrics = AuditMetrics()
+        results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'mode': 'metrics',
+            'velocity': metrics.get_rebuild_velocity(),
+            'failure_rate': metrics.get_failure_rate(),
+            'integrity_score': metrics.get_integrity_score()
+        }
         
-        integrity = metrics.get_integrity_score()
-        print(f"\nIntegrity Score: {integrity:.1f}%")
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(results, f, indent=2)
+        else:
+            # Pretty print for console
+            print("\n📊 AUDIT METRICS")
+            print("=" * 70)
+            
+            velocity = metrics.get_rebuild_velocity()
+            print(f"\nRebuild Velocity (7-day):")
+            print(f"  Total: {velocity.get('total_rebuilds', 0)}")
+            print(f"  Avg/day: {velocity.get('avg_rebuilds_per_day', 0):.1f}")
+            
+            failure = metrics.get_failure_rate()
+            print(f"\nFailure Rate (7-day):")
+            print(f"  Failures: {failure.get('failures', 0)}/{failure.get('total_attempts', 0)}")
+            print(f"  Rate: {failure.get('failure_rate_percent', 0):.1f}%")
+            
+            integrity = metrics.get_integrity_score()
+            print(f"\nIntegrity Score: {integrity:.1f}%")
+        
+        exit(0)
 
 
 if __name__ == '__main__':
