@@ -71,7 +71,7 @@ jobs:
             2>/dev/null || echo "")
 
           STOPPED_COUNT=0
-          if [[-n "$RUNS"]]; then
+          if [[ -n "$RUNS" ]]; then
             while IFS= read -r RUN_ID; do
               if gh api -X POST "repos/${{ github.repository }}/actions/runs/$RUN_ID/cancel" 2>/dev/null; then
                 echo "  ✓ Cancelled run #$RUN_ID"
@@ -125,7 +125,7 @@ jobs:
           echo "$RUNNER_MGMT_TOKEN_PLACEHOLDER" | \
             gh secret set RUNNER_MGMT_TOKEN --repo "${{ github.repository }}" 2>/dev/null
 
-          if [[$? -eq 0]]; then
+          if [[ $? -eq 0 ]]; then
             echo "✅ Token cleared from GitHub Secrets"
             echo "cleared=true" >> $GITHUB_OUTPUT
           else
