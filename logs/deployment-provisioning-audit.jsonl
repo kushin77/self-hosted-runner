@@ -58,3 +58,22 @@
   "attempts": "7+ attempts (04:31-04:56 UTC)",
   "next_step": "User chooses Option 1 (grant IAM), Option 2 (provide SA key), or Option 3 (manual terraform)"
 }
+{
+  "timestamp": "2026-03-09T17:41:13Z",
+  "operation": "terraform-apply-execution",
+  "terraform_exit": "2",
+  "commit": "477ff8d2e",
+  "project": "p4-platform"
+}
+{
+  "timestamp": "2026-03-09T17:42:07Z",
+  "operation": "terraform-apply-final-failure-documented",
+  "status": "FAILED_HARD_BLOCKER",
+  "exit_code": 2,
+  "root_cause": "GCP project p4-platform not found or inaccessible to akushnir@bioenergystrategies.com",
+  "attempted_times": "7+ attempts (04:31-05:41 UTC)",
+  "resolution_required": "Option 1: Project owner grant IAM role (iam.serviceAccountAdmin, compute.admin) | Option 2: Provide terraform-deployer SA key (JSON) | Option 3: User with p4-platform access runs terraform apply locally",
+  "immutable_documentation": "See TERRAFORM_APPLY_BLOCKER_2026-03-09.md and FINAL_TERRAFORM_APPLY_BLOCKER_CLI_COMMAND.md",
+  "commit": "477ff8d2e",
+  "audit_entries_total": 67
+}
