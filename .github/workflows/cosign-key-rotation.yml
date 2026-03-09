@@ -21,11 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get Vault role (ephemeral)
+        id: vault_role
+        uses: ./.github/actions/get-ephemeral-credential
+        with:
+          credential-name: VAULT_ROLE
+
       - name: Request Vault OIDC token
         if: ${{ github.event.inputs.dry_run != 'true' }}
         env:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          VAULT_ROLE: ${{ steps.vault_role.outputs.credential }}
           AUDIENCE: vault
         run: |
           bash scripts/vault_oidc_login.sh
