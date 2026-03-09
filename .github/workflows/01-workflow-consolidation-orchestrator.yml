@@ -1,5 +1,5 @@
 name: 01-Workflow Consolidation Orchestrator (Enterprise Automation)
-true:
+on:
   schedule:
   - cron: 0 2 * * *
   workflow_dispatch:
