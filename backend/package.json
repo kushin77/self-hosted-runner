@@ -1,0 +1,58 @@
+{
+  "name": "@nexusshield/portal-backend",
+  "version": "1.0.0-alpha",
+  "description": "NexusShield Portal MVP - Express.js Backend API",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:cov": "jest --coverage",
+    "db:migrate": "prisma migrate dev --name",
+    "db:push": "prisma db push",
+    "db:seed": "node prisma/seed.js",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\""
+  },
+  "keywords": [
+    "nexusshield",
+    "credentials",
+    "vault",
+    "orchestration",
+    "zero-trust"
+  ],
+  "author": "NexusShield Team",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@google-cloud/kms": "^4.0.0",
+    "@google-cloud/secret-manager": "^5.0.0",
+    "@prisma/client": "^5.8.0",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "prom-client": "^15.0.0",
+    "uuid": "^9.0.1",
+    "node-vault": "^0.9.25"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.6",
+    "@types/jest": "^29.5.11",
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "prettier": "^3.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "prisma": "^5.8.0",
+    "supertest": "^6.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=9.0.0"
+  }
+}
