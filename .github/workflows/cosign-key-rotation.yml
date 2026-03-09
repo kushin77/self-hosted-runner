@@ -21,11 +21,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_ROLE]
+        id: cred_vault_role
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ROLE
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
       - name: Request Vault OIDC token (unless dry-run)
         if: github.event.inputs.dry_run != 'true'
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+          VAULT_ROLE: ${{ steps.cred_vault_role.outputs.credential }}
           AUDIENCE: vault
         run: |
           if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_ROLE" ]; then
@@ -36,7 +54,7 @@ jobs:
 
       - name: Rotate cosign keys and store in Vault
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
         run: |
           if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
