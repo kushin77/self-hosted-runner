@@ -8,13 +8,26 @@ import os
 import re
 import yaml
 import glob
+import argparse
+import shutil
+import datetime
+import logging
 from pathlib import Path
 
 class RedactedSecretFixer:
-    def __init__(self, workflows_dir: str = ".github/workflows"):
+    def __init__(self, workflows_dir: str = ".github/workflows", *, dry_run: bool = True, make_backup: bool = True):
         self.workflows_dir = workflows_dir
         self.fixed_files = []
+        self.dry_run = dry_run
+        self.make_backup = make_backup
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
         
+    def _backup_file(self, filepath: str) -> str:
+        ts = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        bak = f"{filepath}.{ts}.bak"
+        shutil.copy2(filepath, bak)
+        return bak
+
     def fix_workflow(self, filepath: str) -> bool:
         """Fix a single workflow file by removing/replacing redacted placeholders"""
         try:
@@ -58,8 +71,19 @@ class RedactedSecretFixer:
             fixed_content = ''.join(fixed_lines)
             try:
                 yaml.safe_load(fixed_content)
-                # Validation passed - write file
+                # Validation passed - write file (or dry-run)
                 if fixed_content != ''.join(original_lines):
+                    if self.dry_run:
+                        logging.info(f"[dry-run] Would update: {filepath}")
+                        self.fixed_files.append(filepath)
+                        return True
+                    # create a backup if requested
+                    if self.make_backup:
+                        try:
+                            bak = self._backup_file(filepath)
+                            logging.info(f"Backup created: {bak}")
+                        except Exception:
+                            logging.info(f"Warning: could not create backup for {filepath}")
                     with open(filepath, 'w') as f:
                         f.write(fixed_content)
                     self.fixed_files.append(filepath)
@@ -121,6 +145,14 @@ class RedactedSecretFixer:
         return len(remaining_broken) == 0
 
 if __name__ == "__main__":
-    fixer = RedactedSecretFixer()
+    parser = argparse.ArgumentParser(description="Fix redacted secret placeholders in GitHub Actions workflows.")
+    parser.add_argument("--workflows-dir", default=".github/workflows", help="Workflows directory")
+    parser.add_argument("--apply", action="store_true", help="Apply changes instead of dry-run")
+    parser.add_argument("--no-backup", dest="backup", action="store_false", help="Do not create file backups before writing")
+    args = parser.parse_args()
+
+    fixer = RedactedSecretFixer(workflows_dir=args.workflows_dir, dry_run=(not args.apply), make_backup=args.backup)
     success = fixer.run()
+    if fixer.dry_run:
+        logging.info("Dry-run complete. Re-run with --apply to write changes.")
     exit(0 if success else 1)
