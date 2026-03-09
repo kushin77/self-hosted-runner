@@ -1,0 +1,14 @@
+name: Auto-Provision Deployment Fields (DISABLED)
+
+# This workflow was intentionally disabled per the operational directive
+# to perform deployments only on the approved worker node (192.168.168.42)
+# and to pause GitHub Actions CI/CD while in maintenance mode.
+
+# Original file moved to .disabled/ to preserve history.
+
+# NOTE: To re-enable, move this file back to .github/workflows/ and remove the
+# DISABLED marker.
+
+on: []
+
+jobs: {}
