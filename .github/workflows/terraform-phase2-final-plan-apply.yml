@@ -24,7 +24,7 @@ jobs:
       with:
         fetch-depth: 1
     - name: Fetch Ephemeral Credentials
-      uses: kushin77/get-ephemeral-credential@v1
+      uses: ./.github/actions/get-ephemeral-credential
       id: creds
       with:
         credential-names: 'GCP_PROJECT_ID

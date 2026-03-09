@@ -36,7 +36,7 @@ jobs:
       id: check
     - name: Get Credential [PAGERDUTY_SERVICE_KEY]
       id: cred_pagerduty_service_key
-      uses: kushin77/get-ephemeral-credential@v1
+      uses: ./.github/actions/get-ephemeral-credential
       with:
         credential-name: PAGERDUTY_SERVICE_KEY
         retrieve-from: auto

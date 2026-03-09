@@ -21,14 +21,19 @@ inputs:
 outputs:
   credential:
     description: The actual credential value
+    value: ${{ steps.retrieve.outputs.credential }}
   cached:
     description: Whether this credential was retrieved from cache
-  expires-at:
+    value: ${{ steps.retrieve.outputs.cached }}
+  expires_at:
     description: ISO8601 timestamp when credential expires
-  source-layer:
+    value: ${{ steps.retrieve.outputs.expires_at }}
+  source_layer:
     description: Which layer provided the credential (gsm, vault, or kms)
-  audit-id:
+    value: ${{ steps.retrieve.outputs.source_layer }}
+  audit_id:
     description: Reference ID for audit trail lookup
+    value: ${{ steps.retrieve.outputs.audit_id }}
 
 runs:
   using: composite
@@ -50,19 +55,19 @@ runs:
         echo "$OUTPUT" > "$TMPFILE"
 
         python3 - <<PY
-import json,os
-with open("$TMPFILE") as f:
-    out=json.load(f)
-gof=os.environ.get('GITHUB_OUTPUT')
-with open(gof,'a') as f:
-    f.write('credential<<EOF\n')
-    f.write(out.get('credential','') + '\n')
-    f.write('EOF\n')
-    f.write(f"cached={str(out.get('cached',False)).lower()}\n")
-    f.write(f"expires-at={out.get('expires_at','')}\n")
-    f.write(f"source-layer={out.get('source','')}\n")
-    f.write(f"audit-id={out.get('audit_id','')}\n")
-PY
+    import json,os
+    with open("$TMPFILE") as f:
+      out=json.load(f)
+    gof=os.environ.get('GITHUB_OUTPUT')
+    with open(gof,'a') as f:
+      f.write('credential<<EOF\n')
+      f.write(out.get('credential','') + '\n')
+      f.write('EOF\n')
+      f.write(f"cached={str(out.get('cached',False)).lower()}\n")
+      f.write(f"expires_at={out.get('expires_at','')}\n")
+      f.write(f"source_layer={out.get('source','')}\n")
+      f.write(f"audit_id={out.get('audit_id','')}\n")
+    PY
 
         rm -f "$TMPFILE"
 
