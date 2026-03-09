@@ -1,5 +1,5 @@
 name: Trivy Alert → Rebuild → Test → SBOM → Promote
-true:
+on:
   repository_dispatch:
     types:
     - trivy_alert
