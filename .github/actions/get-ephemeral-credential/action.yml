@@ -1,0 +1,45 @@
+name: 'Get Ephemeral Credential'
+description: 'Retrieve ephemeral credentials from GSM/Vault/KMS via OIDC'
+
+inputs:
+  credential-name:
+    description: 'Name of the credential to retrieve (from GSM, Vault, or both)'
+    required: true
+  retrieve-from:
+    description: 'Which layer to retrieve from: gsm, vault, kms, or auto (default: auto for failover)'
+    required: false
+    default: 'auto'
+  cache-ttl:
+    description: 'Number of seconds to cache the credential (default: 300)'
+    required: false
+    default: '300'
+  audit-log:
+    description: 'Whether to log this credential access to audit trail (default: true)'
+    required: false
+    default: 'true'
+
+outputs:
+  credential:
+    description: 'The actual credential value'
+    value: ${{ steps.retrieve.outputs.credential }}
+  cached:
+    description: 'Whether this credential was retrieved from cache'
+    value: ${{ steps.retrieve.outputs.cached }}
+  expires-at:
+    description: 'ISO8601 timestamp when credential expires'
+    value: ${{ steps.retrieve.outputs.expires_at }}
+  source-layer:
+    description: 'Which layer provided the credential (gsm, vault, or kms)'
+    value: ${{ steps.retrieve.outputs.source_layer }}
+  audit-id:
+    description: 'Reference ID for audit trail lookup'
+    value: ${{ steps.retrieve.outputs.audit_id }}
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
+  post: 'dist/cleanup.js'
+
+branding:
+  icon: 'key'
+  color: 'blue'
