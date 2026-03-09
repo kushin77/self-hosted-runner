@@ -1,5 +1,5 @@
 name: Provision AWS OIDC Role for Terraform S3 Backend
-true:
+on:
   workflow_dispatch:
     inputs:
       aws_account_id:

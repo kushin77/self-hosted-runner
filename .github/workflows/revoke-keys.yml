@@ -1,5 +1,5 @@
 name: Key Revocation & Rotation Workflow
-true:
+on:
   workflow_dispatch:
     inputs:
       revoke_gcp:
