@@ -8,8 +8,12 @@ import os
 import sys
 import json
 import subprocess
+import yaml
+import re
+import argparse
 from pathlib import Path
 from typing import Dict, List, Tuple
+from datetime import datetime
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
@@ -283,23 +287,61 @@ jobs:
 
 def main():
     """Run integration tests for action"""
-    if len(sys.argv) < 2:
-        print("Usage: python3 10x-integration-tests.py <action_path>")
-        sys.exit(1)
+    import argparse
     
-    action_path = sys.argv[1]
+    parser = argparse.ArgumentParser(description='10X Integration Tests')
+    parser.add_argument('--test-dir', help='Directory with actions to test')
+    parser.add_argument('--action', help='Single action path to test')
+    parser.add_argument('--output', help='Output file path')
+    
+    args = parser.parse_args()
+    
+    # Test single action or directory
+    if args.test_dir:
+        test_dir = Path(args.test_dir)
+        all_results = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'tests': []
+        }
+        
+        for action_dir in sorted(test_dir.iterdir()):
+            if action_dir.is_dir() and (action_dir / 'action.yml').exists():
+                runner = IntegrationTestRunner(str(action_dir))
+                results = runner.run_all_tests()
+                all_results['tests'].append(results)
+        
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(all_results, f, indent=2)
+        else:
+            print(json.dumps(all_results, indent=2))
+        
+        sys.exit(0)
+    
+    elif args.action:
+        action_path = args.action
+    else:
+        # Default: use first positional argument if no flags provided
+        if len(sys.argv) > 1 and not sys.argv[1].startswith('--'):
+            action_path = sys.argv[1]
+        else:
+            parser.print_help()
+            sys.exit(1)
     
     if not Path(action_path).exists():
         print(f"Error: Action path not found: {action_path}")
         sys.exit(1)
     
     runner = IntegrationTestRunner(action_path)
-    success, results = runner.run_all_tests()
+    results = runner.run_all_tests()
     
-    # Output JSON for CI/CD integration
-    print(json.dumps(results, indent=2))
+    if args.output:
+        with open(args.output, 'w') as f:
+            json.dump(results, f, indent=2)
+    else:
+        print(json.dumps(results, indent=2))
     
-    sys.exit(0 if success else 1)
+    sys.exit(0 if results.get('overall_passed', False) else 1)
 
 
 if __name__ == '__main__':
