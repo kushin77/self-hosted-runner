@@ -1,0 +1,32 @@
+{
+  "migration_id": "migrate-20260309T021441Z-1621083",
+  "provider": "gsm",
+  "action": "migrate",
+  "status": "initiated",
+  "detail": "project=gcp-eiq",
+  "timestamp": "2026-03-09T02:14:42Z"
+}
+{
+  "migration_id": "migrate-20260309T021441Z-1621083",
+  "provider": "gsm",
+  "action": "migrate",
+  "status": "ready",
+  "detail": "secret_count=10",
+  "timestamp": "2026-03-09T02:14:42Z"
+}
+{
+  "migration_id": "migrate-20260309T021441Z-1621083",
+  "provider": "vault",
+  "action": "migrate",
+  "status": "skipped",
+  "detail": "vault-unreachable",
+  "timestamp": "2026-03-09T02:14:42Z"
+}
+{
+  "migration_id": "migrate-20260309T021441Z-1621083",
+  "provider": "kms",
+  "action": "migrate",
+  "status": "skipped",
+  "detail": "aws-auth-failed",
+  "timestamp": "2026-03-09T02:14:45Z"
+}
