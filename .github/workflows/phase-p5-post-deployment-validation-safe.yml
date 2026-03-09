@@ -50,22 +50,22 @@ jobs:
       - name: Report infrastructure status
         run: |
           set -euxo pipefail
-          
+
           cat <<'EOF'
           ╔════════════════════════════════════════════════════════════════════╗
           ║   Phase P5 Post-Deployment Validation - STATUS REPORT              ║
           ╚════════════════════════════════════════════════════════════════════╝
-          
+
           Configuration:
             Environment: ${{ needs.initialize.outputs.environment }}
             Timestamp: ${{ needs.initialize.outputs.timestamp }}
             Event: ${{ github.event_name }}
             Branch: ${{ github.ref }}
             Runner: ubuntu-latest
-          
+
           Infrastructure:
           EOF
-          
+
           if [ -d terraform ]; then
             TF_COUNT=$(find terraform -name '*.tf' -type f 2>/dev/null | wc -l)
             echo "  ✓ Terraform: ${TF_COUNT} files"
@@ -75,35 +75,35 @@ jobs:
           else
             echo "  ✓ Terraform: ready (not present locally)"
           fi
-          
+
           if [ -d scripts ]; then
             SCRIPT_COUNT=$(find scripts -name '*.sh' -type f 2>/dev/null | wc -l)
             echo "  ✓ Automation scripts: ${SCRIPT_COUNT}"
           fi
-          
+
           if [ -d .github/workflows ]; then
             WF_COUNT=$(find .github/workflows -name '*.yml' -o -name '*.yaml' | wc -l)
             echo "  ✓ Workflows: ${WF_COUNT} deployed"
           fi
-          
+
           cat <<'EOF'
-          
+
           Deployment Properties:
             ✓ Immutable: All changes in Git
             ✓ Ephemeral: Stateless execution
             ✓ Idempotent: Safe to re-run
             ✓ No-Ops: No state mutations on PR
             ✓ Automated: Fully hands-off
-          
+
           Scheduled Checks:
             • Drift detection: ✓ scheduled (*/30 * * * *)
             • Post-deployment validation: ✓ active
             • Infrastructure monitoring: ✓ enabled
-          
+
           Status: ✓ SUCCESS
-          
+
           Next scheduled run: ~30 minutes
-          
+
           EOF
 
   drift-detection-scheduled:
@@ -129,17 +129,17 @@ jobs:
       - name: Final status
         run: |
           cat <<'EOF'
-          
+
           ╔════════════════════════════════════════════════════════════════════╗
           ║   Phase P5 - VALIDATION COMPLETE                                   ║
           ╚════════════════════════════════════════════════════════════════════╝
-          
+
           ✓ Workflow execution: SUCCESS
           ✓ Infrastructure status: NOMINAL
           ✓ Deployment validation: PASSED
           ✓ Scheduled automation: ENABLED
-          
+
           All deployment phases (P1-P5) now active and validated.
           Continuous infrastructure monitoring in operation.
-          
+
           EOF

@@ -1,9 +1,7 @@
 name: Dependency Automation & Issue Tracking
 
 on:
-  schedule:
     # Update every 30 minutes
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -24,26 +22,26 @@ jobs:
           cat > /tmp/update-deps.sh <<'EOF'
           #!/bin/bash
           set -e
-          
+
           echo "### Phase 1: Infrastructure Dependencies"
           echo ""
           echo "| Blocker | Owner | Status | Unblocks |"
           echo "|---------|-------|--------|----------|"
-          
+
           # Phase 1 blockers
           for issue in 343 1346 1309 325 313; do
             STATE=$(gh issue view $issue --repo kushin77/self-hosted-runner --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
             TITLE=$(gh issue view $issue --repo kushin77/self-hosted-runner --json title --jq '.title' 2>/dev/null | head -c 20)
-            
+
             if [ "$STATE" = "CLOSED" ]; then
               MARKER="✅"
             else
               MARKER="⏳"
             fi
-            
+
             echo "| #$issue | Ops | $MARKER $STATE | ... |"
           done
-          
+
           echo ""
           echo "### Phase 2: Validation Dependencies"
           echo ""
@@ -53,7 +51,7 @@ jobs:
           echo "| #266 (TF Plan) | #325 | ⏳ Awaiting |"
           echo "| #340 (Post-Deploy) | #266 | ⏳ Awaiting |"
           EOF
-          
+
           bash /tmp/update-deps.sh
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -81,7 +79,7 @@ jobs:
 
 Next phase will auto-trigger when blockers resolve.
 "
-          
+
           gh issue comment 1379 \
             --repo ${{ github.repository }} \
             --body "$DepsStatus" || true
@@ -101,10 +99,10 @@ Next phase will auto-trigger when blockers resolve.
           # Issues that auto-close when conditions met
           # #478 - Monitoring baseline (superseded by automation)
           # #476 - Follow-up actions (automated)
-          
+
           # For now, just log status
           echo "Issue auto-close check:"
-          
+
           ISSUES_TO_CHECK=("478" "476")
           for issue in "${ISSUES_TO_CHECK[@]}"; do
             STATE=$(gh issue view $issue --repo ${{ github.repository }} --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")

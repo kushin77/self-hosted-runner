@@ -124,12 +124,12 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::Terraform Plan (Drift Detection)"
-          
+
           terraform plan \
             -input=false \
             -var-file=terraform.tfvars \
             -out=drift-check.tfplan > /tmp/drift-plan.txt 2>&1 || true
-          
+
           # Check for drift
           if grep -q "No changes\|nothing to do" /tmp/drift-plan.txt; then
             echo "::notice::✓ No drift detected - infrastructure matches desired state"
@@ -139,7 +139,7 @@ jobs:
             terraform show -no-color drift-check.tfplan | tee /tmp/drift-details.txt
             echo "DRIFT_STATUS=dirty" >> $GITHUB_ENV
           fi
-          
+
           cat /tmp/drift-plan.txt
           echo "::endgroup::"
 
@@ -180,7 +180,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::EC2 Runner Instances Health"
-          
+
           # Get runner instances by tag
           aws ec2 describe-instances \
             --filters "Name=tag:Project,Values=elevatediq-runners" \
@@ -188,11 +188,11 @@ jobs:
                       "Name=tag:ManagedBy,Values=Terraform" \
             --query 'Reservations[*].Instances[*].[InstanceId,InstanceType,State.Name,LaunchTime]' \
             --output table
-          
+
           RUNNING=$(aws ec2 describe-instances \
             --filters "Name=tag:Project,Values=elevatediq-runners" "Name=instance-state-name,Values=running" \
             --query 'length(Reservations[*].Instances[*][])'  2>/dev/null || echo 0)
-          
+
           echo "::notice::Total running runner instances: $RUNNING"
           echo "::endgroup::"
 
@@ -202,20 +202,20 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::GitHub Runner Registration Status"
-          
+
           OWNER="${{ github.repository_owner }}"
           REPO="${{ github.event.repository.name }}"
-          
+
           # List self-hosted runners
           gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
             --jq '.runners[] | select(.os=="Linux") | {name: .name, status: .status, busy: .busy}'
-          
+
           TOTAL=$(gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
             --jq '.runners | length')
-          
+
           ONLINE=$(gh api "/repos/$OWNER/$REPO/actions/runners?per_page=100" \
             --jq '[.runners[] | select(.status=="online")] | length')
-          
+
           echo "::notice::Total runners: $TOTAL | Online: $ONLINE"
           echo "::endgroup::"
 
@@ -223,26 +223,26 @@ jobs:
         run: |
           cat > /tmp/phase2-health-report.md <<'EOF'
           # Terraform Phase 2 Infrastructure Health Report
-          
+
           **Generated:** $(date -u +"%Y-%m-%dT%H:%M:%SZ")
           **Workflow:** ${{ github.workflow }}
           **Run ID:** ${{ github.run_id }}
-          
+
           ## Status Summary
           - Drift Detection: ${{ job.status }}
           - Runner Health: ${{ job.status }}
-          
+
           ## Checks Performed
           1. Terraform state drift detection
           2. EC2 instance health
           3. GitHub runner registration status
           4. Security group configuration
-          
+
           ## Recommendations
           - Review drift report if discrepancies found
           - Ensure all runners are registered with GitHub
           - Monitor instance uptime and performance
-          
+
           **For details,** see GitHub Actions artifacts.
           EOF
           cat /tmp/phase2-health-report.md
@@ -264,7 +264,7 @@ jobs:
         run: |
           DRIFT_RESULT="${{ needs.terraform-drift-detection.result }}"
           HEALTH_RESULT="${{ needs.health-check-runners.result }}"
-          
+
           if [ "$DRIFT_RESULT" == "failure" ] || [ "$HEALTH_RESULT" == "failure" ]; then
             echo "::error::Drift or health check failed - review artifacts"
             exit 1
