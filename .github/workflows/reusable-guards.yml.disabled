@@ -1,0 +1,177 @@
+name: Reusable Guardrails Library
+
+on:
+  workflow_call:
+    inputs:
+      check_type:
+        description: 'Type of check: secrets, concurrency, permissions, terraform, cost'
+        required: 'true'
+        type: string
+      resource_name:
+        description: 'Resource being checked (e.g., prod/vpc, terraform-apply)'
+        required: 'false'
+        type: string
+      fail_on_violation:
+        description: 'Fail job if violation detected (true/false)'
+        required: 'false'
+        type: boolean
+        default: 'true'
+    outputs:
+      violations_found:
+        description: 'Number of violations detected'
+        value: ${{ jobs.execute-guard.outputs.violations }}
+      guard_passed:
+        description: 'Whether guardrail passed (true/false)'
+        value: ${{ jobs.execute-guard.outputs.passed }}
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  execute-guard:
+    name: Execute Guardrail (${{ inputs.check_type }})
+    runs-on: ubuntu-latest
+    outputs:
+      violations: ${{ steps.check.outputs.violations }}
+      passed: ${{ steps.check.outputs.passed }}
+      details: ${{ steps.check.outputs.details }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run guardrail check
+        id: check
+        run: |
+          CHECK_TYPE="${{ inputs.check_type }}"
+          RESOURCE="${{ inputs.resource_name || 'unknown' }}"
+          VIOLATIONS=0
+          PASSED="true"
+          DETAILS=""
+
+          echo "🛡️  Running guardrail: $CHECK_TYPE on $RESOURCE"
+
+          case "$CHECK_TYPE" in
+            secrets)
+              echo "Scanning for hardcoded secrets..."
+
+              # Search for common secret patterns
+              if grep -r "password\|api_key\|secret\|token" . --include="*.yml" --include="*.yaml" --include="*.tf" 2>/dev/null | \
+                 grep -v "secrets\." | grep -v '\${{' | grep -v "^.*#" | grep -qv "VAULT\|OIDC"; then
+                VIOLATIONS+=1
+                DETAILS="${DETAILS}⚠️  Potential hardcoded secret detected\n"
+                PASSED="false"
+              else
+                DETAILS="${DETAILS}✅ No hardcoded secrets detected\n"
+              fi
+              ;;
+
+            concurrency)
+              echo "Checking concurrency guards..."
+
+              # Look for deploy-like workflows without concurrency
+              if grep -r "apply\|deploy\|rotate" .github/workflows/*.yml 2>/dev/null | \
+                 grep -l "apply\|deploy\|rotate" | while read f; do
+                if ! grep -q "concurrency:" "$f"; then
+                  echo "❌ $f: Missing concurrency guard"
+                  VIOLATIONS=$((VIOLATIONS+1))
+                fi
+              done
+
+              if [$VIOLATIONS -eq 0]; then
+                DETAILS="${DETAILS}✅ All deploy workflows have concurrency guards\n"
+              else
+                DETAILS="${DETAILS}⚠️  $VIOLATIONS workflows missing concurrency\n"
+                PASSED="false"
+              fi
+              ;;
+
+            permissions)
+              echo "Validating permission scopes..."
+
+              # Check for overprivileged permissions
+              if grep -r "permissions:" .github/workflows/*.yml 2>/dev/null | grep -q "contents: write"; then
+                # This is OK for certain workflows; check context
+                DEPLOY_WORKFLOWS=$(grep -l "apply\|deploy" .github/workflows/*.yml | grep -c "." || true)
+                WRITE_PERMS=$(grep -c "contents: write" .github/workflows/*.yml || true)
+
+                if ["$DEPLOY_WORKFLOWS" -lt "$WRITE_PERMS"]; then
+                  VIOLATIONS=$((VIOLATIONS+1))
+                  DETAILS="${DETAILS}⚠️  Static resource write permission detected (review needed)\n"
+                fi
+              fi
+
+              if [$VIOLATIONS -eq 0]; then
+                DETAILS="${DETAILS}✅ Permission scopes appropriate\n"
+              else
+                PASSED="false"
+              fi
+              ;;
+
+            terraform)
+              echo "Checking Terraform best practices..."
+
+              TF_COUNT=$(find terraform -name "*.tf" -type f 2>/dev/null | wc -l)
+
+              if ["$TF_COUNT" -eq 0]; then
+                DETAILS="${DETAILS}ℹ️  No Terraform files to check\n"
+              else
+                # Check for inline resources
+                INLINE=$(grep -r "^resource " terraform --include="*.tf" 2>/dev/null | grep -v "module\|locals\|variables" | wc -l || true)
+
+                if ["$INLINE" -gt 20]; then
+                  VIOLATIONS=$((VIOLATIONS+1))
+                  DETAILS="${DETAILS}⚠️  High inline resource count ($INLINE). Consider using modules.\n"
+                  PASSED="false"
+                else
+                  DETAILS="${DETAILS}✅ Terraform structure looks good\n"
+                fi
+              fi
+              ;;
+
+            cost)
+              echo "Checking cost guardrails..."
+
+              # Look for expensive resources (example: large RDS instances, high compute)
+              EXPENSIVE=$(grep -r "instance_type.*=.*\"[tx][3-9]" terraform --include="*.tf" 2>/dev/null | wc -l || true)
+
+              if ["$EXPENSIVE" -gt 0]; then
+                DETAILS="${DETAILS}⚠️  $EXPENSIVE high-resource instances detected. Verify cost.\n"
+                # Not a violation; just a warning
+              else
+                DETAILS="${DETAILS}✅ Cost profile within baseline\n"
+              fi
+              ;;
+
+            *)
+              echo "❌ Unknown check type: $CHECK_TYPE"
+              VIOLATIONS=1
+              PASSED="false"
+              DETAILS="${DETAILS}❌ Invalid check type\n"
+              ;;
+          esac
+
+          echo "violations=$VIOLATIONS" >> $GITHUB_OUTPUT
+          echo "passed=$PASSED" >> $GITHUB_OUTPUT
+          echo -e "details<<EOF\n${DETAILS}\nEOF" >> $GITHUB_OUTPUT
+
+      - name: Report results
+        run: |
+          echo "## Guardrail Check Results"
+          echo ""
+          echo "**Check Type:** ${{ inputs.check_type }}"
+          echo "**Resource:** ${{ inputs.resource_name }}"
+          echo "**Violations:** ${{ steps.check.outputs.violations }}"
+          echo "**Passed:** ${{ steps.check.outputs.passed }}"
+          echo ""
+          echo "### Details"
+          echo "${{ steps.check.outputs.details }}"
+
+      - name: Fail if violations and fail_on_violation=true
+        if: inputs.fail_on_violation && steps.check.outputs.passed == 'false'
+        run: |
+          echo "❌ Guardrail check failed!"
+          exit 1

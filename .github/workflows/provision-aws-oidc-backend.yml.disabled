@@ -1,0 +1,177 @@
+name: Provision AWS OIDC Role for Terraform S3 Backend
+on:
+  workflow_dispatch:
+    inputs:
+      aws_account_id:
+        description: AWS Account ID
+        required: 'true'
+      aws_region:
+        description: AWS Region
+        required: 'false'
+        default: us-east-1
+      terraform_state_bucket:
+        description: Terraform State S3 Bucket Name
+        required: 'true'
+      terraform_lock_table:
+        description: Terraform Lock DynamoDB Table Name
+        required: 'true'
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: ${{ inputs.aws_region }}
+      AWS_ACCOUNT_ID: ${{ inputs.aws_account_id }}
+      TERRAFORM_STATE_BUCKET: ${{ inputs.terraform_state_bucket }}
+      TERRAFORM_LOCK_TABLE: ${{ inputs.terraform_lock_table }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Configure AWS Credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::${{ inputs.aws_account_id }}:role/github-actions-provisioner
+        aws-region: ${{ inputs.aws_region }}
+    - name: Create IAM OIDC Provider (if not exists)
+      id: create-provider
+      run: "set -euo pipefail\nPROVIDER_ARN=$(aws iam list-open-id-connect-providers\
+        \ --query \"OpenIDConnectProviderList[?contains(OpenIDConnectProviderArn,\
+        \ 'token.actions.githubusercontent.com')].OpenIDConnectProviderArn\" --output\
+        \ text || true)\nif [-z \"$PROVIDER_ARN\"]; then\n  echo \"Creating OIDC provider\
+        \ for GitHub...\"\n  PROVIDER_ARN=$(aws iam create-open-id-connect-provider\
+        \ \\\n    --url https://token.actions.githubusercontent.com \\\n    --client-id-list\
+        \ sts.amazonaws.com \\\n    --thumbprint-list 6938fd4d98bab03faadb97b34396831e3780aea1\
+        \ \\\n    --query \"OpenIDConnectProviderArn\" --output text)\n  echo \"Created\
+        \ OIDC provider: $PROVIDER_ARN\"\nelse\n  echo \"OIDC provider already exists:\
+        \ $PROVIDER_ARN\"\nfi\necho \"provider_arn=$PROVIDER_ARN\" >> $GITHUB_OUTPUT\n"
+    - name: Create IAM Role for GitHub Actions
+      id: create-role
+      run: "set -euo pipefail\nROLE_NAME=\"github-actions-terraform-backend\"\nROLE_ARN=$(aws\
+        \ iam get-role --role-name \"$ROLE_NAME\" --query \"Role.Arn\" --output text\
+        \ 2>/dev/null || true)\n\nif [-z \"$ROLE_ARN\"]; then\n  echo \"Creating role\
+        \ $ROLE_NAME...\"\n  TRUST_POLICY=$(cat <<EOF\n{\n  \"Version\": \"2012-10-17\"\
+        ,\n  \"Statement\": [{\n      \"Effect\": \"Allow\",\n      \"Principal\"\
+        : {\n        \"Federated\": \"arn:aws:iam::$AWS_ACCOUNT_ID:oidc-provider/token.actions.githubusercontent.com\"\
+        \n      },\n      \"Action\": \"sts:AssumeRoleWithWebIdentity\",\n      \"\
+        Condition\": {\n        \"StringEquals\": {\n          \"token.actions.githubusercontent.com:aud\"\
+        : \"sts.amazonaws.com\",\n          \"token.actions.githubusercontent.com:sub\"\
+        : \"repo:$GITHUB_REPOSITORY:ref:refs/heads/main\"\n        }\n      }\n  \
+        \  }]\n}\nEOF\n)\n  ROLE_ARN=$(aws iam create-role \\\n    --role-name \"\
+        $ROLE_NAME\" \\\n    --assume-role-policy-document \"$TRUST_POLICY\" \\\n\
+        \    --query \"Role.Arn\" --output text)\n  echo \"Created role: $ROLE_ARN\"\
+        \nelse\n  echo \"Role already exists: $ROLE_ARN\"\nfi\necho \"role_arn=$ROLE_ARN\"\
+        \ >> $GITHUB_OUTPUT\n"
+    - name: Attach S3 Backend Policy to Role
+      run: "set -euo pipefail\nROLE_NAME=\"github-actions-terraform-backend\"\nPOLICY_NAME=\"\
+        terraform-s3-backend-policy\"\n\n# Prepare policy with substitutions\nPOLICY=$(cat\
+        \ infra/oidc/aws/iam-policy-s3-backend.json | \\\n  sed \"s|<TERRAFORM_STATE_BUCKET>|$TERRAFORM_STATE_BUCKET|g\"\
+        \ | \\\n  sed \"s|<TERRAFORM_LOCK_TABLE>|$TERRAFORM_LOCK_TABLE|g\" | \\\n\
+        \  sed \"s|<REGION>|$AWS_REGION|g\" | \\\n  sed \"s|<ACCOUNT_ID>|$AWS_ACCOUNT_ID|g\"\
+        \ | \\\n  sed 's|<KMS_KEY_ID>|*|g')\n\n# Check if policy exists; if so, update\
+        \ it; if not, create it\nif aws iam get-role-policy --role-name \"$ROLE_NAME\"\
+        \ --policy-name \"$POLICY_NAME\" 2>/dev/null; then\n  echo \"Updating policy\
+        \ $POLICY_NAME...\"\n  aws iam put-role-policy \\\n    --role-name \"$ROLE_NAME\"\
+        \ \\\n    --policy-name \"$POLICY_NAME\" \\\n    --policy-document \"$POLICY\"\
+        \nelse\n  echo \"Creating policy $POLICY_NAME...\"\n  aws iam put-role-policy\
+        \ \\\n    --role-name \"$ROLE_NAME\" \\\n    --policy-name \"$POLICY_NAME\"\
+        \ \\\n    --policy-document \"$POLICY\"\nfi\necho \"✅ Policy attached to role\"\
+        \n"
+    - name: Set Repository Secrets
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: 'set -euo pipefail
+
+        ROLE_ARN="${{ steps.create-role.outputs.role_arn }}"
+
+
+        echo "Setting AWS_OIDC_ROLE_ARN repo secret..."
+
+        echo "$ROLE_ARN" | gh secret set AWS_OIDC_ROLE_ARN --repo "$GITHUB_REPOSITORY"
+        --input -
+
+
+        echo "Setting USE_OIDC=true repo secret..."
+
+        echo "true" | gh secret set USE_OIDC --repo "$GITHUB_REPOSITORY" --input -
+
+
+        echo "Setting AWS_DEFAULT_REGION repo secret..."
+
+        echo "$AWS_REGION" | gh secret set AWS_DEFAULT_REGION --repo "$GITHUB_REPOSITORY"
+        --input -
+
+
+        echo "✅ Repository secrets configured"
+
+        '
+    - name: Verification Summary
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: 'echo "════════════════════════════════════════════════════════════════════"
+
+        echo "✅ AWS OIDC PROVISIONING COMPLETE"
+
+        echo "════════════════════════════════════════════════════════════════════"
+
+        echo ""
+
+        echo "✓ OIDC Provider: ${{ steps.create-provider.outputs.provider_arn }}"
+
+        echo "✓ IAM Role ARN: ${{ steps.create-role.outputs.role_arn }}"
+
+        echo "✓ Policy: Terraform S3 Backend (S3 + DynamoDB + KMS)"
+
+        echo "✓ Repo Secrets Set:"
+
+        echo "    - AWS_OIDC_ROLE_ARN"
+
+        echo "    - USE_OIDC=true"
+
+        echo "    - AWS_DEFAULT_REGION=$AWS_REGION"
+
+        echo ""
+
+        echo "Next steps:"
+
+        echo "1. Terraform workflows can now use OIDC to access S3 backend"
+
+        echo "2. Dispatch terraform-auto-apply.yml or your Terraform workflow"
+
+        echo "3. Monitor run logs for confirmation"
+
+        echo ""
+
+        echo "Repo: $GITHUB_REPOSITORY"
+
+        echo "════════════════════════════════════════════════════════════════════"
+
+
+        # Post summary to tracking issue
+
+        BODY="AWS OIDC provisioning completed successfully.
+
+
+        ✓ OIDC Provider created/verified
+
+        ✓ IAM Role: \`github-actions-terraform-backend\`
+
+        ✓ Policy: S3 Backend access (S3 + DynamoDB + KMS)
+
+        ✓ Repo secrets configured: \`AWS_OIDC_ROLE_ARN\`, \`USE_OIDC\`, \`AWS_DEFAULT_REGION\`
+
+
+        Terraform workflows can now authenticate to AWS via OIDC without long-lived
+        secrets.
+
+        Run ID: $GITHUB_RUN_ID
+
+        Run URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+
+
+        gh issue comment 1309 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
+
+        '
+    timeout-minutes: 30
+    name: Provision
