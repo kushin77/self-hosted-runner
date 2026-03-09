@@ -1,41 +1,69 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Rotate cosign keypair and store in Vault at secret/data/cosign
+# Rotate cosign keypair and store in Vault at secret/data/cosign/keys
 # Requires: VAULT_ADDR and VAULT_TOKEN in env (or use vault_oidc_login.sh to obtain)
 
 COSIGN_BIN=${COSIGN_BIN:-cosign}
 VAULT_ADDR=${VAULT_ADDR:-}
-VAULT_PATH=${VAULT_PATH:-secret/data/cosign}
+VAULT_TOKEN=${VAULT_TOKEN:-}
+VAULT_PATH=${VAULT_PATH:-secret/data/cosign/keys}
 
 if ! command -v "$COSIGN_BIN" >/dev/null 2>&1; then
-  echo "cosign not found; please install cosign"
-  exit 2
+  echo "Installing cosign..."
+  COSIGN_VERSION="2.1.0"
+  curl -sSfL "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64" -o /tmp/cosign
+  chmod +x /tmp/cosign
+  COSIGN_BIN=/tmp/cosign
 fi
 
 TMPDIR=$(mktemp -d)
+trap "rm -rf $TMPDIR" EXIT
+
 pushd "$TMPDIR"
 
-# Generate key pair
-${COSIGN_BIN} generate-key-pair
-# This creates cosign.key and cosign.pub
+echo "Generating cosign key pair..."
+${COSIGN_BIN} generate-key-pair --answer-security-questions=false || true
+
 if [ ! -f cosign.key ] || [ ! -f cosign.pub ]; then
-  echo "Key generation failed"
+  echo "ERROR: Key generation failed"
   exit 3
 fi
 
-# Store in Vault
-if [ -n "$VAULT_ADDR" ] && [ -n "${VAULT_TOKEN:-}" ]; then
-  echo "Storing cosign keys in Vault at $VAULT_PATH"
-  # Use KV v2 data structure
-  curl -sS -X POST -H "X-Vault-Token: $VAULT_TOKEN" -H 'Content-Type: application/json' \
-    --data "{\"data\":{\"key\":\"$(awk '{printf "%s\\n", $0}' cosign.key | sed 's/\\/\\\\/g' | awk '{printf "%s\\n", $0}' | jq -s -R -r @json)\",\"pub\":\"$(awk '{printf "%s\\n", $0}' cosign.pub | sed 's/\\/\\\\/g' | jq -s -R -r @json)\"}}" \
-    "$VAULT_ADDR/v1/$VAULT_PATH" > /dev/null
-  echo "Stored in Vault"
+echo "Key pair generated successfully"
+
+if [ -n "$VAULT_ADDR" ] && [ -n "$VAULT_TOKEN" ]; then
+  echo "Storing cosign keys in Vault at $VAULT_PATH..."
+  PRIVATE_KEY_B64=$(base64 -w0 < cosign.key)
+  PUBLIC_KEY_B64=$(base64 -w0 < cosign.pub)
+  TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+  
+  RESPONSE=$(curl -sS -w "\n%{http_code}" -X POST \
+    -H "X-Vault-Token: $VAULT_TOKEN" \
+    -H 'Content-Type: application/json' \
+    --data "{
+      \"data\": {
+        \"private_key_b64\": \"$PRIVATE_KEY_B64\",
+        \"public_key_b64\": \"$PUBLIC_KEY_B64\",
+        \"rotated_at\": \"$TIMESTAMP\"
+      }
+    }" \
+    "$VAULT_ADDR/v1/$VAULT_PATH")
+  
+  HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
+  BODY=$(echo "$RESPONSE" | head -n-1)
+  
+  if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "204" ]; then
+    echo "✓ Keys stored in Vault successfully"
+  else
+    echo "ERROR: Vault storage failed (HTTP $HTTP_CODE): $BODY"
+    exit 4
+  fi
 else
-  echo "VAULT_ADDR/VAULT_TOKEN not present; skipping Vault storage. Keys available in $TMPDIR"
+  echo "WARN: VAULT_ADDR/VAULT_TOKEN not set; keys available locally in $TMPDIR"
 fi
 
-popd
+echo "Cosign key rotation complete"
+echo "Public key: $TMPDIR/cosign.pub"
 
-echo "Cosign key rotation complete. Private key location: $TMPDIR/cosign.key (cleanup/rotate as needed)"
+popd
