@@ -13,7 +13,7 @@ on:
     inputs:
       action:
         description: "Action to perform"
-        required: true
+        required: 'true'
         type: choice
         options:
           - check-all
@@ -24,13 +24,13 @@ on:
         default: "check-all"
       filter_label:
         description: "Filter runners by label (optional)"
-        required: false
+        required: 'false'
         type: string
       force:
         description: "Force action even if safety checks fail"
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -256,10 +256,8 @@ jobs:
               time.sleep(check_interval)
           else:
               print("\n⚠ Drain timeout - forcing shutdown")
-              subprocess.run([
-                  "python3", "scripts/ephemeral-lifecycle-controller.py", "drain",
-                  "--strategy", "forceful"
-              ])
+              subprocess.run(["python3", "scripts/ephemeral-lifecycle-controller.py", "drain",
+                  "--strategy", "forceful"])
           EOF
 
   # =========================================================================
@@ -428,10 +426,10 @@ jobs:
         run: |
           echo "Workflow completed successfully"
 
-          if [[ "${{ needs.check-runner-health.result }}" != "success" ]]; then
+          if [["${{ needs.check-runner-health.result }}" != "success"]]; then
             echo "⚠ Runner health check had issues"
           fi
 
-          if [[ "${{ needs.reap-expired-runners.result }}" != "success" ]]; then
+          if [["${{ needs.reap-expired-runners.result }}" != "success"]]; then
             echo "⚠ Reap operation had issues"
           fi

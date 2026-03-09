@@ -5,17 +5,17 @@ on:
     inputs:
       check_type:
         description: 'Type of check: secrets, concurrency, permissions, terraform, cost'
-        required: true
+        required: 'true'
         type: string
       resource_name:
         description: 'Resource being checked (e.g., prod/vpc, terraform-apply)'
-        required: false
+        required: 'false'
         type: string
       fail_on_violation:
         description: 'Fail job if violation detected (true/false)'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
     outputs:
       violations_found:
         description: 'Number of violations detected'
@@ -81,7 +81,7 @@ jobs:
                 fi
               done
 
-              if [ $VIOLATIONS -eq 0 ]; then
+              if [$VIOLATIONS -eq 0]; then
                 DETAILS="${DETAILS}✅ All deploy workflows have concurrency guards\n"
               else
                 DETAILS="${DETAILS}⚠️  $VIOLATIONS workflows missing concurrency\n"
@@ -98,13 +98,13 @@ jobs:
                 DEPLOY_WORKFLOWS=$(grep -l "apply\|deploy" .github/workflows/*.yml | grep -c "." || true)
                 WRITE_PERMS=$(grep -c "contents: write" .github/workflows/*.yml || true)
 
-                if [ "$DEPLOY_WORKFLOWS" -lt "$WRITE_PERMS" ]; then
+                if ["$DEPLOY_WORKFLOWS" -lt "$WRITE_PERMS"]; then
                   VIOLATIONS=$((VIOLATIONS+1))
                   DETAILS="${DETAILS}⚠️  Static resource write permission detected (review needed)\n"
                 fi
               fi
 
-              if [ $VIOLATIONS -eq 0 ]; then
+              if [$VIOLATIONS -eq 0]; then
                 DETAILS="${DETAILS}✅ Permission scopes appropriate\n"
               else
                 PASSED="false"
@@ -116,13 +116,13 @@ jobs:
 
               TF_COUNT=$(find terraform -name "*.tf" -type f 2>/dev/null | wc -l)
 
-              if [ "$TF_COUNT" -eq 0 ]; then
+              if ["$TF_COUNT" -eq 0]; then
                 DETAILS="${DETAILS}ℹ️  No Terraform files to check\n"
               else
                 # Check for inline resources
                 INLINE=$(grep -r "^resource " terraform --include="*.tf" 2>/dev/null | grep -v "module\|locals\|variables" | wc -l || true)
 
-                if [ "$INLINE" -gt 20 ]; then
+                if ["$INLINE" -gt 20]; then
                   VIOLATIONS=$((VIOLATIONS+1))
                   DETAILS="${DETAILS}⚠️  High inline resource count ($INLINE). Consider using modules.\n"
                   PASSED="false"
@@ -138,7 +138,7 @@ jobs:
               # Look for expensive resources (example: large RDS instances, high compute)
               EXPENSIVE=$(grep -r "instance_type.*=.*\"[tx][3-9]" terraform --include="*.tf" 2>/dev/null | wc -l || true)
 
-              if [ "$EXPENSIVE" -gt 0 ]; then
+              if ["$EXPENSIVE" -gt 0]; then
                 DETAILS="${DETAILS}⚠️  $EXPENSIVE high-resource instances detected. Verify cost.\n"
                 # Not a violation; just a warning
               else

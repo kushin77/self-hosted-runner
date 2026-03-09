@@ -5,7 +5,7 @@ on:
     inputs:
       auto_apply:
         description: 'Auto-apply after plan approval'
-        required: false
+        required: 'false'
         default: 'false'
         type: choice
         options:

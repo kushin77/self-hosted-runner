@@ -22,7 +22,7 @@ on:
     inputs:
       run_cost_analysis:
         description: 'Run cost analysis harness'
-        required: false
+        required: 'false'
         default: 'true'
         type: choice
         options:
@@ -192,7 +192,7 @@ jobs:
 
           missing=0
           for file in "${files[@]}"; do
-            if [ ! -f "$file" ]; then
+            if [! -f "$file"]; then
               echo "::warning::Missing documentation: $file"
               missing=$((missing + 1))
             else
@@ -200,7 +200,7 @@ jobs:
             fi
           done
 
-          if [ $missing -gt 0 ]; then
+          if [$missing -gt 0]; then
             echo "::warning::$missing documentation files missing"
           fi
 
@@ -221,7 +221,7 @@ jobs:
         run: |
           echo "::notice::Validating Spot lifecycle Lambda handler..."
 
-          if [ ! -f "handler.py" ]; then
+          if [! -f "handler.py"]; then
             echo "::warning::Spot lifecycle handler not found"
           else
             python3 -m py_compile handler.py

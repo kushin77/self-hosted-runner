@@ -9,7 +9,7 @@ on:
     inputs:
       dns_provider:
         description: 'DNS provider to use (manual|route53|cloudflare)'
-        required: false
+        required: 'false'
         default: 'manual'
 
 jobs:
@@ -85,7 +85,6 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
-
 
         run: |
           set -euo pipefail

@@ -46,7 +46,7 @@ jobs:
         id: prepare
         run: |
           set -euo pipefail
-          if [[ ! -f "$FILE_PATH" ]]; then
+          if [[! -f "$FILE_PATH"]]; then
             echo "file_missing=true" >> $GITHUB_OUTPUT
             echo "File $FILE_PATH not found; aborting storage step"
             exit 0

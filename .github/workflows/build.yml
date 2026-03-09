@@ -2,8 +2,8 @@ name: Build (package + SBOM + sign)
 
 on:
   push:
-    branches: [ main, develop ]
-    tags: [ 'v*' ]
+    branches: [main, develop]
+    tags: ['v*']
   workflow_run:
     workflows: ["Test"]
     types: [completed]

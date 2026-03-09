@@ -10,11 +10,11 @@ on:
     inputs:
       dry_run:
         description: 'Execute in dry-run mode (no mutations)'
-        required: false
+        required: 'false'
         default: 'false'
       target_phase:
         description: 'Target consolidation phase (all, security, features, docs)'
-        required: false
+        required: 'false'
         default: 'all'
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -128,28 +128,28 @@ jobs:
           echo "🔐 Validating execution guards..."
 
           # Check: No in-flight consolidations
-          if [ -f .workflow-state/consolidation.lock ]; then
+          if [-f .workflow-state/consolidation.lock]; then
             LOCK_AGE=$(($(date +%s) - $(stat -c %Y .workflow-state/consolidation.lock 2>/dev/null || echo 0)))
-            if [ $LOCK_AGE -lt ${{ env.EXECUTION_TTL }} ]; then
+            if [$LOCK_AGE -lt ${{ env.EXECUTION_TTL }}]; then
               echo "⚠️  Consolidation already in-flight (age: ${LOCK_AGE}s). Using dedup window..."
             fi
           fi
 
           # Check: Dry-run mode
           DRY_RUN="${{ github.event.inputs.dry_run || 'false' }}"
-          if [ "$DRY_RUN" = "true" ]; then
+          if ["$DRY_RUN" = "true"]; then
             echo "📋 DRY-RUN MODE: All operations simulated, no mutations"
           fi
 
           # Check: Credentials available (GSM > VAULT > KMS)
           CREDS_OK="false"
-          if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_google_credentials.outputs.credential }}"]; then
             echo "✓ GSM credentials available"
             CREDS_OK="true"
-          elif [ -n "${{ steps.cred_vault_addr.outputs.credential }}" ]; then
+          elif [-n "${{ steps.cred_vault_addr.outputs.credential }}"]; then
             echo "✓ VAULT credentials available"
             CREDS_OK="true"
-          elif [ -n "${{ steps.cred_aws_role_arn.outputs.credential }}" ]; then
+          elif [-n "${{ steps.cred_aws_role_arn.outputs.credential }}"]; then
             echo "✓ KMS/AWS credentials available"
             CREDS_OK="true"
           else
@@ -173,9 +173,9 @@ jobs:
 
           # Check if this exact state was already processed
           PREV_HASH_FILE=".workflow-state/last-state-hash"
-          if [ -f "$PREV_HASH_FILE" ]; then
+          if [-f "$PREV_HASH_FILE"]; then
             PREV_HASH=$(cat "$PREV_HASH_FILE")
-            if [ "$STATE_HASH" = "$PREV_HASH" ]; then
+            if ["$STATE_HASH" = "$PREV_HASH"]; then
               echo "✓ State unchanged - previous run's results are valid (idempotent skip)"
             fi
           fi
@@ -201,15 +201,15 @@ jobs:
           echo "🔐 Initializing multi-layer credential chain (GSM > VAULT > KMS)..."
 
           # Layer 1: Google Secrets Manager (ephemeral federated tokens)
-          if [ -n "${{ steps.cred_google_credentials.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_google_credentials.outputs.credential }}"]; then
             echo "✓ Layer 1: GSM initialized"
             ACTIVE_CRED_LAYER="GSM"
           # Layer 2: HashiCorp Vault (auto-rotating secrets)
-          elif [ -n "${{ steps.cred_vault_addr.outputs.credential }}" ]; then
+          elif [-n "${{ steps.cred_vault_addr.outputs.credential }}"]; then
             echo "✓ Layer 2: VAULT initialized"
             ACTIVE_CRED_LAYER="VAULT"
           # Layer 3: AWS KMS (encrypted credential storage)
-          elif [ -n "${{ steps.cred_aws_role_arn.outputs.credential }}" ]; then
+          elif [-n "${{ steps.cred_aws_role_arn.outputs.credential }}"]; then
             echo "✓ Layer 3: KMS initialized"
             ACTIVE_CRED_LAYER="KMS"
           else
@@ -226,7 +226,7 @@ jobs:
           mkdir -p .workflow-state
 
           # Restore previous execution state (enables idempotent resume)
-          if [ -f ".workflow-state/consolidation.state" ]; then
+          if [-f ".workflow-state/consolidation.state"]; then
             echo "📋 Restoring idempotent checkpoint..."
             source .workflow-state/consolidation.state
             echo "last_completed_phase=${LAST_COMPLETED_PHASE}" >> $GITHUB_OUTPUT
@@ -403,7 +403,7 @@ jobs:
           # Find or create consolidation tracking issue
           ISSUE=$(gh issue list --label consolidation-tracking --state open --json number -q '.[0].number' 2>/dev/null || echo "")
 
-          if [ -z "$ISSUE" ]; then
+          if [-z "$ISSUE"]; then
             ISSUE=$(gh issue create \
               --title "Workflow Consolidation: Ongoing Enhancement" \
               --body "Tracking consolidation orchestration runs. See audit logs in .audit-logs/" \
@@ -411,7 +411,7 @@ jobs:
               --json number -q '.number' 2>/dev/null || echo "")
           fi
 
-          if [ -n "$ISSUE" ]; then
+          if [-n "$ISSUE"]; then
             gh issue comment $ISSUE \
               --body "✅ Consolidation run completed: ${EXEC_ID}" \
               2>/dev/null || true
