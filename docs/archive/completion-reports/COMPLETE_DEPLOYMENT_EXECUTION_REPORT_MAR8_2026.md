@@ -124,7 +124,7 @@ Result: Full production automation enabled
 ### Ongoing (Daily)
 - ⏳ Monitor P5 runs (5 min/day)
 - ⏳ Check for drift/failures
-- ⏳ Manage infrastructure via Git PRs
+- ⏳ Manage infrastructure via Git Draft issues
 
 ---
 
@@ -366,7 +366,7 @@ Monitoring: Issue #1423
 5. Daily monitoring (5 min/day ongoing)
    ├─ Check P5 runs
    ├─ Review any failures
-   └─ Manage infra via Git PRs
+   └─ Manage infra via Git Draft issues
 ```
 
 ---

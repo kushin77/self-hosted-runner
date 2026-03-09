@@ -6,7 +6,7 @@ Actions performed (automated):
 
 - Disabled active GitHub Actions workflows and moved them to `.github/workflows/.disabled/`.
 - Disabled Dependabot config and archived to `.github/.disabled/dependabot.yml`.
-- Deprecated Pull Request workflows in `CONTRIBUTING.md` (replaced with draft-issue + direct-deploy flow).
+- Deprecated Draft Issue workflows in `CONTRIBUTING.md` (replaced with draft-issue + direct-deploy flow).
 - Updated portal defaults to point to `192.168.168.42` (`src/api/socket.ts`, `apps/portal/web/index.html`, `Makefile`).
 - Added `scripts/wait-and-deploy.sh` watcher to trigger `direct-deploy.sh` when credentials become available.
 - Fixed `scripts/direct-deploy.sh` to provide robust audit logging, ephemeral credentials handling, idempotent bundle deployment, and GSM/VAULT/KMS credential support.

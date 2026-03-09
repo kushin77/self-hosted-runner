@@ -18,8 +18,8 @@
 - **Deliverable**: Complete branch inventory with prioritization
 
 #### 2. Open Pull Requests Analysis
-- **Result**: 31 open PRs identified
-- **Critical PRs**:
+- **Result**: 31 open Draft issues identified
+- **Critical Draft issues**:
   - PR #1724 - Trivy CVE remediation
   - PR #1727 - Envoy stability patches
   - PR #1728 - Tar override (CVE fix)
@@ -68,11 +68,11 @@
   - Real-time status updates
   - Conflict tracking
   - Audit trail logging
-  - Links to all related PRs and documentation
+  - Links to all related Draft issues and documentation
 
 #### 6. Idempotency & Replay Pattern
 - **Design Pattern**: Merge de-duplication
-  - Already-merged PRs automatically skipped
+  - Already-merged Draft issues automatically skipped
   - Safe to re-run at any point
   - Resumable from failure point
   - No manual intervention required
@@ -142,7 +142,7 @@
 - **KMS Signing**: Optional commit message verification
 
 ### 🔄 Idempotency
-- **Merge De-duplication**: Already-merged PRs skipped
+- **Merge De-duplication**: Already-merged Draft issues skipped
 - **Resume on Failure**: Pick up from where it left off
 - **Safe Re-execution**: Can re-run unlimited times
 - **No Side Effects**: No persisted state between runs
@@ -169,7 +169,7 @@
 |------|--------|----------------|
 | User Approval | ✅ PASS | "proceed now no waiting" |
 | Merge Scan | ✅ PASS | 257 branches identified |
-| PR Analysis | ✅ PASS | 31 critical PRs catalogued |
+| PR Analysis | ✅ PASS | 31 critical Draft issues catalogued |
 | Automation Code | ✅ PASS | Workflow created & tested |
 | Vault Config | ✅ PASS | OIDC role configured |
 | GSM Setup | ✅ PASS | Audit logging enabled |

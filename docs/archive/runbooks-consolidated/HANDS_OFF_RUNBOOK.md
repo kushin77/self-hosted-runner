@@ -50,7 +50,7 @@ Troubleshooting
 - If AppRole provisioning fails: check `VAULT_ADMIN_TOKEN` permissions and Vault audit logs.
 - If `gh secret set` fails: ensure `GITHUB_ADMIN_TOKEN` has permissions and the `gh` CLI is available on the runner.
 
-Related PRs & Issues
+Related Draft issues & Issues
 - MinIO helpers and workflow migration: PR #746
 - MinIO smoke-test workflow: PR #750
 - Hands-off AppRole persistence: PR #760

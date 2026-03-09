@@ -64,7 +64,7 @@ Your FAANG-grade Git Governance Framework is **fully deployed, tested, and ready
 ### ✅ EPHEMERAL
 ```
 ✓ Stale branches auto-cleanup (daily, > 60 days)
-✓ Stale PRs auto-close (weekly, > 21 days)
+✓ Stale Draft issues auto-close (weekly, > 21 days)
 ✓ Credentials auto-rotate (daily)
 ✓ Nothing accumulates indefinitely
 ✓ Automatic resource lifecycle management
@@ -307,7 +307,7 @@ GOVERNANCE_FRAMEWORK_FINAL_DEPLOYMENT_HANDOFF.md (15 KB)
 ### Week 1
 ✅ Stale branches auto-deleted  
 ✅ Credentials auto-rotated  
-✅ Stale PRs auto-closed  
+✅ Stale Draft issues auto-closed  
 ✅ Release automation triggers  
 ✅ Team training completes  
 

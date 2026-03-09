@@ -78,7 +78,7 @@ Dependabot is configured in `.github/dependabot.yml` with:
 - **minimatch** (3 alerts) — Transitive dependency
 - **glob** (1 alert) — Transitive dependency
 
-**Remediation PRs in Progress:**
+**Remediation Draft issues in Progress:**
 - PR #1270 — Docker base: python 3.11 → 3.14-alpine
 - PR #1179 — npm: esbuild 0.21.5 → 0.27.3
 - PR #443 — Action: actions/checkout 4 → 6
@@ -94,7 +94,7 @@ Dependabot is configured in `.github/dependabot.yml` with:
 # View Dependabot alerts
 gh issue list --repo kushin77/self-hosted-runner --label security --state open
 
-# Check active Dependabot PRs
+# Check active Dependabot Draft issues
 gh pr list --author dependabot[bot] --state open --repo kushin77/self-hosted-runner
 
 # Run local security audit (if available)

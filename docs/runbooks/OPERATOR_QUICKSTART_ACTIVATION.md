@@ -143,7 +143,7 @@ Expected: All succeed with no failures
 - Provision initial credentials once (#1346, #1404, #1384, #1420)
 - Monitor daily P5 runs (5 min/day)
 - Handle exceptional failures (escalate to team)
-- Update infrastructure through Git PRs only
+- Update infrastructure through Git Draft issues only
 
 ---
 
@@ -285,7 +285,7 @@ Expected: All succeed with no failures
 **Daily Thereafter** ⏳
 - [ ] Monitor P5 runs (5 min)
 - [ ] Check for drift/failures
-- [ ] Manage infrastructure through Git PRs
+- [ ] Manage infrastructure through Git Draft issues
 
 ---
 

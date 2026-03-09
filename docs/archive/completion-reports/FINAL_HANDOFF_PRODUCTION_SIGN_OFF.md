@@ -86,14 +86,14 @@ Security automation for the self-hosted-runner repository has been **fully deplo
 - ✅ Alert tracking (automated)
 
 ### **In Progress (Automated)**
-- ⏳ 3 Dependabot PRs under CI (auto-merge on green)
+- ⏳ 3 Dependabot Draft issues under CI (auto-merge on green)
   - PR #1270: Docker python bump
   - PR #1179: npm esbuild bump
   - PR #443: actions/checkout bump
 
 ### **Monitoring** (For On-Call Engineers)
 ```bash
-# Monitor automation PRs
+# Monitor automation Draft issues
 gh pr list --author dependabot[bot] --state open
 
 # View security audits
@@ -117,13 +117,13 @@ grep -r "source .github/scripts/resilience.sh" .github/workflows | wc -l
 - [x] All assets archived in Git history
 
 ### **Ongoing Tasks (Fully Automated)**
-- ⏳ Monitor Dependabot PRs (Issue #1280)
+- ⏳ Monitor Dependabot Draft issues (Issue #1280)
 - ⏳ CI validation runs continuously
 - ⏳ Auto-merge on green if enabled
 - ⏳ Post-merge security audit scheduled
 
 ### **Manual Review Points** (Optional, Not Required)
-- Review Dependabot PRs before merge (optional)
+- Review Dependabot Draft issues before merge (optional)
 - Validate post-merge audit results (recommended)
 - Schedule monthly alert review (best practice)
 
@@ -139,7 +139,7 @@ grep -r "source .github/scripts/resilience.sh" .github/workflows | wc -l
 ✅ Ephemeral architecture guarantees have been validated  
 ✅ All Dependabot alerts (23 total) have been triaged and categorized  
 ✅ High/critical alerts (14) have been assigned tracking issues  
-✅ Remediation PRs (3) have been identified and are under CI validation  
+✅ Remediation Draft issues (3) have been identified and are under CI validation  
 ✅ Security audit pipeline is operational and continuously scanning  
 ✅ Comprehensive documentation has been created and committed  
 ✅ All GitHub issues have been created and appropriately labeled  
@@ -200,7 +200,7 @@ grep -r "source .github/scripts/resilience.sh" .github/workflows | wc -l
 
 **Alert Management:**
 - High/Critical: Tracked as issues (see #1254 closure comments)
-- Dependabot PRs: Monitor issue #1280 for status
+- Dependabot Draft issues: Monitor issue #1280 for status
 - Low/Medium: Scheduled for next sprint review
 
 **Monitoring Commands:**

@@ -14,7 +14,7 @@ The repository is now operating with **fully hands-off, immutable, idempotent, e
 
 ## ✅ What's Deployed
 
-### Merged Automation PRs
+### Merged Automation Draft issues
 1. **#982** — CI retry helper for transient failure resilience
 2. **#983** — Workflow retry (ci-images, terraform-apply)
 3. **#992** — Concurrency control & admin issue auto-close
@@ -88,7 +88,7 @@ Runner Self-Heal (last 3 runs):
 
 **Issue #1000:** Deployment handoff summary (open in GitHub)
 
-**Recent PRs:** #982, #983, #992, #994, #999 (all merged)
+**Recent Draft issues:** #982, #983, #992, #994, #999 (all merged)
 
 ---
 

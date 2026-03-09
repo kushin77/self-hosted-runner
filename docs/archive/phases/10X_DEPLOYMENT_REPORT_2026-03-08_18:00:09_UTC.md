@@ -9,7 +9,7 @@
 ### P0: Foundation ✅
 
 **Status:** Complete  
-**PRs:** #1761 (Docs), #1760 (Quality), #1759 (DX)  
+**Draft issues:** #1761 (Docs), #1760 (Quality), #1759 (DX)  
 **Deliverables:**
 - Documentation hub with organized structure
 - Unified code quality gates (ShellCheck, yamllint, actionlint, EditorConfig)
@@ -19,7 +19,7 @@
 ### P1: Consolidation 🚀
 
 **Status:** Foundation Complete (PR #1775)  
-**PRs:** #1775 (Workflow Foundation)  
+**Draft issues:** #1775 (Workflow Foundation)  
 **Deliverables:**
 - 5 reusable workflow templates (terraform, secret-rotation, docker, security)
 - Metadata system with YAML schema
@@ -59,7 +59,7 @@
 - **Vault:** Secret management, AppRole rotation
 - **GSM:** Google Secret Manager for GCP deployments
 - **KMS:** AWS Key Management Service for encryption
-- **GitHub:** Issues, PRs, Actions for CI/CD
+- **GitHub:** Issues, Draft issues, Actions for CI/CD
 
 ## Deployment Checklist
 
@@ -72,7 +72,7 @@
 
 ## Next Steps
 
-1. Review & merge P0 PRs (#1761, #1760, #1759)
+1. Review & merge P0 Draft issues (#1761, #1760, #1759)
 2. Review & merge P1 PR (#1775)
 3. Start P1 Phase 2: Metadata adoption
 4. Execute P1 Phase 3: Workflow consolidation

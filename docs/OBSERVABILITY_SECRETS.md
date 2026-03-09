@@ -6,7 +6,7 @@ This document explains where to add repository secrets required for real end-to-
 - `SLACK_WEBHOOK_URL` — Slack incoming webhook URL (https://hooks.slack.com/services/...).
 - `PAGERDUTY_SERVICE_KEY` — PagerDuty integration/service key.
 
-Add these as **Repository** secrets in: Settings → Secrets and variables → Actions. Do NOT paste secrets into issues or PRs.
+Add these as **Repository** secrets in: Settings → Secrets and variables → Actions. Do NOT paste secrets into issues or Draft issues.
 
 ## How to run the E2E workflow (manual)
 1. Confirm secrets have been added to this repo (see above).

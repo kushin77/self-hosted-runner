@@ -133,7 +133,7 @@ Manual dispatch → On-demand validation trigger
 ## Critical Decisions & Rationale
 
 ### Why PR Event Gating?
-- Terraform operations (plan/apply) should not mutate state on PRs
+- Terraform operations (plan/apply) should not mutate state on Draft issues
 - PR validation should be fast for developer feedback
 - Full validation occurs only on merge to main or scheduled runs
 - **Result**: Safe, non-destructive PR validation
@@ -204,7 +204,7 @@ gh run download <RUN_ID> -D ./logs/
 
 ### Check Status
 ```bash
-gh pr checks  # For pending PRs, or
+gh pr checks  # For pending Draft issues, or
 gh run view <RUN_ID>  # For specific runs
 ```
 

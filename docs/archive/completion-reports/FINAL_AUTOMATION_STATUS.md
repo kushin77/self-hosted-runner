@@ -9,7 +9,7 @@
 - ✅ **Synthetic Slack Test Workflow:** `synthetic-slack-test.yml` created (PR #1193, ready to merge)
 - ✅ **Issue Management:** Auto-comment/close logic on Issue #480; ops tracking on Issue #1136 (#1192)
 - ✅ **Documentation:** Immutable/Ephemeral/Idempotent/Hands-Off architecture documented
-- ✅ **Audit Trail:** All changes versioned in Git (PRs, commits, issue comments)
+- ✅ **Audit Trail:** All changes versioned in Git (Draft issues, commits, issue comments)
 
 ---
 
@@ -64,7 +64,7 @@ Or manually:
 
 ## 🛡️ SECURITY POSTURE
 
-✅ **Immutable:** All automation in Git with branch protection, audit trail via PRs/commits
+✅ **Immutable:** All automation in Git with branch protection, audit trail via Draft issues/commits
 ✅ **Ephemeral:** Secrets injected at runtime; SSH key written to runner, deleted after job
 ✅ **Idempotent:** Ansible converge with `--check` first; config generation pure functions
 ✅ **Hands-Off:** Workflows auto-trigger on schedules + workflow_run events; only ops SSH install manual

@@ -72,7 +72,7 @@ Phase 2 (Vault Integration & Automation) has been successfully implemented, test
 - **Issue #472** (Stage 2 blocker) — ✅ CLOSED with full solution
   - Status: Vault AppRole created, credentials persisted, Stage 2 deployment successful.
 
-### Opened PRs (Ready for Review)
+### Opened Draft issues (Ready for Review)
 - **PR #491** — docs(p2): add Phase 2 deployment validation checklist and final report
 - **PR #492** — test(ci): smoke-test improvements and p2-vault CI workflow
 - **PR #493** — feat(pmo): add orchestrator, health check and immutable Vault image
@@ -85,7 +85,7 @@ Phase 2 (Vault Integration & Automation) has been successfully implemented, test
 
 ## Handoff Checklist for Operations
 
-- [ ] Review and merge PRs #491, #492, #493 in order (docs → tests → automation).
+- [ ] Review and merge Draft issues #491, #492, #493 in order (docs → tests → automation).
 - [ ] Verify CI workflows run successfully after merge.
 - [ ] Run `scripts/automation/pmo/deploy-all-stages.sh all` on production to validate fresh deployment.
 - [ ] Verify `artifacts/vault/` credentials are accessible and secure (600 perms).
@@ -140,10 +140,10 @@ Draft PR #490 is ready for review and expansion.
 
 **Phase 2 Status:** ✅ **COMPLETE**
 
-All tasks completed, tested, and ready for production deployment. PRs are ready for review and merge. Phase 3 scaffold is prepared for immediate activation.
+All tasks completed, tested, and ready for production deployment. Draft issues are ready for review and merge. Phase 3 scaffold is prepared for immediate activation.
 
 **Next Steps:**
-1. Review PRs #491–493 and merge (docs → tests → automation order recommended).
+1. Review Draft issues #491–493 and merge (docs → tests → automation order recommended).
 2. Run final smoke tests in CI to confirm post-merge readiness.
 3. Activate Phase 3 planning and begin runner scaling implementation.
 

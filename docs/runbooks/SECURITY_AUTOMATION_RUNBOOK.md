@@ -32,7 +32,7 @@ Polling Service (every 30 min)
 Auto-Remediation Workflow
     ├─ Parse findings (gitleaks/trivy)
     ├─ Run npm audit fix
-    ├─ Create remediation PRs (auto-merge enabled)
+    ├─ Create remediation Draft issues (auto-merge enabled)
     └─ Auto-close parent issue on merge
     ↓
 Issue Tracking & Closure (hourly)
@@ -73,19 +73,19 @@ Issue Tracking & Closure (hourly)
   - Download latest audit artifacts (trivy/gitleaks reports)
   - Parse findings (High/Critical vulnerabilities)
   - Run `npm audit fix` for fixable npm packages
-  - Create remediation PRs for each module with changes
-  - Label PRs: `security,remediation-auto`
-  - Enable auto-merge (squash) on PRs
+  - Create remediation Draft issues for each module with changes
+  - Label Draft issues: `security,remediation-auto`
+  - Enable auto-merge (squash) on Draft issues
   - Post status comment to parent issue
-- **Output**: Creates PRs or opens manual remediation issues
+- **Output**: Creates Draft issues or opens manual remediation issues
 - **Auto-Merge**: Enabled; merges when all CI checks pass
 
 ### 4. Security Tracker Workflow (`.github/workflows/security-tracker.yml`)
 - **Trigger**: Hourly schedule or on PR events
 - **Tasks**:
-  - Monitor remediation PRs
+  - Monitor remediation Draft issues
   - Track PR → merge → close parent issue flow
-  - Auto-close security issues when all related PRs merged
+  - Auto-close security issues when all related Draft issues merged
   - Update issue with remediation PR links
 - **Result**: Full closure of security issues once remediation complete
 
@@ -117,17 +117,17 @@ Issue Tracking & Closure (hourly)
   └─> Downloads trivy-report.json artifact
   └─> Parses vulnerabilities
   └─> Runs npm audit fix (if npm packages affected)
-  └─> Creates remediation PRs for each module with changes
-  └─> Enables auto-merge on PRs
+  └─> Creates remediation Draft issues for each module with changes
+  └─> Enables auto-merge on Draft issues
   └─> Posts status to parent issue
 ```
 
 ### Hour 2-24: CI + Merge + Closure
 ```
-03:30-04:30 UTC: GitHub CI checks run on remediation PRs
+03:30-04:30 UTC: GitHub CI checks run on remediation Draft issues
   └─> Once all checks pass, auto-merge enabled
-  └─> PRs land on main
-  └─> security-tracker.yml detects merged PRs
+  └─> Draft issues land on main
+  └─> security-tracker.yml detects merged Draft issues
   └─> Auto-closes parent issue
   └─> Issue marked as resolved
 ```
@@ -184,7 +184,7 @@ See [SECRETS.md](../SECRETS.md) for step-by-step instructions or issue #969.
 - **#1184**: Aggregated automation status + blocker tracking
 - **#1186**: Synthetic test issues for immediate remediation validation
 - **security-polling-summary**: Automated hourly polling status
-- **security,remediation-auto**: Active remediation PRs (auto-labeled)
+- **security,remediation-auto**: Active remediation Draft issues (auto-labeled)
 
 ### How to Check Status
 ```bash
@@ -194,7 +194,7 @@ gh issue list --repo kushin77/self-hosted-runner --label security --state open
 # View latest audit artifacts
 gh run list --repo kushin77/self-hosted-runner --workflow security-audit.yml --limit 1
 
-# List active remediation PRs
+# List active remediation Draft issues
 gh pr list --repo kushin77/self-hosted-runner --label remediation-auto --state open
 
 # Check polling workflow status
@@ -205,7 +205,7 @@ gh run list --repo kushin77/self-hosted-runner --workflow security-audit-polling
 
 ## Troubleshooting
 
-### Problem: No Remediation PRs Created After Audit
+### Problem: No Remediation Draft issues Created After Audit
 **Diagnosis**:
 1. Check if audit artifacts were uploaded:
    ```bash
@@ -260,14 +260,14 @@ gh issue list --repo kushin77/self-hosted-runner \
 ## Integration Points
 
 ### CI/CD Pipeline
-- Remediation PRs trigger full CI suite (tests, lints, builds)
+- Remediation Draft issues trigger full CI suite (tests, lints, builds)
 - Auto-merge only enabled if all checks pass
 - Maintains code quality standards
 
 ### Issue Tracking System
 - Parent security issues created by audit workflow
-- Remediation PRs linked to parent issue via comments
-- Auto-closure when all PRs merged
+- Remediation Draft issues linked to parent issue via comments
+- Auto-closure when all Draft issues merged
 
 ### GitHub Actions Artifacts
 - Uploaded by: `security-audit.yml`

@@ -33,7 +33,7 @@ Summary
 
 Safety & approvals
 ------------------
-- This is a destructive operation (rewrites history). Do NOT run without coordination: close active PRs, notify integrators, and plan a force-push window.
+- This is a destructive operation (rewrites history). Do NOT run without coordination: close active Draft issues, notify integrators, and plan a force-push window.
 - The script is provided for maintainers to review. Once approved, run from a maintenance branch/host with a fresh clone and follow the checklist below.
 
 Checklist (operator)

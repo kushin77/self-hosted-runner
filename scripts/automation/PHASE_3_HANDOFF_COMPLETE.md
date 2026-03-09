@@ -52,7 +52,7 @@ Fully automated, immutable, sovereign, ephemeral, and idempotent CI/CD orchestra
 
 ## Completed during Phase 3
 
-### Infrastructure Changes (4 PRs Merged)
+### Infrastructure Changes (4 Draft issues Merged)
 ```
 PR #862: ci(e2e): add runner-discovery + hosted-fallback
 PR #866: Make MinIO credentials explicit in reusable Terraform plan callable
@@ -154,7 +154,7 @@ PR #872: chore(automation): auto-trigger legacy cleanup on 'key-installed' issue
 
 ## Success Criteria Checklist
 
-✅ All target PRs merged to main
+✅ All target Draft issues merged to main
 ✅ All infrastructure code deployed
 ✅ Legacy cleanup workflow completed successfully
 ✅ All tracking issues updated/closed appropriately

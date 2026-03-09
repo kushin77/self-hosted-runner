@@ -73,7 +73,7 @@ make help          # View all commands
 | Package | Count | Status |
 |---------|-------|--------|
 | tar | 5 | Transitive, monitoring |
-| node-forge | 4 | Remediation PRs in progress |
+| node-forge | 4 | Remediation Draft issues in progress |
 | minimatch | 3 | Transitive, monitoring |
 | glob | 1 | Monitoring |
 | semver | 1 | Monitoring |
@@ -221,7 +221,7 @@ docker build --dry-run .   # Shows what will be included
 1. **Review & Merge** these Docker improvements
 2. **Test** in development environment with `make docker-build && make docker-run`
 3. **Update CI/CD** to use `.dockerignore` benefits (faster builds)
-4. **Monitor** Dependabot PRs for security fixes
+4. **Monitor** Dependabot Draft issues for security fixes
 5. **Consider** adding Trivy scanning to CI/CD pipeline
 6. **Document** any additional Docker-specific workflows
 

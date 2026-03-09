@@ -235,7 +235,7 @@ gh secret list --repo kushin77/self-hosted-runner
 1. ✅ Verify infrastructure created in GCP
 2. ✅ Test OIDC token with GCP resources
 3. ✅ Close issue #1813 (unblock tracking)
-4. ✅ Merge PRs #1802, #1807
+4. ✅ Merge Draft issues #1802, #1807
 5. ✅ Update master status (Phase 3 complete)
 6. ✅ Start Phase 4 (if applicable)
 

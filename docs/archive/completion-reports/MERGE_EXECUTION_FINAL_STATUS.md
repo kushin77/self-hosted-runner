@@ -23,7 +23,7 @@ User approval granted: "all the above is approved - proceed now no waiting"
    - Fully hands-off automation
 
 2. **Idempotency Framework**
-   - Merge de-duplication (already-merged PRs skipped)
+   - Merge de-duplication (already-merged Draft issues skipped)
    - Safe re-execution (unlimited retries)
    - Resumable from failure point
    - Status stored in GitHub issues
@@ -56,7 +56,7 @@ User approval granted: "all the above is approved - proceed now no waiting"
 
 ### 📊 PHASE 1: CRITICAL SECURITY FIXES
 
-**Target PRs** (4 total):
+**Target Draft issues** (4 total):
 - PR #1724 - fix/trivy-remediation-dockerfile-update ← CVE remediation (HIGH priority)
 - PR #1727 - fix/envoy-manifest-patches ← Stability fixes
 - PR #1728 - fix/pipeline-repair-tar-override ← Tar CVE fix
@@ -96,7 +96,7 @@ Audit Logging
 
 **Merge De-Duplication**:
 - Each merge checks: `gh pr view $PR --json state | grep MERGED`
-- Already-merged PRs automatically skipped
+- Already-merged Draft issues automatically skipped
 - Can re-run workflow unlimited times
 - Resumption from failure point automatic
 
@@ -187,7 +187,7 @@ All Credentials Discarded (automatic)
   - PR #1728 (Tar override): merge queued
   - PR #1729 (OTEL bump): merge queued
 - ⏳ 19:00 UTC - Monitoring CI/CD checks
-- ⏳ 19:05 UTC - Expected: All 4 PRs merged (with artifact cleanup)
+- ⏳ 19:05 UTC - Expected: All 4 Draft issues merged (with artifact cleanup)
 
 ### Phase 2 (Pending Phase 1 Success)
 - ⏳ 19:10 UTC - Phase 2 initiation
@@ -257,7 +257,7 @@ All Credentials Discarded (automatic)
 - [ ] GitHub issue #1805 updated with results
 
 ### Phase 2 (Phase 3 Vault & P0-P3 Features)
-- [ ] 6 feature PRs merged
+- [ ] 6 feature Draft issues merged
 - [ ] P0-P3 automation framework operational
 - [ ] No blocking conflicts
 
@@ -271,7 +271,7 @@ All Credentials Discarded (automatic)
 - [ ] Zero manual merge conflicts
 - [ ] Full audit trail in GitHub + Cloud Logging
 - [ ] Issue #1805 closed with completion summary
-- [ ] All PRs passing CI/CD
+- [ ] All Draft issues passing CI/CD
 - [ ] System ready for production deployment
 
 ---
@@ -285,7 +285,7 @@ All Credentials Discarded (automatic)
 # Check status
 gh issue view 1805 --comments
 
-# Re-run Phase 1 (safe - already-merged PRs skipped)
+# Re-run Phase 1 (safe - already-merged Draft issues skipped)
 gh workflow run auto-merge-orchestration.yml -f phase=1
 ```
 
@@ -297,7 +297,7 @@ gh workflow run auto-merge-orchestration.yml -f phase=1
 
 **If Need to Rollback**:
 1. Identify merge commit SHA
-2. Create standard revert PR: `git revert <sha>`
+2. Create standard revert Draft Issue: `git revert <sha>`
 3. All history preserved
 4. Zero data loss
 
@@ -311,7 +311,7 @@ gh workflow run auto-merge-orchestration.yml -f phase=1
   - Action: Will be closed at end of Phase 5
   - Content: Real-time operation log
 
-### GitHub PRs Created
+### GitHub Draft issues Created
 - ✅ PR (feat/merge-orchestration-automation): Workflow file
   - Status: PENDING
   - Action: Can merge after Phase 1 success (or anytime, workflow override possible)

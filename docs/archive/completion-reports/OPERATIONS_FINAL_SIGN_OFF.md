@@ -14,7 +14,7 @@
 | **Ephemeral** | No persistent state | ✅ Complete | Stateless, noop-safe design |
 | **Dependabot Triage** | Identify all alerts | ✅ Complete | 23 alerts categorized |
 | **Security Intelligence** | Track high/critical | ✅ Complete | 14 tracking issues created |
-| **Remediation** | Identify PRs | ✅ Complete | 3 PRs found, under review |
+| **Remediation** | Identify Draft issues | ✅ Complete | 3 Draft issues found, under review |
 | **Operational Handoff** | Complete documentation | ✅ Complete | Playbook, reports, changelog updated |
 | **Zero Manual Overhead** | Fully automated | ✅ Complete | No human intervention required |
 
@@ -69,7 +69,7 @@ git log --oneline | head -10 | grep -i "resilience\|security\|automation"
 
 **Monitor Automation:**
 ```bash
-# View open Dependabot PRs
+# View open Dependabot Draft issues
 gh pr list --author dependabot[bot] --state open --repo kushin77/self-hosted-runner
 
 # Check security audit runs
@@ -93,12 +93,12 @@ gh issue list --repo kushin77/self-hosted-runner --label security --state open
 
 **Alert Management:**
 - High/critical: Tracked as issues (see issue #1254 history)
-- Dependabot PRs: Monitor CI, merge when green (issue #1280)
+- Dependabot Draft issues: Monitor CI, merge when green (issue #1280)
 - Low/medium: Scheduled for next sprint review
 
 **Routine Checks:**
 ```bash
-# Daily: Monitor Dependabot PRs
+# Daily: Monitor Dependabot Draft issues
 gh pr list --author dependabot[bot] --state open
 
 # Weekly: Review security audit results
@@ -114,7 +114,7 @@ gh api repos/kushin77/self-hosted-runner/dependabot/alerts
 
 | Action | Status | Owner | Timeline |
 |--------|--------|-------|----------|
-| Monitor Dependabot PRs | ⏳ Active | GitHub Dependabot | Ongoing |
+| Monitor Dependabot Draft issues | ⏳ Active | GitHub Dependabot | Ongoing |
 | CI Validation | ⏳ Running | GitHub Actions | Real-time |
 | Auto-Merge on Green | ⏳ Enabled | GitHub Dependabot | On CI pass |
 | Post-Merge Audit | ⏳ Scheduled | security-audit.yml | Post-merge |
@@ -152,7 +152,7 @@ Repeated execution is harmless:
 Zero manual intervention required:
 - Resilience loader handles setup
 - Security audit runs automatically
-- Dependabot creates and manages PRs
+- Dependabot creates and manages Draft issues
 - No human gate required for automation
 
 ---

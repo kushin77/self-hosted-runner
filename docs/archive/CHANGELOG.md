@@ -8,7 +8,7 @@ All notable changes to this repository will be documented in this file.
 ### 2026-03-07 — Resilience loader rollout
 - Applied idempotent resilience loader to all GitHub Actions workflows (111/111). Loader: `source .github/scripts/resilience.sh || true`.
 - Ensures retry/backoff, idempotence, and noop-safety across CI/CD workflows.
-- PRs: #1246 and subsequent direct commits; final wrapper and wrapper fixes applied to `main`.
+- Draft issues: #1246 and subsequent direct commits; final wrapper and wrapper fixes applied to `main`.
 - Automation: background watcher and post-merge verification ran; rollout archived at `/tmp/rollout-archive.tgz`.
 
 

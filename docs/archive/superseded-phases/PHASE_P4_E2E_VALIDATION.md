@@ -70,7 +70,7 @@ kubectl get pods -n runners --watch
 
 8) GitOps policy validation
 
-- On PRs that update `deploy/policies/**`, the workflow `validate-policies-and-keda.yml` will run client-side validation.
+- On Draft issues that update `deploy/policies/**`, the workflow `validate-policies-and-keda.yml` will run client-side validation.
 - After `STAGING_KUBECONFIG` is provided, run the `keda-smoke-test` workflow to perform server-side dry-run and optionally apply with approval.
 
 Rollback and Cleanup

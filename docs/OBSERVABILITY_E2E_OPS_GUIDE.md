@@ -21,7 +21,7 @@ Once added, the observability E2E workflow is ready to validate end-to-end notif
 ### Security Requirements
 
 - 🔒 **Never store secrets in Git** — Use GitHub's encrypted secret management
-- 🔒 **Do not paste secrets in PRs/issues** — Secrets are sensitive
+- 🔒 **Do not paste secrets in Draft issues/issues** — Secrets are sensitive
 - 🔒 **Use organization-level secrets if available** — Scoped to this repository only
 - 🔒 **Rotate periodically** — Recommend quarterly rotation
 

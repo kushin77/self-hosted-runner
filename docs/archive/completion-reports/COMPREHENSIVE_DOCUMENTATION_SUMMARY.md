@@ -400,7 +400,7 @@ All documents meet these requirements:
 - Check the relevant document's FAQ section (if present)
 - Ask team lead for clarification
 - File an issue for improvement suggestions
-- Contribute improvements via pull request
+- Contribute improvements via Draft issue
 
 **For urgent clarifications during shift:**
 - Call on-duty incident commander

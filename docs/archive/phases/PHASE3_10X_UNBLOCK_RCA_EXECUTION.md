@@ -302,7 +302,7 @@ gh workflow run provision_phase3.yml --ref main
      --body "✅ Phase 3 completed. Infrastructure live."
    ```
 
-5. **Merge Pending PRs** - #1802, #1807
+5. **Merge Pending Draft issues** - #1802, #1807
    ```bash
    gh pr merge 1802 --squash
    gh pr merge 1807 --squash

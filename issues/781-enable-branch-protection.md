@@ -21,7 +21,7 @@ Please enable branch protection on `main` with the following required status che
 - `E2E validate` or `self-hosted-e2e` checks
 
 Additional protections recommended:
-- Require pull request reviews before merge (1-2 reviewers)
+- Require Draft issue reviews before merge (1-2 reviewers)
 - Require signed commits
 - Restrict who can push to `main` (administrators or release-bot)
 
