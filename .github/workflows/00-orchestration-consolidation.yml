@@ -79,23 +79,23 @@ jobs:
           # Generate unique execution ID
           EXECUTION_ID="exec-$(date +%s)-${{ github.run_id }}-${{ github.run_attempt }}"
           LOCK_ID="lock-${EXECUTION_ID}"
-          
+
           echo "execution_id=${EXECUTION_ID}" >> $GITHUB_OUTPUT
           echo "lock_id=${LOCK_ID}" >> $GITHUB_OUTPUT
-          
+
           # Check for active locks (distributed mutex via git)
           ACTIVE_LOCKS=$(find . -name ".workflow-lock-*" -type f -mmin -30 2>/dev/null)
-          
+
           if [ -n "$ACTIVE_LOCKS" ]; then
             echo "⚠️  Active workflow lock found. Checking age..."
             LOCK_AGE=$(find . -name ".workflow-lock-*" -type f -printf '%T@' | sort -r | head -1)
-            
+
             # If lock older than 30 minutes, consider it stale
             if [ -n "$LOCK_AGE" ]; then
               CURRENT_TIME=$(date +%s)
               LOCK_TIME=$(echo "$LOCK_AGE" | cut -d. -f1)
               LOCK_AGE_MIN=$(( (CURRENT_TIME - LOCK_TIME) / 60 ))
-              
+
               if [ "$LOCK_AGE_MIN" -lt 30 ]; then
                 echo "❌ Active lock within 30 min window. Aborting to prevent conflicts."
                 echo "can_proceed=false" >> $GITHUB_OUTPUT
@@ -106,14 +106,14 @@ jobs:
               fi
             fi
           fi
-          
+
           # Create lock file (acts as semaphore)
           mkdir -p .workflow-locks
           touch ".workflow-locks/${LOCK_ID}"
-          
+
           echo "✅ Distributed lock acquired: $LOCK_ID"
           echo "can_proceed=true" >> $GITHUB_OUTPUT
-          
+
           # Generate immutable log key
           LOG_KEY="${{ github.repository }}/orchestration/${EXECUTION_ID}/execution-log.json"
           echo "log_key=${LOG_KEY}" >> $GITHUB_OUTPUT
@@ -133,7 +133,7 @@ jobs:
             "commit_sha": "${{ github.sha }}"
           }
           EOF
-          
+
           # TODO: Upload to immutable storage
           # For now, save as artifact
           mkdir -p orchestration-logs
@@ -162,18 +162,18 @@ jobs:
         id: discover
         run: |
           echo "📊 Discovering workflows..."
-          
+
           # Count workflows by category
           TERRAFORM_COUNT=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | xargs grep -l "terraform" 2>/dev/null | wc -l)
           DOCKER_COUNT=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | xargs grep -l "docker\|build" 2>/dev/null | wc -l)
           SECURITY_COUNT=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | xargs grep -l "security\|scan\|codeql" 2>/dev/null | wc -l)
           TOTAL_COUNT=$(find .github/workflows -name "*.yml" -o -name "*.yaml" | wc -l)
-          
+
           echo "terraform_count=${TERRAFORM_COUNT}" >> $GITHUB_OUTPUT
           echo "docker_count=${DOCKER_COUNT}" >> $GITHUB_OUTPUT
           echo "security_count=${SECURITY_COUNT}" >> $GITHUB_OUTPUT
           echo "total_count=${TOTAL_COUNT}" >> $GITHUB_OUTPUT
-          
+
           echo "✅ Discovery complete:"
           echo "   - Terraform: $TERRAFORM_COUNT workflows"
           echo "   - Docker: $DOCKER_COUNT workflows"
@@ -196,7 +196,7 @@ jobs:
         id: idempotency
         run: |
           echo "🔍 Checking idempotency guarantees..."
-          
+
           # Check for idempotency markers
           if [ -f .workflow-consolidation-complete ]; then
             echo "✅ Consolidation already complete. Skipping redundant steps."
@@ -205,7 +205,7 @@ jobs:
             echo "📌 First consolidation run. Proceeding with full cycle."
             echo "can_skip=false" >> $GITHUB_OUTPUT
           fi
-          
+
           # Verify no concurrent workflows
           CONCURRENCY=$(pgrep -f "workflow-consolidation" | wc -l)
           if [ "$CONCURRENCY" -gt 1 ]; then
@@ -216,7 +216,7 @@ jobs:
       - name: 'Validate: Reusable workflow syntax'
         run: |
           echo "✅ Validating reusable workflow YAML..."
-          
+
           for FILE in .github/workflows/*-reusable.yml; do
             if [ -f "$FILE" ]; then
               echo "  - $FILE"
@@ -245,12 +245,12 @@ jobs:
         run: |
           TOTAL=${{ needs.discover.outputs.total_workflows }}
           TARGET_COUNT=$((TOTAL / 40))  # 197 → ~5 reusable templates
-          
+
           echo "📋 Consolidation Plan:"
           echo "   - Current: $TOTAL individual workflows"
           echo "   - Target: $TARGET_COUNT reusable templates"
           echo "   - Reduction: ~95%"
-          
+
           echo "target_count=${TARGET_COUNT}" >> $GITHUB_OUTPUT
 
       - name: 'Approval: Manual gate (production safety)'
@@ -283,14 +283,14 @@ jobs:
       - name: 'Execute: Consolidation jobs'
         run: |
           echo "⚙️  Executing workflow consolidation..."
-          
+
           # Placeholder for actual consolidation logic
           # In production, this would:
           # 1. Migrate workflows to use reusable templates
           # 2. Update caller workflows to use new patterns
           # 3. Archive old workflows
           # 4. Validate no regressions
-          
+
           sleep 2
           echo "✅ Consolidation executed"
 
@@ -318,7 +318,7 @@ jobs:
         run: |
           # Remove lock file
           rm -f .workflow-locks/lock-*
-          
+
           echo "✅ Distributed lock released"
 
         - name: 'Record: Execution completion (immutable seal)'
@@ -331,7 +331,7 @@ jobs:
               "duration_seconds": ${{ job.duration || 0 }}
             }
             EOF
-            
+
             mkdir -p orchestration-logs
             cp /tmp/execution-complete.json orchestration-logs/
             echo "✅ Execution sealed"

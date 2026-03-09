@@ -109,11 +109,11 @@ jobs:
         run: |
           ACTOR="${{ github.actor }}"
           TEAM="${{ inputs.approval_team }}"
-          
+
           # Verify actor is in approval team via GitHub
           IS_MEMBER=$(gh api orgs/${{ github.repository_owner }}/teams/${TEAM}/memberships/${ACTOR} \
             --jq '.state' 2>/dev/null || echo "not_found")
-          
+
           if [ "$IS_MEMBER" = "active" ]; then
             echo "✅ Approval authority verified: $ACTOR in $TEAM"
             echo "approved=true" >> $GITHUB_OUTPUT
@@ -170,13 +170,13 @@ jobs:
             "plan_file": "${{ inputs.plan_file || 'auto-generated' }}"
           }
           EOF
-          
+
           # Log to immutable audit store
           if [ -n "$LOG_BUCKET" ]; then
             AUDIT_KEY="${{ github.repository }}/terraform-applies/${EXECUTION_ID}/intent-log.json"
             gsutil cp /tmp/intent.json "${LOG_BUCKET}/${AUDIT_KEY}"
           fi
-          
+
           echo "📝 Apply intent recorded"
 
       # ────────────────────────────────────────────────────────────────────────
@@ -201,7 +201,7 @@ jobs:
             --duration-seconds 1800 \
             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
             --output text)
-          
+
           read -r AWS_ACCESS_KEY AWS_SECRET_KEY AWS_SESSION_TOKEN <<< "$CREDS"
           echo "::add-mask::${AWS_ACCESS_KEY}"
           echo "::add-mask::${AWS_SECRET_KEY}"
@@ -217,7 +217,7 @@ jobs:
           # Workload Identity Federation
           IDENTITY_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.token')
-          
+
           gcloud auth login --cred-file=/dev/stdin <<< "$IDENTITY_TOKEN"
           gcloud config set project "${{ inputs.gcp_project_id }}"
           echo "✅ GCP ephemeral credentials acquired"
@@ -243,7 +243,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: |
           echo "🚀 Applying infrastructure changes..."
-          
+
           # Apply with explicit lock timeout
           terraform apply \
             -input=false \
@@ -251,10 +251,10 @@ jobs:
             -lock=true \
             -lock-timeout=20m \
             2>&1 | tee /tmp/apply.log
-          
+
           # Capture state version
           STATE_VERSION=$(terraform state pull | jq -r '.serial')
-          
+
           echo "state_version=${STATE_VERSION}" >> $GITHUB_OUTPUT
           echo "✅ Apply completed (state version: $STATE_VERSION)"
 
@@ -275,7 +275,7 @@ jobs:
             "duration_seconds": ${{ job.duration || 0 }}
           }
           EOF
-          
+
           if [ -n "$LOG_BUCKET" ]; then
             AUDIT_KEY="${{ github.repository }}/terraform-applies/${EXECUTION_ID}/results-log.json"
             gsutil cp /tmp/results.json "${LOG_BUCKET}/${AUDIT_KEY}"

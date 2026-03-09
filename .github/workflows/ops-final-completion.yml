@@ -42,22 +42,22 @@ jobs:
         run: |
           cat << 'EOF' > /tmp/final_completion_summary.md
           ## ✅ Final Ops Completion Check
-          
+
           **Timestamp:** $(date -Iseconds)
           **Status:** Automation executing
-          
+
           ### Automation Cycle
           - Phase 1 completion: Checking...
           - Phase 2 completion: Checking...
           - Phase 3 completion: Checking...
           - Production readiness: Verifying...
           - Issue closure: Ready to execute
-          
+
           **Next check:** In 10 minutes
-          
+
           All systems operational and monitoring continuously.
           EOF
-          
+
           # Optional: Post to main issue
           gh issue comment 1 --repo kushin77/self-hosted-runner \
             --body "$(cat /tmp/final_completion_summary.md)" 2>/dev/null || true

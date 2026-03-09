@@ -320,11 +320,11 @@ jobs:
 
         run: |
           chmod +x .github/scripts/revoke-exposed-keys.sh
-          
+
           if [ "$DRY_RUN" = "true" ]; then
             echo "[INFO] DRY-RUN MODE: No actual revocations will be executed"
           fi
-          
+
           .github/scripts/revoke-exposed-keys.sh
 
       - name: "Commit audit trail (immutable append-only)"
@@ -333,7 +333,7 @@ jobs:
         run: |
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          
+
           if [ -d ".key-rotation-audit" ] && [ -n "$(git status .key-rotation-audit --porcelain 2>/dev/null)" ]; then
             git add .key-rotation-audit/
             git commit -m "ci(security): immutable audit trail - key revocation run ${{ github.run_id }}" --allow-empty

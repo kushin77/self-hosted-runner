@@ -95,7 +95,7 @@ jobs:
           capacity             = 3
           admin_username       = "azurerunner"
           admin_ssh_public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQRhX0N0vR0kK..."
-          
+
           # Optional overrides for testing
           enable_autoscaling = true
           min_capacity       = 2
@@ -104,7 +104,7 @@ jobs:
           runner_labels      = ["azure", "test", "linux"]
           runner_group       = "test-azure"
           TFVARS_EOF
-          
+
           cat terraform.tfvars
           echo "::endgroup::"
 
@@ -114,13 +114,13 @@ jobs:
         run: |
           echo "::group::Terraform Plan"
           terraform init -backend=false
-          
+
           terraform plan \
             -out=tfplan \
             -lock=false \
             -no-color \
             2>&1 | tee /tmp/plan_output.txt
-          
+
           echo "::endgroup::"
 
       - name: Show Terraform Plan
@@ -135,10 +135,10 @@ jobs:
           echo "::group::Plan Analysis"
           echo "=== Resources to be created ==="
           grep -E '^\s+\+\s+resource' /tmp/plan_output.txt || echo "No resources to create"
-          
+
           echo -e "\n=== Resources to be destroyed ==="
           grep -E '^\s+-\s+resource' /tmp/plan_output.txt || echo "No resources to destroy"
-          
+
           echo -e "\n=== Resources to be modified ==="
           grep -E '^\s+~\s+resource' /tmp/plan_output.txt || echo "No resources to modify"
           echo "::endgroup::"
@@ -195,13 +195,13 @@ jobs:
       - name: Verify documentation files exist
         run: |
           echo "::group::Documentation Verification"
-          
+
           DOCS=(
             "terraform/modules/azure_scale_set/README.md"
             "docs/AZURE_SCALE_SET_CAPACITY_PLANNING.md"
             "docs/AZURE_RUNNER_MIGRATION.md"
           )
-          
+
           for doc in "${DOCS[@]}"; do
             if [ -f "$doc" ]; then
               echo "✓ $doc"
@@ -211,23 +211,23 @@ jobs:
               exit 1
             fi
           done
-          
+
           echo "::endgroup::"
 
       - name: Check documentation quality
         run: |
           echo "::group::Documentation Quality Checks"
-          
+
           # Check for common documentation requirements
           echo "Checking for table of contents..."
           grep -q "## Table of Contents" docs/AZURE_SCALE_SET_CAPACITY_PLANNING.md && echo "✓ TOC found" || echo "✗ TOC missing"
-          
+
           echo "Checking for examples..."
           grep -q "Example:" terraform/modules/azure_scale_set/README.md && echo "✓ Examples found" || echo "✗ Examples missing"
-          
+
           echo "Checking for troubleshooting section..."
           grep -q "## Troubleshooting" docs/AZURE_RUNNER_MIGRATION.md && echo "✓ Troubleshooting found" || echo "✗ Troubleshooting missing"
-          
+
           echo "::endgroup::"
 
   summary:
@@ -243,7 +243,7 @@ jobs:
           echo "✓ Terraform plan: ${{ needs.plan.result }}"
           echo "✓ Terraform lint: ${{ needs.lint.result }}"
           echo "✓ Documentation check: ${{ needs.docs.result }}"
-          
+
           if [ "${{ needs.validate.result }}" = "success" ] && \
              [ "${{ needs.plan.result }}" = "success" ] && \
              [ "${{ needs.lint.result }}" = "success" ] && \
