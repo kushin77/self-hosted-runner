@@ -286,6 +286,168 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_BUCKET_PREFIX]
+        id: cred_gcp_bucket_prefix
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_BUCKET_PREFIX
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_REGION]
+        id: cred_gcp_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SA_KEY]
+        id: cred_gcp_sa_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SA_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GOOGLE_APPLICATION_CREDENTIALS]
+        id: cred_google_application_credentials
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GOOGLE_APPLICATION_CREDENTIALS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_ENVIRONMENT]
+        id: cred_terraform_environment
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_ENVIRONMENT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_GITHUB_OWNER]
+        id: cred_terraform_github_owner
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_GITHUB_OWNER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_GITHUB_REPO]
+        id: cred_terraform_github_repo
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_GITHUB_REPO
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_PROJECT_NAME]
+        id: cred_terraform_project_name
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_PROJECT_NAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_BUCKET_PREFIX]
+        id: cred_gcp_bucket_prefix
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_BUCKET_PREFIX
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_REGION]
+        id: cred_gcp_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SA_KEY]
+        id: cred_gcp_sa_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SA_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GOOGLE_APPLICATION_CREDENTIALS]
+        id: cred_google_application_credentials
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GOOGLE_APPLICATION_CREDENTIALS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_ENVIRONMENT]
+        id: cred_terraform_environment
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_ENVIRONMENT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_GITHUB_OWNER]
+        id: cred_terraform_github_owner
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_GITHUB_OWNER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_GITHUB_REPO]
+        id: cred_terraform_github_repo
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_GITHUB_REPO
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [TERRAFORM_PROJECT_NAME]
+        id: cred_terraform_project_name
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: TERRAFORM_PROJECT_NAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+
 
         run: |
           set -euo pipefail
