@@ -1,3 +1,20 @@
+# Credential rotation
+
+This repository runs automated credential rotation and health checks for provider integrations (GSM, Vault, AWS KMS). Key points:
+
+- Rotation scripts: [scripts/rotation](scripts/rotation/) — 15-minute refresh, hourly health, daily rotation, weekly audit.
+- Onboarding & validation: See [docs/ADD_CREDENTIAL_PROVIDER.md](docs/ADD_CREDENTIAL_PROVIDER.md) and the manual workflow `Validate Credential Providers` in `.github/workflows/`.
+- Audit logs: Append-only logs live under `scripts/audit/` and are archived to `scripts/audit/archive/` with 365-day retention.
+- Safety: Scripts are designed to be idempotent, ephemeral (short TTL creds), and produce immutable audit records. Do not store secrets in logs.
+
+To run a quick static integration check locally:
+
+```bash
+bash scripts/rotation/run_integration_tests.sh
+```
+
+If you want me to run validations and add provider secrets, provide them securely or grant a secrets-admin token and I will add them and run the validation workflow.
+
 # self-hosted-runner
 
 Production-grade infrastructure and automation for self-hosted GitHub Actions runners, including provisioning, observability, security, and lifecycle tooling.
