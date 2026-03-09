@@ -103,8 +103,7 @@
           "scripts/smoke-test.sh"
         ],
         "secrets": [
-          "AWS_OIDC_ROLE_ARN",
-<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+          "AWS_OIDC_ROLE_ARN"
         ],
         "requires": [
           "terraform-apply.yml success",
@@ -235,7 +234,7 @@
       "version": "1"
     },
     {
-<REDACTED_SECRET_REMOVED_BY_AUTOMATION>
+      "name": "SECRET_REMOVED_BY_AUTOMATION",
       "storage": "GitHub",
       "scope": "GitHub Actions (default)",
       "description": "GitHub API token for repository access",
