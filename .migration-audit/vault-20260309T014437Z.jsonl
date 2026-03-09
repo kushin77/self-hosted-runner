@@ -1,0 +1,5 @@
+{"time":"2026-03-09T01:44:37Z","provider":"vault","name":"AWS_ACCESS_KEY_ID","mount":"secret","action":"write","status":"dry-run"}
+{"time":"2026-03-09T01:44:37Z","provider":"vault","name":"AWS_ROLE_TO_ASSUME","mount":"secret","action":"write","status":"dry-run"}
+{"time":"2026-03-09T01:44:37Z","provider":"vault","name":"AWS_SECRET_ACCESS_KEY","mount":"secret","action":"write","status":"dry-run"}
+{"time":"2026-03-09T01:44:37Z","provider":"vault","name":"COSIGN_KEY","mount":"secret","action":"write","status":"dry-run"}
+{"time":"2026-03-09T01:44:37Z","provider":"vault","name":"DEPLOY_SSH_KEY","mount":"secret","action":"write","status":"dry-run"}
