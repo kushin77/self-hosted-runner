@@ -120,6 +120,47 @@ jobs:
       - name: 'Auth: ECR via OIDC'
         id: ecr_auth
         if: contains(inputs.registries, 'ecr')
+      - name: Get Credential [COSIGN_KEY]
+        id: cred_cosign_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: COSIGN_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DOCKERHUB_TOKEN]
+        id: cred_dockerhub_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DOCKERHUB_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DOCKERHUB_USERNAME]
+        id: cred_dockerhub_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DOCKERHUB_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [HARBOR_TOKEN]
+        id: cred_harbor_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: HARBOR_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [HARBOR_USERNAME]
+        id: cred_harbor_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: HARBOR_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           # Get OIDC token
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
@@ -170,8 +211,8 @@ jobs:
         id: dockerhub_auth
         if: contains(inputs.registries, 'dockerhub') && secrets.DOCKERHUB_TOKEN != ''
         run: |
-          docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" \
-            -p "${{ secrets.DOCKERHUB_TOKEN }}"
+          docker login -u "${{ steps.cred_dockerhub_username.outputs.credential }}" \
+            -p "${{ steps.cred_dockerhub_token.outputs.credential }}"
           echo "dockerhub_registry=docker.io" >> $GITHUB_OUTPUT
           echo "✅ Docker Hub authenticated"
 
@@ -179,8 +220,8 @@ jobs:
         id: harbor_auth
         if: contains(inputs.registries, 'harbor') && secrets.HARBOR_TOKEN != ''
         run: |
-          docker login -u "${{ secrets.HARBOR_USERNAME }}" \
-            -p "${{ secrets.HARBOR_TOKEN }}" \
+          docker login -u "${{ steps.cred_harbor_username.outputs.credential }}" \
+            -p "${{ steps.cred_harbor_token.outputs.credential }}" \
             harbor.company.com
           echo "harbor_registry=harbor.company.com" >> $GITHUB_OUTPUT
           echo "✅ Harbor authenticated"
@@ -250,7 +291,7 @@ jobs:
       - name: 'Push: Docker Hub'
         if: contains(inputs.registries, 'dockerhub') && inputs.push == true
         run: |
-          DOCKERHUB_IMAGE="${{ steps.dockerhub_auth.outputs.dockerhub_registry }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          DOCKERHUB_IMAGE="${{ steps.dockerhub_auth.outputs.dockerhub_registry }}/${{ steps.cred_dockerhub_username.outputs.credential }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           docker tag "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" "${DOCKERHUB_IMAGE}"
           docker push "${DOCKERHUB_IMAGE}"
           echo "✅ Pushed to Docker Hub: ${DOCKERHUB_IMAGE}"
@@ -266,7 +307,7 @@ jobs:
       - name: 'Sign: Image with cosign'
         if: inputs.sign_image == true && inputs.push == true && secrets.COSIGN_KEY != ''
         env:
-          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
+          COSIGN_KEY: ${{ steps.cred_cosign_key.outputs.credential }}
         run: |
           for IMAGE in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${{ env.IMAGE_NAME }}"); do
             cosign sign --key env://COSIGN_KEY \
