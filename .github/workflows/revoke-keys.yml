@@ -42,8 +42,8 @@ jobs:
       - name: "Authenticate with GCP (if configured)"
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account.outputs.credential }}
           create_credentials_file: false
         if: inputs.revoke_gcp && secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != ''
 
@@ -54,7 +54,7 @@ jobs:
       - name: "Authenticate with AWS (if configured)"
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ steps.cred_aws_role_to_assume.outputs.credential }}
           aws-region: us-east-1
         if: inputs.revoke_aws && secrets.AWS_ROLE_TO_ASSUME != ''
 
@@ -62,12 +62,61 @@ jobs:
         shell: bash
         env:
           DRY_RUN: ${{ inputs.dry_run }}
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
           EXPOSED_GCP_SA_EMAIL: ${{ secrets.EXPOSED_GCP_SA_EMAIL || '' }}
           EXPOSED_AWS_KEY_IDS: ${{ secrets.EXPOSED_AWS_KEY_IDS || '' }}
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+          VAULT_TOKEN: ${{ steps.cred_vault_token.outputs.credential }}
           EXPOSED_VAULT_ROLE_IDS: ${{ secrets.EXPOSED_VAULT_ROLE_IDS || '' }}
+      - name: Get Credential [AWS_ROLE_TO_ASSUME]
+        id: cred_aws_role_to_assume
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_TO_ASSUME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT]
+        id: cred_gcp_service_account
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_TOKEN]
+        id: cred_vault_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           chmod +x .github/scripts/revoke-exposed-keys.sh
           
