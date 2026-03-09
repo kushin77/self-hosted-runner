@@ -312,6 +312,6 @@ See `.github/workflows/test-managed-auth.yml`
 
 ## References
 
-- [API Design](./MANAGED_AUTH_API_DESIGN.md)
+- [API Design](MANAGED_AUTH_API_DESIGN.md)
 - [OpenAPI Specification](./managed-auth-openapi.yaml)
 - [Deployment Guide](./MANAGED_AUTH_DEPLOYMENT.md)
