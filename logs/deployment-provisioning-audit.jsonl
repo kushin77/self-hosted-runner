@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-03-09T15:30:39Z",
+  "provider": "manual-local-key",
+  "branch": "main",
+  "target": "192.168.168.42",
+  "bundle_sha": "84fead08444545c4b8a2ce8bf064e193a12ca0b3",
+  "method": "ephemeral-ssh-key",
+  "immutable": true,
+  "audit_method": "jsonl-append"
+}
+{
+  "timestamp": "2026-03-09T15:35:08Z",
+  "provider": "manual-local-key",
+  "branch": "main",
+  "target": "192.168.168.42",
+  "bundle_sha": "c69fa997f9c4d355c63ddd7c5e83de16ff8b6888",
+  "method": "ephemeral-ssh-key",
+  "immutable": true,
+  "audit_method": "jsonl-append"
+}
