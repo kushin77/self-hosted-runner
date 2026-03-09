@@ -5,7 +5,7 @@ set -euo pipefail
 # Idempotent, requires operator host with network access to Prometheus/Grafana/worker nodes.
 # Credentials are retrieved from one of: GSM, Vault, or environment variables.
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 MON_DIR="$ROOT_DIR/monitoring"
 
 log() { echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $*"; }
