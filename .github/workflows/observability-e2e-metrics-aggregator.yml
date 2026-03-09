@@ -39,7 +39,7 @@ jobs:
           # Find all metrics files and aggregate
           METRICS_FOUND=0
           for metrics_file in $(find ./artifacts -name "metrics.json" 2>/dev/null); do
-            if [ -f "$metrics_file" ]; then
+            if [-f "$metrics_file"]; then
               METRICS_FOUND=$((METRICS_FOUND + 1))
               echo "Metrics from: $(basename $(dirname "$metrics_file"))"
               cat "$metrics_file" | jq '.' || cat "$metrics_file"
@@ -47,7 +47,7 @@ jobs:
             fi
           done
 
-          if [ $METRICS_FOUND -eq 0 ]; then
+          if [$METRICS_FOUND -eq 0]; then
             echo "ℹ No metrics JSON files found in artifacts"
           else
             echo "✓ Collected $METRICS_FOUND metrics file(s)"
@@ -71,7 +71,7 @@ jobs:
             find ./artifacts -type f -name "*.json" | wc -l | xargs echo "  JSON files found:"
             find ./artifacts -type f -name "*.log" | wc -l | xargs echo "  LOG files found:"
           } > "$SUMMARY_FILE"
-          [ -f "$SUMMARY_FILE" ] && cat "$SUMMARY_FILE" || true
+          [-f "$SUMMARY_FILE"] && cat "$SUMMARY_FILE" || true
 
       - name: Post metrics comment
         if: github.event.workflow_run.conclusion == 'success'

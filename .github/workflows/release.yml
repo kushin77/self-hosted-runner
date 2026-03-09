@@ -5,7 +5,7 @@ on:
     inputs:
       version:
         description: 'Version to release (e.g., v1.0.0)'
-        required: true
+        required: 'true'
 
 jobs:
   release:
@@ -28,7 +28,6 @@ jobs:
         cache-ttl: 600
         audit-log: true
 
-
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
@@ -36,7 +35,7 @@ jobs:
 
     - name: Validate version format
       run: |
-        if ! [[ "${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+        if ! [["${{ github.event.inputs.version }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$]]; then
           echo "Invalid version format. Use v1.0.0 or v1.0.0-rc1"
           exit 1
         fi

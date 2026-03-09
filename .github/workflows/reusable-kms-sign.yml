@@ -5,20 +5,20 @@ on:
     inputs:
       artifact_path:
         description: 'Path to artifact to sign/encrypt'
-        required: true
+        required: 'true'
         type: string
       kms_key_id:
         description: 'AWS KMS key ID or ARN'
-        required: true
+        required: 'true'
         type: string
       operation:
         description: 'Operation: sign (SLSA), encrypt, verify'
-        required: false
+        required: 'false'
         type: string
         default: 'sign'
       retention_days:
         description: 'Artifact retention (immutable after creation)'
-        required: false
+        required: 'false'
         type: number
         default: 365
     outputs:
@@ -78,7 +78,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
         run: |
           echo '{
             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
@@ -93,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ ! -f "${{ inputs.artifact_path }}" ]; then
+          if [! -f "${{ inputs.artifact_path }}"]; then
             echo "❌ Artifact not found: ${{ inputs.artifact_path }}"
             exit 1
           fi
@@ -116,23 +115,19 @@ jobs:
             "metadata": {
               "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             },
-            "subject": [
-              {
+            "subject": [{
                 "name": "${{ inputs.artifact_path }}",
                 "digest": {
                   "sha256": "${{ steps.hash.outputs.artifact_hash }}"
                 }
-              }
-            ],
+              }],
             "signature": {
               "keyid": "${{ inputs.kms_key_id }}",
               "sig": "PLACEHOLDER_WILL_BE_REPLACED_BY_KMS"
             },
-            "builders": [
-              {
+            "builders": [{
                 "id": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-              }
-            ],
+              }],
             "config": {
               "sourceURI": "git+https://github.com/${{ github.repository }}@${{ github.ref }}",
               "digest": {
@@ -248,7 +243,7 @@ jobs:
           ARTIFACT_FILE="${{ inputs.artifact_path }}"
           SIGNATURE_FILE="${ARTIFACT_FILE}.sig"
 
-          if [ ! -f "$SIGNATURE_FILE" ]; then
+          if [! -f "$SIGNATURE_FILE"]; then
             echo "❌ Signature file not found: $SIGNATURE_FILE"
             echo "verified=false" >> $GITHUB_OUTPUT
             exit 1
@@ -274,7 +269,7 @@ jobs:
 
           RESULT=$(cat /tmp/verify_result.txt)
 
-          if [ "$RESULT" = "True" ]; then
+          if ["$RESULT" = "True"]; then
             echo "✅ Signature verification PASSED"
             echo "verified=true" >> $GITHUB_OUTPUT
           else

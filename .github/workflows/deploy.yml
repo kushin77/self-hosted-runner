@@ -20,13 +20,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Get Credential [AWS_REGION]
-      id: cred_aws_region
-      uses: kushin77/get-ephemeral-credential@v1
-      with:
-        credential-name: AWS_REGION
-        retrieve-from: 'auto'
-        cache-ttl: 600
-        audit-log: true
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
 
       - name: Get Credential [GCP_PROJECT_ID]
         id: cred_gcp_project_id
@@ -55,19 +55,18 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.12'
-        cache: 'pip'
+      - name: Install dependencies
+        run: |
+          pip install requests  # For Vault HTTP client
 
-    - name: Install dependencies
-      run: |
-        pip install requests  # For Vault HTTP client
-
-    - name: Run self-healing orchestration
-      env:
+      - name: Run self-healing orchestration
+        env:
         VAULT_ADDR: ${{ secrets.VAULT_ADDR || 'http://localhost:8200' }}
         VAULT_TOKEN: ${{ steps.cred_vault_token.outputs.credential }}
         GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}

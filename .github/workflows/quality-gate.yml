@@ -111,7 +111,7 @@ jobs:
         run: |
           echo "Validating Terraform files..."
           for dir in terraform/modules/*/ terraform/environments/*/; do
-            if [ -f "$dir/main.tf" ]; then
+            if [-f "$dir/main.tf"]; then
               echo "Checking $(basename $dir)..."
               (cd "$dir" && terraform validate && terraform fmt -check=true || terraform fmt -write=true) || true
             fi
@@ -158,7 +158,7 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
-          if [ -f "${{ matrix.service-path }}/package.json" ]; then
+          if [-f "${{ matrix.service-path }}/package.json"]; then
             cd "${{ matrix.service-path }}"
             npm ci
           else
@@ -167,7 +167,7 @@ jobs:
 
       - name: 🎨 ESLint
         run: |
-          if [ -f "${{ matrix.service-path }}/.eslintrc.js" ] || [ -f "${{ matrix.service-path }}/.eslintrc.json" ]; then
+          if [-f "${{ matrix.service-path }}/.eslintrc.js"] || [-f "${{ matrix.service-path }}/.eslintrc.json"]; then
             cd "${{ matrix.service-path }}"
             npx eslint . --max-warnings=0 || true
           else
@@ -177,7 +177,7 @@ jobs:
 
       - name: 🔧 Prettier check
         run: |
-          if [ -f "${{ matrix.service-path }}/package.json" ]; then
+          if [-f "${{ matrix.service-path }}/package.json"]; then
             cd "${{ matrix.service-path }}"
             npx prettier --check . || true
           fi

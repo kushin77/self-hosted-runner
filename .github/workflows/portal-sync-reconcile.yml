@@ -44,7 +44,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
         run: python -m pip install --upgrade pip && pip install pyyaml requests
       - name: Generate metadata artifact
         run: python3 scripts/generate_function_metadata.py --output portal-artifact.json

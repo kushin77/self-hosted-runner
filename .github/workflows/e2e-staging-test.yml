@@ -34,7 +34,7 @@ jobs:
           echo "Attempting to fetch STAGING_KUBECONFIG via credential-manager.sh (ephemeral-first)"
           if bash scripts/cred-helpers/credential-manager.sh STAGING_KUBECONFIG auto 300 > /tmp/cred_out.txt 2>/tmp/cred_err.txt; then
             CREDS=$(sed -n 's/^credential=\(.*\)/\1/p' /tmp/cred_out.txt)
-            if [ -z "$CREDS" ]; then
+            if [-z "$CREDS"]; then
               echo "Empty credential returned" >&2
               exit 2
             fi

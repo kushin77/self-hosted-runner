@@ -12,7 +12,7 @@ on:
     inputs:
       backup_type:
         description: 'Backup type'
-        required: false
+        required: 'false'
         default: 'full'
         type: choice
         options:
@@ -34,7 +34,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS_JSON: ${{ secrets.GCP_SA_KEY || secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           set -euo pipefail
-          if [ -z "$GOOGLE_APPLICATION_CREDENTIALS_JSON" ]; then
+          if [-z "$GOOGLE_APPLICATION_CREDENTIALS_JSON"]; then
             echo "::warning::GCP credentials not available - skipping state backup"
             exit 0
           fi
@@ -65,7 +65,7 @@ jobs:
           BACKUP_NAME="terraform-phase2-state-$TIMESTAMP.tfstate"
           GCS_PATH="gs://$BACKUP_BUCKET/terraform-backups/$BACKUP_NAME"
 
-          if [ -d "terraform" ] && [ -f "terraform/.terraform" ]; then
+          if [-d "terraform"] && [-f "terraform/.terraform"]; then
             echo "::notice::Backing up Terraform state..."
 
             # Archive entire terraform directory
