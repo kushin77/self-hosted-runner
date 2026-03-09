@@ -1,4 +1,6 @@
 name: E2E — Envoy mTLS + Rotation (Kind)
+permissions:
+  id-token: write
 
 on:
   workflow_dispatch:

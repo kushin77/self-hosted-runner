@@ -1,4 +1,6 @@
 name: 🔍 Quality Gate - Code Standards Check
+permissions:
+  id-token: write
 
 on:
   push:

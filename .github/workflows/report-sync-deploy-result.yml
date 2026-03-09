@@ -6,6 +6,7 @@ on:
     types: [completed]
 
 permissions:
+  id-token: write
   issues: write
   actions: read
 

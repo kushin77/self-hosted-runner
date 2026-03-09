@@ -19,6 +19,7 @@ on:
         default: 'true'
 
 permissions:
+  id-token: write
   contents: read
   actions: write
   issues: write
