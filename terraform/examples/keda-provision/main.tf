@@ -20,7 +20,9 @@ provider "kubernetes" {
   config_path = pathexpand(var.kubeconfig_path)
 }
 
-provider "helm" {}
+provider "helm" {
+  kubeconfig = file(pathexpand(var.kubeconfig_path))
+}
 
 module "keda" {
   source    = "../../modules/keda"
