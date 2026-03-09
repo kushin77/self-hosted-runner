@@ -150,3 +150,30 @@
     "audit-trail"
   ]
 }
+{
+  "timestamp": "2026-03-09T22:47:17Z",
+  "event": "live_deploy_complete",
+  "target": "akushnir@192.168.168.42",
+  "backend": "ephemeral-ssh",
+  "status": "success",
+  "services": [
+    "prometheus",
+    "grafana",
+    "node-exporter",
+    "vault-agent"
+  ],
+  "endpoints": [
+    "http://192.168.168.42:9090",
+    "http://192.168.168.42:3000"
+  ],
+  "alerts": [
+    "NodeDown",
+    "DeploymentFailureRate",
+    "FilebeatDown",
+    "VaultSealed"
+  ],
+  "dashboards": [
+    "deployment-metrics",
+    "infrastructure-health"
+  ]
+}
