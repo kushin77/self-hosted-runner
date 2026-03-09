@@ -1,0 +1,14 @@
+[Unit]
+Description=Phase 3B Local Provisioning Runner
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/env bash /home/akushnir/self-hosted-runner/runners/phase3b-local-runner.sh
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+TimeoutStartSec=3600
+
+[Install]
+WantedBy=multi-user.target
