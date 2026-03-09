@@ -35,10 +35,10 @@ permissions:
   contents: read
 
 env:
-  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-  AWS_KMS_KEY_ID: ${{ secrets.AWS_KMS_KEY_ID }}
+  GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
+  GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+  VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+  AWS_KMS_KEY_ID: ${{ steps.cred_aws_kms_key_id.outputs.credential }}
   DEPLOYMENT_ISSUE: '1739'
 
 jobs:
@@ -54,6 +54,42 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Get Credential [AWS_KMS_KEY_ID]
+        id: cred_aws_kms_key_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_KMS_KEY_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
       - name: Initialize deployment context (immutable)
         id: context
