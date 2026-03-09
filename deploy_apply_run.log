@@ -27,3 +27,10 @@ Service Account: terraform-deployer@p4-platform.iam.gserviceaccount.com
 Terraform Dir: /home/akushnir/self-hosted-runner/terraform/environments/staging-tenant-a
 [1/4] Creating temporary key...
 ERROR: (gcloud.iam.service-accounts.keys.create) NOT_FOUND: Unknown service account. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property
+=== RE-RUN AUTOMATED TERRAFORM APPLY ===
+Start: Mon Mar  9 04:41:54 PM UTC 2026
+Project: p4-platform
+Service Account: terraform-deployer@p4-platform.iam.gserviceaccount.com
+Terraform Dir: /home/akushnir/self-hosted-runner/terraform/environments/staging-tenant-a
+[1/4] Creating temporary key...
+ERROR: (gcloud.iam.service-accounts.keys.create) NOT_FOUND: Unknown service account. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property
