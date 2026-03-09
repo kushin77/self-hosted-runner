@@ -14,13 +14,16 @@ locals {
 
     # Bootstrap sequence (default):
     # 1) Install minimal packages (curl, jq) if missing
-    # 2) Deploy Vault Agent config + template + systemd unit from repo
-    # 3) Start/enable vault-agent.service
+    # 2) Deploy Vault Agent config + template + systemd unit from instance metadata (preferred)
+    #    or fall back to pulling from the repo raw URLs for quick testing
+    # 3) Start/enable vault-agent.service if vault is present
     # 4) Fetch and exec the runner-startup wrapper which performs OIDC->Vault login and registers the runner
 
     BOOTSTRAP_BASE="https://raw.githubusercontent.com/kushin77/self-hosted-runner/main"
     VAULT_AGENT_DIR="/etc/vault-agent"
     BOOTSTRAP_DIR="/tmp"
+    MD_URL_BASE="http://metadata.google.internal/computeMetadata/v1/instance/attributes"
+    MD_HEADER="-H Metadata-Flavor: Google"
 
     # Ensure basic tooling
     if ! command -v curl >/dev/null 2>&1; then
@@ -31,10 +34,26 @@ locals {
 
     mkdir -p ${VAULT_AGENT_DIR}/templates
 
-    echo "Fetching Vault Agent configuration and template"
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.hcl" -o "${VAULT_AGENT_DIR}/vault-agent.hcl" || true
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/registry-creds.tpl" -o "${VAULT_AGENT_DIR}/templates/registry-creds.tpl" || true
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.service" -o "/etc/systemd/system/vault-agent.service" || true
+    fetch_metadata_or_repo() {
+      local key="$1" dst="$2" repo_path="$3"
+      # Try metadata server first
+      if curl -fsS ${MD_URL_BASE}/${key} ${MD_HEADER} -o "${dst}"; then
+        echo "Wrote ${dst} from instance metadata (${key})"
+        return 0
+      fi
+      # Fallback to raw repo
+      if curl -fsSL "${BOOTSTRAP_BASE}/${repo_path}" -o "${dst}"; then
+        echo "Wrote ${dst} from repo fallback (${repo_path})"
+        return 0
+      fi
+      echo "Warning: failed to fetch ${key} or ${repo_path}" >&2
+      return 1
+    }
+
+    echo "Installing Vault Agent artifacts (metadata preferred)"
+    fetch_metadata_or_repo "vault-agent.hcl" "${VAULT_AGENT_DIR}/vault-agent.hcl" "scripts/identity/vault-agent/vault-agent.hcl" || true
+    fetch_metadata_or_repo "registry-creds.tpl" "${VAULT_AGENT_DIR}/templates/registry-creds.tpl" "scripts/identity/vault-agent/registry-creds.tpl" || true
+    fetch_metadata_or_repo "vault-agent.service" "/etc/systemd/system/vault-agent.service" "scripts/identity/vault-agent/vault-agent.service" || true
 
     # Ensure vault binary exists (best-effort; recommend baking into image for production)
     if ! command -v vault >/dev/null 2>&1; then
