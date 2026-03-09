@@ -28,6 +28,31 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Load resilience helpers
+      - name: Get Credential [REGISTRY_HOST]
+        id: cred_registry_host
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_HOST
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_PASSWORD]
+        id: cred_registry_password
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_PASSWORD
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_USERNAME]
+        id: cred_registry_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           set -euo pipefail
           source .github/scripts/resilience.sh || true
@@ -42,9 +67,9 @@ jobs:
         if: ${{ secrets.REGISTRY_USERNAME != '' && secrets.REGISTRY_PASSWORD != '' }}
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_HOST }}
-          username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD }}
+          registry: ${{ steps.cred_registry_host.outputs.credential }}
+          username: ${{ steps.cred_registry_username.outputs.credential }}
+          password: ${{ steps.cred_registry_password.outputs.credential }}
 
       - name: Skip push notice
         if: ${{ secrets.REGISTRY_USERNAME == '' || secrets.REGISTRY_PASSWORD == '' }}

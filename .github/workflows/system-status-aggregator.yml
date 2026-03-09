@@ -23,6 +23,79 @@ jobs:
         id: collect
         env:
           GH_TOKEN: ${{ github.token }}
+      - name: Get Credential [AWS_ACCESS_KEY_ID]
+        id: cred_aws_access_key_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ACCESS_KEY_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_OIDC_ROLE_ARN]
+        id: cred_aws_oidc_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_OIDC_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DEPLOY_SSH_KEY]
+        id: cred_deploy_ssh_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DEPLOY_SSH_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [MINIO_ACCESS_KEY]
+        id: cred_minio_access_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: MINIO_ACCESS_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [MINIO_BUCKET]
+        id: cred_minio_bucket
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: MINIO_BUCKET
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [MINIO_ENDPOINT]
+        id: cred_minio_endpoint
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: MINIO_ENDPOINT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [MINIO_SECRET_KEY]
+        id: cred_minio_secret_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: MINIO_SECRET_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [PAGERDUTY_TOKEN]
+        id: cred_pagerduty_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: PAGERDUTY_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           set -euo pipefail
 
@@ -93,22 +166,22 @@ jobs:
 
           # Dynamic credential detection
           GCP_STATUS="❌ Not configured"
-          if [ -n "${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}" ]; then
+          if [ -n "${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}" ]; then
             GCP_STATUS="✅ Configured"
           fi
 
           AWS_STATUS="❌ Not configured"
-          if [ -n "${{ secrets.AWS_ACCESS_KEY_ID }}" ] || [ -n "${{ secrets.AWS_OIDC_ROLE_ARN }}" ]; then
+          if [ -n "${{ steps.cred_aws_access_key_id.outputs.credential }}" ] || [ -n "${{ steps.cred_aws_oidc_role_arn.outputs.credential }}" ]; then
             AWS_STATUS="✅ Configured"
           fi
 
           # high-level credential state used in the final table
           SSH_STATUS="❌ Not set"
-          if [ -n "${{ secrets.DEPLOY_SSH_KEY }}" ]; then
+          if [ -n "${{ steps.cred_deploy_ssh_key.outputs.credential }}" ]; then
             SSH_STATUS="✅ Provided"
           fi
           PAGER_STATUS="❌ Not set"
-          if [ -n "${{ secrets.PAGERDUTY_TOKEN }}" ]; then
+          if [ -n "${{ steps.cred_pagerduty_token.outputs.credential }}" ]; then
             PAGER_STATUS="✅ Provided"
           fi
 
@@ -219,10 +292,10 @@ jobs:
       - name: Upload report to MinIO (if configured)
         id: upload_minio
         env:
-          MINIO_ENDPOINT: ${{ secrets.MINIO_ENDPOINT }}
-          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
-          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
-          MINIO_BUCKET: ${{ secrets.MINIO_BUCKET }}
+          MINIO_ENDPOINT: ${{ steps.cred_minio_endpoint.outputs.credential }}
+          MINIO_ACCESS_KEY: ${{ steps.cred_minio_access_key.outputs.credential }}
+          MINIO_SECRET_KEY: ${{ steps.cred_minio_secret_key.outputs.credential }}
+          MINIO_BUCKET: ${{ steps.cred_minio_bucket.outputs.credential }}
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail

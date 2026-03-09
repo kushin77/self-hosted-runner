@@ -29,6 +29,55 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
+      - name: Get Credential [AWS_ROLE_ARN]
+        id: cred_aws_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT]
+        id: cred_gcp_service_account
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [SLACK_WEBHOOK_URL]
+        id: cred_slack_webhook_url
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: SLACK_WEBHOOK_URL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_ADDR]
+        id: cred_vault_addr
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_ADDR
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [VAULT_TOKEN]
+        id: cred_vault_token
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: VAULT_TOKEN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: pip install -r requirements.txt
 
       - name: Rotate Vault secrets
@@ -90,8 +139,8 @@ jobs:
           print(f"✅ Vault rotation complete")
           EOF
         env:
-          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
+          VAULT_TOKEN: ${{ steps.cred_vault_token.outputs.credential }}
 
       - name: Upload Vault deployment report
         if: always()
@@ -114,8 +163,8 @@ jobs:
       - uses: google-github-actions/auth@v2
         if: vars.GCP_PROJECT_ID != ''
         with:
-          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          workload_identity_provider: ${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}
+          service_account: ${{ steps.cred_gcp_service_account.outputs.credential }}
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -200,7 +249,7 @@ jobs:
       - uses: aws-actions/configure-aws-credentials@v4
         if: secrets.AWS_ROLE_ARN != ''
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          role-to-assume: ${{ steps.cred_aws_role_arn.outputs.credential }}
           aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
       - name: Install dependencies
@@ -316,7 +365,7 @@ jobs:
       - name: Send Slack notification (on failure)
         if: failure()
         run: |
-          curl -X POST ${{ secrets.SLACK_WEBHOOK_URL }} \
+          curl -X POST ${{ steps.cred_slack_webhook_url.outputs.credential }} \
             -H 'Content-Type: application/json' \
             -d '{
               "text": "🚨 Credential rotation failed",
