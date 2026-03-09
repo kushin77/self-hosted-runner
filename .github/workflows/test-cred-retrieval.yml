@@ -48,7 +48,7 @@ jobs:
           else
             echo "yamllint not available, skipping"
           fi
-          
+
           # Basic YAML validation with python
           python3 -c "import yaml; yaml.safe_load(open('.github/actions/get-ephemeral-credential/action.yml'))"
           echo "action.yml is valid YAML"
@@ -68,7 +68,7 @@ jobs:
             echo "✗ Invalid layer check failed"
             exit 1
           fi
-          
+
           # Test with auto (will fail gracefully if no providers configured)
           echo "Testing auto failover with no providers configured..."
           bash scripts/credential-manager.sh TEST_CRED auto 2>&1 || true

@@ -13,9 +13,9 @@ env:
 jobs:
   orchestrate:
     runs-on: ubuntu-latest
-    environment: 
+    environment:
       name: production
-    
+
     steps:
     - uses: actions/checkout@v4
       - name: Get Credential [AWS_REGION]
@@ -54,17 +54,17 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
         cache: 'pip'
-    
+
     - name: Install dependencies
       run: |
         pip install requests  # For Vault HTTP client
-    
+
     - name: Run self-healing orchestration
       env:
         VAULT_ADDR: ${{ secrets.VAULT_ADDR || 'http://localhost:8200' }}
@@ -77,45 +77,45 @@ jobs:
         import logging
         from self_healing_orchestrator.adapters.wire_modules import wire_default_sequences
         from self_healing_orchestrator.integration import SelfHealingOrchestrationIntegration
-        
+
         logging.basicConfig(level=logging.INFO)
         logger = logging.getLogger(__name__)
-        
+
         logger.info("Starting orchestration deployment: ${{ env.DEPLOYMENT_ID }}")
-        
+
         # Create integration with deployment metadata
         integration = SelfHealingOrchestrationIntegration(
             deployment_id="${{ env.DEPLOYMENT_ID }}",
             environment="production"
         )
-        
+
         # Wire default sequences (adapters for existing modules)
         wire_default_sequences(integration)
-        
+
         # Execute full orchestration: gap analysis → remediation → validation → reporting
         result = integration.execute_full_orchestration()
-        
+
         # Generate deployment report
         integration.generate_deployment_report(f"deployment-report-${{ env.DEPLOYMENT_ID }}.json")
-        
+
         # Print summary
         logger.info("Orchestration result: %s", json.dumps(result, indent=2))
-        
+
         # Exit non-zero if orchestration failed
         if result.get("status") != "success":
             logger.error("Orchestration failed: %s", result.get("reason"))
             exit(1)
-        
+
         logger.info("Orchestration succeeded")
         DEPLOY
-    
+
     - name: Upload deployment report
       if: always()
       uses: actions/upload-artifact@v3
       with:
         name: deployment-reports
         path: 'deployment-report-*.json'
-    
+
     - name: Post deployment status
       if: always()
       run: |

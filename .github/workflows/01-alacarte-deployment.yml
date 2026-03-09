@@ -92,19 +92,19 @@ jobs:
         run: |
           cat > /tmp/issue_body.txt << 'ISSUE_EOF'
           ## Deployment Tracking
-          
+
           Status: In Progress
           Type: Custom Full Suite
           Components: Terraform, Secrets, Cloud Credentials
-          
+
           Started: Now
           DRY-RUN: Disabled
-          
+
           Track all steps and failures here.
           ISSUE_EOF
 
           ISSUE_TITLE="Deploy $(date +%s)"
-          
+
           if command -v gh &>/dev/null; then
             RESULT=$(gh issue create --title "$ISSUE_TITLE" --body-file /tmp/issue_body.txt --label deployment 2>&1 || echo "0")
             ISSUE_NUMBER=$(echo "$RESULT" | grep -o '#[0-9]*' | tr -d '#' || echo "0")
