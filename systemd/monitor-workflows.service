@@ -1,0 +1,14 @@
+[Unit]
+Description=Workflow Monitor Service (polls GitHub Actions and auto-close issues)
+After=network.target
+
+[Service]
+Type=simple
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash -lc './scripts/monitor-workflows.sh'
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target
