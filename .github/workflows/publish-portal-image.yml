@@ -26,6 +26,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Load resilience helpers
+      - name: Get Credential [GHCR_PAT]
+        id: cred_ghcr_pat
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GHCR_PAT
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           set -euo pipefail
           source .github/scripts/resilience.sh || true
@@ -41,7 +50,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ steps.cred_ghcr_pat.outputs.credential }}
 
       - name: Build and push
         uses: docker/build-push-action@v5

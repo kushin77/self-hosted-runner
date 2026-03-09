@@ -22,6 +22,39 @@ jobs:
         id: workflow-check
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Get Credential [AWS_OIDC_ROLE_ARN]
+        id: cred_aws_oidc_role_arn
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_OIDC_ROLE_ARN
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_PROJECT_ID]
+        id: cred_gcp_project_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_PROJECT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+        id: cred_gcp_service_account_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [USE_OIDC]
+        id: cred_use_oidc
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: USE_OIDC
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           set -euo pipefail
           REPO="${{ github.repository }}"
@@ -81,10 +114,10 @@ jobs:
       - name: Validate automation secrets configuration
         id: secrets-check
         env:
-          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-          GCP_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
-          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-          USE_OIDC: ${{ secrets.USE_OIDC }}
+          GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
+          GCP_SERVICE_ACCOUNT_EMAIL: ${{ steps.cred_gcp_service_account_email.outputs.credential }}
+          AWS_OIDC_ROLE_ARN: ${{ steps.cred_aws_oidc_role_arn.outputs.credential }}
+          USE_OIDC: ${{ steps.cred_use_oidc.outputs.credential }}
         run: |
           echo "Checking automation secrets configuration..."
 
