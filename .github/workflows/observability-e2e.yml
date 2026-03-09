@@ -5,15 +5,15 @@ on:
     inputs:
       test_real:
         description: 'Test with real Slack/PagerDuty endpoints (requires secrets)'
-        required: false
+        required: 'false'
         default: 'false'
       test_type:
         description: 'Test type: slack, pagerduty, or all'
-        required: false
+        required: 'false'
         default: 'all'
       debug_mode:
         description: 'Enable debug output'
-        required: false
+        required: 'false'
         default: 'false'
   schedule:
     # Scheduled run with mock receivers (daily, off-peak)
@@ -88,20 +88,18 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
         run: |
           SLACK_AVAILABLE="false"
           PAGERDUTY_AVAILABLE="false"
 
-          if [ -n "${{ secrets.SLACK_WEBHOOK_URL || '' }}" ]; then
+          if [-n "${{ secrets.SLACK_WEBHOOK_URL || '' }}"]; then
             SLACK_AVAILABLE="true"
             echo "✓ SLACK_WEBHOOK_URL is available"
           else
             echo "⚠ SLACK_WEBHOOK_URL is not set (will use mock for testing)"
           fi
 
-          if [ -n "${{ secrets.PAGERDUTY_SERVICE_KEY || '' }}" ]; then
+          if [-n "${{ secrets.PAGERDUTY_SERVICE_KEY || '' }}"]; then
             PAGERDUTY_AVAILABLE="true"
             echo "✓ PAGERDUTY_SERVICE_KEY is available"
           else
@@ -151,7 +149,7 @@ jobs:
           echo "  Type: $TEST_TYPE"
           echo "  Debug: $DEBUG_MODE"
 
-          if [ "$TEST_MODE" = "real" ]; then
+          if ["$TEST_MODE" = "real"]; then
             echo "  Slack Available: ${{ needs.secret-check.outputs.slack_available }}"
             echo "  PagerDuty Available: ${{ needs.secret-check.outputs.pagerduty_available }}"
           fi

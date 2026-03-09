@@ -7,8 +7,8 @@ on:
     inputs:
       force:
         description: 'Force rotation of all secrets'
-        required: false
-        default: false
+        required: 'false'
+        default: 'false'
         type: boolean
 
 permissions:

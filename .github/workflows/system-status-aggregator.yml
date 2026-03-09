@@ -166,22 +166,22 @@ jobs:
 
           # Dynamic credential detection
           GCP_STATUS="❌ Not configured"
-          if [ -n "${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_gcp_workload_identity_provider.outputs.credential }}"]; then
             GCP_STATUS="✅ Configured"
           fi
 
           AWS_STATUS="❌ Not configured"
-          if [ -n "${{ steps.cred_aws_access_key_id.outputs.credential }}" ] || [ -n "${{ steps.cred_aws_oidc_role_arn.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_aws_access_key_id.outputs.credential }}"] || [-n "${{ steps.cred_aws_oidc_role_arn.outputs.credential }}"]; then
             AWS_STATUS="✅ Configured"
           fi
 
           # high-level credential state used in the final table
           SSH_STATUS="❌ Not set"
-          if [ -n "${{ steps.cred_deploy_ssh_key.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_deploy_ssh_key.outputs.credential }}"]; then
             SSH_STATUS="✅ Provided"
           fi
           PAGER_STATUS="❌ Not set"
-          if [ -n "${{ steps.cred_pagerduty_token.outputs.credential }}" ]; then
+          if [-n "${{ steps.cred_pagerduty_token.outputs.credential }}"]; then
             PAGER_STATUS="✅ Provided"
           fi
 
@@ -195,7 +195,7 @@ jobs:
           done
 
           # Manage 'Missing required GitHub Secrets' issues idempotently
-          if [ ${#missing[@]} -eq 0 ]; then
+          if [${#missing[@]} -eq 0]; then
             # Close known issue numbers if present
             for issue in 1343 1345 1347; do
               gh issue list --repo ${REPO} --state open --json number,title --jq ".[] | select(.number==${issue}) | .number" | grep -q . && \
@@ -217,7 +217,7 @@ jobs:
 
             # Update existing open issue labeled 'missing-secrets' or create one if absent
             EXISTING_MS=$(gh issue list --repo ${REPO} --label "missing-secrets" --state open --json number --jq '.[0].number' 2>/dev/null || true)
-            if [ -n "$EXISTING_MS" ]; then
+            if [-n "$EXISTING_MS"]; then
               gh issue update ${EXISTING_MS} --repo ${REPO} --body "$BODY" || true
             else
               gh issue create --repo ${REPO} --title "Missing required GitHub Secrets" --body "$BODY" --label "missing-secrets" || true
@@ -299,7 +299,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          if [ -n "${MINIO_ENDPOINT-}" ] && [ -n "${MINIO_ACCESS_KEY-}" ] && [ -n "${MINIO_SECRET_KEY-}" ] && [ -n "${MINIO_BUCKET-}" ]; then
+          if [-n "${MINIO_ENDPOINT-}"] && [-n "${MINIO_ACCESS_KEY-}"] && [-n "${MINIO_SECRET_KEY-}"] && [-n "${MINIO_BUCKET-}"]; then
             echo "MinIO configured — uploading report"
             URL=$(ci/scripts/upload_to_minio.sh /tmp/status_report.md)
             echo "minio_url=$URL" >> $GITHUB_OUTPUT
@@ -327,7 +327,7 @@ jobs:
             fi
           done
 
-          if [ "$HAS_SELF_HOSTED" -eq 1 ]; then
+          if ["$HAS_SELF_HOSTED" -eq 1]; then
             echo "Found self-hosted-heavy runner online — dispatching smoke workflow"
             gh api --method POST /repos/${REPO}/actions/workflows/self-hosted-smoke.yml/dispatches -f ref=main || true
           else
@@ -346,7 +346,7 @@ jobs:
 
           # Ensure the tracking issue is open so comments are visible
           ISSUE_STATE=$(gh issue view ${TRACKING_ISSUE} --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "")
-          if [ "$ISSUE_STATE" = "closed" ]; then
+          if ["$ISSUE_STATE" = "closed"]; then
             gh issue update ${TRACKING_ISSUE} --repo ${REPO} --state open || true
             echo "Reopened tracking issue ${TRACKING_ISSUE}"
           fi
@@ -354,7 +354,7 @@ jobs:
           # Post or update status (idempotent via comment edit)
           EXISTING=$(gh api "/repos/${REPO}/issues/${TRACKING_ISSUE}/comments" --jq ".[] | select(.body | contains(\"System Status Aggregator\")) | .id" 2>/dev/null | head -1 || true)
 
-          if [ -n "$EXISTING" ]; then
+          if [-n "$EXISTING"]; then
             gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="${{ env.report }}" 2>/dev/null || true
             echo "Updated status comment"
           else

@@ -40,7 +40,7 @@ jobs:
             STATE=$(gh issue view $issue --repo kushin77/self-hosted-runner --json state --jq '.state' 2>/dev/null || echo "UNKNOWN")
             TITLE=$(gh issue view $issue --repo kushin77/self-hosted-runner --json title --jq '.title' 2>/dev/null | head -c 20)
 
-            if [ "$STATE" = "CLOSED" ]; then
+            if ["$STATE" = "CLOSED"]; then
               MARKER="✅"
             else
               MARKER="⏳"

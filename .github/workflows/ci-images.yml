@@ -6,9 +6,9 @@ permissions:
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
   workflow_call: {}
 
@@ -100,8 +100,6 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
-
-
 
         run: |
           set -euo pipefail

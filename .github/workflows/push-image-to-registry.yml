@@ -6,19 +6,19 @@ on:
     inputs:
       registry_type:
         description: "Registry type (docker-hub|ghcr|ecr|harbor|custom)"
-        required: true
+        required: 'true'
         default: "ghcr"
       image_name:
         description: "Image name (e.g., self-hosted-runner:prod-p2)"
-        required: true
+        required: 'true'
         default: "self-hosted-runner"
       image_tags:
         description: "Comma-separated tags (e.g., prod-p2,latest,1.0.0)"
-        required: true
+        required: 'true'
         default: "prod-p2,latest"
       skip_validation:
         description: "Skip local validation (risky)"
-        required: false
+        required: 'false'
         default: "false"
 
 concurrency:
@@ -117,8 +117,6 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
         run: |
           set -euo pipefail
 
@@ -178,7 +176,7 @@ jobs:
 
           case "$registry" in
             docker-hub)
-              if [ -z "${{ steps.cred_dockerhub_username.outputs.credential }}" ]; then
+              if [-z "${{ steps.cred_dockerhub_username.outputs.credential }}"]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
                 echo "⚠️ Docker Hub credentials not configured"
               else
@@ -188,7 +186,7 @@ jobs:
               fi
               ;;
             ghcr)
-              if [ -z "${{ secrets.GITHUB_TOKEN }}" ]; then
+              if [-z "${{ secrets.GITHUB_TOKEN }}"]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
               else
                 echo "host=ghcr.io" >> "$GITHUB_OUTPUT"
@@ -197,7 +195,7 @@ jobs:
               fi
               ;;
             ecr)
-              if [ -z "${{ steps.cred_aws_account_id.outputs.credential }}" ] || [ -z "${{ steps.cred_aws_region.outputs.credential }}" ]; then
+              if [-z "${{ steps.cred_aws_account_id.outputs.credential }}"] || [-z "${{ steps.cred_aws_region.outputs.credential }}"]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
               else
                 echo "host=${{ steps.cred_aws_account_id.outputs.credential }}.dkr.ecr.${{ steps.cred_aws_region.outputs.credential }}.amazonaws.com" >> "$GITHUB_OUTPUT"
@@ -206,7 +204,7 @@ jobs:
               fi
               ;;
             custom)
-              if [ -z "${{ steps.cred_registry_host.outputs.credential }}" ]; then
+              if [-z "${{ steps.cred_registry_host.outputs.credential }}"]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
               else
                 echo "host=${{ steps.cred_registry_host.outputs.credential }}" >> "$GITHUB_OUTPUT"
@@ -322,10 +320,10 @@ jobs:
           retry_count=0
           success=false
 
-          while [ $retry_count -lt $max_retries ] && [ "$success" = "false" ]; do
+          while [$retry_count -lt $max_retries] && ["$success" = "false"]; do
             retry_count=$((retry_count + 1))
 
-            if [ $retry_count -gt 1 ]; then
+            if [$retry_count -gt 1]; then
               echo "🔄 Retry $retry_count/$max_retries..."
               sleep 5
             fi
@@ -340,13 +338,13 @@ jobs:
               fi
             done
 
-            if [ "$push_success" = "true" ]; then
+            if ["$push_success" = "true"]; then
               success=true
               break
             fi
           done
 
-          if [ "$success" = "true" ]; then
+          if ["$success" = "true"]; then
             echo "success=true" >> "$GITHUB_OUTPUT"
             # Get digest of last image
             first_img=$(echo "$IMAGES" | jq -r '.[0]')

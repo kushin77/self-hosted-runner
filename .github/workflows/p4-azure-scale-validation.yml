@@ -5,12 +5,12 @@ on:
     inputs:
       example_dir:
         description: "Example directory to validate"
-        required: false
+        required: 'false'
         default: "terraform/examples/azure-scale"
         type: string
       terraform_version:
         description: "Terraform version to use"
-        required: false
+        required: 'false'
         default: "1.5.7"
         type: string
 
@@ -203,7 +203,7 @@ jobs:
           )
 
           for doc in "${DOCS[@]}"; do
-            if [ -f "$doc" ]; then
+            if [-f "$doc"]; then
               echo "✓ $doc"
               wc -l "$doc"
             else
@@ -244,10 +244,10 @@ jobs:
           echo "✓ Terraform lint: ${{ needs.lint.result }}"
           echo "✓ Documentation check: ${{ needs.docs.result }}"
 
-          if [ "${{ needs.validate.result }}" = "success" ] && \
-             [ "${{ needs.plan.result }}" = "success" ] && \
-             [ "${{ needs.lint.result }}" = "success" ] && \
-             [ "${{ needs.docs.result }}" = "success" ]; then
+          if ["${{ needs.validate.result }}" = "success"] && \
+             ["${{ needs.plan.result }}" = "success"] && \
+             ["${{ needs.lint.result }}" = "success"] && \
+             ["${{ needs.docs.result }}" = "success"]; then
             echo ""
             echo "✓ ALL VALIDATIONS PASSED"
             echo ""

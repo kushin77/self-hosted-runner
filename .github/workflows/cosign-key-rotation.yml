@@ -5,7 +5,7 @@ on:
     inputs:
       dry_run:
         description: 'If true, generate keys locally but do not store to Vault'
-        required: false
+        required: 'false'
         default: 'true'
   schedule:
     - cron: '0 4 1 * *' # monthly rotation, adjust as needed
@@ -46,7 +46,7 @@ jobs:
           VAULT_ROLE: ${{ steps.cred_vault_role.outputs.credential }}
           AUDIENCE: vault
         run: |
-          if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_ROLE" ]; then
+          if [-z "$VAULT_ADDR"] || [-z "$VAULT_ROLE"]; then
             echo "ERROR: VAULT_ADDR and VAULT_ROLE required for live rotation"
             exit 1
           fi
@@ -57,12 +57,12 @@ jobs:
           VAULT_ADDR: ${{ steps.cred_vault_addr.outputs.credential }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if ["${{ github.event.inputs.dry_run }}" = "true"]; then
             echo "Dry-run: generating cosign keys locally (not stored in Vault)"
             cosign --version || echo "cosign not found; install via: sudo mv cosign-linux-amd64 /usr/local/bin/cosign && chmod +x /usr/local/bin/cosign"
             echo "(dry-run) Full rotation would execute: bash scripts/rotate_cosign_keys.sh"
           else
-            if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_TOKEN" ]; then
+            if [-z "$VAULT_ADDR"] || [-z "$VAULT_TOKEN"]; then
               echo "ERROR: VAULT_ADDR and VAULT_TOKEN required for storage"
               exit 1
             fi

@@ -5,22 +5,22 @@ on:
     inputs:
       revoke_gcp:
         description: "Revoke GCP keys"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
       revoke_aws:
         description: "Revoke AWS keys"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
       revoke_vault:
         description: "Revoke Vault credentials"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
       dry_run:
         description: "Dry-run (audit only)"
-        required: false
+        required: 'false'
         default: "true"
         type: boolean
 
@@ -91,7 +91,6 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
-
 
       - name: "Authenticate with GCP (if configured)"
         uses: google-github-actions/auth@v2
@@ -363,14 +362,10 @@ jobs:
           cache-ttl: 600
           audit-log: true
 
-
-
-
-
         run: |
           chmod +x .github/scripts/revoke-exposed-keys.sh
 
-          if [ "$DRY_RUN" = "true" ]; then
+          if ["$DRY_RUN" = "true"]; then
             echo "[INFO] DRY-RUN MODE: No actual revocations will be executed"
           fi
 
@@ -383,7 +378,7 @@ jobs:
           git config --local user.name "github-actions[bot]"
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
 
-          if [ -d ".key-rotation-audit" ] && [ -n "$(git status .key-rotation-audit --porcelain 2>/dev/null)" ]; then
+          if [-d ".key-rotation-audit"] && [-n "$(git status .key-rotation-audit --porcelain 2>/dev/null)"]; then
             git add .key-rotation-audit/
             git commit -m "ci(security): immutable audit trail - key revocation run ${{ github.run_id }}" --allow-empty
             git push origin HEAD:${{ github.ref }} || echo "[WARN] Push failed"

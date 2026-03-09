@@ -5,7 +5,7 @@ on:
     inputs:
       dry_run:
         description: 'If true, perform client-side validation (kubectl --dry-run=client) instead of applying'
-        required: false
+        required: 'false'
         default: 'true'
 
 permissions:
@@ -53,7 +53,7 @@ jobs:
           VAULT_ROLE: ${{ steps.cred_vault_role.outputs.credential }}
           AUDIENCE: vault
         run: |
-          if [ -z "$VAULT_ADDR" ] || [ -z "$VAULT_ROLE" ]; then
+          if [-z "$VAULT_ADDR"] || [-z "$VAULT_ROLE"]; then
             echo "WARN: VAULT_ADDR or VAULT_ROLE not set; proceeding without dynamic secrets"
             exit 0
           fi
@@ -69,21 +69,21 @@ jobs:
           # Fetch trivy webhook secret from Vault
           WEBHOOK_SECRET=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" \
             "$VAULT_ADDR/v1/secret/data/trivy-webhook/config" 2>/dev/null | jq -r '.data.data.webhook_secret // empty' || echo "")
-          if [ -n "$WEBHOOK_SECRET" ]; then
+          if [-n "$WEBHOOK_SECRET"]; then
             echo "TRIVY_WEBHOOK_SECRET=$WEBHOOK_SECRET" >> "$GITHUB_ENV"
           fi
 
           # Fetch GitHub token
           GH_TOKEN=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" \
             "$VAULT_ADDR/v1/secret/data/github/tokens" 2>/dev/null | jq -r '.data.data.actions_token // empty' || echo "")
-          if [ -n "$GH_TOKEN" ]; then
+          if [-n "$GH_TOKEN"]; then
             echo "GITHUB_TOKEN=$GH_TOKEN" >> "$GITHUB_ENV"
           fi
 
           # Fetch image reference override if available
           IMG=$(curl -sS -H "X-Vault-Token: $VAULT_TOKEN" \
             "$VAULT_ADDR/v1/secret/data/trivy-webhook/config" 2>/dev/null | jq -r '.data.data.image_ref // empty' || echo "")
-          if [ -n "$IMG" ]; then
+          if [-n "$IMG"]; then
             echo "TRIVY_WEBHOOK_IMAGE=$IMG" >> "$GITHUB_ENV"
           fi
 
@@ -106,7 +106,7 @@ jobs:
         env:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if ["${{ github.event.inputs.dry_run }}" = "true"]; then
             echo "Dry-run: validating manifests"
             kubectl apply -f deploy/trivy-webhook/k8s-deployment.yaml -n trivy-system --dry-run=client || true
           else
@@ -118,7 +118,7 @@ jobs:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
           IMAGE: ${{ env.TRIVY_WEBHOOK_IMAGE || secrets.TRIVY_WEBHOOK_IMAGE_OVERRIDE || 'ghcr.io/kushin77/trivy-webhook:latest' }}
         run: |
-          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+          if ["${{ github.event.inputs.dry_run }}" = "true"]; then
             echo "Dry-run: would set image to $IMAGE and restart deployment"
             kubectl set image deployment/trivy-webhook trivy-webhook=$IMAGE -n trivy-system --dry-run=client || true
           else
