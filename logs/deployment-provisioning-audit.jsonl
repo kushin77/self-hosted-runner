@@ -77,3 +77,17 @@
   "commit": "477ff8d2e",
   "audit_entries_total": 67
 }
+{
+  "timestamp": "2026-03-09T17:47:37Z",
+  "operation": "terraform-apply-final-attempt-failed",
+  "status": "HARDBLOCKED_ON_GCP_PROJECT_ACCESS",
+  "exit_code": 1,
+  "reason": "GCP project p4-platform not found or inaccessible to active user",
+  "action_required": "User must execute ONE of: (1) IAM grant via project owner, (2) provide SA key, (3) manual terraform apply locally",
+  "documentation": "See UNBLOCK_AND_COMPLETE_PHASE_3.md for exact commands",
+  "framework_state": "IMMUTABLE_COMPLETE_READY_TO_DEPLOY",
+  "phase_1_2": "OPERATIONAL",
+  "phase_3_terraform": "VALIDATED_READY_BLOCKED_ON_GCP",
+  "commit": "ab9b52669",
+  "audit_entries_total": 0
+}
