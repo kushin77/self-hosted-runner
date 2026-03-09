@@ -1,3 +1,9 @@
+# ⚠️ DISABLED - revoke-deploy-ssh-key.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run revoke-deploy-ssh-key.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
 name: Revoke Compromised DEPLOY_SSH_KEY
 # sequencing-protection: converted to `workflow_call` + `concurrency`
 

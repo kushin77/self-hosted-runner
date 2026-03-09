@@ -1,3 +1,9 @@
+# ⚠️ DISABLED - gcp-gsm-breach-recovery.yml
+# This workflow has YAML syntax errors and has been disabled to prevent cascading failures.
+# Root cause: Corrupted redacted secret placeholders in workflow definition
+# Status: Can be executed manually via: gh workflow run gcp-gsm-breach-recovery.yml --ref main
+# Remediation: See https://github.com/kushin77/self-hosted-runner/issues/1979
+#
 name: GCP GSM Emergency Breach Recovery
 
 on:
