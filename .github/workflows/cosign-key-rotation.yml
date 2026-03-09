@@ -1,0 +1,38 @@
+name: Cosign Key Rotation (Vault)
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: '0 4 1 * *' # monthly rotation, adjust as needed
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Request Vault OIDC token
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_ROLE: ${{ secrets.VAULT_ROLE }}
+          AUDIENCE: vault
+        run: |
+          bash scripts/vault_oidc_login.sh
+
+      - name: Rotate cosign keys and store in Vault
+        env:
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
+        run: |
+          bash scripts/rotate_cosign_keys.sh
+
+      - name: Notify
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('Cosign key rotation completed and stored in Vault (if VAULT_TOKEN provided).')
