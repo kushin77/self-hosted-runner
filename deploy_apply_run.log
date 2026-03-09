@@ -34,3 +34,42 @@ Service Account: terraform-deployer@p4-platform.iam.gserviceaccount.com
 Terraform Dir: /home/akushnir/self-hosted-runner/terraform/environments/staging-tenant-a
 [1/4] Creating temporary key...
 ERROR: (gcloud.iam.service-accounts.keys.create) NOT_FOUND: Unknown service account. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property
+[2026-03-09 16:46:32 UTC] [INFO] === VAULT AGENT STAGING DEPLOYMENT: TERRAFORM APPLY ===
+[2026-03-09 16:46:32 UTC] [INFO] Project: p4-platform
+[2026-03-09 16:46:32 UTC] [INFO] Service Account: terraform-deployer@p4-platform.iam.gserviceaccount.com
+[2026-03-09 16:46:32 UTC] [INFO] Terraform Directory: /home/akushnir/self-hosted-runner/terraform/environments/staging-tenant-a
+[2026-03-09 16:46:32 UTC] [INFO] Ephemeral Key: /tmp/tf-deployer-key-17864.json
+[2026-03-09 16:46:32 UTC] [INFO] [1/4] Creating temporary service account key...
+ERROR: (gcloud.iam.service-accounts.keys.create) NOT_FOUND: Unknown service account. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property
+[2026-03-09 16:46:33 UTC] [ERROR] Failed to create service account key
+[2026-03-09 16:46:33 UTC] [ERROR] Verify: Service account exists and roles are granted
+[2026-03-09 16:46:33 UTC] [INFO] Securely deleting key file...
+[2026-03-09 16:46:33 UTC] [SUCCESS] Key file securely deleted
+=== ATTEMPT: automated terraform apply (Path C) ===
+Start: Mon Mar  9 04:56:28 PM UTC 2026
+Active account: akushnir@bioenergystrategies.com
+Setting project to: p4-platform
+Project set: p4-platform
+[1/6] Ensure service account exists
+Retry start: Mon Mar  9 04:56:57 PM UTC 2026
+=== RETRY ATTEMPT: automated terraform apply (Path C) ===
+Start: Mon Mar  9 04:56:57 PM UTC 2026
+Active account: akushnir@bioenergystrategies.com
+Setting project to: p4-platform
+Project set: p4-platform
+[1/6] Ensure service account exists
+Creating service account: terraform-deployer@p4-platform.iam.gserviceaccount.com
+ERROR: (gcloud.iam.service-accounts.create) [akushnir@bioenergystrategies.com] does not have permission to access projects instance [p4-platform] (or it may not exist): Permission 'iam.serviceAccounts.create' denied on resource (or it may not exist). This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property.
+- '@type': type.googleapis.com/google.rpc.ErrorInfo
+  domain: iam.googleapis.com
+  metadata:
+    permission: iam.serviceAccounts.create
+  reason: IAM_PERMISSION_DENIED
+ERROR: failed to create service account (permission denied or project missing)
+ERROR: failed to create service account (permission denied or project missing)
+=== AUTOMATED PATH-C: create SA, apply TF, cleanup ===
+Start: Mon Mar  9 05:03:25 PM UTC 2026
+Active account: akushnir@bioenergystrategies.com
+Setting gcloud project: p4-platform
+Project set: p4-platform
+ERROR: project p4-platform not found or inaccessible
