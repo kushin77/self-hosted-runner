@@ -1,9 +1,0 @@
-{
-  "sbom": {
-    "name": "sample-artifact",
-    "version": "0.0.1",
-    "components": [
-      {"name": "libexample", "version": "1.2.3", "purl": "pkg:generic/libexample@1.2.3"}
-    ]
-  }
-}

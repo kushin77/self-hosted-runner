@@ -1,9 +1,0 @@
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"GCP_SERVICE_ACCOUNT_EMAIL","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"GCP_SERVICE_ACCOUNT_KEY","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"GHCR_TOKEN","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"RUNNER_MGMT_TOKEN","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"TF_VAR_SERVICE_ACCOUNT_KEY","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"VAULT_ADDR","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"VAULT_NAMESPACE","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"VAULT_ROLE_ID","mount":"secret","action":"write","status":"dry-run"}
-{"time":"2026-03-09T01:44:38Z","provider":"vault","name":"VAULT_SECRET_ID","mount":"secret","action":"write","status":"dry-run"}
