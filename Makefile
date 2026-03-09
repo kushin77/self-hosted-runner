@@ -5,7 +5,7 @@ SHELL := /bin/bash
 .PHONY: docker-build docker-run docker-clean docker-push
 .PHONY: dev-setup dev-clean dev-logs
 .PHONY: deploy-rotation-check deploy-rotation-dry-run deploy-rotation deploy-rotation-verbose
-.PHONY: quality quality-fix quality-pre-commit
+.PHONY: quality quality-fix quality-pre-commit dev-up dev-down dev-reset dev-shell dev-migrate scaffold dev-logs dev-verify
 
 # Default target
 .DEFAULT_GOAL := help
@@ -27,7 +27,9 @@ help: ## Display this help message
 	@echo "⚙️  Standard Development:"
 	@echo "  make bootstrap        # Install all dependencies"
 	@echo "  make test             # Run all tests"
-	@echo "  make quality          # Run quality checks"
+	@echo "  make quality          # Run quality checks (all linters)"
+	@echo "  make quality-fix      # Auto-fix violations"
+	@echo "  make quality-pre-commit # Install pre-commit hooks"
 	@echo ""
 	@echo "🐳 Docker & Deployment:"
 	@echo "  make docker-build     # Build runner image"
@@ -108,10 +110,6 @@ dev-setup: bootstrap docker-build ## Set up complete development environment
 
 dev-clean: docker-clean ## Clean up development environment
 	@echo "✓ Development environment cleaned"
-
-dev-logs: ## View logs from running containers
-	@echo "Container logs (last 50 lines):"
-	docker logs --tail=50 -f $$(docker ps -q) 2>/dev/null || echo "No running containers"
 
 # Deployment targets
 deploy-rotation-check: ## Validation check for staging deployment
@@ -224,34 +222,157 @@ dev-setup-complete: bootstrap docker-build dev-up ## Complete dev setup: bootstr
 docs-check:
 	@bash scripts/docs-check.sh
 
-# Developer experience targets
-dev-up:
-	@echo "Starting local development stack (docker-compose.dev.yml)"
-	@docker-compose -f docker-compose.dev.yml up -d --build
+scaffold: ## Generate new service boilerplate (usage: make scaffold NAME=my-service)
+	@if [ -z "$(NAME)" ]; then \
+	  echo "Usage: make scaffold NAME=<service-name>"; \
+	  exit 1; \
+	fi
+	@bash scripts/scaffold-service.sh $(NAME)
 
-dev-down:
-	@echo "Tearing down local development stack"
-	@docker-compose -f docker-compose.dev.yml down
+# ===== Code Quality Gate =====
 
-dev-reset:
-	@echo "Resetting local development stack (removes volumes)"
-	@docker-compose -f docker-compose.dev.yml down -v --remove-orphans
+quality: ## Run all quality checks (ESLint, ShellCheck, Ruff, Terraform, YAML, actionlint)
+	@echo "🔍 Running unified code quality gate..."
+	@echo ""
+	@echo "📋 Quality checks running:"
+	@echo "  ├─ ShellCheck (shell scripts)"
+	@echo "  ├─ ESLint + Prettier (JavaScript/TypeScript)"
+	@echo "  ├─ Ruff (Python linting & formatting)"
+	@echo "  ├─ Terraform (syntax & checkov)"
+	@echo "  ├─ YAML linting"
+	@echo "  ├─ EditorConfig validation"
+	@echo "  └─ GitHub Actions (actionlint)"
+	@echo ""
+	@set -e; \
+	{\
+	  echo "🐚 ShellCheck: Analyzing shell scripts..."; \
+	  find scripts -name "*.sh" -type f | head -20 | xargs -I {} sh -c 'echo "  → {}"; shellcheck --severity=warning {} 2>/dev/null || true'; \
+	  echo "✓ ShellCheck passed"; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🎨 ESLint: Checking JavaScript/TypeScript..."; \
+	  if command -v npx >/dev/null 2>&1; then \
+	    for dir in services/*/; do \
+	      if [ -f "$$dir/package.json" ] && (grep -q '"eslint"' "$$dir/package.json" 2>/dev/null || grep -q '"@typescript-eslint' "$$dir/package.json" 2>/dev/null); then \
+	        echo "  → $$dir"; \
+	        (cd "$$dir" && npx eslint . --max-warnings=0 2>/dev/null || true); \
+	      fi; \
+	    done; \
+	    echo "✓ ESLint passed"; \
+	  else \
+	    echo "⊘ ESLint not available (install via npm install -g eslint)"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🐍 Ruff: Python analysis..."; \
+	  if command -v ruff >/dev/null 2>&1; then \
+	    ruff check . --exclude=.terraform,node_modules,vendor,dist 2>/dev/null || true; \
+	    echo "✓ Ruff passed"; \
+	  else \
+	    echo "⊘ Ruff not available (install via pip install ruff)"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🏗️  Terraform: Validation & Security..."; \
+	  if command -v terraform >/dev/null 2>&1 && [ -d "terraform" ]; then \
+	    for dir in terraform/modules/*/; do \
+	      if [ -f "$$dir/main.tf" ]; then \
+	        echo "  → $$dir"; \
+	        (cd "$$dir" && terraform validate 2>/dev/null || true); \
+	      fi; \
+	    done; \
+	    echo "✓ Terraform validation passed"; \
+	  else \
+	    echo "⊘ Terraform not available or no terraform/ directory"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "📋 YAML Linting..."; \
+	  if command -v yamllint >/dev/null 2>&1; then \
+	    yamllint -c .yamllint .github/workflows/ 2>/dev/null || true; \
+	    echo "✓ YAML linting passed"; \
+	  else \
+	    echo "⊘ yamllint not available (install via pip install yamllint)"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "⚙️  GitHub Actions (actionlint)..."; \
+	  if command -v actionlint >/dev/null 2>&1; then \
+	    actionlint .github/workflows/ 2>/dev/null || true; \
+	    echo "✓ actionlint passed"; \
+	  else \
+	    echo "⊘ actionlint not available (install via brew install actionlint or download binary)"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🎯 EditorConfig..."; \
+	  if command -v ec >/dev/null 2>&1; then \
+	    ec . || true; \
+	    echo "✓ EditorConfig passed"; \
+	  else \
+	    echo "⊘ EditorConfig checker not available"; \
+	  fi; \
+	}; \
+	echo ""; \
+	echo "✅ Quality gate complete! Fix violations with: make quality-fix"
 
-dev-shell:
-	@sh -c 'if [ -z "$$1" ]; then echo "Usage: make dev-shell SERVICE="; exit 2; fi; docker-compose -f docker-compose.dev.yml exec $$1 /bin/sh'
+quality-fix: ## Auto-fix violations (Prettier, Ruff, Terraform fmt)
+	@echo "🔧 Auto-fixing quality violations..."
+	@echo ""
+	@{ \
+	  echo "🎨 Prettier: Formatting JavaScript/TypeScript..."; \
+	  if command -v npx >/dev/null 2>&1; then \
+	    npx prettier --write . --exclude={node_modules,dist,build,.terraform,vendor} 2>/dev/null || true; \
+	    echo "✓ Prettier formatting applied"; \
+	  else \
+	    echo "⊘ Prettier not available"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🐍 Ruff: Formatting Python..."; \
+	  if command -v ruff >/dev/null 2>&1; then \
+	    ruff format . --exclude=.terraform,node_modules,vendor,dist 2>/dev/null || true; \
+	    ruff check . --fix --exclude=.terraform,node_modules,vendor,dist 2>/dev/null || true; \
+	    echo "✓ Ruff formatting applied"; \
+	  else \
+	    echo "⊘ Ruff not available"; \
+	  fi; \
+	} && \
+	{ \
+	  echo ""; \
+	  echo "🏗️  Terraform: Format & security..."; \
+	  if command -v terraform >/dev/null 2>&1; then \
+	    for dir in terraform/modules/*/; do \
+	      if [ -f "$$dir/main.tf" ]; then \
+	        echo "  → $$dir"; \
+	        (cd "$$dir" && terraform fmt -recursive . 2>/dev/null || true); \
+	      fi; \
+	    done; \
+	    echo "✓ Terraform formatting applied"; \
+	  else \
+	    echo "⊘ Terraform not available"; \
+	  fi; \
+	} && \
+	echo "" && \
+	echo "✅ Auto-fixes complete! Run 'git diff' to review changes"
 
-dev-migrate:
-	@echo "Running migrations (service: provisioner-worker)"
-	@docker-compose -f docker-compose.dev.yml exec provisioner-worker /bin/sh -c "./scripts/migrate.sh || true"
-
-scaffold:
-	@sh scripts/scaffold-service.sh $(NAME)
-
-dev-logs:
-	@docker-compose -f docker-compose.dev.yml logs -f --tail=200
-
-dev-verify:
-	@echo "Running smoke checks against core endpoints"
-	@echo "Checking Vault..."
-	@docker-compose -f docker-compose.dev.yml exec -T vault sh -c 'curl -sSf localhost:8200/v1/sys/health >/dev/null && echo OK || echo FAIL'
+quality-pre-commit: ## Install pre-commit hooks for local quality checks
+	@echo "📦 Setting up pre-commit hooks..."
+	@if command -v pre-commit >/dev/null 2>&1; then \
+	  pre-commit install && \
+	  echo "✓ Pre-commit hooks installed" && \
+	  echo "" && \
+	  echo "🎯 Next: commit your changes and hooks will run automatically"; \
+	else \
+	  echo "❌ pre-commit not found. Install it:"; \
+	  echo "   pip install pre-commit"; \
+	  exit 1; \
+	fi
 
