@@ -1,0 +1,112 @@
+Integration test started: Mon Mar  9 04:56:48 PM UTC 2026
+[1] Service statuses on worker
+● vault-agent.service - Vault Agent
+     Loaded: loaded (/etc/systemd/system/vault-agent.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 16:56:13 UTC; 35s ago
+   Main PID: 2922456 (vault)
+      Tasks: 13 (limit: 76719)
+     Memory: 24.2M (peak: 25.5M)
+        CPU: 94ms
+     CGroup: /system.slice/vault-agent.service
+             └─2922456 /usr/local/bin/vault agent -config=/etc/vault/agent-config.hcl
+
+Mar 09 16:56:15 dev-elevatediq vault[2922456]: 2026-03-09T16:56:15.636Z [INFO]  agent.auth.handler: authenticating
+Mar 09 16:56:15 dev-elevatediq vault[2922456]: 2026-03-09T16:56:15.658Z [ERROR] agent.auth.handler: error authenticating: error="Put \"http://vault.service.consul:8200/v1/auth/approle/login\": dial tcp: lookup vault.service.consul on 127.0.0.53:53: no such host" backoff=1.44s
+Mar 09 16:56:18 dev-elevatediq vault[2922456]: 2026-03-09T16:56:18.006Z [INFO]  agent.auth.handler: authenticating
+Mar 09 16:56:18 dev-elevatediq vault[2922456]: 2026-03-09T16:56:18.027Z [ERROR] agent.auth.handler: error authenticating: error="Put \"http://vault.service.consul:8200/v1/auth/approle/login\": dial tcp: lookup vault.service.consul on 127.0.0.53:53: no such host" backoff=2.34s
+Mar 09 16:56:22 dev-elevatediq vault[2922456]: 2026-03-09T16:56:22.542Z [INFO]  agent.auth.handler: authenticating
+Mar 09 16:56:22 dev-elevatediq vault[2922456]: 2026-03-09T16:56:22.562Z [ERROR] agent.auth.handler: error authenticating: error="Put \"http://vault.service.consul:8200/v1/auth/approle/login\": dial tcp: lookup vault.service.consul on 127.0.0.53:53: no such host" backoff=4.51s
+Mar 09 16:56:30 dev-elevatediq vault[2922456]: 2026-03-09T16:56:30.583Z [INFO]  agent.auth.handler: authenticating
+Mar 09 16:56:30 dev-elevatediq vault[2922456]: 2026-03-09T16:56:30.611Z [ERROR] agent.auth.handler: error authenticating: error="Put \"http://vault.service.consul:8200/v1/auth/approle/login\": dial tcp: lookup vault.service.consul on 127.0.0.53:53: no such host" backoff=8.02s
+Mar 09 16:56:45 dev-elevatediq vault[2922456]: 2026-03-09T16:56:45.935Z [INFO]  agent.auth.handler: authenticating
+Mar 09 16:56:45 dev-elevatediq vault[2922456]: 2026-03-09T16:56:45.958Z [ERROR] agent.auth.handler: error authenticating: error="Put \"http://vault.service.consul:8200/v1/auth/approle/login\": dial tcp: lookup vault.service.consul on 127.0.0.53:53: no such host" backoff=15.32s
+
+● node_exporter.service - Prometheus Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 15:11:44 UTC; 1h 45min ago
+   Main PID: 2470292 (node_exporter)
+      Tasks: 5 (limit: 76719)
+     Memory: 4.8M (peak: 8.1M)
+        CPU: 92ms
+     CGroup: /system.slice/node_exporter.service
+             └─2470292 /usr/local/bin/node_exporter "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys)(\$|/)" "--collector.netdev.device-exclude=^(veth.*)\$"
+
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+Mar 09 15:11:46 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T15:11:46.873Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp [::1" msg="]:9100->[::1]:39650: write: connection reset by peer"
+
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 16:56:27 UTC; 21s ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2923693 (filebeat)
+      Tasks: 25 (limit: 76719)
+     Memory: 62.2M (peak: 65.3M)
+        CPU: 291ms
+     CGroup: /system.slice/filebeat.service
+             └─2923693 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 16:56:32 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:32.593Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:32 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:32.593Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:36.752Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T16:56:36.752Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 3 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:36.772Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:36.772Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:47.702Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T16:56:47.702Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 4 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:47.725Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:47.725Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+[2] Prometheus metrics endpoint
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.3266e-05
+go_gc_duration_seconds{quantile="0.25"} 2.9352e-05
+go_gc_duration_seconds{quantile="0.5"} 3.5934e-05
+go_gc_duration_seconds{quantile="0.75"} 4.13e-05
+go_gc_duration_seconds{quantile="1"} 7.2732e-05
+go_gc_duration_seconds_sum 0.001994151
+go_gc_duration_seconds_count 54
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 7
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.19.3"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 879744
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+curl: (23) Failure writing output to destination
+[3] Test Vault credential retrieval via helper
+Error: No Vault token available
+Vault credential retrieval failed
+[4] Verify Filebeat is shipping (local log)
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 16:56:27 UTC; 22s ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2923693 (filebeat)
+      Tasks: 25 (limit: 76719)
+     Memory: 62.2M (peak: 65.3M)
+        CPU: 291ms
+     CGroup: /system.slice/filebeat.service
+             └─2923693 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 16:56:32 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:32.593Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:32 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:32.593Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:36.752Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T16:56:36.752Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 3 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:36.772Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:36 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:36.772Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T16:56:47.702Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T16:56:47.702Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 4 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 16:56:47 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T16:56:47.725Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Integration test completed: Mon Mar  9 04:56:49 PM UTC 2026

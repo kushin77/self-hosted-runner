@@ -1,0 +1,112 @@
+Integration test started: Mon Mar  9 05:01:38 PM UTC 2026
+[1] Service statuses on worker
+● vault-agent.service - Vault Agent
+     Loaded: loaded (/etc/systemd/system/vault-agent.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:01:36 UTC; 2s ago
+   Main PID: 2944863 (vault)
+      Tasks: 20 (limit: 76719)
+     Memory: 24.7M (peak: 26.3M)
+        CPU: 71ms
+     CGroup: /system.slice/vault-agent.service
+             └─2944863 /usr/local/bin/vault agent -config=/etc/vault/agent-config.hcl
+
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent.exec.server: no env templates or exec config, exiting
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent.sink.server: starting sink server
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent.template.server: starting template server
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent.auth.handler: starting auth handler
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent.auth.handler: authenticating
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent: (runner) creating new runner (dry: false, once: false)
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [ERROR] agent.auth.handler: error getting path or data from method: error="error reading secret ID file and no cached secret ID known: open /etc/vault/secret-id.txt: permission denied" backoff=940ms
+Mar 09 17:01:36 dev-elevatediq vault[2944863]: 2026-03-09T17:01:36.387Z [INFO]  agent: (runner) creating watcher
+Mar 09 17:01:37 dev-elevatediq vault[2944863]: 2026-03-09T17:01:37.332Z [INFO]  agent.auth.handler: authenticating
+Mar 09 17:01:37 dev-elevatediq vault[2944863]: 2026-03-09T17:01:37.332Z [ERROR] agent.auth.handler: error getting path or data from method: error="error reading secret ID file and no cached secret ID known: open /etc/vault/secret-id.txt: permission denied" backoff=940ms
+
+● node_exporter.service - Prometheus Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 15:11:44 UTC; 1h 49min ago
+   Main PID: 2470292 (node_exporter)
+      Tasks: 5 (limit: 76719)
+     Memory: 6.8M (peak: 8.1M)
+        CPU: 131ms
+     CGroup: /system.slice/node_exporter.service
+             └─2470292 /usr/local/bin/node_exporter "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys)(\$|/)" "--collector.netdev.device-exclude=^(veth.*)\$"
+
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.043Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.043Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.043Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.043Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+Mar 09 16:56:49 dev-elevatediq node_exporter[2470292]: ts=2026-03-09T16:56:49.044Z caller=stdlib.go:105 level=error caller="error encoding and sending metric family: write tcp 127.0.0.1:9100" msg="->127.0.0.1:18212: write: broken pipe"
+
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 16:56:27 UTC; 5min ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2923693 (filebeat)
+      Tasks: 25 (limit: 76719)
+     Memory: 64.4M (peak: 65.3M)
+        CPU: 440ms
+     CGroup: /system.slice/filebeat.service
+             └─2923693 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 17:01:26 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T17:01:26.727Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:01:26 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T17:01:26.727Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 17:01:27 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:27.150Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":67854336}}}},"cpu":{"system":{"ticks":110,"time":{"ms":10}},"total":{"ticks":430,"time":{"ms":20},"value":430},"user":{"ticks":320,"time":{"ms":10}}},"handles":{"limit":{"hard":524288,"soft":524288},"open":22},"info":{"ephemeral_id":"40c4f884-2d6b-4648-b1eb-d9ee5ac07f3d","uptime":{"ms":300073},"version":"8.10.3"},"memstats":{"gc_next":73608776,"memory_alloc":37757456,"memory_total":118212616,"rss":135028736},"runtime":{"goroutines":86}},"filebeat":{"events":{"active":4176},"harvester":{"open_files":12,"running":12}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":3}},"system":{"load":{"1":0.71,"15":1.01,"5":0.97,"norm":{"1":0.0355,"15":0.0505,"5":0.0485}}}},"ecs.version":"1.6.0"}}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/apport.log","state_id":"native::393506-64512","finished":false,"os_id":"393506-64512","harvester_id":"4c3b34cb-4640-40ec-882d-7322c679cb6a","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/ufw.log","state_id":"native::393285-64512","finished":false,"os_id":"393285-64512","harvester_id":"fd10c1db-c361-46e6-be51-cb2c4ffc5d06","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/alternatives.log","state_id":"native::396509-64512","finished":false,"os_id":"396509-64512","harvester_id":"45f23707-b9e7-4e62-9019-70d7eccf1dc3","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/haproxy.log","state_id":"native::393252-64512","finished":false,"os_id":"393252-64512","harvester_id":"546c1633-5ba0-49ea-bf2e-ea20434ac659","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.169Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/cloud-init-output.log","state_id":"native::397080-64512","finished":false,"os_id":"397080-64512","harvester_id":"52da9f92-a9d5-4f0a-ac49-c36f1ecb4b59","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.170Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/fontconfig.log","state_id":"native::401771-64512","finished":false,"os_id":"401771-64512","harvester_id":"042c73e2-420b-4253-92f4-ebffb254c519","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.217Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/cloud-init.log","state_id":"native::397079-64512","finished":false,"os_id":"397079-64512","harvester_id":"c2e512d3-cf5c-4866-be45-7ee7145cff26","ecs.version":"1.6.0"}
+[2] Prometheus metrics endpoint
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.3266e-05
+go_gc_duration_seconds{quantile="0.25"} 2.916e-05
+go_gc_duration_seconds{quantile="0.5"} 3.5561e-05
+go_gc_duration_seconds{quantile="0.75"} 4.1065e-05
+go_gc_duration_seconds{quantile="1"} 7.2732e-05
+go_gc_duration_seconds_sum 0.002124161
+go_gc_duration_seconds_count 58
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 7
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.19.3"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 880400
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+curl: (23) Failure writing output to destination
+[3] Test Vault credential retrieval via helper
+Error: No Vault token available
+Vault credential retrieval failed
+[4] Verify Filebeat is shipping (local log)
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 16:56:27 UTC; 5min ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 2923693 (filebeat)
+      Tasks: 25 (limit: 76719)
+     Memory: 64.4M (peak: 65.3M)
+        CPU: 440ms
+     CGroup: /system.slice/filebeat.service
+             └─2923693 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 09 17:01:26 dev-elevatediq filebeat[2923693]: {"log.level":"warn","@timestamp":"2026-03-09T17:01:26.727Z","log.logger":"transport","log.origin":{"file.name":"transport/tcp.go","file.line":52},"message":"DNS lookup failure \"elk.internal\": lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 09 17:01:26 dev-elevatediq filebeat[2923693]: {"log.level":"error","@timestamp":"2026-03-09T17:01:26.727Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing lookup elk.internal on 127.0.0.53:53: no such host","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 09 17:01:27 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:27.150Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":67854336}}}},"cpu":{"system":{"ticks":110,"time":{"ms":10}},"total":{"ticks":430,"time":{"ms":20},"value":430},"user":{"ticks":320,"time":{"ms":10}}},"handles":{"limit":{"hard":524288,"soft":524288},"open":22},"info":{"ephemeral_id":"40c4f884-2d6b-4648-b1eb-d9ee5ac07f3d","uptime":{"ms":300073},"version":"8.10.3"},"memstats":{"gc_next":73608776,"memory_alloc":37757456,"memory_total":118212616,"rss":135028736},"runtime":{"goroutines":86}},"filebeat":{"events":{"active":4176},"harvester":{"open_files":12,"running":12}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":3}},"system":{"load":{"1":0.71,"15":1.01,"5":0.97,"norm":{"1":0.0355,"15":0.0505,"5":0.0485}}}},"ecs.version":"1.6.0"}}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/apport.log","state_id":"native::393506-64512","finished":false,"os_id":"393506-64512","harvester_id":"4c3b34cb-4640-40ec-882d-7322c679cb6a","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/ufw.log","state_id":"native::393285-64512","finished":false,"os_id":"393285-64512","harvester_id":"fd10c1db-c361-46e6-be51-cb2c4ffc5d06","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/alternatives.log","state_id":"native::396509-64512","finished":false,"os_id":"396509-64512","harvester_id":"45f23707-b9e7-4e62-9019-70d7eccf1dc3","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.168Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/haproxy.log","state_id":"native::393252-64512","finished":false,"os_id":"393252-64512","harvester_id":"546c1633-5ba0-49ea-bf2e-ea20434ac659","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.169Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/cloud-init-output.log","state_id":"native::397080-64512","finished":false,"os_id":"397080-64512","harvester_id":"52da9f92-a9d5-4f0a-ac49-c36f1ecb4b59","ecs.version":"1.6.0"}
+Mar 09 17:01:32 dev-elevatediq filebeat[2923693]: {"log.level":"info","@timestamp":"2026-03-09T17:01:32.170Z","log.logger":"input.harvester","log.origin":{"file.name":"log/harvester.go","file.line":342},"message":"File is inactive. Closing because close_inactive of 5m0s reached.","service.name":"filebeat","input_id":"9791d9e5-64b1-42ae-9894-f576b70258a4","source_file":"/var/log/fontconfig.log","state_id":"native::401771-64512","finished":false,"os_id":"401771-64512","harvester_id":"042c73e2-420b-4253-92f4-ebffb254c519","ecs.version":"1.6.0"}
+Integration test completed: Mon Mar  9 05:01:38 PM UTC 2026
