@@ -266,6 +266,55 @@ jobs:
           retrieve-from: 'auto'
           cache-ttl: 600
           audit-log: true
+      - name: Get Credential [AWS_ROLE_TO_ASSUME]
+        id: cred_aws_role_to_assume
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_TO_ASSUME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [EXPOSED_AWS_KEY_IDS]
+        id: cred_exposed_aws_key_ids
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: EXPOSED_AWS_KEY_IDS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [EXPOSED_GCP_SA_EMAIL]
+        id: cred_exposed_gcp_sa_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: EXPOSED_GCP_SA_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [EXPOSED_VAULT_ROLE_IDS]
+        id: cred_exposed_vault_role_ids
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: EXPOSED_VAULT_ROLE_IDS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GCP_WORKLOAD_IDENTITY_PROVIDER]
+        id: cred_gcp_workload_identity_provider
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_WORKLOAD_IDENTITY_PROVIDER
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [git]
+        id: cred_git
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: git
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
 
 
 
