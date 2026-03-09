@@ -14,13 +14,16 @@ locals {
 
     # Bootstrap sequence (default):
     # 1) Install minimal packages (curl, jq) if missing
-    # 2) Deploy Vault Agent config + template + systemd unit from repo
-    # 3) Start/enable vault-agent.service
+    # 2) Deploy Vault Agent config + template + systemd unit from instance metadata (preferred)
+    #    or fall back to pulling from the repo raw URLs for quick testing
+    # 3) Start/enable vault-agent.service if vault is present
     # 4) Fetch and exec the runner-startup wrapper which performs OIDC->Vault login and registers the runner
 
     BOOTSTRAP_BASE="https://raw.githubusercontent.com/kushin77/self-hosted-runner/main"
     VAULT_AGENT_DIR="/etc/vault-agent"
     BOOTSTRAP_DIR="/tmp"
+    MD_URL_BASE="http://metadata.google.internal/computeMetadata/v1/instance/attributes"
+    MD_HEADER="-H Metadata-Flavor: Google"
 
     # Ensure basic tooling
     if ! command -v curl >/dev/null 2>&1; then
@@ -29,12 +32,28 @@ locals {
       fi
     fi
 
-    mkdir -p ${VAULT_AGENT_DIR}/templates
+    mkdir -p $${VAULT_AGENT_DIR}/templates
 
-    echo "Fetching Vault Agent configuration and template"
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.hcl" -o "${VAULT_AGENT_DIR}/vault-agent.hcl" || true
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/registry-creds.tpl" -o "${VAULT_AGENT_DIR}/templates/registry-creds.tpl" || true
-    curl -fsSL "${BOOTSTRAP_BASE}/scripts/identity/vault-agent/vault-agent.service" -o "/etc/systemd/system/vault-agent.service" || true
+    fetch_metadata_or_repo() {
+      local key="$1" dst="$2" repo_path="$3"
+      # Try metadata server first
+      if curl -fsS $${MD_URL_BASE}/$${key} $${MD_HEADER} -o "$${dst}"; then
+        echo "Wrote $${dst} from instance metadata ($${key})"
+        return 0
+      fi
+      # Fallback to raw repo
+      if curl -fsSL "$${BOOTSTRAP_BASE}/$${repo_path}" -o "$${dst}"; then
+        echo "Wrote $${dst} from repo fallback ($${repo_path})"
+        return 0
+      fi
+      echo "Warning: failed to fetch $${key} or $${repo_path}" >&2
+      return 1
+    }
+
+    echo "Installing Vault Agent artifacts (metadata preferred)"
+    fetch_metadata_or_repo "vault-agent.hcl" "$${VAULT_AGENT_DIR}/vault-agent.hcl" "scripts/identity/vault-agent/vault-agent.hcl" || true
+    fetch_metadata_or_repo "registry-creds.tpl" "$${VAULT_AGENT_DIR}/templates/registry-creds.tpl" "scripts/identity/vault-agent/registry-creds.tpl" || true
+    fetch_metadata_or_repo "vault-agent.service" "/etc/systemd/system/vault-agent.service" "scripts/identity/vault-agent/vault-agent.service" || true
 
     # Ensure vault binary exists (best-effort; recommend baking into image for production)
     if ! command -v vault >/dev/null 2>&1; then
@@ -45,13 +64,13 @@ locals {
     fi
 
     # Fetch and run the runner startup wrapper (handles OIDC->Vault bootstrap and runner registration)
-    RUNNER_STARTUP_URL="${BOOTSTRAP_BASE}/scripts/identity/runner-startup.sh"
-    RUNNER_STARTUP_PATH="${BOOTSTRAP_DIR}/runner-startup.sh"
-    echo "Fetching runner startup wrapper from ${RUNNER_STARTUP_URL}"
-    curl -fsSL "${RUNNER_STARTUP_URL}" -o "${RUNNER_STARTUP_PATH}" || true
-    chmod +x "${RUNNER_STARTUP_PATH}"
+    RUNNER_STARTUP_URL="$${BOOTSTRAP_BASE}/scripts/identity/runner-startup.sh"
+    RUNNER_STARTUP_PATH="$${BOOTSTRAP_DIR}/runner-startup.sh"
+    echo "Fetching runner startup wrapper from $${RUNNER_STARTUP_URL}"
+    curl -fsSL "$${RUNNER_STARTUP_URL}" -o "$${RUNNER_STARTUP_PATH}" || true
+    chmod +x "$${RUNNER_STARTUP_PATH}"
 
-    exec "${RUNNER_STARTUP_PATH}"
+    exec "$${RUNNER_STARTUP_PATH}"
   EOT
 
   metadata_base = {
@@ -67,9 +86,9 @@ locals {
   # need not bundle them. This allows the startup script to write files from
   # metadata on first boot and enable Vault Agent.
   metadata = var.inject_vault_agent_metadata ? merge(local.metadata_pre, {
-    "vault-agent.hcl"        = file("${path.root}/scripts/identity/vault-agent/vault-agent.hcl")
-    "vault-agent.service"    = file("${path.root}/scripts/identity/vault-agent/vault-agent.service")
-    "registry-creds.tpl"     = file("${path.root}/scripts/identity/vault-agent/registry-creds.tpl")
+    "vault-agent.hcl"        = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.hcl")
+    "vault-agent.service"    = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.service")
+    "registry-creds.tpl"     = file("${path.module}/../../../scripts/identity/vault-agent/registry-creds.tpl")
   }) : local.metadata_pre
 
   effective_allowed_egress_cidrs = distinct(compact(concat(var.required_egress_cidrs, var.allowed_egress_cidrs)))
@@ -89,10 +108,8 @@ resource "google_compute_instance_template" "runner_template" {
   disk {
     auto_delete = true
     boot        = true
-    initialize_params {
-      disk_size_gb = var.boot_disk_size_gb
-      disk_type    = var.boot_disk_type
-    }
+    disk_size_gb = var.boot_disk_size_gb
+    disk_type    = var.boot_disk_type
   }
 
   network_interface {
@@ -135,6 +152,8 @@ resource "google_compute_firewall" "runner_ingress_deny" {
   direction   = "INGRESS"
   priority    = 1000
   target_tags = local.runner_tags
+
+  source_ranges = ["0.0.0.0/0"]
 
   deny {
     protocol = "all"
