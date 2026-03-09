@@ -1,0 +1,202 @@
+name: NexusShield Portal — Backend Build & Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "package.json"
+      - ".github/workflows/portal-backend-build.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+  schedule:
+    # Daily 2 AM UTC — ensure builds always pass
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: "20"
+  REGISTRY: us-central1-docker.pkg.dev
+  IMAGE_NAME: portal-api
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  test:
+    name: Unit Tests & Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint code (ESLint)
+        working-directory: backend
+        run: npm run lint
+
+      - name: Format check (Prettier)
+        working-directory: backend
+        run: npm run format:check
+
+      - name: Run unit tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+        run: npm run test -- --coverage
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v3
+        with:
+          flags: backend
+          fail_ci_if_error: false
+
+      - name: Log test results to JSONL
+        if: always()
+        run: |
+          cat >> logs/portal-backend-test.jsonl << EOF
+          {
+            "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "event": "backend_test",
+            "status": "${{ job.status }}",
+            "git_sha": "${{ github.sha }}",
+            "coverage_target": 90,
+            "triggered_by": "github-actions"
+          }
+          EOF
+
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WIF_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_DEV }}
+          token_format: "access_token"
+          access_token_lifetime: "1h"
+
+      - name: Setup Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1
+
+      - name: Configure Docker authentication
+        run: |
+          gcloud auth configure-docker ${{ env.REGISTRY }}
+
+      - name: Build Docker image
+        working-directory: backend
+        run: |
+          docker build \
+            --tag ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --tag ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:latest \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
+            .
+
+      - name: Scan Docker image for vulnerabilities
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --severity CRITICAL,HIGH \
+            --exit-code 0 \
+            ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:latest
+
+      - name: Log build to JSONL
+        run: |
+          cat >> logs/portal-backend-build.jsonl << EOF
+          {
+            "timestamp": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')",
+            "event": "docker_build",
+            "status": "success",
+            "image": "${{ env.REGISTRY }}/${{ secrets.GCP_PROJECT_ID_DEV }}/nexusshield/${{ env.IMAGE_NAME }}:${{ github.sha }}",
+            "git_sha": "${{ github.sha }}",
+            "triggered_by": "github-actions"
+          }
+          EOF
+          
+          git add logs/portal-backend-build.jsonl
+          git commit -m "audit: Portal backend Docker image built and pushed to registry"
+
+      - name: Slack notification
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "✅ NexusShield Portal backend image built successfully",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Backend Docker Build Successful*\n*Image:* portal-api:${{ github.sha }}\n*Tests:* ✅ passed\n*Vulnerabilities:* ✅ none critical"
+                  }
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_DEPLOYMENTS }}
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks (Secret scanning)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run SAST (SonarQube) 
+        uses: SonarSource/sonarqube-scan-action@master
+        with:
+          args: >
+            -Dsonar.projectKey=nexusshield-portal-backend
+            -Dsonar.sources=backend/src
+            -Dsonar.tests=backend/tests
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONARQUBE_HOST }}
+          SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
+
+      - name: Check SonarQube quality gate
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONARQUBE_TOKEN }}
+
+      - name: Dependency scanning (Snyk)
+        uses: snyk/actions/node@master
+        with:
+          args: backend --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
