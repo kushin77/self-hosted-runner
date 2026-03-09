@@ -25,6 +25,7 @@ on:
         value: ${{ jobs.execute-guard.outputs.passed }}
 
 permissions:
+  id-token: write
   contents: read
   issues: write
   pull-requests: read
