@@ -45,6 +45,63 @@ jobs:
 
       - name: Check if image exists locally
         id: validate
+      - name: Get Credential [AWS_ACCOUNT_ID]
+        id: cred_aws_account_id
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ACCOUNT_ID
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_REGION]
+        id: cred_aws_region
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_REGION
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DOCKERHUB_PASSWORD]
+        id: cred_dockerhub_password
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DOCKERHUB_PASSWORD
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [DOCKERHUB_USERNAME]
+        id: cred_dockerhub_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: DOCKERHUB_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_HOST]
+        id: cred_registry_host
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_HOST
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_PASSWORD]
+        id: cred_registry_password
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_PASSWORD
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [REGISTRY_USERNAME]
+        id: cred_registry_username
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: REGISTRY_USERNAME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           set -euo pipefail
 
@@ -104,12 +161,12 @@ jobs:
 
           case "$registry" in
             docker-hub)
-              if [ -z "${{ secrets.DOCKERHUB_USERNAME }}" ]; then
+              if [ -z "${{ steps.cred_dockerhub_username.outputs.credential }}" ]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
                 echo "⚠️ Docker Hub credentials not configured"
               else
                 echo "host=docker.io" >> "$GITHUB_OUTPUT"
-                echo "org=${{ secrets.DOCKERHUB_USERNAME }}" >> "$GITHUB_OUTPUT"
+                echo "org=${{ steps.cred_dockerhub_username.outputs.credential }}" >> "$GITHUB_OUTPUT"
                 echo "enabled=true" >> "$GITHUB_OUTPUT"
               fi
               ;;
@@ -123,19 +180,19 @@ jobs:
               fi
               ;;
             ecr)
-              if [ -z "${{ secrets.AWS_ACCOUNT_ID }}" ] || [ -z "${{ secrets.AWS_REGION }}" ]; then
+              if [ -z "${{ steps.cred_aws_account_id.outputs.credential }}" ] || [ -z "${{ steps.cred_aws_region.outputs.credential }}" ]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
               else
-                echo "host=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com" >> "$GITHUB_OUTPUT"
+                echo "host=${{ steps.cred_aws_account_id.outputs.credential }}.dkr.ecr.${{ steps.cred_aws_region.outputs.credential }}.amazonaws.com" >> "$GITHUB_OUTPUT"
                 echo "org=self-hosted-runner" >> "$GITHUB_OUTPUT"
                 echo "enabled=true" >> "$GITHUB_OUTPUT"
               fi
               ;;
             custom)
-              if [ -z "${{ secrets.REGISTRY_HOST }}" ]; then
+              if [ -z "${{ steps.cred_registry_host.outputs.credential }}" ]; then
                 echo "enabled=false" >> "$GITHUB_OUTPUT"
               else
-                echo "host=${{ secrets.REGISTRY_HOST }}" >> "$GITHUB_OUTPUT"
+                echo "host=${{ steps.cred_registry_host.outputs.credential }}" >> "$GITHUB_OUTPUT"
                 echo "org=${{ secrets.REGISTRY_ORG || 'library' }}" >> "$GITHUB_OUTPUT"
                 echo "enabled=true" >> "$GITHUB_OUTPUT"
               fi
@@ -165,8 +222,8 @@ jobs:
 
           case "$REGISTRY_TYPE" in
             docker-hub)
-              docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" \
-                -p "${{ secrets.DOCKERHUB_PASSWORD }}" && \
+              docker login -u "${{ steps.cred_dockerhub_username.outputs.credential }}" \
+                -p "${{ steps.cred_dockerhub_password.outputs.credential }}" && \
                 echo "success=true" >> "$GITHUB_OUTPUT" || \
                 echo "success=false" >> "$GITHUB_OUTPUT"
               ;;
@@ -176,14 +233,14 @@ jobs:
                 echo "success=false" >> "$GITHUB_OUTPUT"
               ;;
             ecr)
-              aws ecr get-login-password --region "${{ secrets.AWS_REGION }}" | \
+              aws ecr get-login-password --region "${{ steps.cred_aws_region.outputs.credential }}" | \
                 docker login -u AWS --password-stdin "$REGISTRY_HOST" && \
                 echo "success=true" >> "$GITHUB_OUTPUT" || \
                 echo "success=false" >> "$GITHUB_OUTPUT"
               ;;
             custom)
-              docker login -u "${{ secrets.REGISTRY_USERNAME }}" \
-                -p "${{ secrets.REGISTRY_PASSWORD }}" "$REGISTRY_HOST" && \
+              docker login -u "${{ steps.cred_registry_username.outputs.credential }}" \
+                -p "${{ steps.cred_registry_password.outputs.credential }}" "$REGISTRY_HOST" && \
                 echo "success=true" >> "$GITHUB_OUTPUT" || \
                 echo "success=false" >> "$GITHUB_OUTPUT"
               ;;
