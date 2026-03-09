@@ -35,7 +35,7 @@ This document provides step-by-step instructions for executing Phases 2-3 of the
 - Ready for vault-agent deployment
 
 ### Next Steps
-1. Deploy vault-agent to bastion (192.168.168.31)
+1. Deploy vault-agent to bastion (192.168.168.42)
 2. Configure vault-agent to use AppRole credentials
 3. Deploy watcher service to consume credentials
 
@@ -242,7 +242,7 @@ gcloud iam service-accounts describe \
 #### Step 6: Store Service Account Key Securely
 ```bash
 # Copy SA key to target location (on bastion)
-scp /tmp/runner-sa-key.json akushnir@192.168.168.31:/var/run/secrets/gcp-sa.json
+scp /tmp/runner-sa-key.json akushnir@192.168.168.42:/var/run/secrets/gcp-sa.json
 
 # Or encode for storage in Vault
 cat /tmp/runner-sa-key.json | base64 -w0 | vault kv put secret/gcp-sa-key key=@-
@@ -297,7 +297,7 @@ Once Phases 1-3 are complete, deploy vault-agent for automatic credential rotati
 ```bash
 # Deploy vault-agent with AppRole credentials
 bash scripts/deploy-vault-agent-to-bastion.sh \
-    --bastion 192.168.168.31 \
+    --bastion 192.168.168.42 \
     --vault-addr https://vault.aws.example.com:8200 \
     --verbose
 
