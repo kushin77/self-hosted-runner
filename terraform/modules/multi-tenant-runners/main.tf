@@ -114,8 +114,9 @@ resource "google_compute_instance_template" "runner_template" {
   }
 
   network_interface {
-    network    = var.vpc_id
-    subnetwork = var.subnet_ids[0]
+    network            = var.vpc_id
+    subnetwork         = var.subnet_ids[0]
+    subnetwork_project = var.project
   }
 
   dynamic "service_account" {
