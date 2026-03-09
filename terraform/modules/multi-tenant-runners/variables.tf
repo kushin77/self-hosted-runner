@@ -1,3 +1,8 @@
+variable "project" {
+  description = "GCP project ID for resource deployment"
+  type        = string
+}
+
 variable "tenant_id" {
   description = "Identifier for the specific tenant or engineering group"
   type        = string

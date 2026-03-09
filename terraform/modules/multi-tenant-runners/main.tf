@@ -100,6 +100,7 @@ locals {
 resource "google_compute_instance_template" "runner_template" {
   name_prefix  = "runner-${var.tenant_id}-"
   machine_type = var.machine_type
+  project      = var.project
   region       = var.region
   tags         = local.runner_tags
   labels       = local.runner_labels
@@ -134,6 +135,7 @@ resource "google_compute_firewall" "runner_ingress_allow" {
   count       = length(var.allowed_ingress_cidrs) > 0 ? 1 : 0
   name        = "runner-${var.tenant_id}-allow-ingress"
   network     = var.vpc_id
+  project     = var.project
   direction   = "INGRESS"
   priority    = 100
   target_tags = local.runner_tags
@@ -149,6 +151,7 @@ resource "google_compute_firewall" "runner_ingress_allow" {
 resource "google_compute_firewall" "runner_ingress_deny" {
   name        = "runner-${var.tenant_id}-deny-ingress"
   network     = var.vpc_id
+  project     = var.project
   direction   = "INGRESS"
   priority    = 1000
   target_tags = local.runner_tags
@@ -164,6 +167,7 @@ resource "google_compute_firewall" "runner_egress_allow" {
   count              = length(local.effective_allowed_egress_cidrs) > 0 ? 1 : 0
   name               = "runner-${var.tenant_id}-allow-egress"
   network            = var.vpc_id
+  project            = var.project
   direction          = "EGRESS"
   priority           = 100
   target_tags        = local.runner_tags
@@ -178,6 +182,7 @@ resource "google_compute_firewall" "runner_egress_allow" {
 resource "google_compute_firewall" "runner_egress_deny" {
   name        = "runner-${var.tenant_id}-deny-egress"
   network     = var.vpc_id
+  project     = var.project
   direction   = "EGRESS"
   priority    = 1000
   target_tags = local.runner_tags
