@@ -34,7 +34,7 @@ jobs:
           for wf in "${CRITICAL_WFS[@]}"; do
             LATEST=$(gh run list --repo "${REPO}" --workflow "$wf" --limit 1 --json status,conclusion,createdAt --jq '.[0]' 2>/dev/null || echo '{}')
             STATUS=$(echo "$LATEST" | jq -r '.status // "unknown"')
-            
+
             if [ "$STATUS" = "unknown" ] || [ -z "$LATEST" ]; then
               echo "⚠️  WARNING: No recent runs for $wf"
               UNHEALTHY=$((UNHEALTHY + 1))

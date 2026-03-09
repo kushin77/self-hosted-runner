@@ -196,7 +196,7 @@ jobs:
 
           for workflow in "${REQUIRED[@]}"; do
             RUNS=$(gh run list --repo "${REPO}" --workflow "$workflow" --limit 5 --json id --jq 'length')
-            
+
             if [ $RUNS -gt 0 ]; then
               echo "✅ $workflow: audit trail complete ($RUNS recent runs)"
             else

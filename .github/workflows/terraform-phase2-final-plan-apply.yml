@@ -106,33 +106,33 @@ jobs:
           cat > terraform/terraform.tfvars <<'EOF'
           # Auto-generated from GitHub Secrets for Phase 2 Terraform Plan/Apply
           # Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          
+
           # AWS Variables
           aws_region = "${AWS_REGION}"
           vpc_id = "${VPC_ID}"
           subnet_ids = ${SUBNET_IDS}
           runner_token = "${RUNNER_TOKEN}"
-          
+
           # GitHub Variables
           github_owner = "${GITHUB_OWNER}"
           github_repo = "${GITHUB_REPO}"
-          
+
           # Project Variables
           project_name = "${PROJECT_NAME}"
           environment = "${ENVIRONMENT}"
-          
+
           # GCP Variables (for gcp-vault module)
           project_id = "${GCP_PROJECT_ID}"
           region = "${GCP_REGION}"
           bucket_prefix = "${BUCKET_PREFIX}"
           EOF
-          
+
           # Validate that critical variables are set
           if [ -z "$VPC_ID" ] || [ -z "$RUNNER_TOKEN" ]; then
             echo "::error::Critical variables missing (VPC_ID, RUNNER_TOKEN). Ensure GitHub Secrets are configured."
             exit 1
           fi
-          
+
           echo "::notice::terraform.tfvars generated successfully"
           echo "::endgroup::"
 
@@ -187,10 +187,10 @@ jobs:
             -input=false \
             -var-file=terraform.tfvars \
             -out=${{ needs.setup.outputs.plan_file }}
-          
+
           # Generate plan summary
           terraform show -no-color ${{ needs.setup.outputs.plan_file }} > ${{ needs.setup.outputs.plan_summary }}
-          
+
           # Count changes
           RESOURCE_CHANGES=$(terraform show -json ${{ needs.setup.outputs.plan_file }} | grep -o '"actions":\["create"\]\|"actions":\["update"\]\|"actions":\["delete"\]' | wc -l)
           echo "::notice::Resource changes detected: $RESOURCE_CHANGES"
@@ -238,19 +238,19 @@ jobs:
           echo "::group::Upload plan to MinIO"
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
           source .github/scripts/resilience.sh || true
-          
+
           # Upload plan file
           retry_command 3 5 ./scripts/minio/upload.sh \
             --file terraform/${{ needs.setup.outputs.plan_file }} \
             --bucket "${{ secrets.MINIO_BUCKET }}" \
             --object "terraform/plans/${{ needs.setup.outputs.plan_file }}"
-          
+
           # Upload summary
           retry_command 3 5 ./scripts/minio/upload.sh \
             --file terraform/${{ needs.setup.outputs.plan_summary }} \
             --bucket "${{ secrets.MINIO_BUCKET }}" \
             --object "terraform/plans/${{ needs.setup.outputs.plan_summary }}"
-          
+
           echo "::notice::Plan uploaded to MinIO for audit"
           echo "::endgroup::"
 
@@ -264,8 +264,8 @@ jobs:
     name: Terraform Apply (Full Repository)
     needs: [setup, fetch-aws-creds, terraform-plan]
     if: |
-      success() && 
-      github.event.inputs.auto_apply == 'true' && 
+      success() &&
+      github.event.inputs.auto_apply == 'true' &&
       github.ref == 'refs/heads/main'
     runs-on: [self-hosted, linux, self-hosted-heavy]
     concurrency:
@@ -322,7 +322,7 @@ jobs:
           cat > terraform/terraform.tfvars <<'EOF'
           # Auto-generated from GitHub Secrets for Phase 2 Terraform Apply
           # Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          
+
           aws_region = "${AWS_REGION}"
           vpc_id = "${VPC_ID}"
           subnet_ids = ${SUBNET_IDS}
@@ -367,13 +367,13 @@ jobs:
           set -euo pipefail
           echo "::group::Terraform Apply"
           source ../.github/scripts/resilience.sh || true
-          
+
           PLAN_FILE="../${{ needs.setup.outputs.plan_file }}"
           if [ ! -f "$PLAN_FILE" ]; then
             echo "::error::Plan file not found at $PLAN_FILE"
             exit 1
           fi
-          
+
           retry_command 2 10 terraform apply -input=false -auto-approve "$PLAN_FILE"
           echo "::notice::Terraform apply completed successfully"
           echo "::endgroup::"
@@ -406,22 +406,22 @@ jobs:
         run: |
           cat > completion-summary.md <<'EOF'
           ## Terraform Phase 2 Plan/Apply Summary
-          
+
           **Workflow ID:** ${{ github.run_id }}
           **Status:** ${{ job.status }}
           **Triggered by:** ${{ github.actor }}
           **Branch:** ${{ github.ref }}
-          
+
           ### Plan Results
           - Plan Status: ${{ needs.terraform-plan.result }}
           - Artifacts Available: plan, summary
-          
+
           ### Next Steps
           1. Review the uploaded plan artifacts
           2. If auto-apply is enabled and approved, apply will execute automatically
           3. Monitor infrastructure provisioning
           4. Verify in AWS and GCP consoles
-          
+
           **Artifacts:** Check GitHub Actions artifacts for plan details.
           EOF
           cat completion-summary.md

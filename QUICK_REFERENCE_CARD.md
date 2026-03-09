@@ -1,52 +1,261 @@
-# 🎯 QUICK REFERENCE CARD - SELF-HEALING INFRASTRUCTURE
+# 📋 OPERATIONS QUICK REFERENCE CARD
 
-**Status:** ✅ Complete and ready  
-**Date:** March 8, 2026  
+**Print this and keep it with you during on-call shifts**
+
+---
+
+## 🚨 EMERGENCY - DO THIS FIRST
+
+```
+Alert Type              Take Action                           Then Call
+─────────────           ─────────────────────────────         ──────────
+🔴 Cred Exposed    → bash revoke-now.sh                   → Primary + Sec
+🔴 Auth SLA < 99%  → bash sla-dashboard.sh               → Primary
+🔴 Rotation Failed → gh run view <ID> --json log         → Primary
+🔴 Multiple Red    → Don't wait - call Primary NOW       → Primary
+```
+
+**When in doubt, ESCALATE. Escalation is free.**
 
 ---
 
-## 📂 FILE LOCATIONS
+## 📞 ESCALATION (Copy These Numbers)
 
-### Core Implementation (13 Files)
+| Emergency | Call/Slack | Phone | Backup |
+|-----------|-----------|-------|--------|
+| **Immediate** | @primary | [PHONE] | After 5 min → @secondary |
+| **15+ min** | @incident-cmd | [PHONE] | Include Security lead |
+| **Confirmed breach** | @security-lead | [PHONE] | + Police/FBI if needed |
 
-**Workflows** (located in `.github/workflows/`)
-```
-✅ compliance-auto-fixer.yml
-✅ rotate-secrets.yml
-✅ setup-oidc-infrastructure.yml
-✅ revoke-keys.yml
-```
+**War Room:** [ZOOM/BRIDGE]
 
-**Scripts** (located in `.github/scripts/`)
-```
-✅ auto-remediate-compliance.py
-✅ rotate-secrets.sh
-✅ setup-oidc-wif.sh
-✅ setup-aws-oidc.sh
-✅ setup-vault-jwt.sh
-✅ revoke-exposed-keys.sh
-```
+---
 
-**Custom Actions** (located in `.github/actions/`)
-```
-✅ retrieve-secret-gsm/action.yml
-✅ retrieve-secret-vault/action.yml
-✅ retrieve-secret-kms/action.yml
-```
+## 🎯 CRITICAL COMMANDS
 
-### Documentation (6 Files)
+```bash
+# Situation: Status Dashboard
+bash .monitoring-hub/dashboards/sla-dashboard.sh
 
-**Location:** Repository root
-```
-✅ SELF_HEALING_INFRASTRUCTURE_DEPLOYMENT.md      (1,000+ lines - DETAILED GUIDE)
-✅ GITHUB_ISSUES_SELF_HEALING_DEPLOYMENT.md       (500+ lines - ISSUE TEMPLATES)
-✅ SELF_HEALING_INFRASTRUCTURE_DELIVERY_SUMMARY.md (300+ lines - EXECUTIVE SUMMARY)
-✅ SELF_HEALING_EXECUTION_CHECKLIST.md             (400+ lines - STEP-BY-STEP)
-✅ START_HERE_DO_THIS_NOW.md                       (400+ lines - QUICK START)
-✅ FINAL_STATUS_DELIVERY.md                        (300+ lines - STATUS REPORT)
+# Emergency: Revoke All Exposed Creds
+bash scripts/operations/emergency-test-suite.sh --execute revoke-exposed
+
+# Investigation: View Recent Threat Activity
+tail -100 .security-enhancements/threat-detection/threats-$(date +%Y%m%d).jsonl
+
+# Workflow: Check Failed Job Logs
+gh run view <RUN_ID> --json log | head -50
+
+# Recovery: Retry Failed Workflow  
+gh run rerun <RUN_ID>
+
+# Audit: Verify Trail Integrity
+bash .security-enhancements/audit-chain-of-custody.sh --verify
 ```
 
 ---
+
+## ⏱️ RESPONSE TIMES
+
+```
+🔴 CRITICAL
+├─ Time to Action: < 5 minutes (MAXIMUM)
+├─ Action: Execute emergency procedure
+├─ Escalate: Call primary + security immediately
+├─ Examples: Cred exposed, auth SLA broken
+└─ Post-action: Document in incidents/ directory
+
+🟠 HIGH
+├─ Time to Action: < 15 minutes  
+├─ Action: Investigate root cause
+├─ Escalate: If not resolved in 15 min, call primary
+├─ Examples: Rotation failed, SLA < 99.5%
+└─ Post-action: Brief team, update status
+
+🟡 MEDIUM
+├─ Time to Action: < 30 minutes
+├─ Action: Fix or workaround
+├─ Escalate: If not resolved in 30 min
+├─ Examples: Single failure, alert false positive
+└─ Post-action: Document for future
+
+🟢 LOW
+├─ Time to Action: < 1 hour
+├─ Action: Non-critical fix
+├─ Escalate: Only if blocking other work
+├─ Examples: Dashboard slow, log entry delayed
+└─ Post-action: Include in sprint
+```
+
+---
+
+## 🔍 QUICK DIAGNOSIS
+
+**Ask yourself:**
+
+```
+Q: Are customers affected?
+   YES → 🔴 CRITICAL (escalate now)
+   NO  → Check next question
+
+Q: Is this impacting > 10% of operations?
+   YES → 🟠 HIGH (15 min to escalate)
+   NO  → Check next question
+
+Q: Has this been happening > 5 minutes?
+   YES → 🟠 HIGH (investigate)
+   NO  → 🟡 MEDIUM (monitor & doc)
+```
+
+---
+
+## 🛠️ COMMON FIXES
+
+**Problem: Rotation Failed**
+```bash
+# Check logs
+gh run view <RUN_ID> --json log
+
+# Is it network? → Probably will auto-recover
+# Quick fix: Retry → gh run rerun <RUN_ID>
+
+# Is it permission? → Code change needed
+# Quick check: git log -5 (did someone change IAM?)
+# Fix: git revert <commit> --no-edit && git push
+
+# Is it quota? → Provider issue
+# Quick action: Escalate to Infrastructure
+```
+
+**Problem: Auth SLA Dropped**
+```bash
+# Check what backend is failing
+grep "failed" .operations-audit/*.jsonl | tail -20
+
+# Is GSM down? → Failover to Vault/KMS
+# Is Vault down? → Failover to GSM/KMS
+# Is KMS down? → Failover to GSM/Vault
+
+# All down? → Call Infrastructure (provider issue)
+```
+
+**Problem: Threat Detected**
+```bash
+# Verify it's real (check threat-detection log)
+tail -20 .security-enhancements/threat-detection/threats-*.jsonl
+
+# If real (actual cred exposure):
+bash scripts/revoke-exposed.sh
+
+# If false positive:
+# Contact security team
+# Update threat detection rules
+```
+
+---
+
+## 📊 HEALTHY SYSTEM LOOKS LIKE
+
+```
+Auth SLA:              ████████████████████ 99.9% ✓
+Rotation SLA:          ████████████████████ 100%  ✓
+Workflows Running:     ████████████████████ 79/79 ✓
+Scripts Executable:    ████████████████████ 374/374 ✓
+Audit Trail:           ████████████████████ 70/70 ✓
+Threat Detection:      █████░░░░░░░░░░░░░░  0 active ✓
+Health Check:          ████████████████████ All systems ✓
+```
+
+**If you see empty bars or red:**
+- 🔴 Check SLA dashboard: `bash sla-dashboard.sh`
+- 🔴 Check health: `bash health-dashboard.sh`
+- 🔴 Check threats: `tail threats-*.jsonl`
+- 🔴 Escalate if unsure
+
+---
+
+## 📝 INCIDENT DOCUMENTATION
+
+**When incident is over:**
+
+1. Create file: `.security-enhancements/incidents/incident-YYYYMMDD-HHmm.json`
+2. Include:
+   - What happened
+   - When it started/ended
+   - Root cause (if known)
+   - What you did to fix it
+   - What to do to prevent next time
+
+3. Notify team via Slack: `#incident-postmortem`
+
+---
+
+## 🚀 BOT COMMANDS (Auto-Recovery)
+
+System auto-executes every day:
+
+```
+02:00 UTC  → Credential rotation
+03:00 UTC  → Compliance report
+Every 1 hr → Health check
+Every 5 min→ Threat detection scan
+Every day  → Audit integrity check
+```
+
+**You probably don't need to run these manually unless emergency.**
+
+---
+
+## ✅ START OF SHIFT CHECKLIST
+
+- [ ] Read this quick ref card
+- [ ] Check current SLA: `bash sla-dashboard.sh`
+- [ ] Check health: `bash health-dashboard.sh`
+- [ ] Read previous shift's incident report (if any)
+- [ ] Verify escalation contacts are correct
+- [ ] Confirm War Room access works
+- [ ] Test a command: `gh run list | head -1`
+
+All green? You're ready. All systems operational. ✅
+
+---
+
+## 😓 WHEN YOU'RE STUCK
+
+**Step 1:** Check this card (you are here!)  
+**Step 2:** Check OPERATIONS_RUNBOOK.md (detailed procedures)  
+**Step 3:** Check CRITICAL_INCIDENT_RESPONSE_GUIDE.md (scenarios)  
+**Step 4:** Call Primary on-call (don't wait past 15 min)  
+
+**Do NOT:**
+- Make up your own procedures
+- Skip escalation "to solve it faster"
+- Modify production without code review
+- Keep it secret (document everything)
+
+---
+
+## 📞 EMERGENCY NUMBERS
+
+```
+Primary On-Call:  ________________  (Slack: @_________)
+Secondary:        ________________  (Slack: @_________)
+Incident Cmd:     ________________  (Slack: @_________)
+Security Lead:    ________________  (Slack: @_________)
+War Room:         ________________
+```
+
+*Write these in or add to your phone*
+
+---
+
+**REMEMBER:** 
+- System is designed to be self-healing
+- Your job is to monitor & escalate
+- Don't be a hero - that's what the team is for
+- Every minute counts in critical incidents
+
+**You've got this! Let's keep things running.** 🚀
 
 ## 🚀 WHAT TO DO NOW
 

@@ -63,7 +63,7 @@ jobs:
           set -euo pipefail
           ROLE_NAME="github-actions-terraform-backend"
           ROLE_ARN=$(aws iam get-role --role-name "$ROLE_NAME" --query "Role.Arn" --output text 2>/dev/null || true)
-          
+
           if [ -z "$ROLE_ARN" ]; then
             echo "Creating role $ROLE_NAME..."
             TRUST_POLICY=$(cat <<EOF
@@ -102,7 +102,7 @@ jobs:
           set -euo pipefail
           ROLE_NAME="github-actions-terraform-backend"
           POLICY_NAME="terraform-s3-backend-policy"
-          
+
           # Prepare policy with substitutions
           POLICY=$(cat infra/oidc/aws/iam-policy-s3-backend.json | \
             sed "s|<TERRAFORM_STATE_BUCKET>|$TERRAFORM_STATE_BUCKET|g" | \
@@ -110,7 +110,7 @@ jobs:
             sed "s|<REGION>|$AWS_REGION|g" | \
             sed "s|<ACCOUNT_ID>|$AWS_ACCOUNT_ID|g" | \
             sed 's|<KMS_KEY_ID>|*|g')
-          
+
           # Check if policy exists; if so, update it; if not, create it
           if aws iam get-role-policy --role-name "$ROLE_NAME" --policy-name "$POLICY_NAME" 2>/dev/null; then
             echo "Updating policy $POLICY_NAME..."
@@ -133,16 +133,16 @@ jobs:
         run: |
           set -euo pipefail
           ROLE_ARN="${{ steps.create-role.outputs.role_arn }}"
-          
+
           echo "Setting AWS_OIDC_ROLE_ARN repo secret..."
           echo "$ROLE_ARN" | gh secret set AWS_OIDC_ROLE_ARN --repo "$GITHUB_REPOSITORY" --input -
-          
+
           echo "Setting USE_OIDC=true repo secret..."
           echo "true" | gh secret set USE_OIDC --repo "$GITHUB_REPOSITORY" --input -
-          
+
           echo "Setting AWS_DEFAULT_REGION repo secret..."
           echo "$AWS_REGION" | gh secret set AWS_DEFAULT_REGION --repo "$GITHUB_REPOSITORY" --input -
-          
+
           echo "✅ Repository secrets configured"
 
       - name: Verification Summary
@@ -168,7 +168,7 @@ jobs:
           echo ""
           echo "Repo: $GITHUB_REPOSITORY"
           echo "════════════════════════════════════════════════════════════════════"
-          
+
           # Post summary to tracking issue
           BODY="AWS OIDC provisioning completed successfully.
 
@@ -180,5 +180,5 @@ jobs:
           Terraform workflows can now authenticate to AWS via OIDC without long-lived secrets.
           Run ID: $GITHUB_RUN_ID
           Run URL: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          
+
           gh issue comment 1309 --repo "$GITHUB_REPOSITORY" --body "$BODY" || true
