@@ -149,12 +149,18 @@ jobs:
           # Cleanup
           rm -f /tmp/new_deploy_key /tmp/new_deploy_key.pub
 
+      - name: Get ephemeral GCP SA key
+        id: gcp_sa_for_store
+        uses: ./.github/actions/get-ephemeral-credential
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_KEY
+
       - name: Store new key in GSM
         id: store-key
         if: success()
         continue-on-error: true
         env:
-          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GCP_SERVICE_ACCOUNT_KEY: ${{ steps.gcp_sa_for_store.outputs.credential }}
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
           NEW_PRIVATE_KEY: ${{ steps.generate-key.outputs.new_private_key }}
         run: |
