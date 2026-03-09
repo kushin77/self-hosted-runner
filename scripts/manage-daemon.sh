@@ -27,7 +27,9 @@ start_daemon() {
     fi
     
     log_info "Starting daemon scheduler..."
-    nohup bash "${DAEMON_SCRIPT}" > /dev/null 2>&1 &
+    mkdir -p "${REPO_ROOT}/logs"
+    bash "${DAEMON_SCRIPT}" >> "${REPO_ROOT}/logs/daemon-scheduler.log" 2>&1 &
+    local spawn_pid=$!
     sleep 1
     
     if is_running; then
