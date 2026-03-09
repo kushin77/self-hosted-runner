@@ -15,7 +15,7 @@
   <ul id="list"></ul>
 
   <script>
-    const API = 'http://localhost:4000/api';
+    const API = 'http://192.168.168.42:4000/api';
     async function fetchRunners(){
       const res = await fetch(API + '/runners');
       const data = await res.json();
