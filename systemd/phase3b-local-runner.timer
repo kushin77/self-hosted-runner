@@ -1,0 +1,10 @@
+[Unit]
+Description=Timer to run Phase 3B Local Provisioning daily at 02:00 UTC
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+Unit=phase3b-local-runner.service
+
+[Install]
+WantedBy=timers.target
