@@ -1,5 +1,5 @@
 name: Security (SAST + dependency scan)
-true:
+on:
   push:
     branches:
     - main

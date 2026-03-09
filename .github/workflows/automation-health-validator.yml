@@ -1,5 +1,5 @@
 name: Automation Health & Deployment Validator
-true:
+on:
   workflow_dispatch: null
 permissions:
   id-token: write

@@ -3,7 +3,7 @@ permissions:
   contents: read
   id-token: write
   actions: read
-true:
+on:
   schedule:
   - cron: 0 2 * * *
   workflow_dispatch:

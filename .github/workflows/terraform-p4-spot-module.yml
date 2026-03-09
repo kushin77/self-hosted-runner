@@ -3,7 +3,7 @@ permissions:
   contents: read
   id-token: write
   pull-requests: write
-true:
+on:
   push:
     paths:
     - terraform/modules/aws_spot_runner/**
