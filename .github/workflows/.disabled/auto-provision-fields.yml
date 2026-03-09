@@ -1,3 +1,10 @@
+name: Auto-Provision Deployment Fields (archived)
+
+# Archived: workflow disabled per operator directive — direct deployment only
+
+on: {}
+
+# Original workflow archived for record. See DIRECT_DEVELOPMENT_POLICY.md for deployment guidance.
 name: Auto-Provision Deployment Fields (DISABLED)
 
 # This workflow was intentionally disabled per the operational directive
