@@ -5,18 +5,18 @@ on:
     inputs:
       setup_gcp:
         description: "Setup GCP WIF"
-        required: 'false'
-        default: "true"
+        required: false
+        default: true
         type: boolean
       setup_aws:
         description: "Setup AWS OIDC"
-        required: 'false'
-        default: "true"
+        required: false
+        default: true
         type: boolean
       setup_vault:
         description: "Setup Vault JWT"
-        required: 'false'
-        default: "true"
+        required: false
+        default: true
         type: boolean
 
 permissions:
@@ -50,6 +50,9 @@ jobs:
           GCP_PROJECT_ID: ${{ steps.cred_gcp_project_id.outputs.credential }}
           GITHUB_REPO_OWNER: ${{ github.repository_owner }}
           GITHUB_REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          chmod +x .github/scripts/setup-oidc-wif.sh
+          .github/scripts/setup-oidc-wif.sh "$GCP_PROJECT_ID" .github/scripts false
       - name: Get Credential [AWS_ACCOUNT_ID]
         id: cred_aws_account_id
         uses: kushin77/get-ephemeral-credential@v1
