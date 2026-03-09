@@ -1,0 +1,53 @@
+name: Deploy Trivy Webhook to Staging
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.27.3'
+
+      - name: Decode kubeconfig
+        env:
+          KUBE_CONFIG_BASE64: ${{ secrets.STAGING_KUBECONFIG_B64 }}
+        run: |
+          echo "$KUBE_CONFIG_BASE64" | base64 -d > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl version --client
+
+      - name: Apply manifests
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+        run: |
+          kubectl apply -f deploy/trivy-webhook/k8s-deployment.yaml -n trivy-system || true
+
+      - name: Set image and restart
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+          IMAGE: ${{ secrets.TRIVY_WEBHOOK_IMAGE_OVERRIDE || 'ghcr.io/kushin77/trivy-webhook:latest' }}
+        run: |
+          kubectl set image deployment/trivy-webhook trivy-webhook=$IMAGE -n trivy-system || true
+          kubectl rollout restart deployment/trivy-webhook -n trivy-system || true
+
+      - name: Wait for rollout
+        env:
+          KUBECONFIG: ${{ github.workspace }}/kubeconfig
+        run: |
+          kubectl rollout status deployment/trivy-webhook -n trivy-system --timeout=120s
+
+      - name: Post deployment note
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('Trivy webhook deployed to staging')
