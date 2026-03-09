@@ -39,9 +39,26 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Authenticate to Google Cloud (Service Account Key)
+      - name: Get Credential [GCP_SERVICE_ACCOUNT_EMAIL]
+        id: cred_gcp_service_account_email
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GCP_SERVICE_ACCOUNT_EMAIL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [GOOGLE_CREDENTIALS]
+        id: cred_google_credentials
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: GOOGLE_CREDENTIALS
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           echo "🔐 Authenticating with service account key..."
-          echo "${{ secrets.GOOGLE_CREDENTIALS }}" > /tmp/gcp-sa-key.json
+          echo "${{ steps.cred_google_credentials.outputs.credential }}" > /tmp/gcp-sa-key.json
           gcloud auth activate-service-account --key-file=/tmp/gcp-sa-key.json
           gcloud config set project ${{ env.GCP_PROJECT_ID }}
           echo "✅ GCP authentication successful"
@@ -90,7 +107,7 @@ jobs:
       - name: Update GitHub Secrets
         run: |
           export PROVIDER_NAME="projects/${{ env.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider"
-          export SERVICE_ACCOUNT_EMAIL="${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}"
+          export SERVICE_ACCOUNT_EMAIL="${{ steps.cred_gcp_service_account_email.outputs.credential }}"
 
           echo "🔐 Secrets to configure (if not already set):"
           echo "GCP_WORKLOAD_IDENTITY_PROVIDER=$PROVIDER_NAME"
@@ -111,19 +128,19 @@ jobs:
               repo: context.repo.repo,
               body: `## ✅ WIP Bootstrap Complete
 
-**Status:** ${{ job.status }}
+              **Status:** ${{ job.status }}
 
-### Workload Identity Pool Setup
-- Pool ID: \`github-actions-pool\`
-- Provider ID: \`github-actions-provider\`
-- Location: \`global\`
-- Project: \`${{ env.GCP_PROJECT_ID }}\`
+              ### Workload Identity Pool Setup
+              - Pool ID: \`github-actions-pool\`
+              - Provider ID: \`github-actions-provider\`
+              - Location: \`global\`
+              - Project: \`${{ env.GCP_PROJECT_ID }}\`
 
-### Next Steps
-1. Verify GCP_WORKLOAD_IDENTITY_PROVIDER secret is set to:
-   \`projects/${{ env.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider\`
-2. Verify GCP_SERVICE_ACCOUNT_EMAIL secret is set correctly
-3. Re-trigger \`phase3-production-deploy.yml\` workflow
+              ### Next Steps
+              1. Verify GCP_WORKLOAD_IDENTITY_PROVIDER secret is set to:
+                 \`projects/${{ env.GCP_PROJECT_ID }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider\`
+              2. Verify GCP_SERVICE_ACCOUNT_EMAIL secret is set correctly
+              3. Re-trigger \`phase3-production-deploy.yml\` workflow
 
-**Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')`
+              **Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')`
             })
