@@ -1,7 +1,12 @@
 name: Deploy Trivy Webhook to Staging
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'If true, perform client-side validation (kubectl --dry-run=client) instead of applying'
+        required: false
+        default: 'true'
 
 permissions:
   contents: read
@@ -30,15 +35,25 @@ jobs:
         env:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
         run: |
-          kubectl apply -f deploy/trivy-webhook/k8s-deployment.yaml -n trivy-system || true
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "Dry-run: validating manifests"
+            kubectl apply -f deploy/trivy-webhook/k8s-deployment.yaml -n trivy-system --dry-run=client || true
+          else
+            kubectl apply -f deploy/trivy-webhook/k8s-deployment.yaml -n trivy-system || true
+          fi
 
       - name: Set image and restart
         env:
           KUBECONFIG: ${{ github.workspace }}/kubeconfig
           IMAGE: ${{ secrets.TRIVY_WEBHOOK_IMAGE_OVERRIDE || 'ghcr.io/kushin77/trivy-webhook:latest' }}
         run: |
-          kubectl set image deployment/trivy-webhook trivy-webhook=$IMAGE -n trivy-system || true
-          kubectl rollout restart deployment/trivy-webhook -n trivy-system || true
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            echo "Dry-run: would set image to $IMAGE and restart deployment"
+            kubectl set image deployment/trivy-webhook trivy-webhook=$IMAGE -n trivy-system --dry-run=client || true
+          else
+            kubectl set image deployment/trivy-webhook trivy-webhook=$IMAGE -n trivy-system || true
+            kubectl rollout restart deployment/trivy-webhook -n trivy-system || true
+          fi
 
       - name: Wait for rollout
         env:
