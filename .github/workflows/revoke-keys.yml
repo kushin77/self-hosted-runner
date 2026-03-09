@@ -6,7 +6,7 @@ on:
       exposed-key-ids:
         description: Comma-separated list of exposed key IDs to revoke (optional)
         required: false
-      
+
       dry-run:
         description: Run in dry-run mode (safe)
         required: false
@@ -26,25 +26,25 @@ jobs:
     name: "Pre-check: Scan for Secrets"
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Install git-secrets
         run: |
           git clone https://github.com/awslabs/git-secrets.git
           cd git-secrets
           make install
-      
+
       - name: Run git-secrets scan
         continue-on-error: true
         run: |
           git secrets --scan-history
           git secrets --scan-history --all
-      
+
       - name: Run GitHub secret scanning (check recent commits)
         continue-on-error: true
         run: |
@@ -56,28 +56,28 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: validate-no-secrets
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Authenticate to GCP (OIDC/WIF)
         uses: google-github-actions/auth@v1
         continue-on-error: true
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
-      
+
       - name: Authenticate to AWS (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         continue-on-error: true
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: us-east-1
-      
+
       - name: Create audit directory
         run: mkdir -p "${{ env.KEY_ROTATION_AUDIT_DIR }}"
-      
+
       - name: Revoke exposed keys (GCP/AWS/Vault)
         run: |
           bash .github/scripts/revoke-exposed-keys.sh \
@@ -88,7 +88,7 @@ jobs:
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_TOKEN: ${{ secrets.VAULT_ADMIN_TOKEN }}
         continue-on-error: true
-      
+
       - name: Upload audit trail
         if: always()
         uses: actions/upload-artifact@v4
@@ -96,7 +96,7 @@ jobs:
           name: key-revocation-audit-${{ github.run_id }}
           path: ${{ env.KEY_ROTATION_AUDIT_DIR }}/
           retention-days: 365
-      
+
       - name: Commit audit trail to repo
         if: always()
         run: |
@@ -113,25 +113,25 @@ jobs:
     timeout-minutes: 15
     needs: revoke-exposed-keys
     if: inputs.dry-run == 'false'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Install git-secrets
         run: |
           git clone https://github.com/awslabs/git-secrets.git
           cd git-secrets
           make install
-      
+
       - name: Post-revocation validation scan
         run: |
           echo "Validating no secrets remain..."
           git secrets --scan || exit 1
           echo "✓ No secrets detected"
-      
+
       - name: Summary
         run: |
           echo "## Key Revocation Summary" >> $GITHUB_STEP_SUMMARY
