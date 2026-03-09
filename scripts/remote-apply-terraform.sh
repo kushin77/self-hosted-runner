@@ -16,6 +16,13 @@ echo "[${TIMESTAMP}] Working directory: ${TF_DIR}"
 # Navigate to terraform directory
 cd "$TF_DIR"
 
+# Initialize terraform (downloads modules, sets up backend)
+echo "[${TIMESTAMP}] Running: terraform init..."
+if ! terraform init; then
+  echo "ERROR: Failed to initialize terraform"
+  exit 1
+fi
+
 # Regenerate plan on this system (avoids version mismatch issues)
 echo "[${TIMESTAMP}] Generating terraform plan on remote (local terraform version)..."
 if ! terraform plan -out="${TFPLAN_FILE}"; then
