@@ -1,9 +1,0 @@
----
-- name: Distribute internal CA to operator hosts
-  hosts: operators
-  become: true
-  roles:
-    - role: ca_distribute
-      vars:
-        ca_local_path: files/eiq-internal-ca.crt
-        ca_dest_name: eiq-internal-ca.crt
