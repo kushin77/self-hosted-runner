@@ -28,6 +28,21 @@ from typing import Dict, List, Optional, Tuple
 import logging
 import shutil
 
+# Import enforcement module if available
+try:
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("enforcement", os.path.join(os.path.dirname(os.path.abspath(__file__)), "10x-enforcement.py"))
+    enforcement_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(enforcement_module)
+    RBACEnforcer = enforcement_module.RBACEnforcer
+    RateLimiter = enforcement_module.RateLimiter
+    SLSAAttestationBuilder = enforcement_module.SLSAAttestationBuilder
+    ManifestSchema = enforcement_module.ManifestSchema
+    ImmutabilityLock = enforcement_module.ImmutabilityLock
+    ENFORCEMENT_AVAILABLE = True
+except (ImportError, AttributeError):
+    ENFORCEMENT_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
