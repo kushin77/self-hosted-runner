@@ -29,7 +29,7 @@ on:
     inputs:
       phase:
         description: 'Execution phase'
-        required: false
+        required: 'false'
         type: choice
         options:
           - discovery
@@ -41,14 +41,14 @@ on:
         default: 'all'
       dry_run:
         description: 'Dry-run mode (no actual changes)'
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
       skip_approval:
         description: 'Skip manual approval (use with caution)'
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
 
 permissions:
   contents: read
@@ -86,17 +86,17 @@ jobs:
           # Check for active locks (distributed mutex via git)
           ACTIVE_LOCKS=$(find . -name ".workflow-lock-*" -type f -mmin -30 2>/dev/null)
 
-          if [ -n "$ACTIVE_LOCKS" ]; then
+          if [-n "$ACTIVE_LOCKS"]; then
             echo "⚠️  Active workflow lock found. Checking age..."
             LOCK_AGE=$(find . -name ".workflow-lock-*" -type f -printf '%T@' | sort -r | head -1)
 
             # If lock older than 30 minutes, consider it stale
-            if [ -n "$LOCK_AGE" ]; then
+            if [-n "$LOCK_AGE"]; then
               CURRENT_TIME=$(date +%s)
               LOCK_TIME=$(echo "$LOCK_AGE" | cut -d. -f1)
               LOCK_AGE_MIN=$(( (CURRENT_TIME - LOCK_TIME) / 60 ))
 
-              if [ "$LOCK_AGE_MIN" -lt 30 ]; then
+              if ["$LOCK_AGE_MIN" -lt 30]; then
                 echo "❌ Active lock within 30 min window. Aborting to prevent conflicts."
                 echo "can_proceed=false" >> $GITHUB_OUTPUT
                 exit 1
@@ -198,7 +198,7 @@ jobs:
           echo "🔍 Checking idempotency guarantees..."
 
           # Check for idempotency markers
-          if [ -f .workflow-consolidation-complete ]; then
+          if [-f .workflow-consolidation-complete]; then
             echo "✅ Consolidation already complete. Skipping redundant steps."
             echo "can_skip=true" >> $GITHUB_OUTPUT
           else
@@ -208,7 +208,7 @@ jobs:
 
           # Verify no concurrent workflows
           CONCURRENCY=$(pgrep -f "workflow-consolidation" | wc -l)
-          if [ "$CONCURRENCY" -gt 1 ]; then
+          if ["$CONCURRENCY" -gt 1]; then
             echo "❌ Concurrent workflow detected. Aborting."
             exit 1
           fi
@@ -218,7 +218,7 @@ jobs:
           echo "✅ Validating reusable workflow YAML..."
 
           for FILE in .github/workflows/*-reusable.yml; do
-            if [ -f "$FILE" ]; then
+            if [-f "$FILE"]; then
               echo "  - $FILE"
               # Basic YAML validation
               python3 -c "import yaml; yaml.safe_load(open('$FILE'))" || exit 1

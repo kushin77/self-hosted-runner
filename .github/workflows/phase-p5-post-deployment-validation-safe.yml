@@ -5,11 +5,11 @@ on:
     inputs:
       validation_type:
         description: 'Validation focus: report, drift-detection'
-        required: false
+        required: 'false'
         default: 'report'
       environment:
         description: 'Target environment: prod, staging, dev'
-        required: false
+        required: 'false'
         default: 'prod'
   schedule:
     - cron: '*/30 * * * *'
@@ -66,22 +66,22 @@ jobs:
           Infrastructure:
           EOF
 
-          if [ -d terraform ]; then
+          if [-d terraform]; then
             TF_COUNT=$(find terraform -name '*.tf' -type f 2>/dev/null | wc -l)
             echo "  ✓ Terraform: ${TF_COUNT} files"
-            if [ -f terraform/terraform.tfstate ] || [ -f terraform/terraform.tfstate.backup ]; then
+            if [-f terraform/terraform.tfstate] || [-f terraform/terraform.tfstate.backup]; then
               echo "  ✓ State files: present"
             fi
           else
             echo "  ✓ Terraform: ready (not present locally)"
           fi
 
-          if [ -d scripts ]; then
+          if [-d scripts]; then
             SCRIPT_COUNT=$(find scripts -name '*.sh' -type f 2>/dev/null | wc -l)
             echo "  ✓ Automation scripts: ${SCRIPT_COUNT}"
           fi
 
-          if [ -d .github/workflows ]; then
+          if [-d .github/workflows]; then
             WF_COUNT=$(find .github/workflows -name '*.yml' -o -name '*.yaml' | wc -l)
             echo "  ✓ Workflows: ${WF_COUNT} deployed"
           fi

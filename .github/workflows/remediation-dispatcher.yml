@@ -6,7 +6,7 @@ on:
     inputs:
       scope:
         description: "Scope to remediate (all, ci, infra, secrets)"
-        required: false
+        required: 'false'
         default: "all"
   repository_dispatch:
     types: [remediation-request, remediation-fallback]
@@ -52,7 +52,7 @@ jobs:
           echo "Gathering failed workflow runs for ${REPO}"
           # list latest failed runs (limit 50) and produce newline-separated ids
           gh run list --repo "${REPO}" --limit 50 --json databaseId,name,conclusion,headBranch --jq '.[] | select(.conclusion=="failure") | .databaseId' > /tmp/failed_runs || true
-          if [ -s /tmp/failed_runs ]; then
+          if [-s /tmp/failed_runs]; then
             echo "failed_runs=$(cat /tmp/failed_runs | tr '\n' ' ')" >> $GITHUB_OUTPUT
           else
             echo "failed_runs=" >> $GITHUB_OUTPUT
@@ -68,7 +68,7 @@ jobs:
           FAILED_RUNS="${{ steps.gather.outputs.failed_runs }}"
           for id in $FAILED_RUNS; do
             # Ensure id is numeric
-            if [[ "$id" =~ ^[0-9]+$ ]]; then
+            if [["$id" =~ ^[0-9]+$]]; then
               echo "Attempting rerun for run $id"
               gh api -X POST "/repos/${REPO}/actions/runs/${id}/rerun" || echo "rerun failed for ${id}"
               sleep 1
@@ -94,7 +94,7 @@ jobs:
           done
 
           ALL_PRESENT=false
-          if [ ${#missing[@]} -eq 0 ]; then
+          if [${#missing[@]} -eq 0]; then
             ALL_PRESENT=true
           fi
 
@@ -103,18 +103,18 @@ jobs:
           echo "all_present=${ALL_PRESENT}" >> $GITHUB_OUTPUT
 
           # Idempotently manage issue #1343 based on secrets state
-          if [ "$ALL_PRESENT" = true ]; then
+          if ["$ALL_PRESENT" = true]; then
             # Close issue #1343 if it exists and is open (idempotent)
             if gh issue view 1343 --repo ${REPO} >/dev/null 2>&1; then
               state=$(gh issue view 1343 --repo ${REPO} --json state --jq '.state' 2>/dev/null || echo "OPEN")
-              if [ "$state" = "OPEN" ]; then
+              if ["$state" = "OPEN"]; then
                 gh issue update 1343 --repo ${REPO} --state closed --state_reason completed || true
               fi
             fi
             # Idempotent comment on tracking issue 1064 (edit if exists, create if not)
             TRACK_BODY="Automated: required secrets are now present; closed #1343 and re-checking workflows."
             EXISTING=$(gh api "/repos/${REPO}/issues/1064/comments" --jq ".[] | select(.body | contains(\"required secrets are now present\")) | .id" 2>/dev/null | head -1 || true)
-            if [ -n "$EXISTING" ]; then
+            if [-n "$EXISTING"]; then
               gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$TRACK_BODY" || true
             else
               gh issue comment 1064 --repo ${REPO} --body "$TRACK_BODY" || true
@@ -126,7 +126,7 @@ jobs:
             else
               BODY="Automated re-check: missing secrets: ${missing[*]}. System will retry provisioning or await operator action."
               EXISTING_COMMENT=$(gh api "/repos/${REPO}/issues/1343/comments" --jq ".[] | select(.body | contains(\"Automated re-check\")) | .id" 2>/dev/null | head -1 || true)
-              if [ -n "$EXISTING_COMMENT" ]; then
+              if [-n "$EXISTING_COMMENT"]; then
                 gh api "/repos/${REPO}/issues/comments/${EXISTING_COMMENT}" -X PATCH -f body="$BODY" || true
               else
                 gh issue comment 1343 --repo ${REPO} --body "$BODY" || true
@@ -148,7 +148,7 @@ jobs:
           # Idempotent comment posting (edit if exists, create if missing)
           if gh issue view 1348 --repo ${REPO} >/dev/null 2>&1; then
             EXISTING=$(gh api "/repos/${REPO}/issues/1348/comments" --jq ".[] | select(.body | contains(\"Remediation Dispatcher run\")) | .id" 2>/dev/null | head -1 || true)
-            if [ -n "$EXISTING" ]; then
+            if [-n "$EXISTING"]; then
               gh api "/repos/${REPO}/issues/comments/${EXISTING}" -X PATCH -f body="$SUMMARY" || true
             else
               gh issue comment 1348 --repo ${REPO} --body "$SUMMARY" || true

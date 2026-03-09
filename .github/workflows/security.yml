@@ -2,9 +2,9 @@ name: Security (SAST + dependency scan)
 
 on:
   push:
-    branches: [ main, develop, feature/** ]
+    branches: [main, develop, feature/**]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     - cron: '0 2 * * *'  # Daily at 2 AM UTC
 

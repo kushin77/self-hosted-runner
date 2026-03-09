@@ -9,12 +9,12 @@ on:
     inputs:
       apply:
         description: 'Execute apply (true) or plan only (false)'
-        required: false
+        required: 'false'
         default: 'false'
         type: boolean
       environment:
         description: 'Environment to apply to'
-        required: false
+        required: 'false'
         default: 'prod'
         type: choice
         options:
@@ -202,7 +202,7 @@ jobs:
       - name: Post Apply Status
         if: always()
         run: |
-          if [ "${{ steps.apply.outcome }}" == "success" ]; then
+          if ["${{ steps.apply.outcome }}" == "success"]; then
             echo "✅ ElastiCache apply completed successfully"
           else
             echo "❌ ElastiCache apply failed"
@@ -250,7 +250,7 @@ jobs:
             --query 'length(CacheClusters)' \
             --output text)
 
-          if [ "$CLUSTER_COUNT" -gt 0 ]; then
+          if ["$CLUSTER_COUNT" -gt 0]; then
             echo "✅ Validation successful: $CLUSTER_COUNT cluster(s) found"
           else
             echo "⚠️ No ElastiCache clusters found (may be expected)"

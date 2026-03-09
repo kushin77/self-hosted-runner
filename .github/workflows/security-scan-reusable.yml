@@ -24,35 +24,35 @@ on:
     inputs:
       scan_targets:
         description: 'Scan targets (comma-separated): code, iac, container, secrets, sbom'
-        required: false
+        required: 'false'
         type: string
         default: 'code,iac,secrets'
       fail_on_severity:
         description: 'Fail on severity level: CRITICAL, HIGH, MEDIUM, LOW'
-        required: false
+        required: 'false'
         type: string
         default: 'HIGH'
       include_dev_deps:
         description: 'Include dev dependencies in scans'
-        required: false
+        required: 'false'
         type: boolean
-        default: false
+        default: 'false'
       image_name:
         description: 'Container image to scan (for container target)'
-        required: false
+        required: 'false'
         type: string
       git_repo_url:
         description: 'Git repo URL to scan (for secrets target)'
-        required: false
+        required: 'false'
         type: string
       generate_report:
         description: 'Generate HTML security report'
-        required: false
+        required: 'false'
         type: boolean
-        default: true
+        default: 'true'
       log_bucket:
         description: 'GCS bucket for immutable audit logs'
-        required: false
+        required: 'false'
         type: string
 
 permissions:
@@ -119,7 +119,7 @@ jobs:
             fi
           done
 
-          if [ $FINDINGS -gt 0 ]; then
+          if [$FINDINGS -gt 0]; then
             echo "❌ Potential secrets detected: $FINDINGS"
             exit 1
           fi
@@ -158,7 +158,7 @@ jobs:
             --output-file terraform-checkov.json \
             2>&1 | tee terraform-scan.log || true
 
-          if [ -f terraform-checkov.json ]; then
+          if [-f terraform-checkov.json]; then
             CRITICAL=$(jq '.summary.failed' terraform-checkov.json | grep -o '[0-9]*' | head -1)
             echo "critical_failures=${CRITICAL}" >> $GITHUB_OUTPUT
           fi
@@ -196,15 +196,15 @@ jobs:
           FAILURES=0
 
           for FILE in terraform-checkov.json k8s-checkov.json cfn-checkov.json; do
-            if [ -f "$FILE" ]; then
+            if [-f "$FILE"]; then
               FAILED=$(jq '.summary.failed' "$FILE" 2>/dev/null || echo "0")
-              if [ "$FAILED" != "0" ] && [ "${{ inputs.fail_on_severity }}" != "NONE" ]; then
+              if ["$FAILED" != "0"] && ["${{ inputs.fail_on_severity }}" != "NONE"]; then
                 FAILURES=$((FAILURES + FAILED))
               fi
             fi
           done
 
-          if [ $FAILURES -gt 0 ]; then
+          if [$FAILURES -gt 0]; then
             echo "❌ IaC policy violations: $FAILURES"
             exit 1
           else
@@ -267,12 +267,12 @@ jobs:
         run: |
           VULN_COUNT=0
 
-          if [ -f npm-audit.json ]; then
+          if [-f npm-audit.json]; then
             VULN_COUNT=$(jq '.vulnerabilities | length' npm-audit.json)
             echo "📊 Node.js vulnerabilities: $VULN_COUNT"
           fi
 
-          if [ $VULN_COUNT -gt 0 ] && [ "${{ inputs.fail_on_severity }}" != "NONE" ]; then
+          if [$VULN_COUNT -gt 0] && ["${{ inputs.fail_on_severity }}" != "NONE"]; then
             exit 1
           fi
 

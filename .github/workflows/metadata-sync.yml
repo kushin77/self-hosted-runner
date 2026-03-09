@@ -14,7 +14,7 @@ on:
     inputs:
       validate_only:
         description: 'Only validate, do not sync'
-        required: false
+        required: 'false'
         default: 'false'
 
 permissions:
@@ -113,7 +113,7 @@ jobs:
       - name: Check compliance status
         run: |
           status=$(jq -r '.status' metadata/compliance.json || echo "unknown")
-          if [[ "$status" != "compliant" ]]; then
+          if [["$status" != "compliant"]]; then
             echo "::warning::Metadata compliance issues detected"
           fi
 

@@ -36,14 +36,14 @@ jobs:
           # Ensure an issue exists to post updates to; create idempotently if absent
           if ! gh issue view ${ISSUE} --repo ${REPO} >/dev/null 2>&1; then
             CREATED=$(gh issue create --repo ${REPO} --title "Dependabot Alerts" --body "Auto-created dependabot triage issue. This will be updated daily by automation." --label "dependabot" --json number --jq .number 2>/dev/null || true)
-            if [ -n "$CREATED" ]; then
+            if [-n "$CREATED"]; then
               ISSUE=$CREATED
             fi
           fi
 
           # find existing comment
           existing=$(gh api "/repos/${REPO}/issues/${ISSUE}/comments" --jq ".[] | select(.body | contains(\"Dependabot Alert Summary\")) | .id" 2>/dev/null | head -1 || true)
-          if [ -n "$existing" ]; then
+          if [-n "$existing"]; then
             gh api "/repos/${REPO}/issues/comments/${existing}" -X PATCH -f body="$body" || true
             echo "Updated dependabot summary comment"
           else
@@ -52,7 +52,7 @@ jobs:
           fi
 
           # auto-close issue when no alerts remain and close any label-based dependabot issues
-          if [ "$count" -eq 0 ]; then
+          if ["$count" -eq 0]; then
             gh issue update $ISSUE --repo $REPO --state closed --state_reason completed || true
             # Close any other open issues labeled 'dependabot' or 'dependabot-triage'
             for i in $(gh issue list --repo ${REPO} --label "dependabot" --state open --json number --jq '.[].number' 2>/dev/null || true); do
