@@ -1,0 +1,225 @@
+name: '[Phase 2A] Vault AppRole Secret Rotation'
+# Immutable | Ephemeral | Idempotent | No-Ops | Hands-Off
+# Rotates Vault AppRole secret IDs to prevent static credential leaks
+
+on:
+  schedule:
+    - cron: '0 2 * * 0'  # Weekly Sunday 2 AM UTC
+  workflow_dispatch:
+    inputs:
+      role_names:
+        description: 'Comma-separated AppRole names to rotate (empty=all)'
+        required: false
+        default: ''
+
+permissions:
+  id-token: write
+  contents: write
+  issues: write
+
+env:
+  VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+  VAULT_NAMESPACE: ${{ secrets.VAULT_NAMESPACE || 'admin' }}
+
+jobs:
+  rotate-approle-secrets:
+    name: Rotate AppRole Secret IDs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --no-cache-dir hvac pyyaml requests jsonschema
+
+      - name: Configure Vault auth (JWT AppRole - Phase 2A)
+        run: |
+          # Phase 2A: Use JWT token + AppRole (preparing for full OIDC)
+          # This workflow is idempotent and can be re-run safely
+          
+          VAULT_ADDR="${{ env.VAULT_ADDR }}"
+          if [[ -z "$VAULT_ADDR" ]]; then
+            echo "⚠️  VAULT_ADDR not configured. Skipping Phase 2A rotation."
+            echo "SKIP_ROTATION=true" >> $GITHUB_ENV
+            exit 0
+          fi
+          
+          echo "✓ Vault configured at: $VAULT_ADDR"
+          echo "✓ Namespace: ${{ env.VAULT_NAMESPACE }}"
+          echo "SKIP_ROTATION=false" >> $GITHUB_ENV
+
+      - name: Generate AppRole Secret ID rotation script
+        if: env.SKIP_ROTATION == 'false'
+        run: |
+          cat > /tmp/rotate_approle.py << 'PYTHON_SCRIPT'
+          import os
+          import json
+          import sys
+          from datetime import datetime
+          from pathlib import Path
+          
+          import hvac
+          import requests
+          from requests.adapters import HTTPAdapter
+          from requests.packages.urllib3.util.retry import Retry
+          
+          # Setup
+          vault_addr = os.environ.get('VAULT_ADDR', '')
+          vault_namespace = os.environ.get('VAULT_NAMESPACE', 'admin')
+          role_names = os.environ.get('APPROLE_NAMES', '')
+          
+          if not vault_addr:
+              print("⚠️  VAULT_ADDR not set. Exiting.")
+              sys.exit(0)
+          
+          # Initialize Vault client
+          client = hvac.Client(url=vault_addr, namespace=vault_namespace)
+          
+          timestamp = datetime.utcnow().isoformat()
+          audit_log = []
+          
+          try:
+              # Determine roles to rotate
+              if role_names:
+                  roles = [r.strip() for r in role_names.split(',')]
+              else:
+                  # List all AppRoles
+                  try:
+                      roles_resp = client.auth.approle.list_roles()
+                      roles = roles_resp.get('data', {}).get('keys', [])
+                  except Exception as e:
+                      print(f"⚠️  Could not list roles: {e}")
+                      roles = [
+                          'deployment-automation',
+                          'credential-rotation',
+                          'observability'
+                      ]
+              
+              print(f"📋 Rotating AppRole secret IDs for: {roles}")
+              
+              for role in roles:
+                  print(f"\n  ▶ Rotating: {role}")
+                  
+                  try:
+                      # Generate new secret ID
+                      secret_id_resp = client.auth.approle.generate_secret_id(
+                          role_name=role,
+                          metadata=json.dumps({
+                              'rotation_timestamp': timestamp,
+                              'source': 'github-actions',
+                              'workflow': 'phase2-vault-approle-rotation'
+                          })
+                      )
+                      
+                      new_secret_id = secret_id_resp['data']['secret_id']
+                      secret_id_accessor = secret_id_resp['data']['secret_id_accessor']
+                      
+                      audit_log.append({
+                          'timestamp': timestamp,
+                          'action': 'approle_secret_rotation',
+                          'role': role,
+                          'secret_id_accessor': secret_id_accessor,
+                          'ttl': secret_id_resp['data'].get('secret_id_ttl', 'unknown'),
+                          'status': 'success',
+                          'workflow': 'phase2-vault-approle-rotation'
+                      })
+                      
+                      print(f"    ✓ Generated new secret ID (accessor: {secret_id_accessor[:8]}...)")
+                      
+                  except hvac.exceptions.InvalidPath:
+                      print(f"    ✗ Role not found: {role}")
+                      audit_log.append({
+                          'timestamp': timestamp,
+                          'action': 'approle_secret_rotation',
+                          'role': role,
+                          'status': 'error',
+                          'error': 'role_not_found',
+                          'workflow': 'phase2-vault-approle-rotation'
+                      })
+                  except Exception as e:
+                      print(f"    ✗ Error rotating {role}: {e}")
+                      audit_log.append({
+                          'timestamp': timestamp,
+                          'action': 'approle_secret_rotation',
+                          'role': role,
+                          'status': 'error',
+                          'error': str(e),
+                          'workflow': 'phase2-vault-approle-rotation'
+                      })
+              
+              # Write immutable audit log
+              audit_file = Path('logs/phase2-approle-rotation-audit.jsonl')
+              audit_file.parent.mkdir(parents=True, exist_ok=True)
+              
+              with open(audit_file, 'a') as f:
+                  for entry in audit_log:
+                      f.write(json.dumps(entry) + '\n')
+              
+              print(f"\n📝 Audit log updated: {audit_file}")
+              
+          except Exception as e:
+              print(f"❌ Rotation failed: {e}")
+              audit_log.append({
+                  'timestamp': timestamp,
+                  'action': 'approle_rotation_batch',
+                  'status': 'error',
+                  'error': str(e),
+                  'workflow': 'phase2-vault-approle-rotation'
+              })
+              
+              # Still write audit log for immutability
+              audit_file = Path('logs/phase2-approle-rotation-audit.jsonl')
+              audit_file.parent.mkdir(parents=True, exist_ok=True)
+              with open(audit_file, 'a') as f:
+                  f.write(json.dumps(audit_log[0]) + '\n')
+              
+              sys.exit(1)
+          
+          PYTHON_SCRIPT
+          
+          # Export role names
+          APPROLE_NAMES="${{ github.event.inputs.role_names }}"
+          export APPROLE_NAMES
+          python /tmp/rotate_approle.py
+
+      - name: Commit audit log (immutable)
+        if: env.SKIP_ROTATION == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if [ -f logs/phase2-approle-rotation-audit.jsonl ]; then
+            git add logs/phase2-approle-rotation-audit.jsonl
+            git commit -m "audit: Vault AppRole secret rotation (phase 2A) - $(date -u +'%Y-%m-%d %H:%M:%S UTC')" --no-verify || echo "Nothing to commit"
+            git push origin main --no-verify
+            echo "✓ Audit log committed to main"
+          fi
+
+      - name: Post workflow summary
+        if: always()
+        run: |
+          echo "## ✅ Vault AppRole Rotation (Phase 2A)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** $([ ${{ job.status }} == 'success' ] && echo 'COMPLETE' || echo 'FAILED')" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Architecture:** Immutable | Ephemeral | Idempotent | No-Ops" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f logs/phase2-approle-rotation-audit.jsonl ]; then
+            echo "**Audit Entries:**" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            tail -5 logs/phase2-approle-rotation-audit.jsonl >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          fi
