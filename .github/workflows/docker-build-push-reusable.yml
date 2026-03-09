@@ -120,52 +120,11 @@ jobs:
       - name: 'Auth: ECR via OIDC'
         id: ecr_auth
         if: contains(inputs.registries, 'ecr')
-      - name: Get Credential [COSIGN_KEY]
-        id: cred_cosign_key
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: COSIGN_KEY
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [DOCKERHUB_TOKEN]
-        id: cred_dockerhub_token
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: DOCKERHUB_TOKEN
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [DOCKERHUB_USERNAME]
-        id: cred_dockerhub_username
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: DOCKERHUB_USERNAME
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [HARBOR_TOKEN]
-        id: cred_harbor_token
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: HARBOR_TOKEN
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-      - name: Get Credential [HARBOR_USERNAME]
-        id: cred_harbor_username
-        uses: kushin77/get-ephemeral-credential@v1
-        with:
-          credential-name: HARBOR_USERNAME
-          retrieve-from: 'auto'
-          cache-ttl: 600
-          audit-log: true
-
         run: |
           # Get OIDC token
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.token')
-
+          
           # Assume role
           CREDS=$(aws sts assume-role-with-web-identity \
             --role-arn "${{ inputs.aws_role_arn }}" \
@@ -173,19 +132,19 @@ jobs:
             --web-identity-token "$OIDC_TOKEN" \
             --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
             --output text)
-
+          
           read -r AWS_KEY AWS_SECRET AWS_TOKEN <<< "$CREDS"
           echo "::add-mask::${AWS_KEY}"
           echo "::add-mask::${AWS_SECRET}"
-
+          
           export AWS_ACCESS_KEY_ID="${AWS_KEY}"
           export AWS_SECRET_ACCESS_KEY="${AWS_SECRET}"
           export AWS_SESSION_TOKEN="${AWS_TOKEN}"
-
+          
           # Get ECR login token
           aws ecr get-login-password --region us-east-1 | docker login \
             --username AWS --password-stdin "${{ inputs.aws_account_id }}.dkr.ecr.us-east-1.amazonaws.com"
-
+          
           echo "ecr_registry=${{ inputs.aws_account_id }}.dkr.ecr.us-east-1.amazonaws.com" >> $GITHUB_OUTPUT
           echo "✅ ECR authenticated via OIDC"
 
@@ -196,14 +155,14 @@ jobs:
           # Workload Identity Federation
           OIDC_TOKEN=$(curl -s -H "Authorization: bearer ${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" \
             "${ACTIONS_ID_TOKEN_REQUEST_URL}" | jq -r '.token')
-
+          
           # Assume service account
           gcloud auth login --cred-file=/dev/stdin <<< "$OIDC_TOKEN"
           gcloud config set project "${{ inputs.gcp_project_id }}"
-
+          
           # Get GCR token
           gcloud auth configure-docker gcr.io
-
+          
           echo "gcr_registry=gcr.io/${{ inputs.gcp_project_id }}" >> $GITHUB_OUTPUT
           echo "✅ GCR authenticated via Workload Identity"
 
@@ -211,8 +170,8 @@ jobs:
         id: dockerhub_auth
         if: contains(inputs.registries, 'dockerhub') && secrets.DOCKERHUB_TOKEN != ''
         run: |
-          docker login -u "${{ steps.cred_dockerhub_username.outputs.credential }}" \
-            -p "${{ steps.cred_dockerhub_token.outputs.credential }}"
+          docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" \
+            -p "${{ secrets.DOCKERHUB_TOKEN }}"
           echo "dockerhub_registry=docker.io" >> $GITHUB_OUTPUT
           echo "✅ Docker Hub authenticated"
 
@@ -220,8 +179,8 @@ jobs:
         id: harbor_auth
         if: contains(inputs.registries, 'harbor') && secrets.HARBOR_TOKEN != ''
         run: |
-          docker login -u "${{ steps.cred_harbor_username.outputs.credential }}" \
-            -p "${{ steps.cred_harbor_token.outputs.credential }}" \
+          docker login -u "${{ secrets.HARBOR_USERNAME }}" \
+            -p "${{ secrets.HARBOR_TOKEN }}" \
             harbor.company.com
           echo "harbor_registry=harbor.company.com" >> $GITHUB_OUTPUT
           echo "✅ Harbor authenticated"
@@ -237,7 +196,7 @@ jobs:
           if [ -n "${{ inputs.docker_build_args }}" ]; then
             BUILD_ARGS="${{ inputs.docker_build_args }}"
           fi
-
+          
           docker buildx build \
             --platform ${{ matrix.platform }} \
             --tag "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" \
@@ -245,7 +204,7 @@ jobs:
             --output type=docker \
             ${BUILD_ARGS} \
             .
-
+          
           echo "image_digest=$(docker inspect --type=image ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} --format='{{index .RepoDigests 0}}')" >> $GITHUB_OUTPUT
           echo "✅ Docker image built"
 
@@ -255,16 +214,16 @@ jobs:
         run: |
           # Install cyclonedx-bom
           npm install -g @cyclonedx/npm
-
+          
           # Generate SBOM
           cyclonedx-npm --output-file sbom.json --json
-
+          
           # Also generate image SBOM
           docker run --rm \
             -v $(pwd):/workspace \
             anchore/syft:latest \
             /workspace -o cyclonedx-json -o cyclonedx-json=/workspace/image-sbom.json
-
+          
           echo "sbom_file=sbom.json" >> $GITHUB_OUTPUT
           echo "✅ SBOM generated"
 
@@ -291,7 +250,7 @@ jobs:
       - name: 'Push: Docker Hub'
         if: contains(inputs.registries, 'dockerhub') && inputs.push == true
         run: |
-          DOCKERHUB_IMAGE="${{ steps.dockerhub_auth.outputs.dockerhub_registry }}/${{ steps.cred_dockerhub_username.outputs.credential }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
+          DOCKERHUB_IMAGE="${{ steps.dockerhub_auth.outputs.dockerhub_registry }}/${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
           docker tag "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" "${DOCKERHUB_IMAGE}"
           docker push "${DOCKERHUB_IMAGE}"
           echo "✅ Pushed to Docker Hub: ${DOCKERHUB_IMAGE}"
@@ -307,7 +266,7 @@ jobs:
       - name: 'Sign: Image with cosign'
         if: inputs.sign_image == true && inputs.push == true && secrets.COSIGN_KEY != ''
         env:
-          COSIGN_KEY: ${{ steps.cred_cosign_key.outputs.credential }}
+          COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
         run: |
           for IMAGE in $(docker images --format "{{.Repository}}:{{.Tag}}" | grep "${{ env.IMAGE_NAME }}"); do
             cosign sign --key env://COSIGN_KEY \
