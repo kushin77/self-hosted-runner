@@ -40,6 +40,14 @@ if [ "${TF_VAR_run_mode:-}" = "ci" ]; then
   fi
 fi
 
+# In CI, enable Terraform debug logs to help trace provider behavior.
+if [ "${TF_VAR_run_mode:-}" = "ci" ]; then
+  mkdir -p "$ROOT_DIR/workflow-artifacts/e2e"
+  export TF_LOG=DEBUG
+  export TF_LOG_PATH="$ROOT_DIR/workflow-artifacts/e2e/terraform-debug.log"
+  echo "TF_LOG set to DEBUG; logs will be written to $TF_LOG_PATH"
+fi
+
 if [ ! -f .terraform.lock.hcl ]; then
   terraform init -input=false
 else
