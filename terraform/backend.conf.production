@@ -1,0 +1,2 @@
+bucket         = "nexusshield-terraform-state-production"
+prefix         = "portal/production"
