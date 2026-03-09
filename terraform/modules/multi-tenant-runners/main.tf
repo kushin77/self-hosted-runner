@@ -86,9 +86,9 @@ locals {
   # need not bundle them. This allows the startup script to write files from
   # metadata on first boot and enable Vault Agent.
   metadata = var.inject_vault_agent_metadata ? merge(local.metadata_pre, {
-    "vault-agent.hcl"        = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.hcl")
-    "vault-agent.service"    = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.service")
-    "registry-creds.tpl"     = file("${path.module}/../../../scripts/identity/vault-agent/registry-creds.tpl")
+    "vault-agent.hcl"     = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.hcl")
+    "vault-agent.service" = file("${path.module}/../../../scripts/identity/vault-agent/vault-agent.service")
+    "registry-creds.tpl"  = file("${path.module}/../../../scripts/identity/vault-agent/registry-creds.tpl")
   }) : local.metadata_pre
 
   effective_allowed_egress_cidrs = distinct(compact(concat(var.required_egress_cidrs, var.allowed_egress_cidrs)))
@@ -107,8 +107,8 @@ resource "google_compute_instance_template" "runner_template" {
   metadata     = local.metadata
 
   disk {
-    auto_delete = true
-    boot        = true
+    auto_delete  = true
+    boot         = true
     disk_size_gb = var.boot_disk_size_gb
     disk_type    = var.boot_disk_type
   }
