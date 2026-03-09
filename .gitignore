@@ -1,0 +1,39 @@
+# NexusShield Security Framework
+# ==============================
+
+# Sensitive data (never commit)
+nexusshield/config/*.secret.yml
+nexusshield/config/*.key
+nexusshield/config/*.pem
+nexusshield/credentials/*
+!nexusshield/credentials/.gitkeep
+
+# Runtime artifacts
+nexusshield/logs/*.jsonl
+nexusshield/cache/*
+nexusshield/tmp/*
+*.pyc
+__pycache__/
+
+# Sensitive outputs
+*.enc
+*.encrypted
+.env
+.env.local
+.vault-token
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
