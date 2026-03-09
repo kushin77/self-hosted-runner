@@ -1,0 +1,201 @@
+# Deployment Field Auto-Provisioning Makefile Integration
+# 
+# Targets:
+#   make provision-fields         - Auto-provision all deployment fields
+#   make discover-fields          - Discover current field state
+#   make verify-provisioning      - Verify fields are properly provisioned
+#   make dep-provision-check      - Pre-deployment verification
+#   make deploy-with-fields       - Full deployment with provisioning
+
+.PHONY: provision-fields discover-fields verify-provisioning dep-provision-check deploy-with-fields
+.PHONY: provision-fields-dry provision-fields-verbose
+
+# Configuration
+SCRIPTS_DIR ?= scripts
+PROVISION_SCRIPT ?= $(SCRIPTS_DIR)/auto-provision-deployment-fields.sh
+DISCOVER_SCRIPT ?= $(SCRIPTS_DIR)/discover-deployment-fields.sh
+VERIFY_SCRIPT ?= $(SCRIPTS_DIR)/verify-deployment-provisioning.sh
+
+# Credential provider preference
+PREFERRED_PROVIDER ?= gsm
+
+# Colors for output
+GREEN := \033[0;32m
+RED := \033[0;31m
+YELLOW := \033[1;33m
+BLUE := \033[0;34m
+NC := \033[0m
+
+# ============================================================================
+# PROVISIONING TARGETS
+# ============================================================================
+
+.PHONY: provision-fields
+provision-fields: check-scripts
+	@echo "$(BLUE)🔄 Auto-provisioning deployment fields...$(NC)"
+	@echo "   Using provider: $(PREFERRED_PROVIDER)"
+	@PREFERRED_PROVIDER=$(PREFERRED_PROVIDER) bash $(PROVISION_SCRIPT)
+	@echo "$(GREEN)✅ Deployment fields provisioned$(NC)"
+
+.PHONY: provision-fields-dry
+provision-fields-dry: check-scripts
+	@echo "$(BLUE)🔄 Dry-run: Auto-provisioning deployment fields...$(NC)"
+	@bash $(PROVISION_SCRIPT) --dry-run
+	@echo "$(YELLOW)ℹ️  This was a dry-run. No changes were made.$(NC)"
+
+.PHONY: provision-fields-verbose
+provision-fields-verbose: check-scripts
+	@echo "$(BLUE)🔄 Auto-provisioning (verbose)...$(NC)"
+	@VERBOSE=1 bash $(PROVISION_SCRIPT)
+	@echo "$(GREEN)✅ Deployment fields provisioned$(NC)"
+
+# ============================================================================
+# DISCOVERY & VERIFICATION
+# ============================================================================
+
+.PHONY: discover-fields
+discover-fields: check-scripts
+	@echo "$(BLUE)🔍 Discovering deployment field sources...$(NC)"
+	@bash $(DISCOVER_SCRIPT) text
+
+.PHONY: discover-fields-markdown
+discover-fields-markdown: check-scripts
+	@bash $(DISCOVER_SCRIPT) markdown
+
+.PHONY: discover-fields-json
+discover-fields-json: check-scripts
+	@bash $(DISCOVER_SCRIPT) json
+
+.PHONY: verify-provisioning
+verify-provisioning: check-scripts
+	@echo "$(BLUE)✔️  Verifying deployment field provisioning...$(NC)"
+	@bash $(VERIFY_SCRIPT)
+	@if [ $$? -eq 0 ]; then \
+		echo "$(GREEN)✅ All fields properly provisioned$(NC)"; \
+	else \
+		echo "$(RED)❌ Some fields failed verification$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: verify-provisioning-verbose
+verify-provisioning-verbose: check-scripts
+	@echo "$(BLUE)✔️  Verifying deployment fields (verbose)...$(NC)"
+	@bash $(VERIFY_SCRIPT) --verbose
+
+# ============================================================================
+# DEPLOYMENT VERIFICATION
+# ============================================================================
+
+.PHONY: dep-provision-check
+dep-provision-check: check-scripts discover-fields verify-provisioning
+	@echo ""
+	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(GREEN)✅ PRE-DEPLOYMENT VERIFICATION COMPLETE$(NC)"
+	@echo "$(GREEN)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "   All deployment fields discovered and verified."
+	@echo "   Safe to proceed with deployment."
+	@echo ""
+
+# ============================================================================
+# FULL DEPLOYMENT TARGETS
+# ============================================================================
+
+.PHONY: deploy-with-fields
+deploy-with-fields: provision-fields dep-provision-check
+	@echo ""
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(BLUE)🚀 READY FOR DEPLOYMENT$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "   1. Provisioning: $(GREEN)COMPLETE$(NC)"
+	@echo "   2. Verification: $(GREEN)COMPLETE$(NC)"
+	@echo "   3. Audit Trail:  $(GREEN)RECORDING$(NC)"
+	@echo ""
+	@echo "   Next steps:"
+	@echo "   - Run: make deploy"
+	@echo "   - Or: docker-compose -f docker-compose.prod.yml up -d"
+	@echo "   - Or: ./scripts/deploy.sh production"
+	@echo ""
+
+# ============================================================================
+# AUDIT & MONITORING
+# ============================================================================
+
+.PHONY: audit-trail
+audit-trail:
+	@if [ -f logs/deployment-provisioning-audit.jsonl ]; then \
+		echo "$(BLUE)📋 Deployment Provisioning Audit Trail$(NC)"; \
+		echo ""; \
+		tail -20 logs/deployment-provisioning-audit.jsonl | jq . 2>/dev/null || tail -20 logs/deployment-provisioning-audit.jsonl; \
+	else \
+		echo "$(YELLOW)ℹ️  No audit trail found (provisioning not yet run)$(NC)"; \
+	fi
+
+.PHONY: audit-trail-failed
+audit-trail-failed:
+	@if [ -f logs/deployment-provisioning-audit.jsonl ]; then \
+		echo "$(BLUE)❌ Failed Provisioning Operations$(NC)"; \
+		echo ""; \
+		grep '"status":"failed"' logs/deployment-provisioning-audit.jsonl | jq . 2>/dev/null || grep '"status":"failed"' logs/deployment-provisioning-audit.jsonl; \
+	else \
+		echo "$(YELLOW)ℹ️  No audit trail found$(NC)"; \
+	fi
+
+# ============================================================================
+# HELPER TARGETS
+# ============================================================================
+
+.PHONY: check-scripts
+check-scripts:
+	@if [ ! -x "$(PROVISION_SCRIPT)" ]; then \
+		echo "$(RED)❌ Error: Provisioning script not executable$(NC)"; \
+		echo "   Run: chmod +x $(PROVISION_SCRIPT)"; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(DISCOVER_SCRIPT)" ]; then \
+		echo "$(RED)❌ Error: Discovery script not executable$(NC)"; \
+		echo "   Run: chmod +x $(DISCOVER_SCRIPT)"; \
+		exit 1; \
+	fi
+	@if [ ! -x "$(VERIFY_SCRIPT)" ]; then \
+		echo "$(RED)❌ Error: Verification script not executable$(NC)"; \
+		echo "   Run: chmod +x $(VERIFY_SCRIPT)"; \
+		exit 1; \
+	fi
+
+.PHONY: provision-help
+provision-help:
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo "$(BLUE)Deployment Field Auto-Provisioning - Make Targets$(NC)"
+	@echo "$(BLUE)━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━$(NC)"
+	@echo ""
+	@echo "$(YELLOW)PROVISIONING$(NC)"
+	@echo "  make provision-fields              Auto-provision all fields"
+	@echo "  make provision-fields-dry          Dry-run (no changes)"
+	@echo "  make provision-fields-verbose      Verbose output"
+	@echo ""
+	@echo "$(YELLOW)DISCOVERY & VERIFICATION$(NC)"
+	@echo "  make discover-fields               Discover field sources"
+	@echo "  make discover-fields-markdown      Markdown format"
+	@echo "  make discover-fields-json          JSON format"
+	@echo "  make verify-provisioning           Verify fields are configured"
+	@echo "  make verify-provisioning-verbose   Verbose verification"
+	@echo ""
+	@echo "$(YELLOW)DEPLOYMENT$(NC)"
+	@echo "  make dep-provision-check           Pre-deployment verification"
+	@echo "  make deploy-with-fields            Full deployment pipeline"
+	@echo ""
+	@echo "$(YELLOW)MONITORING & AUDIT$(NC)"
+	@echo "  make audit-trail                   View recent operations"
+	@echo "  make audit-trail-failed            Show failed operations"
+	@echo ""
+	@echo "$(YELLOW)ENVIRONMENT VARIABLES$(NC)"
+	@echo "  PREFERRED_PROVIDER=gsm|vault|kms   Choose credential provider"
+	@echo ""
+	@echo "$(YELLOW)EXAMPLES$(NC)"
+	@echo "  make provision-fields              # Standard provisioning"
+	@echo "  make provision-fields-dry          # Test without changes"
+	@echo "  PREFERRED_PROVIDER=vault make provision-fields  # Use Vault"
+	@echo "  make deploy-with-fields            # Full deployment"
+	@echo ""
