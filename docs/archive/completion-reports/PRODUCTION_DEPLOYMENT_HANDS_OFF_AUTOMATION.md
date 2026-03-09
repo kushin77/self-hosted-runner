@@ -279,7 +279,7 @@ aws kms describe-key --key-id "${AWS_KMS_KEY_ID}"
 ### Governance
 - [x] Branch protection enforced
 - [x] Commit signing required
-- [x] Pull request reviews mandatory
+- [x] Draft issue reviews mandatory
 - [x] Copilot behavior rules active
 - [x] Compliance audit daily
 
@@ -291,7 +291,7 @@ aws kms describe-key --key-id "${AWS_KMS_KEY_ID}"
 
 | Component | Status | Details |
 |-----------|--------|---------|
-| **Auto-Merge** | ✅ Enabled | PRs can auto-merge when checks pass |
+| **Auto-Merge** | ✅ Enabled | Draft issues can auto-merge when checks pass |
 | **Phase 1 Core** | ✅ Active | All orchestration running |
 | **Phase 2 Security** | ✅ Active | GSM + Vault + KMS operational |
 | **Phase 3 Infrastructure** | ✅ Deploying | Workflow triggered |

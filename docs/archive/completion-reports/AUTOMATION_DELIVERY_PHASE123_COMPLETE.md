@@ -12,7 +12,7 @@
 
 ### Key Metrics
 
-| Phase | Status | Issues Closed | PRs Merged | Files Added |
+| Phase | Status | Issues Closed | Draft issues Merged | Files Added |
 |-------|--------|---------------|-----------|-------------|
 | **Phase 1:** Docker repairs | ✅ Complete | 3 (#391, #435, #436) | 1 (#1386) | 9 |
 | **Phase 2:** Dependabot + GSM | ✅ Complete | 4 (#1349, #1396, #1411, #1412) | 3 (#1398-1399, #1417) | 2 |
@@ -50,8 +50,8 @@
 ## PHASE 2: Dependabot Remediation + GCP Secret Manager ✅
 
 **Issues Closed:** #1349 (master), #1396 (remediation), #1411, #1412 (triage)  
-**PRs Merged:** #1398, #1399, #1417  
-**Breaking PRs Closed:** #1401, #1402 (CI unstable, staged to Phase 3)  
+**Draft issues Merged:** #1398, #1399, #1417  
+**Breaking Draft issues Closed:** #1401, #1402 (CI unstable, staged to Phase 3)  
 
 ### 2a: Non-Breaking Dependency Fixes
 
@@ -318,12 +318,12 @@ PHASE3_BREAKING_UPGRADES_STRATEGY.md
 - ✅ Non-breaking npm fixes result in zero CVEs
 - ✅ GSM workflow runs idempotently (rerun = same result)
 - ✅ Branch protection restored after merges
-- ✅ Metadata validation passes for all PRs
+- ✅ Metadata validation passes for all Draft issues
 
 ### Phase 3: Framework
 - ⏳ PR #1426 CI passing (100% green gate)
-- ⏳ Batch 2 PRs will verify transitive upgrade testing
-- ⏳ Batch 3 PRs will verify direct dep API changes
+- ⏳ Batch 2 Draft issues will verify transitive upgrade testing
+- ⏳ Batch 3 Draft issues will verify direct dep API changes
 
 ---
 
@@ -376,7 +376,7 @@ GCP Infrastructure (Phase 2)
 | Metric | Phase 1 | Phase 2 | Phase 3 | Overall |
 |--------|---------|---------|---------|---------|
 | **Issues Closed** | 3 | 6 | 1 (tracking) | 10 |
-| **PRs Merged** | 1 | 3 | 0 (framework ready) | 4 |
+| **Draft issues Merged** | 1 | 3 | 0 (framework ready) | 4 |
 | **Files Added** | 9 | 2 | 1 | 12+ |
 | **CVEs Patched** | 0 | 7+ | Pending | 7+ |
 | **CI Green Rate** | 100% | 100% | Framework only | 100% |

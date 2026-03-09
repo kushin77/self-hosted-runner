@@ -65,7 +65,7 @@ Once the key is installed, you have two choices:
 Several automation branches were created and pushed during the CI/CD automation initiative. See the linked help issue for a list of branches that may require manual review or approval before PR merge.
 
 Status:
-- PRs created for most automation branches ✓
+- Draft issues created for most automation branches ✓
 - Some branches have diverged histories — manual rebase/resolution recommended
 - Help issue created with branch list and recommended actions
 

@@ -63,7 +63,7 @@ concurrency:
 ## 📋 Implementation Batches
 
 ### Batch 1-4: Critical & Enhanced Workflows
-**PRs:** #1101-1106  
+**Draft issues:** #1101-1106  
 **Workflows:** 25+ including:
 - Terraform/DNS/MinIO infrastructure workflows
 - Secret rotation and credential management
@@ -198,7 +198,7 @@ grep -A 5 "workflow_call:" .github/workflows/WORKFLOW_NAME.yml
 
 - [Workflow Audit Script](.github/scripts/check_workflow_sequencing.py)
 - [Audit Report](../../../workflow-audit-report.txt)
-- [Related PRs](#-implementation-batches)
+- [Related Draft issues](#-implementation-batches)
 - [Related Issues](#-related-issues-resolved)
 
 ---
@@ -216,7 +216,7 @@ grep -A 5 "workflow_call:" .github/workflows/WORKFLOW_NAME.yml
 
 ## 📋 Next Steps
 
-1. ✅ **Review & Merge PRs** (1101-1112)
+1. ✅ **Review & Merge Draft issues** (1101-1112)
 2. ✅ **Verify Audit** (100% pass achieved)
 3. ✅ **Monitor Production** (Workflows active)
 4. ✅ **Close Tracking Issues** (Issue #1113)

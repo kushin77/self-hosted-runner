@@ -286,7 +286,7 @@ Every secret operation **MUST** be logged:
 
 ### Policy Enforcement Workflow
 
-**Triggers:** Every 4 hours + on all PRs modifying workflows/secrets
+**Triggers:** Every 4 hours + on all Draft issues modifying workflows/secrets
 
 **Checks:**
 1. ✅ No hardcoded secrets (Gitleaks scan)
@@ -351,7 +351,7 @@ gh workflow run verify-secrets-and-diagnose.yml
 
 ## Code Review Checklist
 
-**Mandatory for ALL PRs modifying `**/*.yml`, `secrets/`, or `docs/**secrets*`:**
+**Mandatory for ALL Draft issues modifying `**/*.yml`, `secrets/`, or `docs/**secrets*`:**
 
 - [ ] No hardcoded secrets in diff
 - [ ] All secret references use `${{ secrets.CONSTANT_CASE }}`

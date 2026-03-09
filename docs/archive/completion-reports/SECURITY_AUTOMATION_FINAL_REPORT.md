@@ -44,7 +44,7 @@ A complete security automation architecture has been deployed across the reposit
 - Low/Medium: 9 alerts
 
 **Remediation Status:**
-- ✅ 3 existing Dependabot PRs identified (auto-created by Dependabot)
+- ✅ 3 existing Dependabot Draft issues identified (auto-created by Dependabot)
 - ✅ 14 tracking issues created for high/critical packages
 - ✅ Comprehensive triage summary documented
 
@@ -104,7 +104,7 @@ A complete security automation architecture has been deployed across the reposit
 - ✅ Dependabot scanning enabled and monitored
 
 ### In Progress (Automated)
-- ⏳ 3 Dependabot PRs under CI validation
+- ⏳ 3 Dependabot Draft issues under CI validation
 - ⏳ Auto-merge on green (if configured)
 - ⏳ Post-merge security audit scheduled
 

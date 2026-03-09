@@ -39,4 +39,4 @@ The repository contains `ci/scripts/upload_to_minio.sh` and `ci/scripts/download
 ## Next steps for validation
 - Provide staging runner(s) with the secrets above.
 - Run the updated `validate-manifests.yml` workflow on the staging runner and verify artifacts land in the configured `MINIO_BUCKET`.
-- After validation, proceed to replace remaining `actions/upload-artifact` / `download-artifact` usages per-workflow (create small PRs per workflow).
+- After validation, proceed to replace remaining `actions/upload-artifact` / `download-artifact` usages per-workflow (create small Draft issues per workflow).

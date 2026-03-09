@@ -25,11 +25,11 @@ The 10X Automated Secrets Engineering initiative Phase 6 is **complete and produ
 
 ### 2. **auto-dependency-remediation.yml** (NEW)
 - **Status**: ✅ Deployed & Active
-- **Purpose**: Automated vulnerability fix PRs with auto-merge
+- **Purpose**: Automated vulnerability fix Draft issues with auto-merge
 - **Schedule**: Daily 2 AM UTC + Manual dispatch
 - **Features**:
   - Scans Dependabot API for high+critical alerts
-  - Creates targeted fix PRs (npm audit fix)
+  - Creates targeted fix Draft issues (npm audit fix)
   - Auto-merges on successful CI/CD
   - Dispatches validation post-merge
   - Zero manual intervention
@@ -83,7 +83,7 @@ ingested: true
 
 ### ✅ Immutable
 - All workflows stored in `.github/workflows/` (version-controlled)
-- All changes via Git PRs (no manual edits)
+- All changes via Git Draft issues (no manual edits)
 - Full audit trail maintained
 
 ### ✅ Ephemeral
@@ -130,7 +130,7 @@ Daily 2 AM UTC or manual trigger
         ↓
 Scan Dependabot API
         ↓
-Create fix PRs (one per high/critical vuln)
+Create fix Draft issues (one per high/critical vuln)
         ↓
 Run CI/CD validation
         ↓

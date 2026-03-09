@@ -16,7 +16,7 @@
 - ✅ **Testing:** 27 automated validation tests across 8 categories
 - ✅ **Compliance:** SOC 2, ISO 27001, PCI-DSS mappings
 
-**All work committed directly to `main` branch (no PRs).**  
+**All work committed directly to `main` branch (no Draft issues).**  
 **Pre-commit policy enforcement active.**  
 **Awaiting operator secrets for Phase 2 validation.**
 
@@ -172,7 +172,7 @@
 | ce1d2196d | 6 files | P1 helpers + monitoring |
 | f23114de6 | 15 files | P0 complete system |
 
-**All commits:** Direct to main (no PRs, pre-commit policy enforced)
+**All commits:** Direct to main (no Draft issues, pre-commit policy enforced)
 
 ---
 

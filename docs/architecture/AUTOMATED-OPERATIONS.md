@@ -20,7 +20,7 @@ The 5-System Organizational Framework now includes **fully automated validation 
 
 ## What Runs Automatically
 
-### On Every Pull Request
+### On Every Draft Issue
 
 When you create a PR that touches workflows, scripts, or indices:
 
@@ -95,7 +95,7 @@ Each weekly run produces downloadable reports:
 
 ### Before PR Merge
 
-All PRs touching key files trigger 5 validation jobs:
+All Draft issues touching key files trigger 5 validation jobs:
 
 ```bash
 # Job 1: Secrets validation
@@ -386,7 +386,7 @@ bash scripts/audit-scripts.sh --full | grep YOUR_SCRIPT
 - [ ] Export audit data to CloudWatch/DataDog
 - [ ] Create dashboard of audit trends
 - [ ] Slack notifications on audit failures
-- [ ] Auto-create PRs to fix index inconsistencies
+- [ ] Auto-create Draft issues to fix index inconsistencies
 - [ ] Integration with CODEOWNERS for audit reviews
 
 **No plans for**:

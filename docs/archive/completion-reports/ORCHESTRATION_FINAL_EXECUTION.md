@@ -47,13 +47,13 @@
 ```
 🚀 MERGE ORCHESTRATION EXECUTION - 2026-03-08T18:42:30Z
 ================================================
-📊 Scanning for open PRs... [SCANNING COMPLETE]
-Processing PRs...
+📊 Scanning for open Draft issues... [SCANNING COMPLETE]
+Processing Draft issues...
 ✅ PR #1729: Merged successfully
 ⏳ PR #1807: Auto-merge enabled (pending CI)
 ⏳ PR #1802: Auto-merge enabled (pending CI)
 ⏳ PR #1775: Auto-merge enabled (pending CI)
-... [processing all 50+ open PRs] ...
+... [processing all 50+ open Draft issues] ...
 ================================================
 ✅ Orchestration Complete
 Monitor Issue #1805 for real-time progress
@@ -61,9 +61,9 @@ Monitor Issue #1805 for real-time progress
 
 ### What's Happening
 1. **Phase 1**: Auto-merge orchestration ACTIVE
-   - All mergeable PRs merged immediately
-   - PRs pending CI set to auto-merge automatically
-   - Non-mergeable PRs (conflicts) escalated for manual review
+   - All mergeable Draft issues merged immediately
+   - Draft issues pending CI set to auto-merge automatically
+   - Non-mergeable Draft issues (conflicts) escalated for manual review
 
 2. **Phases 2+**: Ready to execute (conditional on Phase 1)
    - 50+ additional branches queued
@@ -74,12 +74,12 @@ Monitor Issue #1805 for real-time progress
 
 ## 📈 MERGE CONSOLIDATION PLAN
 
-### Current Open PRs Being Processed
+### Current Open Draft issues Being Processed
 | Count | Category | Action |
 |-------|----------|--------|
 | 1-2 | Immediately Mergeable | ✅ Merged now |
 | 15+ | Pending CI Checks | ⏳ Auto-merge enabled |
-| 50+ | Total Open PRs | 🔄 Processing |
+| 50+ | Total Open Draft issues | 🔄 Processing |
 | ~130+ | Total Branches (projected) | 📊 To consolidate |
 
 ### Execution Timeline
@@ -110,7 +110,7 @@ Expected Done: ~2026-03-08T21:00Z
 
 ### Idempotency
 ✅ **Safe to restart anytime**
-- Already-merged PRs auto-skipped
+- Already-merged Draft issues auto-skipped
 - Merge de-duplication built-in
 - No duplicate merges possible
 - Can retry unlimited times
@@ -119,7 +119,7 @@ Expected Done: ~2026-03-08T21:00Z
 ✅ **Conflicts don't halt execution**
 - Merge conflicts escalated separately
 - Main orchestration continues
-- Other PRs still merge
+- Other Draft issues still merge
 - Manual review only for conflicts
 
 ### Fully Automated
@@ -170,7 +170,7 @@ gh issue view 1805 --comments
 # Workflow runs:
 # - Automatically every 6 hours
 # - When triggered manually
-# - When new PRs are created
+# - When new Draft issues are created
 ```
 
 ### Option 2: Manual Trigger (If You Want Control)
@@ -201,18 +201,18 @@ https://github.com/kushin77/self-hosted-runner/issues/1805
 
 Every merge phase posts updates:
 ```
-✅ Directly Merged: X PRs
-⏳ Queued for Auto-Merge: X PRs  
-❌ Detected Conflicts: X PRs
+✅ Directly Merged: X Draft issues
+⏳ Queued for Auto-Merge: X Draft issues  
+❌ Detected Conflicts: X Draft issues
 Status: [Phase status]
 ```
 
 ### Check Merge Progress
 ```bash
-# See all PRs, sorted by update time
+# See all Draft issues, sorted by update time
 gh pr list --state merged --limit 20
 
-# See remaining open PRs
+# See remaining open Draft issues
 gh pr list --state open --limit 20
 
 # See workflow logs
@@ -232,16 +232,16 @@ gh run list --workflow auto-merge-orchestration.yml -L 5
 
 ### Phase 1: ✅ COMPLETE
 - [x] Auto-merge orchestration deployed
-- [x] 50+ PRs scanned and processing
+- [x] 50+ Draft issues scanned and processing
 - [x] GitHub Issue #1805 tracking active
-- [x] All mergeable PRs identified
+- [x] All mergeable Draft issues identified
 - [x] Auto-merge enabled for pending CI
 - [x] Immutable logging activated
 - [x] Ephemeral credentials configured
 
 ### Phase 2: ⏳ READY (Conditional)
 - [ ] All Phase 1 merges complete
-- [ ] Infrastructure PRs merged
+- [ ] Infrastructure Draft issues merged
 - [ ] 54+ branches consolidated
 - [ ] Cloud Logging shows all operations
 
@@ -257,7 +257,7 @@ gh run list --workflow auto-merge-orchestration.yml -L 5
 
 ### Automatically (No Action Needed)
 1. ✅ Orchestration runs continuously
-2. ✅ PRs merge as they become ready
+2. ✅ Draft issues merge as they become ready
 3. ✅ CI checks monitored automatically
 4. ✅ Conflicts escalated automatically
 5. ✅ Issue #1805 updated in real-time
@@ -333,16 +333,16 @@ gh pr list --state open -L 5     # See what's left
 
 ### What's Happening Now
 🟢 **LIVE EXECUTION** - Auto-merge orchestration running  
-⏳ All 50+ PRs being processed  
-✅ Mergeable PRs merged immediately  
-⏳ Pending CI PRs set to auto-merge  
+⏳ All 50+ Draft issues being processed  
+✅ Mergeable Draft issues merged immediately  
+⏳ Pending CI Draft issues set to auto-merge  
 💬 Real-time updates in Issue #1805  
 
 ### What You Need To Do
 **NOTHING.** Check GitHub Issue #1805 in a few hours to watch everything consolidated.
 
 ### ETA to Completion
-**2-3 hours** for all ready PRs to merge and consolidate
+**2-3 hours** for all ready Draft issues to merge and consolidate
 
 ---
 

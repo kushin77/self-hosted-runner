@@ -9,7 +9,7 @@ status: Production Ready
 
 ## 🎯 Overview
 
-This document describes the **immutable, hands-off continuous integration and pull request governance** system used in the self-hosted runner infrastructure. All code changes flow through an automated pipeline that ensures compliance, security, and operational readiness.
+This document describes the **immutable, hands-off continuous integration and Draft issue governance** system used in the self-hosted runner infrastructure. All code changes flow through an automated pipeline that ensures compliance, security, and operational readiness.
 
 ---
 
@@ -229,12 +229,12 @@ gh pr create --title "hotfix: Fix deployment issue #XXXX"
 
 | Rule | Setting | Purpose |
 |------|---------|---------|
-| Require PRs | ✅ Yes | All changes require review |
+| Require Draft issues | ✅ Yes | All changes require review |
 | Require status checks | ✅ Yes | Preflight, Gitleaks, Audit must pass |
 | Require branch to be up to date | ✅ Yes | Must sync with latest main before merge |
 | Require code review | ⭕ No* | Can auto-merge without review (if checks pass) |
 | Restrict who can force push | ✅ Admin Only | Prevents accidental overwrites |
-| Auto-delete head branches | ✅ Yes | Clean up merged PRs |
+| Auto-delete head branches | ✅ Yes | Clean up merged Draft issues |
 
 *Can be configured to require 1+ review if desired
 
@@ -245,7 +245,7 @@ gh pr create --title "hotfix: Fix deployment issue #XXXX"
 ### View All Recent Merge Activity
 
 ```bash
-# Last 20 commits to main (all merged PRs)
+# Last 20 commits to main (all merged Draft issues)
 gh api repos/kushin77/self-hosted-runner/commits?sha=main&per_page=20 \
   --jq '.[] | {message: .commit.message, author: .commit.author.name, date: .commit.author.date}'
 
@@ -355,7 +355,7 @@ gh pr merge <pr-number> --admin --squash --repo kushin77/self-hosted-runner
 
 ### For PR Authors
 
-- ✅ **Keep PRs focused:** One feature or fix per PR
+- ✅ **Keep Draft issues focused:** One feature or fix per PR
 - ✅ **Write clear commit messages:** `feat:`, `fix:`, `docs:`, `chore:` prefixes
 - ✅ **Reference related issues:** Use `Closes #1234` in PR body
 - ✅ **Run checks locally first:** `yamllint`, `shellcheck`, etc.

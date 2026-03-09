@@ -260,7 +260,7 @@ Current Phase P4 deployment achieves **70% cost savings** (Spot instances) with 
    ```
    - Parser: extract labels, match to runner pools
    - Router: route to appropriate instance type
-   - **Impact**: developers control performance (no PRs to infra teams)
+   - **Impact**: developers control performance (no Draft issues to infra teams)
 
 2. **Live Job Debugging Tunnel**
    ```
@@ -625,7 +625,7 @@ Current Phase P4 deployment achieves **70% cost savings** (Spot instances) with 
    Rule: "if PR touches 'terraform/' → run IaC tests"
    ```
    - Implementation: GitHub Actions conditions + inputs
-   - **Impact**: faster feedback for small PRs
+   - **Impact**: faster feedback for small Draft issues
 
 4. **Artifact Management Hub**
    ```

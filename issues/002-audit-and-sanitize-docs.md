@@ -6,7 +6,7 @@ Purpose:
 Tasks:
 - Run a repo-wide scan for common token patterns and collect findings.
 - Group findings into safe-to-ignore (false positives) and actionable redactions.
-- Open small PRs to redact literal tokens and replace with placeholders.
+- Open small Draft issues to redact literal tokens and replace with placeholders.
 
 Deliverables:
 - A PR per small redaction and an audit report listing remaining high-risk files.

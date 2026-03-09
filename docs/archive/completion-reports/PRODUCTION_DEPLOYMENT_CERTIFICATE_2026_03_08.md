@@ -68,7 +68,7 @@
 
 #### 6. **Self-Healing Framework** ✅
 
-**Merged Components (3 PRs):**
+**Merged Components (3 Draft issues):**
 - ✅ **PR #1921:** State-based Recovery (`self_healing/state_recovery.py`)
 - ✅ **PR #1923:** PR Prioritization (`self_healing/pr_prioritizer.py`)
 - ✅ **PR #1925:** Rollback & Recovery (`self_healing/rollback_executor.py`)
@@ -243,7 +243,7 @@
 - [x] Escalation paths defined
 
 ### Integration ✅
-- [x] Self-healing framework deployed (3 PRs merged)
+- [x] Self-healing framework deployed (3 Draft issues merged)
 - [x] Credential system integrated with escalation
 - [x] Failure notifications trigger GitHub issues
 - [x] Health checks in place

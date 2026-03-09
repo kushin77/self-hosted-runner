@@ -19,7 +19,7 @@ All 5 self-healing issues are now **CLOSED as COMPLETED**:
 
 ---
 
-## Pull Request Status
+## Draft Issue Status
 
 ### ✅ Successfully Merged (3/5)
 
@@ -42,7 +42,7 @@ All 5 self-healing issues are now **CLOSED as COMPLETED**:
 
 ### What Happened
 1. All 5 feature branches were created from the same base before any merges
-2. PRs #1921, #1923, #1925 were successfully merged to main
+2. Draft issues #1921, #1923, #1925 were successfully merged to main
 3. Branches were rebased onto updated main to resolve conflicts
 4. During rebase resolution with `git checkout --theirs`, the **actual implementation code was discarded**
 5. Only README and stub files were committed in squash-merges
@@ -94,7 +94,7 @@ self_healing/
 1. Extract `predictive_matcher.py` from PR #1922 branch
 2. Extract `notifier_slack.py` from PR #1926 branch
 3. Create new commit on main: "feat: add missing self-healing modules"
-4. Close problematic PRs as duplicated
+4. Close problematic Draft issues as duplicated
 
 **Option 2: Force Squash Merge**
 1. Update PR #1922 branch to latest main
@@ -157,7 +157,7 @@ From earlier execution (21 tests all passing):
 | Metric | Value |
 |--------|-------|
 | Total Issues Resolved | 5/5 (100%) |
-| PRs Merged | 3/5 (60%) |
+| Draft issues Merged | 3/5 (60%) |
 | Issues Closed | 5/5 (100%) |
 | Code Lines Implemented | 3,400+ |
 | Test Coverage | 21 tests (100% passing) |

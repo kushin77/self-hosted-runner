@@ -239,7 +239,7 @@ cat >> ROTATION_LOG.md << 'EOF'
 **Prevention**: 
 - Add pre-commit hook to detect secrets (using TruffleHog)
 - Mandatory secrets training for all committers
-- Require secrets review in all PRs
+- Require secrets review in all Draft issues
 
 **Post-Mortem**: 2026-03-08 @ 10 AM UTC
 

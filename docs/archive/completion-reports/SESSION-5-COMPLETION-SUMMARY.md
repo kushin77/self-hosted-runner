@@ -262,7 +262,7 @@ VAULT_ADDR=https://vault.prod.com:8200 VAULT_TOKEN=$(cat ~/.vault-token) bash te
 1139345 (HEAD) feat(tests): Add performance benchmarking suite
 3501560         feat(ci): Add test suite CI/CD workflow
 9c3e0f5         feat(p2-testing): Add production-ready testing framework
-3909ed9 (main)  Merge pull request #152 (baseline)
+3909ed9 (main)  Merge Draft issue #152 (baseline)
 ```
 
 ### Files Added
@@ -277,7 +277,7 @@ tests/vault-security/run-vault-security-tests.sh
 Total: 6 files, 1,907 insertions
 ```
 
-### Pull Request
+### Draft Issue
 - **Number**: #155
 - **Title**: "feat: Add production-ready testing framework (Issue #149)"
 - **Status**: Ready for review/merge
