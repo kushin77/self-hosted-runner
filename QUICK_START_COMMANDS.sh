@@ -1,0 +1,70 @@
+#!/bin/bash
+################################################################################
+# QUICK START: Phase 1-3 Command Reference
+# Copy & paste these commands for immediate operator execution
+# Location: /home/akushnir/self-hosted-runner
+################################################################################
+
+echo "=================================================="
+echo "PHASE 1-3 COMMAND QUICK REFERENCE"
+echo "=================================================="
+echo ""
+
+echo "## PHASE 1: VAULT APPROLE ✅ COMPLETE"
+echo "Command: bash scripts/complete-credential-provisioning.sh --phase 1"
+echo "Status: Already executed (2026-03-09 16:30:12)"
+echo "Next: Deploy vault-agent to bastion"
+echo ""
+
+echo "## PHASE 2: AWS SECRETS MANAGER 🔄 READY"
+echo "Prerequisite: aws configure"
+echo "Verify: aws sts get-caller-identity"
+echo ""
+echo "Dry-Run Test:"
+echo "  bash scripts/operator-aws-provisioning.sh --dry-run --verbose"
+echo ""
+echo "Execute:"
+echo "  bash scripts/operator-aws-provisioning.sh --region us-east-1 --verbose"
+echo ""
+echo "Verify Results:"
+echo "  aws secretsmanager list-secrets --filters Key=name,Values=runner/"
+echo "  aws kms describe-key --key-id alias/runner-credentials"
+echo ""
+
+echo "## PHASE 3: GOOGLE SECRET MANAGER 🔄 READY"
+echo "Prerequisite: gcloud auth application-default login"
+echo "Configure: gcloud config set project elevatediq-runner"
+echo "Enable: gcloud services enable secretmanager.googleapis.com"
+echo ""
+echo "Dry-Run Test:"
+echo "  bash scripts/operator-gcp-provisioning.sh --project elevatediq-runner --dry-run --verbose"
+echo ""
+echo "Execute:"
+echo "  bash scripts/operator-gcp-provisioning.sh --project elevatediq-runner --verbose"
+echo ""
+echo "Verify Results:"
+echo "  gcloud secrets list --project=elevatediq-runner"
+echo "  gcloud iam service-accounts describe runner-watcher@elevatediq-runner.iam.gserviceaccount.com --project=elevatediq-runner"
+echo ""
+
+echo "## PHASE 4: VAULT AGENT DEPLOYMENT (Post Phase 1-3)"
+echo "Prerequisite: Phase 1-3 complete"
+echo ""
+echo "Execute:"
+echo "  bash scripts/deploy-vault-agent-to-bastion.sh --bastion 192.168.168.31 --verbose"
+echo ""
+
+echo "## PHASE 5: WATCHER INTEGRATION (Post Phase 4)"
+echo "Test credential retrieval:"
+echo "  bash scripts/wait-and-deploy.sh --test-credentials"
+echo ""
+
+echo "## COMPREHENSIVE DOCUMENTATION"
+echo "Full guide: cat PHASES_1_3_EXECUTION_GUIDE.md"
+echo "Summary: cat PHASE_1_3_EXECUTION_SUMMARY.md"
+echo ""
+echo "=================================================="
+echo "All scripts ready for operator execution"
+echo "Estimated time: 2-3 hours (Phases 2-3)"
+echo "Status: GO-LIVE AUTHORIZED ✅"
+echo "=================================================="
