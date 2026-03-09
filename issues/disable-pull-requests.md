@@ -19,3 +19,6 @@ If you want me to also:
 - Remove PR references across docs (large sweep) and update historical docs, or
 - Create a small script to scan and auto-update doc references to PR -> draft issue,
 please say so and I will proceed.
+
+Status: Closed — migration executed on 2026-03-09 UTC
+
