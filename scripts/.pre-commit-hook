@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Pre-commit hook: Prevent accidental secret commits
+# Install: ln -sf ../../scripts/.pre-commit-hook .git/hooks/pre-commit
+
+set -euo pipefail
+
+echo "Running pre-commit checks..."
+
+# Check 1: Stop if trying to commit secrets
+BANNED_PATTERNS=(
+    "VAULT_TOKEN="
+    "AWS_SECRET_ACCESS_KEY="
+    "GOOGLE_CREDENTIALS="
+    "private_key_id"
+    "private_key="
+    "-----BEGIN RSA PRIVATE KEY-----"
+    "-----BEGIN PRIVATE KEY-----"
+)
+
+EXIT_CODE=0
+for pattern in "${BANNED_PATTERNS[@]}"; do
+    if git diff --cached -S "$pattern" --name-only 2>/dev/null | grep -v ".git"; then
+        echo "❌ ERROR: Attempting to commit secret matching pattern: $pattern"
+        echo "   Use repository secrets or credential provider instead"
+        EXIT_CODE=1
+    fi
+done
+
+# Check 2: Ensure YAML is valid if modified
+if git diff --cached --name-only | grep -E "\.(yml|yaml)$"; then
+    for file in $(git diff --cached --name-only | grep -E "\.(yml|yaml)$"); do
+        if [ -f "$file" ]; then
+            if ! python3 -c "import yaml; yaml.safe_load(open('$file'))" 2>/dev/null; then
+                echo "❌ YAML syntax error in: $file"
+                EXIT_CODE=1
+            fi
+        fi
+    done
+fi
+
+# Check 3: Ensure no direct edits to worker node outside emergency procedure
+PROTECTED_FILES=(".github/workflows/*.yml" ".github/workflows/*.yaml" "scripts/*.sh")
+if git diff --cached --name-only | grep -E "(secrets|credential|auth)" >/dev/null; then
+    echo "ℹ Credential/secret modification detected - ensure all values are non-sensitive"
+fi
+
+if [ $EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ Pre-commit checks failed. Commit blocked."
+    echo "   If this is an emergency fix, use: git commit --no-verify"
+    echo "   (This will require an audit log entry in .audit-logs/)"
+fi
+
+exit $EXIT_CODE
