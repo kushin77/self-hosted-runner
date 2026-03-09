@@ -49,4 +49,4 @@ jobs:
           set -euo pipefail
           source .github/scripts/resilience.sh || true
           chmod +x scripts/minio/upload.sh scripts/minio/install-mc.sh
-          retry_command 3 5 scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ steps.cred_minio_bucket.outputs.credential }}" --object "portal-artifact-${{ github.run_id }}.json"
+          retry_command 3 5 scripts/minio/upload.sh --file portal-artifact.json --bucket "${{ secrets.MINIO_BUCKET }}" --object "portal-artifact-${{ github.run_id }}.json"
