@@ -1,9 +1,0 @@
-[canary]
-runner1 ansible_host=localhost ansible_connection=local dev_skip_become=true
-
-[all:vars]
-ansible_user=ubuntu
-ansible_become=true
-runner_repo_url=https://github.com/kushin77/self-hosted-runner
-runner_name_prefix=eiq-runner
-workdir=/opt/actions-runner

@@ -1,6 +1,0 @@
----
-# Defaults for caddy_gitlab role
-gitlab_upstream: "172.17.0.1:8929"
-gitlab_host: "192.168.168.42"
-tls_cert: "/etc/caddy/certs/internal-server.crt"
-tls_key: "/etc/caddy/certs/internal-server.key"

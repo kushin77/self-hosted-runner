@@ -1,2 +1,0 @@
-{"timestamp": "2026-03-08T22:58:16.229694", "event_type": "deployment_start", "component_id": "remove-embedded-secrets", "status": "in-progress", "details": {}, "error": null}
-{"timestamp": "2026-03-08T22:58:16.403849", "event_type": "deployment_success", "component_id": "remove-embedded-secrets", "status": "completed", "details": {}, "error": null}

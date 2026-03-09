@@ -1,5 +1,0 @@
-version: 2
-# Dependabot disabled per operational directive (CI/CD paused)
-# To re-enable, move this file back to .github/dependabot.yml and adjust schedules.
-
-updates: []
