@@ -39,6 +39,23 @@ jobs:
     steps:
       - name: Check for required secrets
         id: check
+      - name: Get Credential [PAGERDUTY_SERVICE_KEY]
+        id: cred_pagerduty_service_key
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: PAGERDUTY_SERVICE_KEY
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [SLACK_WEBHOOK_URL]
+        id: cred_slack_webhook_url
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: SLACK_WEBHOOK_URL
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           SLACK_AVAILABLE="false"
           PAGERDUTY_AVAILABLE="false"
@@ -132,7 +149,7 @@ jobs:
           needs.secret-check.outputs.slack_available == 'true' &&
           (github.event.inputs.test_type == 'slack' || github.event.inputs.test_type == 'all')
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ steps.cred_slack_webhook_url.outputs.credential }}
           DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
         run: |
           set -euo pipefail
@@ -157,7 +174,7 @@ jobs:
           needs.secret-check.outputs.pagerduty_available == 'true' &&
           (github.event.inputs.test_type == 'pagerduty' || github.event.inputs.test_type == 'all')
         env:
-          PAGERDUTY_SERVICE_KEY: ${{ secrets.PAGERDUTY_SERVICE_KEY }}
+          PAGERDUTY_SERVICE_KEY: ${{ steps.cred_pagerduty_service_key.outputs.credential }}
           DEBUG_MODE: ${{ steps.prep.outputs.debug_mode }}
         run: |
           set -euo pipefail

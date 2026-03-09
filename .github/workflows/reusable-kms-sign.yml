@@ -49,10 +49,27 @@ jobs:
       - name: Assume AWS role via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ steps.cred_aws_role_to_assume.outputs.credential }}
           aws-region: us-east-1
 
       - name: Audit signing start
+      - name: Get Credential [ARTIFACT_BUCKET]
+        id: cred_artifact_bucket
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: ARTIFACT_BUCKET
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+      - name: Get Credential [AWS_ROLE_TO_ASSUME]
+        id: cred_aws_role_to_assume
+        uses: kushin77/get-ephemeral-credential@v1
+        with:
+          credential-name: AWS_ROLE_TO_ASSUME
+          retrieve-from: 'auto'
+          cache-ttl: 600
+          audit-log: true
+
         run: |
           echo '{
             "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
@@ -167,7 +184,7 @@ jobs:
           PROVENANCE_SIG="${PROVENANCE_FILE}.sig"
 
           # Upload to S3 (versioned, immutable)
-          S3_BUCKET="${{ secrets.ARTIFACT_BUCKET }}"
+          S3_BUCKET="${{ steps.cred_artifact_bucket.outputs.credential }}"
 
           aws s3 cp "$ARTIFACT_FILE" "s3://${S3_BUCKET}/artifacts/$(basename $ARTIFACT_FILE)" \
             --sse aws:kms --sse-kms-key-id ${{ inputs.kms_key_id }} \
@@ -211,7 +228,7 @@ jobs:
       - name: Assume AWS role via OIDC
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ steps.cred_aws_role_to_assume.outputs.credential }}
           aws-region: us-east-1
 
       - name: Verify signature with KMS public key
