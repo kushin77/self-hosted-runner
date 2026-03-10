@@ -13,4 +13,4 @@ api_container_port        = 3000
 instance_count            = 1  # Minimum instances in staging
 
 # GCP Project Configuration
-gcp_project = "dev-app-001-prod"
+gcp_project = "nexusshield-prod"
