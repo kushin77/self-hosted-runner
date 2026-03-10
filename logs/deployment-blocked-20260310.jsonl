@@ -1,1 +1,0 @@
-{"timestamp":"2026-03-10T02:20:59Z","event":"staging_deploy","status":"blocked","reasons":["service_networking_connection blocked by org policy constraints/compute.restrictVpcPeering","secret version depends on Cloud SQL private IP which could not be created"],"note":"See ISSUES/NETWORK-PRIVATE-SERVICE-ACCESS.md and ISSUES/PROVISION-SECRETS-GSM-VAULT-KMS.md"}
