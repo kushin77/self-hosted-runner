@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres_exporter:
+    image: wrouesnel/postgres_exporter:latest
+    container_name: nexusshield-postgres-exporter
+    environment:
+      # DATA_SOURCE_NAME must be provided via remote .env or secret manager.
+      DATA_SOURCE_NAME: ${POSTGRES_DSN}
+    ports:
+      - "9187:9187"
+    networks:
+      - nexusshield
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9187/metrics || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  nexusshield:
+    external: false
+    name: self-hosted-runner_nexusshield
