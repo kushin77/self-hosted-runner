@@ -15,7 +15,7 @@
 cd /home/akushnir/self-hosted-runner
 
 # Set AWS credentials
-./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXXXXXX --secret xxxxxxx
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxx
 
 # Set Vault (optional)
 ./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token hvs.xxx
@@ -29,7 +29,7 @@ cd /home/akushnir/self-hosted-runner
 
 #### 2️⃣ **Environment Variables**
 ```bash
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx
 export VAULT_ADDR=https://vault.example.com:8200
 export VAULT_TOKEN=hvs.xxxxxxxxxxxxx
@@ -132,7 +132,7 @@ Failover Chain: GSM → Vault → AWS KMS → Local Cache
 Before running activation:
 
 - [ ] AWS IAM credentials ready
-  - Access Key ID: `AKIAXXXXXXXX`
+  - Access Key ID: `REDACTED_AWS_ACCESS_KEY_ID`
   - Secret Access Key: `xxxxxxxxxxxxxxx`
   - Permissions: iam:CreateOpenIDConnectProvider, kms:*, sts:AssumeRole
 
@@ -161,7 +161,7 @@ cd /home/akushnir/self-hosted-runner
 
 # 2. Set AWS credentials (required)
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXX \
+  --key REDACTED_AWS_ACCESS_KEY_ID \
   --secret xxxxxxxxxxxxxxx
 
 # 3. Activate (auto-deployment from here)

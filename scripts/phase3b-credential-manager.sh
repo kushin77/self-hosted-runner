@@ -345,7 +345,7 @@ COMMANDS:
 
 EXAMPLES:
   # Set AWS credentials
-  ./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXX --secret xxxxxx
+  ./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxx
   
   # Set Vault credentials
   ./scripts/phase3b-credential-manager.sh set-vault \\

@@ -99,8 +99,8 @@ Active environment has no AWS credentials loaded (`$AWS_ACCESS_KEY_ID`, `$AWS_SE
 ```bash
 # Place credentials in .credentials/ folder:
 mkdir -p .credentials
-echo "AKIAIOSFODNN7EXAMPLE" > .credentials/aws_access_key_id
-echo "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" > .credentials/aws_secret_access_key
+echo "REDACTED_AWS_ACCESS_KEY_ID" > .credentials/aws_access_key_id
+echo "REDACTED_AWS_SECRET_ACCESS_KEY" > .credentials/aws_secret_access_key
 export AWS_REGION=us-east-1
 bash scripts/phase3b-credentials-aws-vault.sh
 ```

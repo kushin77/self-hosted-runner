@@ -230,13 +230,13 @@ Admin provides credentials via one of 3 methods:
 
 **Option 1: CLI Tool**
 ```bash
-./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXXXXXX --secret xxxxx
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxx
 ./scripts/phase3b-credential-manager.sh activate
 ```
 
 **Option 2: Environment**
 ```bash
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=xxxxx
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
