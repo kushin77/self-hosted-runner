@@ -1,8 +1,0 @@
-{"timestamp":"2026-03-09T18:03:28Z","action":"REVOCATION_STARTED","status":"INITIATED","details":{"timestamp":"2026-03-09T18:03:28Z"}}
-{"timestamp":"2026-03-09T18:04:42Z","action":"REVOCATION_AUDIT_COMPLETE","status":"SUCCESS","details":{"keys":"4926"}}
-{"timestamp":"2026-03-09T18:04:52Z","action":"REVOCATION_STARTED","status":"INITIATED","details":{"timestamp":"2026-03-09T18:04:52Z"}}
-{"timestamp":"2026-03-09T18:07:17Z","action":"REVOCATION_STARTED","status":"INITIATED","details":{"timestamp":"2026-03-09T18:07:17Z"}}
-{"timestamp":"2026-03-09T18:08:46Z","action":"LOCAL_CLEANUP_SUCCESS","status":"SUCCESS","details":{}}
-{"timestamp":"2026-03-09T18:08:46Z","action":"REVOCATION_COMPLETED","status":"SUCCESS","details":{"keys_processed":"4927"}}
-{"timestamp":"2026-03-10T04:43:47Z","action":"LOCAL_CLEANUP_SUCCESS","status":"SUCCESS","details":{}}
-{"timestamp":"2026-03-10T04:43:47Z","action":"REVOCATION_COMPLETED","status":"SUCCESS","details":{"keys_processed":"4951"}}
