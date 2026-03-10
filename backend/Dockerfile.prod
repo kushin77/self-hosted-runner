@@ -8,8 +8,12 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (prefer lockfile via `npm ci`, fall back to `npm install` if absent)
+RUN if [ -f package-lock.json ]; then \
+      npm ci --only=production; \
+    else \
+      npm install --only=production; \
+    fi
 
 # ===== Production Stage =====
 FROM node:18-alpine
@@ -17,9 +21,9 @@ FROM node:18-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production \
-  PORT=3000 \
+  PORT=8080 \
   LOG_LEVEL=info \
-  VAULT_TOKEN_FILE=/var/run/secrets/vault/token \
+  VAULT_TOKEN_MOUNT_PATH=/var/run/secrets/vault/token \
   VAULT_AGENT_CONFIG=/etc/vault/agent-config.hcl
 
 # Small runtime utilities for optional vault agent and health checks
@@ -46,13 +50,14 @@ RUN chown -R node:node /app && chmod -R 755 /app
 USER node
 
 # Add health check
+
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
+  CMD node -e "const p=process.env.PORT||8080; require('http').get('http://localhost:'+p+'/health', (r)=>{if(r.statusCode!==200)throw new Error(r.statusCode)})" || exit 1
 
-# Expose port
-EXPOSE 3000
+# Expose port (Cloud Run sets PORT at runtime)
+EXPOSE 8080
 
-# Entrypoint handles VAULT_TOKEN_FILE, starts optional Vault Agent, then runs the app
+# Entrypoint handles VAULT_TOKEN_MOUNT_PATH, starts optional Vault Agent, then runs the app
 LABEL org.opencontainers.image.title="nexusshield-portal-backend"
 LABEL org.opencontainers.image.version="2026-03-10"
 LABEL org.opencontainers.image.licenses="proprietary"
