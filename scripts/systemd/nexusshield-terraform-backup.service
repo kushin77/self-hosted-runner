@@ -1,0 +1,23 @@
+[Unit]
+Description=NexusShield Terraform State Backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/home/akushnir/self-hosted-runner/scripts/post-deployment/terraform-state-backup.sh
+StandardOutput=append:/var/log/nexusshield/terraform-backup.log
+StandardError=append:/var/log/nexusshield/terraform-backup-error.log
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="HOME=/root"
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/akushnir/self-hosted-runner/logs
+
+[Install]
+WantedBy=multi-user.target
