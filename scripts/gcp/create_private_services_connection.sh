@@ -13,10 +13,10 @@
 
 set -euo pipefail
 
-PROJECT="${1:?ERROR: PROJECT(gcp-project-id) required}"
-NETWORK="${2:?ERROR: NETWORK(vpc-name) required}"
-RANGE="${3:?ERROR: RANGE(address-range-name) required}"
-SUBNET_SIZE="${4:?ERROR: SUBNET_SIZE(16|20|24) required}"
+PROJECT="${1:-${TF_VAR_gcp_project:-nexusshield-prod}}"
+NETWORK="${2:-production-portal-vpc}"
+RANGE="${3:-google-managed-services-${PROJECT}}"
+SUBNET_SIZE="${4:-16}"
 
 echo "[→] NexusShield VPC Private Services Connection Setup"
 echo "    Project: ${PROJECT}"

@@ -109,3 +109,5 @@ secrets/
 *.pem
 scripts/deployment/provision-operator-credentials.sh
 scripts/gcp/*.sh
+terraform/terraform.tfvars
+terraform/*.backup
