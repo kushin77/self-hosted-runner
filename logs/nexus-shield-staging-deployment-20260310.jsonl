@@ -406,3 +406,4 @@
   "commit": "79da34b31",
   "hostname": "dev-elevatediq-2"
 }
+{"timestamp":"2026-03-10T00:45:00Z","phase":"escalation","event":"gcp-api-enablement-permission-denied","user":"akushnir@bioenergystrategies.com","project":"p4-platform","required_permission":"serviceusage.googleapis.com/services.enable","apis_pending":["cloudkms.googleapis.com","secretmanager.googleapis.com","artifactregistry.googleapis.com","sqladmin.googleapis.com","run.googleapis.com","compute.googleapis.com"],"escalation_type":"gcp-project-admin","status":"awaiting-admin-action","github_issue":"#2194","immutability":"append-only-jsonl"}
