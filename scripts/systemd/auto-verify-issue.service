@@ -1,0 +1,7 @@
+[Unit]
+Description=Auto-verify Issue #2311 (archive cloud finalize logs)
+
+[Service]
+Type=oneshot
+ExecStart=/home/akushnir/self-hosted-runner/scripts/orchestration/auto-verify-issue.sh
+User=%U

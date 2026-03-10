@@ -120,6 +120,31 @@ What the repo automation will do:
 - The verifier will save the posted log, compute SHA256, post an audit comment with the SHA, run basic heuristics (Terraform apply complete, containers deployed), and automatically close Issue #2311 when checks pass.
 - The verifier will save the posted log, compute SHA256, post an audit comment with the SHA, run basic heuristics (Terraform apply complete, containers deployed), and automatically close Issue #2311 when checks pass.
 
+Automated watcher (new)
+-----------------------
+
+A lightweight automated watcher has been added to the repository to help process the cloud finalization logs automatically. Files added:
+
+- `scripts/orchestration/auto-verify-issue.sh` — inspects Issue #2311 comments for pasted finalize logs, archives matching comments to `artifacts-archive/system-install/`, computes a SHA256, appends an audit JSONL entry to `logs/deployment/audit.jsonl`, posts a verification comment, and will close Issue #2311 when success markers are found.
+- `scripts/systemd/auto-verify-issue.service` and `scripts/systemd/auto-verify-issue.timer` — example user-level systemd units to run the watcher every 5 minutes.
+
+To enable the watcher on the runner/host as `akushnir` (recommended):
+
+```bash
+# ensure you export a GitHub token with repo write privileges
+export GITHUB_TOKEN=ghp_xxx
+
+# copy systemd unit files into your user systemd folder
+mkdir -p ~/.config/systemd/user
+cp scripts/systemd/auto-verify-issue.* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now auto-verify-issue.timer
+systemctl --user status auto-verify-issue.timer
+```
+
+If you prefer I enable it remotely on `192.168.168.42`, grant SSH access for `akushnir@192.168.168.42` and I will enable and confirm status.
+
+
 ## Operator One-Run Deployment (recommended)
 
 Use this flow when you want a single, auditable command on the deployment host to validate prerequisites, deploy the stack, run basic health checks, optionally run integration tests, and collect logs.
