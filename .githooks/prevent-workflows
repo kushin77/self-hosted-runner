@@ -1,3 +1,15 @@
+#!/bin/sh
+# Prevent adding or modifying .github/workflows files
+set -eu
+
+# Check staged files for .github/workflows changes
+if git diff --cached --name-only | grep -q "^.github/workflows/"; then
+  echo "ERROR: Adding or modifying .github/workflows is disallowed by repository policy."
+  echo "If you need automation, open an ops request and use approved self-hosted runners."
+  exit 1
+fi
+
+exit 0
 #!/usr/bin/env bash
 set -euo pipefail
 
