@@ -13,8 +13,8 @@
 
 set -euo pipefail
 
-PROJECT="${1:?ERROR: PROJECT(gcp-project-id) required}"
-ACCOUNT="${2:?ERROR: ACCOUNT(service-account-email) required}"
+PROJECT="${1:-${TF_VAR_gcp_project:-nexusshield-prod}}"
+ACCOUNT="${2:-nexusshield-tfstate-backup@${PROJECT}.iam.gserviceaccount.com}"
 
 echo "[→] NexusShield Secret Manager IAM Setup"
 echo "    Project: ${PROJECT}"
