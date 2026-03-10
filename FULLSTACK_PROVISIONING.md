@@ -15,7 +15,7 @@ sudo bash /path/to/self-hosted-runner/scripts/provision_fullstack.sh deploy
 
 - Ensure the repository is available at `/home/deploy/self-hosted-runner` (git clone or pull)
 - Add the deploy user's public key to `/home/deploy/.ssh/authorized_keys` (mode 600)
-- Authenticate `gcloud` CLI (if using GCP Secret Manager) or ensure Vault is reachable and `REDACTED_VAULT_TOKEN`/AppRole is configured
+-- Authenticate `gcloud` CLI (if using GCP Secret Manager) or ensure Vault is reachable and AppRole is configured. Do not store tokens inline; use secret stores or GitHub Secrets.
 - Start the systemd unit once the repo is present:
 
 ```bash
