@@ -77,3 +77,15 @@ frontend/node_modules/
 # Audit logs and runtime summaries
 scripts/audit/
 *.summary.log
+
+# Credential examples and templates (use GSM/Vault/KMS instead)
+scripts/**/*secret*.sh
+scripts/**/*credential*.sh
+scripts/**/*provision*.sh
+scripts/**/deploy-with-secrets.sh
+scripts/**/apply-*.sh
+scripts/**/fetch-*.sh
+scripts/**/migrate-*.sh
+scripts/**/redact-*.sh
+docs/**/*.md.bak
+
