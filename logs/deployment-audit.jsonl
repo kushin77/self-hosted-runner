@@ -1,0 +1,1 @@
+{"action": "iam_grant", "service_account": "nxs-portal-production-v2", "roles": ["artifactregistry.writer", "storage.objectAdmin"], "timestamp": "2026-03-10T04:47:25Z"}
