@@ -6,10 +6,14 @@ FROM node:18-alpine AS builder
 WORKDIR /build
 
 # Copy package files
-COPY package.json package-lock.json* ./
+COPY package*.json ./
 
-# Install dependencies (including devDependencies needed for build)
-RUN npm ci
+# Install dependencies (use `npm ci` if a lockfile exists, otherwise fall back to `npm install`)
+RUN if [ -f package-lock.json ]; then \
+      npm ci; \
+    else \
+      npm install; \
+    fi
 
 # Copy source
 COPY src ./src
