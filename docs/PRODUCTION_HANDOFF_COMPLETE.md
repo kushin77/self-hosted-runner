@@ -398,6 +398,39 @@ Deployment is successful when:
 
 ---
 
+## 🔁 Final Handoff Actions (Automated Verification)
+
+The repository includes an automated verifier that will accept logs posted as comments to the handoff issues and close them when basic checks pass. Follow these exact steps for each role.
+
+- Host-admin (Issue #2310): run the system-level orchestrator installer (requires sudo) and paste the resulting log as a comment to Issue #2310.
+
+```bash
+sudo bash scripts/orchestration/run-system-install.sh |& tee /tmp/deploy-orchestrator-$(date +%Y%m%dT%H%M%SZ).log
+cat /tmp/deploy-orchestrator-*.log
+```
+
+- Cloud-team (Issue #2311): provide GCP service account credentials (or ADC) and ensure AWS KMS access, run the finalize script, and paste the resulting log as a comment to Issue #2311.
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+bash scripts/go-live-kit/02-deploy-and-finalize.sh |& tee /tmp/go-live-finalize-$(date +%Y%m%dT%H%M%SZ).log
+cat /tmp/go-live-finalize-*.log
+```
+
+When you post the log as an issue comment the repository automation will:
+- Save the comment as a log file under `/tmp` on the machine running the verifier
+- Compute a SHA256 of the log and post it as an audit comment on the issue
+- Run a set of basic heuristics; if they pass, the issue will be automatically closed
+
+The verifier runs automatically every 5 minutes as a user-level `systemd` timer (`handoff-verify.timer`). You may also run the poll manually:
+
+```bash
+bash scripts/orchestration/auto-verify-handoff.sh
+```
+
+If the verifier reports a failure it will post a diagnostic comment; please review and re-run with the full log.
+
+
 ## 📋 Deployment Approval Sign-Off
 
 **Platform Status:** ✅ **APPROVED FOR PRODUCTION**
