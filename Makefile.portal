@@ -1,0 +1,231 @@
+# NexusShield Portal - Commands & Operations
+# Direct deployment model (no GitHub Actions)
+
+.PHONY: help deploy test build restart logs clean create-env
+
+REPO_ROOT := $(shell pwd)
+DOCKER_COMPOSE := docker-compose -f docker-compose.yml
+BACKEND_DIR := ./backend
+SCRIPTS_DIR := ./scripts
+
+# ===== DISPLAY HELP =====
+help:
+	@echo ""
+	@echo "╔══════════════════════════════════════════════════════════════════════╗"
+	@echo "║   NexusShield Portal - Available Commands                            ║"
+	@echo "╠══════════════════════════════════════════════════════════════════════╣"
+	@echo "║                                                                      ║"
+	@echo "║  Portal Deployment:                                                  ║"
+	@echo "║    make deploy         - Deploy portal (immutable, idempotent)       ║"
+	@echo "║    make test           - Run integration tests                       ║"
+	@echo "║    make build          - Build Docker images                         ║"
+	@echo "║    make stop           - Stop all services                           ║"
+	@echo "║    make restart        - Restart all services                        ║"
+	@echo "║    make clean          - Remove containers & volumes (!data lost!)   ║"
+	@echo "║                                                                      ║"
+	@echo "║  Debugging & Monitoring:                                             ║"
+	@echo "║    make logs           - Tail logs from all services                 ║"
+	@echo "║    make logs-backend   - Tail backend logs                           ║"
+	@echo "║    make logs-frontend  - Tail frontend logs                          ║"
+	@echo "║    make status         - Show service status                         ║"
+	@echo "║    make health         - Run health checks                           ║"
+	@echo "║    make metrics        - Display Prometheus metrics                  ║"
+	@echo "║    make perf           - Show resource usage                         ║"
+	@echo "║                                                                      ║"
+	@echo "║  Database Operations:                                                ║"
+	@echo "║    make db-connect     - Connect to PostgreSQL                       ║"
+	@echo "║    make db-migrate     - Run database migrations                     ║"
+	@echo "║    make db-seed        - Seed demo data                              ║"
+	@echo "║                                                                      ║"
+	@echo "║  API Testing:                                                        ║"
+	@echo "║    make api-health     - Test health endpoint                        ║"
+	@echo "║    make api-login      - Test login endpoint                         ║"
+	@echo "║    make api-creds      - Test credentials endpoint                   ║"
+	@echo "║    make api-audit      - Test audit endpoint                         ║"
+	@echo "║                                                                      ║"
+	@echo "║  Configuration:                                                      ║"
+	@echo "║    make create-env     - Create .env.production from template        ║"
+	@echo "║    make show-env       - Display current environment                 ║"
+	@echo "║    make validate       - Validate deployment prerequisites           ║"
+	@echo "║                                                                      ║"
+	@echo "║  Utilities:                                                          ║"
+	@echo "║    make help           - Show this help message                      ║"
+	@echo "║    make version        - Show portal version                         ║"
+	@echo "║                                                                      ║"
+	@echo "╚══════════════════════════════════════════════════════════════════════╝"
+	@echo ""
+
+# ===== DEPLOYMENT =====
+deploy:
+	@echo "🚀 Deploying NexusShield Portal..."
+	@bash $(SCRIPTS_DIR)/deploy-portal.sh
+
+test:
+	@echo "🧪 Running integration tests..."
+	@bash $(SCRIPTS_DIR)/test-portal.sh
+
+build:
+	@echo "🔨 Building Docker images..."
+	@$(DOCKER_COMPOSE) build --no-cache
+
+stop:
+	@echo "⏹️  Stopping services..."
+	@$(DOCKER_COMPOSE) stop
+
+start:
+	@echo "▶️  Starting services..."
+	@$(DOCKER_COMPOSE) start
+
+restart: stop start
+	@echo "🔄 Services restarted"
+
+clean:
+	@echo "🧹 Cleaning up containers and volumes..."
+	@$(DOCKER_COMPOSE) down -v
+	@rm -rf logs/*.jsonl logs/*.log
+	@echo "✅ Cleanup complete"
+
+# ===== MONITORING =====
+logs:
+	@$(DOCKER_COMPOSE) logs -f --tail=100
+
+logs-backend:
+	@$(DOCKER_COMPOSE) logs -f --tail=50 backend
+
+logs-frontend:
+	@$(DOCKER_COMPOSE) logs -f --tail=50 frontend
+
+logs-postgres:
+	@$(DOCKER_COMPOSE) logs -f --tail=50 postgres
+
+logs-redis:
+	@$(DOCKER_COMPOSE) logs -f --tail=50 redis
+
+status:
+	@echo "📊 Service Status:"
+	@$(DOCKER_COMPOSE) ps
+	@echo ""
+	@echo "📈 Resource Usage:"
+	@docker stats --no-stream
+
+health:
+	@echo "🏥 Health Check Report:"
+	@echo "  Backend: $$(curl -s http://localhost:3000/health | jq '.status // "OFFLINE"')"
+	@echo "  API: $$(curl -s http://localhost:3000/api/health | jq '.status // "OFFLINE"')"
+	@echo "  Frontend: $$(curl -s -L http://localhost:3001/ > /dev/null 2>&1 && echo "UP" || echo "DOWN")"
+	@echo "  PostgreSQL: $$(docker exec nexusshield-postgres pg_isready -U portal 2>/dev/null && echo "UP" || echo "DOWN")"
+	@echo "  Redis: $$(docker exec nexusshield-redis redis-cli ping 2>/dev/null || echo "DOWN")"
+
+metrics:
+	@echo "📊 Prometheus Metrics:"
+	@curl -s http://localhost:3000/metrics | grep -v "^#"
+
+perf:
+	@docker stats --no-stream
+
+# ===== DATABASE =====
+db-connect:
+	@echo "📂 Connecting to PostgreSQL..."
+	@docker exec -it nexusshield-postgres psql -U portal -d nexusshield
+
+db-migrate:
+	@echo "📊 Running migrations..."
+	@docker exec nexusshield-backend npm run db:migrate || true
+
+db-seed:
+	@echo "🌱 Seeding data..."
+	@docker exec nexusshield-backend npm run db:seed || true
+
+# ===== API TESTING =====
+api-health:
+	@echo "🏥 Testing Health Endpoint:"
+	@curl -s http://localhost:3000/health | jq '.'
+
+api-login:
+	@echo "🔐 Testing Login Endpoint:"
+	@curl -s -X POST http://localhost:3000/auth/login \
+	  -H "Content-Type: application/json" \
+	  -d '{"provider":"oauth-google","email":"test@nexusshield.cloud"}' | jq '.'
+
+api-creds:
+	@echo "🔑 Getting sample token..."
+	@TOKEN=$$(curl -s -X POST http://localhost:3000/auth/login \
+	  -H "Content-Type: application/json" \
+	  -d '{"provider":"test","email":"test@nexusshield.cloud"}' | jq -r '.token') && \
+	echo "✅ Token: $$TOKEN" && \
+	echo "" && \
+	echo "📋 Listing Credentials:" && \
+	curl -s -H "Authorization: Bearer $$TOKEN" http://localhost:3000/api/credentials | jq '.'
+
+api-audit:
+	@echo "🔍 Getting sample token..."
+	@TOKEN=$$(curl -s -X POST http://localhost:3000/auth/login \
+	  -H "Content-Type: application/json" \
+	  -d '{"provider":"test","email":"test@nexusshield.cloud"}' | jq -r '.token') && \
+	echo "✅ Token obtained" && \
+	echo "" && \
+	echo "📜 Audit Trail (last 10 entries):" && \
+	curl -s -H "Authorization: Bearer $$TOKEN" "http://localhost:3000/api/audit?limit=10" | jq '.entries | length'
+
+# ===== CONFIGURATION =====
+create-env:
+	@if [ ! -f .env.production ]; then \
+		cp .env.production.example .env.production; \
+		echo "✅ Created .env.production - PLEASE EDIT WITH REAL CREDENTIALS!"; \
+	else \
+		echo "⚠️  .env.production already exists"; \
+	fi
+
+show-env:
+	@echo "📝 Current Environment (.env.production):"
+	@if [ -f .env.production ]; then \
+		cat .env.production | grep -v "^#" | grep -v "^$$"; \
+	else \
+		echo "❌ .env.production not found"; \
+	fi
+
+validate:
+	@echo "✅ Validating prerequisites..."
+	@command -v docker >/dev/null 2>&1 || (echo "❌ Docker not found"; exit 1)
+	@command -v docker-compose >/dev/null 2>&1 || (echo "❌ docker-compose not found"; exit 1)
+	@[ -f docker-compose.yml ] || (echo "❌ docker-compose.yml not found"; exit 1)
+	@[ -f backend/server.js ] || (echo "❌ backend/server.js not found"; exit 1)
+	@echo "✅ All prerequisites met!"
+
+# ===== UTILITIES =====
+version:
+	@grep "version" backend/package.json | head -1 | awk '{print "NexusShield Portal v" $$2}'
+
+audit-log:
+	@echo "📜 Audit Entries (JSONL):"
+	@tail -50 logs/portal-api-audit.jsonl 2>/dev/null || echo "No audit log found"
+
+audit-count:
+	@echo "📊 Audit Statistics:"
+	@wc -l logs/portal-api-audit.jsonl 2>/dev/null || echo "0 entries"
+	@jq '.action' logs/portal-api-audit.jsonl 2>/dev/null | sort | uniq -c | sort -rn || echo "No data"
+
+scale-backend:
+	@echo "📈 Scaling backend to $(REPLICAS) instances..."
+	@$(DOCKER_COMPOSE) up -d --scale backend=$(REPLICAS)
+
+exec-backend:
+	@docker exec -it nexusshield-backend bash
+
+exec-postgres:
+	@docker exec -it nexusshield-postgres bash
+
+audit-export:
+	@echo "📤 Exporting audit trail to CSV..."
+	@docker exec nexusshield-backend curl -s http://localhost:3000/api/audit/export | jq '.'
+
+# ===== QUICK START =====
+.DEFAULT_GOAL := help
+
+quickstart: create-env validate build deploy test health
+	@echo ""
+	@echo "🎉 Portal deployment complete!"
+	@echo "   Frontend: http://localhost:3001"
+	@echo "   Backend API: http://localhost:3000"
+	@echo "   Metrics: http://localhost:3000/metrics"
+	@echo ""
