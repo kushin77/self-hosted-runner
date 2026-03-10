@@ -32,6 +32,8 @@
     "vite": "^5.0.8",
     "@vitejs/plugin-react": "^4.2.1",
     "vitest": "^1.1.0",
+    "jsdom": "^23.0.0",
+    "@vitest/globals": "^1.1.0",
     "@testing-library/react": "^14.1.2",
     "@testing-library/jest-dom": "^6.1.5",
     "eslint": "^8.56.0",
