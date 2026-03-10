@@ -1,5 +1,4 @@
 import express, { Express, Request, Response, NextFunction } from 'express';
-import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
@@ -8,7 +7,8 @@ import cors from 'cors';
 
 // Initialize Express app
 const app: Express = express();
-const prisma = new PrismaClient();
+import { getPrisma } from './prisma-wrapper';
+const prisma = getPrisma();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ENVIRONMENT = process.env.NODE_ENV || 'development';
 
