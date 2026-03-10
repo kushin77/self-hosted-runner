@@ -1,11 +1,12 @@
 /**
  * Credential Management Service
- * Handles GSM → Vault → KMS → Local Cache credential lifecycle
+ * Handles GSM  Vault  KMS  Local Cache credential lifecycle
  * Implements immutable audit trail, ephemeral credentials, idempotent operations
  */
 
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 import NodeVault from 'node-vault';
+import fs from 'fs';
 import { KeyManagementServiceClient } from '@google-cloud/kms';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
@@ -55,15 +56,34 @@ export class CredentialService {
 
   constructor() {
     this.secretManager = new SecretManagerServiceClient();
+
+    // Prefer ephemeral Vault tokens from a Vault Agent sink or AppRole login.
+    // Check `VAULT_TOKEN_FILE` (commonly /var/run/secrets/vault/token) first,
+    // then `VAULT_TOKEN` env. Avoid long-lived tokens in code/config.
+    let vaultToken: string | undefined = undefined;
+    const tokenFile = process.env.VAULT_TOKEN_FILE || '/var/run/secrets/vault/token';
+    try {
+      if (process.env.VAULT_TOKEN_FILE && fs.existsSync(process.env.VAULT_TOKEN_FILE)) {
+        vaultToken = fs.readFileSync(process.env.VAULT_TOKEN_FILE, 'utf8').trim();
+      } else if (fs.existsSync(tokenFile)) {
+        vaultToken = fs.readFileSync(tokenFile, 'utf8').trim();
+      }
+    } catch (e) {
+      // ignore read errors; fall back to env
+    }
+    if (!vaultToken && process.env.VAULT_TOKEN) {
+      vaultToken = process.env.VAULT_TOKEN;
+    }
+
     this.vault = NodeVault({
       endpoint: process.env.VAULT_ADDR || 'http://localhost:8200',
-      token: process.env.REDACTED_VAULT_TOKEN,
+      token: vaultToken,
     });
     this.kms = new KeyManagementServiceClient();
   }
 
   /**
-   * Resolve credential from 4-layer cascade: GSM → Vault → KMS → LocalCache
+   * Resolve credential from 4-layer cascade: GSM  Vault  KMS  LocalCache
    * Ephemeral: Runtime fetch, no persistence
    * Idempotent: Same input always produces same output
    */
