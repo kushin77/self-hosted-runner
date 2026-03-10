@@ -1,0 +1,6 @@
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green","status":"start"}
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green_phase","traffic":5,"status":"success"}
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green_phase","traffic":25,"status":"success"}
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green_phase","traffic":50,"status":"success"}
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green_phase","traffic":100,"status":"success"}
+{"timestamp":"2026-03-10T02:10:33Z","phase":"blue_green","status":"complete"}
