@@ -1,0 +1,26 @@
+=== DATE ===
+Tue Mar 10 07:00:55 PM UTC 2026
+\n=== DOCKER PS ===
+CONTAINER ID   IMAGE                         COMMAND                  CREATED             STATUS                         PORTS                                                 NAMES
+d466fc11ec15   nexusshield-backend:final     "/app/docker-entrypo…"   52 minutes ago      Up 52 minutes (healthy)        3000/tcp                                              nexusshield-backend
+ec68206dcacc   postgres:15-alpine            "docker-entrypoint.s…"   58 minutes ago      Up 58 minutes                  5432/tcp                                              nexusshield-postgres
+574fa0c2cb7e   nexusshield-frontend:latest   "/docker-entrypoint.…"   About an hour ago   Up About an hour (unhealthy)   3000/tcp, 0.0.0.0:13000->80/tcp, [::]:13000->80/tcp   nexusshield-frontend
+392735a4be0a   redis:7-alpine                "docker-entrypoint.s…"   About an hour ago   Up About an hour (healthy)     0.0.0.0:6379->6379/tcp, [::]:6379->6379/tcp           nexusshield-redis
+\n=== BACKEND LOGS (last 200) ===
+[entrypoint] Starting NexusShield Portal API...
+Tue, 10 Mar 2026 18:08:17 GMT body-parser deprecated undefined extended: provide extended option at dist/index.js:28:27
+✅ Database connection verified
+✅ NexusShield Portal API listening on port 3000
+📊 Metrics: http://localhost:3000/metrics
+📋 Health: http://localhost:3000/health
+🔍 Ready: http://localhost:3000/ready
+🎯 Alive: http://localhost:3000/alive
+📝 Docs: NexusShield Portal Backend v1.0.0-alpha
+\n=== POSTGRES LIST DATABASES ===
+psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: FATAL:  database "portal" does not exist
+\n=== REDIS PING ===
+NOAUTH Authentication required.
+
+\n=== DISK USAGE ===
+Filesystem                         Size  Used Avail Use% Mounted on
+/dev/mapper/ubuntu--vg-ubuntu--lv  787G  706G   49G  94% /
