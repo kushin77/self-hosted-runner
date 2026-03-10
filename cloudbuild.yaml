@@ -1,0 +1,29 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA','backend/']
+- name: 'gcr.io/cloud-builders/docker'
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['ci','--prefix','frontend']
+- name: 'gcr.io/cloud-builders/npm'
+  args: ['run','build','--prefix','frontend']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build','-f','frontend/Dockerfile','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA','frontend/']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA']
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet || true
+    gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet || true
+images:
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA'
+options:
+  substitution_option: ALLOW_LOOSE
+substitutions:
+  _TAG: 'latest'
+timeout: '1200s'
