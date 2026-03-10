@@ -26,8 +26,8 @@ if command -v gcloud >/dev/null 2>&1 && [ -n "${GCP_PROJECT_ID-}" ]; then
   fi
 fi
 
-# 3) Vault (requires VAULT_ADDR and VAULT_TOKEN)
-if command -v vault >/dev/null 2>&1 && [ -n "${VAULT_ADDR-}" ] && [ -n "${VAULT_TOKEN-}" ]; then
+# 3) Vault (requires VAULT_ADDR and REDACTED_VAULT_TOKEN)
+if command -v vault >/dev/null 2>&1 && [ -n "${VAULT_ADDR-}" ] && [ -n "${REDACTED_VAULT_TOKEN-}" ]; then
   if vault kv get -field=value secret/runner/"$NAME" >/dev/null 2>&1; then
     vault kv get -field=value secret/runner/"$NAME" || true
     exit 0

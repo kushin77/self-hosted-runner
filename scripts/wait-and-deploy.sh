@@ -4,7 +4,7 @@
 # Polls for credential availability and triggers direct-deploy when found.
 # 
 # Supports auto-detection of credential providers in order of preference:
-#   1. Vault (VAULT_ADDR + VAULT_TOKEN)
+#   1. Vault (VAULT_ADDR + REDACTED_VAULT_TOKEN)
 #   2. AWS Secrets Manager (AWS credentials)
 #   3. Google Secret Manager (gcloud auth + GCLOUD_PROJECT)
 # 
@@ -58,7 +58,7 @@ auto_detect_provider() {
   log "Auto-detecting credential provider..."
   
   # Try in order of preference: Vault > AWS > GSM
-  if [[ -n "${VAULT_ADDR:-}" && -n "${VAULT_TOKEN:-}" ]]; then
+  if [[ -n "${VAULT_ADDR:-}" && -n "${REDACTED_VAULT_TOKEN:-}" ]]; then
     if check_vault 2>/dev/null; then
       echo "vault"
       return 0

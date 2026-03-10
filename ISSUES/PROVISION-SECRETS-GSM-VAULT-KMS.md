@@ -6,11 +6,20 @@ Description
   - `portal-api-key` (Secret Manager path: `projects/<PROJECT>/secrets/portal-api-key`)
   - `gcp-service-account-key` (if using keyfile fallback)
 
-Required actions
-- Create secrets in Google Secret Manager with at least one enabled `latest` version.
-- Replicate/backup secrets into HashiCorp Vault (path and policies to be provided) for secondary fallback.
-- Ensure AWS KMS-encrypted environment variable or object is available as tertiary fallback for emergency.
-- Grant the deployer SA the `roles/secretmanager.secretAccessor` role on the secrets.
+Required actions (urgent)
+- Priority: **High** — Cloud Run cannot start until DB secret version exists.
+- Assignee: `infra-team` (or `security-ops` to provision Vault replication)
+- Steps:
+  1. Create the secrets in GSM (example commands):
+
+    gcloud secrets create nexusshield-portal-db-connection-production --project=<PROJECT> --replication-policy="automatic"
+    echo -n "postgresql://user:password@<DB_HOST>:5432/nexusshield_portal?sslmode=require" | gcloud secrets versions add nexusshield-portal-db-connection-production --data-file=- --project=<PROJECT>
+
+  2. Grant the portal service account access:
+
+    gcloud secrets add-iam-policy-binding nexusshield-portal-db-connection-production --member="serviceAccount:nxs-portal-production@<PROJECT>.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor" --project=<PROJECT>
+
+  3. (Optional) Replicate into Vault and configure AWS KMS tertiary fallback as per `infra/credentials/CREDENTIAL_MANAGEMENT_FRAMEWORK.md`.
 
 Verification steps
 - Run `infra/credentials/validate-credentials.sh` from repo root and confirm all checks pass.

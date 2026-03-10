@@ -93,11 +93,11 @@ cmd_set_aws() {
     fi
     
     store_credential "AWS_ACCESS_KEY_ID" "$key"
-    store_credential "AWS_SECRET_ACCESS_KEY" "$secret"
+    store_credential "REDACTED_AWS_SECRET_ACCESS_KEY" "$secret"
     
     # Export to environment
-    export AWS_ACCESS_KEY_ID="$key"
-    export AWS_SECRET_ACCESS_KEY="$secret"
+    export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"
+    export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY"
     
     # Verify
     if aws sts get-caller-identity > /dev/null 2>&1; then
@@ -126,11 +126,11 @@ cmd_set_vault() {
     fi
     
     store_credential "VAULT_ADDR" "$addr"
-    store_credential "VAULT_TOKEN" "$token"
+    store_credential "REDACTED_VAULT_TOKEN" "$token"
     
     # Export to environment
     export VAULT_ADDR="$addr"
-    export VAULT_TOKEN="$token"
+    export REDACTED_VAULT_TOKEN="$token"
     
     # Verify
     if vault status > /dev/null 2>&1; then
@@ -206,10 +206,10 @@ cmd_verify() {
     fi
     
     # Export them
-    export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-    export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+    export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
     export VAULT_ADDR=${VAULT_ADDR:-}
-    export VAULT_TOKEN=${VAULT_TOKEN:-}
+    export REDACTED_VAULT_TOKEN=${REDACTED_VAULT_TOKEN:-}
     export GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
     
     local all_ok=1
@@ -228,7 +228,7 @@ cmd_verify() {
     fi
     
     echo "Layer 2A (Vault):"
-    if [[ -n "$VAULT_ADDR" && -n "$VAULT_TOKEN" ]]; then
+    if [[ -n "$VAULT_ADDR" && -n "$REDACTED_VAULT_TOKEN" ]]; then
         if vault status > /dev/null 2>&1; then
             echo "  ✅ Vault connected: $VAULT_ADDR"
         else
@@ -240,7 +240,7 @@ cmd_verify() {
     fi
     
     echo "Layer 2B (AWS KMS):"
-    if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$AWS_SECRET_ACCESS_KEY" ]]; then
+    if [[ -n "$AWS_ACCESS_KEY_ID" && -n "$REDACTED_AWS_SECRET_ACCESS_KEY" ]]; then
         if aws sts get-caller-identity > /dev/null 2>&1; then
             ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
             echo "  ✅ AWS authenticated for account: $ACCOUNT"
@@ -280,10 +280,10 @@ cmd_activate() {
     fi
     
     # Export to environment
-    export AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-    export AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+    export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
     export VAULT_ADDR=${VAULT_ADDR:-}
-    export VAULT_TOKEN=${VAULT_TOKEN:-}
+    export REDACTED_VAULT_TOKEN=${REDACTED_VAULT_TOKEN:-}
     export GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
     
     # Verify before activation
