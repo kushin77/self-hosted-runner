@@ -14,7 +14,9 @@
   metrics_path: '/v1/sys/metrics'
   params:
     format: ['prometheus']
-  bearer_token: 's.REPLACE_WITH_REDACTED_VAULT_TOKEN'
+  # Retrieve the bearer token securely from the secret manager or Vault at runtime.
+  # Example: use a secrets-fetcher to inject the token into the scrape config.
+  bearer_token: '<RETRIEVE_FROM_SECRET_MANAGER_OR_VAULT>'
   static_configs:
     - targets: ['192.168.168.42:8200']
 

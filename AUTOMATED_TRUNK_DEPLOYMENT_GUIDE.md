@@ -197,7 +197,7 @@ gh workflow run automated-trunk-deployment.yml \
 
 **Secrets Required (optional):**
 - `VAULT_ADDR` — Vault API endpoint
-- `REDACTED_VAULT_TOKEN` — Vault authentication token
+-- `VAULT_APPROLE_TOKEN` — Vault AppRole token (store securely; do not embed in files)
 - `GCP_SA_KEY` — GCP service account key (for GSM)
 
 ---
@@ -284,7 +284,7 @@ Every deployment generates an immutable audit comment on the related GitHub issu
 - **Encryption:** Customer-managed keys (KMS) available
 
 ### Optional Sync: HashiCorp Vault
-- **Status:** ⏳ OPTIONAL (requires `VAULT_ADDR` + `REDACTED_VAULT_TOKEN`)
+-- **Status:** ⏳ OPTIONAL (requires `VAULT_ADDR` + secure AppRole token provisioning)
 - **Path:** `secret/runner/staging_kubeconfig`
 - **Sync:** `automated-secret-rotation.yml` syncs on rotation
 - **Encryption:** Vault-managed encryption
