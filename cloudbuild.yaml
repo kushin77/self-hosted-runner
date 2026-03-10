@@ -1,13 +1,23 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA','backend/']
-- name: 'gcr.io/cloud-builders/docker'
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['ci','--prefix','frontend']
-- name: 'gcr.io/cloud-builders/npm'
-  args: ['run','build','--prefix','frontend']
+
+# Build frontend assets first (try `npm ci`, fall back to `npm install`)
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    set -e
+    if gcloud --version >/dev/null 2>&1; then :; fi
+    echo "Install frontend dependencies and build"
+    (npm ci --prefix frontend) || (npm install --prefix frontend)
+    npm run build --prefix frontend
+
+# Then build frontend Docker image with built assets
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','frontend/Dockerfile','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA','frontend/']
+
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA']
 - name: 'gcr.io/cloud-builders/docker'
