@@ -87,6 +87,19 @@ resource "google_service_networking_connection" "portal_db_connection" {
   reserved_peering_ranges = [google_compute_global_address.psc_range.name]
 }
 
+###############################################################################
+# Artifact Registry (Docker) - optional helper repo to store images
+###############################################################################
+
+resource "google_artifact_registry_repository" "portal_repo" {
+  provider      = google
+  location      = var.gcp_region
+  repository_id = "portal-backend-repo"
+  description   = "Docker repository for NexusShield portal backend"
+  format        = "DOCKER"
+}
+
+
 
 ###############################################################################
 # Variables
