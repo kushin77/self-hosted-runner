@@ -4,12 +4,12 @@
  * All entries are hashed and chained (blockchain-like structure)
  */
 
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from './prisma-wrapper';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 
-const prisma = new PrismaClient();
+const prisma = getPrisma();
 
 // ============================================================================
 // TYPE DEFINITIONS
