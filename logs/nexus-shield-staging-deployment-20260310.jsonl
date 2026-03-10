@@ -1,0 +1,408 @@
+{
+  "timestamp": "2026-03-10T00:34:30Z",
+  "deployment_id": "deploy-staging-1773102870",
+  "environment": "staging",
+  "event": "deployment-start",
+  "status": "initiated",
+  "details": "Staging deployment authorized and initiated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "67a7cd4e5",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:30Z",
+  "deployment_id": "deploy-staging-1773102870",
+  "environment": "staging",
+  "event": "terraform-check",
+  "status": "success",
+  "details": "Terraform available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "67a7cd4e5",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:31Z",
+  "deployment_id": "deploy-staging-1773102870",
+  "environment": "staging",
+  "event": "gcp-auth-check",
+  "status": "success",
+  "details": "GCP credentials available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "67a7cd4e5",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:31Z",
+  "deployment_id": "deploy-staging-1773102870",
+  "environment": "staging",
+  "event": "terraform-dir-check",
+  "status": "success",
+  "details": "Directory structure valid",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "67a7cd4e5",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:31Z",
+  "deployment_id": "deploy-staging-1773102870",
+  "environment": "staging",
+  "event": "terraform-config-check",
+  "status": "success",
+  "details": "Configuration files present",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "67a7cd4e5",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:43Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "deployment-start",
+  "status": "initiated",
+  "details": "Staging deployment authorized and initiated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:43Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "terraform-check",
+  "status": "success",
+  "details": "Terraform available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:44Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "gcp-auth-check",
+  "status": "success",
+  "details": "GCP credentials available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:44Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "terraform-dir-check",
+  "status": "success",
+  "details": "Directory structure valid",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:44Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "terraform-config-check",
+  "status": "success",
+  "details": "Configuration files present",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:48Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "terraform-init",
+  "status": "success",
+  "details": "Providers downloaded, ready for deployment",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:49Z",
+  "deployment_id": "deploy-staging-1773102883",
+  "environment": "staging",
+  "event": "terraform-validate",
+  "status": "success",
+  "details": "All HCL syntax validated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:53Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "deployment-start",
+  "status": "initiated",
+  "details": "Staging deployment authorized and initiated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:53Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "terraform-check",
+  "status": "success",
+  "details": "Terraform available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:54Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "gcp-auth-check",
+  "status": "success",
+  "details": "GCP credentials available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:54Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "terraform-dir-check",
+  "status": "success",
+  "details": "Directory structure valid",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:54Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "terraform-config-check",
+  "status": "success",
+  "details": "Configuration files present",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:55Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "terraform-init",
+  "status": "success",
+  "details": "Providers downloaded, ready for deployment",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:34:56Z",
+  "deployment_id": "deploy-staging-1773102893",
+  "environment": "staging",
+  "event": "terraform-validate",
+  "status": "success",
+  "details": "All HCL syntax validated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:02Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "deployment-start",
+  "status": "initiated",
+  "details": "Staging deployment authorized and initiated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:02Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "terraform-check",
+  "status": "success",
+  "details": "Terraform available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:03Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "gcp-auth-check",
+  "status": "success",
+  "details": "GCP credentials available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:03Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "terraform-dir-check",
+  "status": "success",
+  "details": "Directory structure valid",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:03Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "terraform-config-check",
+  "status": "success",
+  "details": "Configuration files present",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:07Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "terraform-init",
+  "status": "success",
+  "details": "Providers downloaded, ready for deployment",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:08Z",
+  "deployment_id": "deploy-staging-1773102902",
+  "environment": "staging",
+  "event": "terraform-validate",
+  "status": "success",
+  "details": "All HCL syntax validated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:20Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "deployment-start",
+  "status": "initiated",
+  "details": "Staging deployment authorized and initiated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:20Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-check",
+  "status": "success",
+  "details": "Terraform available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:21Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "gcp-auth-check",
+  "status": "success",
+  "details": "GCP credentials available",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:21Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-dir-check",
+  "status": "success",
+  "details": "Directory structure valid",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:21Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-config-check",
+  "status": "success",
+  "details": "Configuration files present",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:22Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-init",
+  "status": "success",
+  "details": "Providers downloaded, ready for deployment",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:23Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-validate",
+  "status": "success",
+  "details": "All HCL syntax validated",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
+{
+  "timestamp": "2026-03-10T00:35:25Z",
+  "deployment_id": "deploy-staging-1773102920",
+  "environment": "staging",
+  "event": "terraform-plan",
+  "status": "success",
+  "details": "Deployment plan created, 0\nunknown resources",
+  "duration_ms": 0,
+  "user": "akushnir",
+  "commit": "79da34b31",
+  "hostname": "dev-elevatediq-2"
+}
