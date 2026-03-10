@@ -34,7 +34,7 @@
     "dotenv": "^16.3.1",
     "prom-client": "^15.0.0",
     "uuid": "^9.0.1",
-    "node-vault": "^0.9.25"
+    "node-vault": "0.9.24"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
