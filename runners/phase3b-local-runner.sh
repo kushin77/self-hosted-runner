@@ -19,6 +19,12 @@ timestamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 # Minimal environment checks (do not expose secrets)
 : "${VAULT_ADDR:?set VAULT_ADDR in environment or export via .env file}" || true
 
+# If a Vault token file is present (vault-agent sink), export it for the duration of the run.
+# This keeps tokens out of repo secrets and process args.
+if [[ -z "${VAULT_TOKEN:-}" && -n "${VAULT_TOKEN_FILE:-}" && -f "${VAULT_TOKEN_FILE}" ]]; then
+  export VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE" | tr -d '\n' || true)
+fi
+
 # Run provisioning, capture output
 {
   echo "[${timestamp()}] Phase3B runner starting"
