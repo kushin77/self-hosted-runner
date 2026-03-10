@@ -5,6 +5,9 @@
 resource "google_storage_bucket" "tfstate_backups" {
   name     = "nexusshield-terraform-state-backups"
   location = var.gcp_region
+  
+  # Enforce uniform bucket-level access to comply with org policies
+  uniform_bucket_level_access = true
 
   versioning {
     enabled = true
