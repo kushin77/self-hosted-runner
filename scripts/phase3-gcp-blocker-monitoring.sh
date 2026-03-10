@@ -94,7 +94,7 @@ monitor_until_ready() {
   
   while [[ $attempt -lt $MAX_RETRIES ]]; do
     attempt=$((attempt + 1))
-    echo -e "\n${BLUE}[Attempt ${attempt}/${MAX_RETRIES}]${NC} $(date -u +%H:%M:%S UTC)"
+    echo -e "\n${BLUE}[Attempt ${attempt}/${MAX_RETRIES}]${NC} $(date -u +%H:%M:%S) UTC"
     
     local api_ok=false
     local iam_ok=false
@@ -159,7 +159,7 @@ post_github_update() {
   
   echo -e "${BLUE}[GitHub]${NC} Posting status update to Issue #${issue_number}..."
   
-  local body="**[AUTO] GCP Blocking Status Update - $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)**
+  local body="**[AUTO] GCP Blocking Status Update - $(date -u '+%Y-%m-%d %H:%M:%S UTC')**
 
 Status: **${status}**
 Message: ${message}

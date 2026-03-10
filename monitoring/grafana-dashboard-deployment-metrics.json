@@ -1,0 +1,122 @@
+{
+  "dashboard": {
+    "title": "Deployment Metrics & Operations",
+    "description": "Real-time deployment telemetry, worker health, and operational metrics",
+    "tags": ["deployment", "operations", "production"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Total Deployments (24h)",
+        "targets": [
+          {
+            "expr": "increase(deployment_total[24h])",
+            "legendFormat": "Total Deployments"
+          }
+        ],
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 }
+      },
+      {
+        "title": "Deployment Success Rate (%)",
+        "targets": [
+          {
+            "expr": "(sum(increase(deployment_status_total{status=\"success\"}[24h])) / sum(increase(deployment_status_total[24h]))) * 100",
+            "legendFormat": "Success Rate"
+          }
+        ],
+        "type": "gauge",
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": 0 }, { "color": "yellow", "value": 90 }, { "color": "green", "value": 95 }] }
+          }
+        },
+        "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 }
+      },
+      {
+        "title": "Failed Deployments (24h)",
+        "targets": [
+          {
+            "expr": "increase(deployment_status_total{status=\"failed\"}[24h])",
+            "legendFormat": "Failed"
+          }
+        ],
+        "type": "stat",
+        "gridPos": { "h": 8, "w": 6, "x": 12, "y": 0 }
+      },
+      {
+        "title": "Deployment Duration (avg)",
+        "targets": [
+          {
+            "expr": "avg(deployment_duration_seconds)",
+            "legendFormat": "Avg Duration (sec)"
+          }
+        ],
+        "type": "stat",
+        "fieldConfig": { "defaults": { "unit": "s" } },
+        "gridPos": { "h": 8, "w": 6, "x": 18, "y": 0 }
+      },
+      {
+        "title": "Worker Node Status",
+        "targets": [
+          {
+            "expr": "up{job=\"runner-worker\"}",
+            "legendFormat": "{{ instance }} - {{ job }}"
+          }
+        ],
+        "type": "table",
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 8 }
+      },
+      {
+        "title": "Deployments per Worker (24h)",
+        "targets": [
+          {
+            "expr": "sum by (worker) (increase(deployment_total{worker=~\".+\"}[24h]))",
+            "legendFormat": "{{ worker }}"
+          }
+        ],
+        "type": "piechart",
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 8 }
+      },
+      {
+        "title": "Deployment Timeline (Last 7 Days)",
+        "targets": [
+          {
+            "expr": "sum(increase(deployment_status_total{status=\"success\"}[1h]))",
+            "legendFormat": "Success"
+          },
+          {
+            "expr": "sum(increase(deployment_status_total{status=\"failed\"}[1h]))",
+            "legendFormat": "Failed"
+          }
+        ],
+        "type": "timeseries",
+        "gridPos": { "h": 12, "w": 24, "x": 0, "y": 18 }
+      },
+      {
+        "title": "Audit Log Ingestion Rate",
+        "targets": [
+          {
+            "expr": "rate(audit_events_total[5m])",
+            "legendFormat": "Events/sec"
+          }
+        ],
+        "type": "timeseries",
+        "gridPos": { "h": 10, "w": 12, "x": 0, "y": 30 }
+      },
+      {
+        "title": "Most Common Deployment Errors",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (error_type) (deployment_errors_total))",
+            "legendFormat": "{{ error_type }}"
+          }
+        ],
+        "type": "table",
+        "gridPos": { "h": 10, "w": 12, "x": 12, "y": 30 }
+      }
+    ],
+    "schemaVersion": 38,
+    "version": 1
+  }
+}
