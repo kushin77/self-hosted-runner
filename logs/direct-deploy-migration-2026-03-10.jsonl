@@ -1,1 +1,0 @@
-{"timestamp":"2026-03-10T08:30:00Z","event":"direct_deploy_migration","status":"completed","actor":"automation","details":"Archived .github/workflows to .github/workflows.disabled; added direct-deploy wrapper; migration docs added; workflows disabled pending repo settings change"}
