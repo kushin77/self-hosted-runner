@@ -1,0 +1,17 @@
+[Unit]
+Description=Vault GSM->Vault Sync Service
+After=network.target
+
+[Service]
+Type=oneshot
+Environment=GSM_SECRET_NAME=operator/ssh-key
+Environment=VAULT_PATH=secret/data/operator/ssh
+Environment=GCP_PROJECT=
+Environment=VAULT_ADDR=
+# Working directory is repository root; adjust if installed elsewhere
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/vault/sync_gsm_to_vault.sh "$GSM_SECRET_NAME" "$VAULT_PATH"
+User=root
+
+[Install]
+WantedBy=multi-user.target
