@@ -96,4 +96,17 @@ bash scripts/validation/comprehensive-validation.sh
 
 ---
 
-If you want, I can open a PR with the connector rename change (`production-portal-connector`) for review. Otherwise, run the above operator commands and I will re-run Terraform automatically.
+Alternative: enable peering via Terraform
+----------------------------------------
+
+If you prefer Terraform automation, set the `enable_vpc_peering` variable to `true` when running Terraform. Example:
+
+```bash
+cd terraform
+terraform init -backend=false
+terraform apply -var="gcp_project=nexusshield-prod" -var="environment=production" -var="enable_vpc_peering=true" -auto-approve
+```
+
+This will create the reserved global address range and the `google_service_networking_connection` resource (if permitted by your org policy). If your organization blocks VPC peering (org policies such as `compute.restrictVpcPeering`), leave `enable_vpc_peering` set to `false` and follow the manual `gcloud` steps above.
+
+*** End Patch
