@@ -59,7 +59,7 @@ scrape_configs:
   # ==================== Redis ====================
   - job_name: 'redis'
     static_configs:
-      - targets: ['cache:6379']
+      - targets: ['redis_exporter:9121']
         labels:
           service: 'redis'
           env: 'development'
