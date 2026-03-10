@@ -11,13 +11,13 @@ variable "cloudrun_service_account" {
 }
 
 resource "google_service_account" "cloudrun_sa" {
-  count      = var.cloudrun_service_account == "" ? 1 : 0
-  account_id = "automation-runner-sa-${random_string.run_id.result}"
+  count        = var.cloudrun_service_account == "" ? 1 : 0
+  account_id   = "automation-runner-sa-${random_string.run_id.result}"
   display_name = "Automation Runner Service Account"
 }
 
 resource "random_string" "run_id" {
-  length = 6
+  length  = 6
   special = false
 }
 
@@ -35,35 +35,15 @@ resource "google_cloud_run_service" "automation" {
     }
   }
 
-  traffics {
-    percent = 100
+  traffic {
+    percent         = 100
     latest_revision = true
   }
 }
 
-resource "google_pubsub_subscription" "vault_push_sub" {
-  name  = "vault-sync-sub"
-  topic = google_pubsub_topic.vault_sync.name
-
-  push_config {
-    push_endpoint = "https://${google_cloud_run_service.automation.status[0].url}/"
-    oidc_token {
-      service_account_email = var.cloudrun_service_account != "" ? var.cloudrun_service_account : google_service_account.cloudrun_sa[0].email
-    }
-  }
-}
-
-resource "google_pubsub_subscription" "cleanup_push_sub" {
-  name  = "ephemeral-cleanup-sub"
-  topic = google_pubsub_topic.ephemeral_cleanup.name
-
-  push_config {
-    push_endpoint = "https://${google_cloud_run_service.automation.status[0].url}/"
-    oidc_token {
-      service_account_email = var.cloudrun_service_account != "" ? var.cloudrun_service_account : google_service_account.cloudrun_sa[0].email
-    }
-  }
-}
+// Note: Pub/Sub push subscriptions are intentionally left out to avoid
+// tight coupling; operators can create push subscriptions pointing to
+// the Cloud Run service URL (see docs/CLOUD_SCHEDULER.md).
 
 output "cloudrun_url" {
   value = google_cloud_run_service.automation.status[0].url
