@@ -1,0 +1,45 @@
+name: Portal Frontend E2E Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'frontend/**'
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Start frontend (background)
+        working-directory: frontend
+        run: |
+          npm run build
+          npx http-server dist -p 5173 &
+
+      - name: Wait for server
+        run: |
+          npx wait-on http://localhost:5173
+
+      - name: Run Cypress tests
+        working-directory: frontend
+        uses: cypress-io/github-action@v6
+        with:
+          runTests: true
+          start: false
+          browser: chrome
+        env:
+          CYPRESS_BASE_URL: ${{ secrets.CYPRESS_BASE_URL }}
