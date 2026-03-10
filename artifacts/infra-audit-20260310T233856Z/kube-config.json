@@ -1,0 +1,33 @@
+{
+    "kind": "Config",
+    "apiVersion": "v1",
+    "clusters": [
+        {
+            "name": "production-cluster",
+            "cluster": {
+                "server": "https://192.168.168.42:6443",
+                "certificate-authority": "/home/akushnir/ElevatedIQ-Mono-Repo/certs/ca.crt"
+            }
+        }
+    ],
+    "users": [
+        {
+            "name": "production-admin",
+            "user": {
+                "client-certificate": "/home/akushnir/ElevatedIQ-Mono-Repo/certs/shard-alpha.crt",
+                "client-key": "/home/akushnir/ElevatedIQ-Mono-Repo/certs/shard-alpha.key"
+            }
+        }
+    ],
+    "contexts": [
+        {
+            "name": "production-context",
+            "context": {
+                "cluster": "production-cluster",
+                "user": "production-admin",
+                "namespace": "production"
+            }
+        }
+    ],
+    "current-context": "production-context"
+}
