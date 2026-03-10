@@ -1,0 +1,12 @@
+[Unit]
+Description=NexusShield Monthly Compliance Audit Timer
+Documentation=file:///home/akushnir/self-hosted-runner/docs/DEPLOYMENT_COMPLETION_RUNBOOK.md
+
+[Timer]
+# Run on the 1st of each month at 2 AM UTC
+OnCalendar=*-*-01 02:00:00
+Persistent=true
+Unit=nexusshield-compliance-audit.service
+
+[Install]
+WantedBy=timers.target
