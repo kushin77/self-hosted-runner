@@ -1,6 +1,40 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Direct production deploy script (no GitHub Actions)
+# Requirements:
+# - gcloud authenticated or GCP_SA_KEY base64 in env
+# - terraform installed
+
+TF_DIR="nexusshield/infrastructure/terraform/production"
+
+echo "Starting direct production deploy"
+
+if ! command -v terraform >/dev/null 2>&1; then
+  echo "terraform not found in PATH" >&2
+  exit 1
+fi
+
+# Optional: load SA key from env
+if [ -n "${GCP_SA_KEY:-}" ]; then
+  echo "Using provided GCP_SA_KEY (env) to authenticate"
+  echo "$GCP_SA_KEY" | base64 -d > /tmp/gcp-sa.json
+  gcloud auth activate-service-account --key-file=/tmp/gcp-sa.json
+fi
+
+pushd "$TF_DIR" >/dev/null
+terraform init -input=false
+terraform apply -auto-approve -input=false
+popd >/dev/null
+
+# Append audit entry
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+"$SCRIPT_DIR/append_audit_entry.sh" deployment "{\"status\":\"success\",\"method\":\"direct-deploy-production.sh\"}"
+
+echo "Direct deployment finished"
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Minimal direct-deploy production/staging script
 # Usage: ./scripts/direct-deploy-production.sh [staging|production]
 
