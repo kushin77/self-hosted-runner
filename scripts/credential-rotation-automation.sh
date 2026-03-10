@@ -43,6 +43,32 @@ init_audit_entry() {
     echo "${entry}" >> "${AUDIT_FILE}"
 }
 
+# Check whether any rotation backend is available (GSM, Vault, AWS, or local cache)
+backend_available() {
+    # GCP GSM
+    if gcloud secrets list --limit=1 >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Vault (already requires vault binary)
+    if command -v vault &>/dev/null && vault status >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # AWS Secrets Manager
+    if command -v aws &>/dev/null && aws secretsmanager list-secrets --max-results 1 >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Local encrypted cache
+    local cache_dir="${AUDIT_DIR}/.cache"
+    if [[ -d "${cache_dir}" && $(ls -A "${cache_dir}" 2>/dev/null | wc -l) -gt 0 ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
 # ============================================================================
 # Credential Fetching (4-layer fallback)
 # ============================================================================
@@ -155,6 +181,14 @@ exit_with_error() {
 # ============================================================================
 main() {
     init_audit_entry
+
+    # If no backend available, record a skipped rotation (safe-mode) and exit 0
+    if ! backend_available; then
+        audit_log "rotation_skipped_no_backends" "No GSM/Vault/AWS/local cache available - rotation deferred"
+        # mark as ok (do not error systemd timers)
+        audit_log "rotation_status" "deferred"
+        exit 0
+    fi
     
     # List of critical secrets to rotate
     local secrets=(
@@ -184,7 +218,8 @@ main() {
     
     # Push audit to git (immutable record)
     cd "${REPO_ROOT}"
-    if git diff --quiet "${AUDIT_FILE}" 2>/dev/null; then
+    # Only commit when the audit file has changes
+    if ! git diff --quiet -- "${AUDIT_FILE}" 2>/dev/null; then
         git add "${AUDIT_FILE}"
         git commit -m "security: credential rotation audit ($(date -u +%Y-%m-%d_%H:%M:%SZ)) - ${rotated} rotated, ${failed} failed" || true
         git push origin main || true
