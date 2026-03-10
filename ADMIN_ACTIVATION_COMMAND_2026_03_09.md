@@ -12,7 +12,7 @@
 # STEP 1: Set AWS credentials
 ./scripts/phase3b-credential-manager.sh set-aws \
   --key REDACTED_AWS_ACCESS_KEY_ID \
-  --secret REDACTED_AWS_SECRET_ACCESS_KEY
+  --secret REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 
 # STEP 2: Verify (optional, recommended)
 ./scripts/phase3b-credential-manager.sh verify
@@ -27,7 +27,7 @@
 ```bash
 # Set credentials in environment
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=REDACTED_AWS_SECRET_ACCESS_KEY
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 
 # Optional: Vault
 export VAULT_ADDR=https://vault.example.com:8200
@@ -46,7 +46,7 @@ bash scripts/phase3b-credentials-inject-activate.sh
 3. Click: "Run workflow" (dropdown button)
 4. enter credentials:
    - AWS_ACCESS_KEY_ID: REDACTED_AWS_ACCESS_KEY_ID
-   - AWS_SECRET_ACCESS_KEY: REDACTED_AWS_SECRET_ACCESS_KEY
+   - REDACTED_AWS_SECRET_ACCESS_KEY: REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
    - VAULT_ADDR: https://vault.example.com:8200 (optional)
 5. Click: "Run workflow" button
 6. Monitor: Status updates in real-time
@@ -59,7 +59,7 @@ bash scripts/phase3b-credentials-inject-activate.sh
 ### AWS Credentials (Required)
 ```
 AWS_ACCESS_KEY_ID        : AKIA* (starts with AKIA, 20 chars)
-AWS_SECRET_ACCESS_KEY    : 40 character secret key
+REDACTED_AWS_SECRET_ACCESS_KEY: REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 Permissions Required     : IAM, KMS, OIDC (minimal: kms:Decrypt, iam:CreateRole, oidc:*)
 ```
 
@@ -98,7 +98,7 @@ ls -la scripts/phase3b-credential-manager.sh
 ```bash
 ./scripts/phase3b-credential-manager.sh set-aws \
   --key REDACTED_AWS_ACCESS_KEY_ID \
-  --secret REDACTED_AWS_SECRET_ACCESS_KEY
+  --secret REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 # Expected: "✅ AWS credentials stored securely (~/.phase3b-credentials)"
 ```
 
@@ -238,7 +238,7 @@ tail -30 logs/deployment-provisioning-audit.jsonl | jq 'select(.status != "succe
 ## FINAL CHECKLIST (Before Running)
 
 - [ ] AWS_ACCESS_KEY_ID obtained from AWS account
-- [ ] AWS_SECRET_ACCESS_KEY obtained from AWS account
+- [ ] REDACTED_AWS_SECRET_ACCESS_KEY obtained from AWS account
 - [ ] Current directory: /home/akushnir/self-hosted-runner
 - [ ] Read: PHASE_3B_CREDENTIAL_FRAMEWORK_READY_2026_03_09.md
 - [ ] Read: docs/PHASE_3B_CREDENTIAL_INJECTION_GUIDE.md
@@ -258,12 +258,12 @@ cd /home/akushnir/self-hosted-runner
 # Set and activate credentials (choose one method)
 
 # METHOD 1: CLI (Recommended)
-./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret REDACTED_AWS_SECRET_ACCESS_KEY
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 ./scripts/phase3b-credential-manager.sh activate
 
 # OR METHOD 2: Environment
-export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID && \
-export AWS_SECRET_ACCESS_KEY=REDACTED_AWS_SECRET_ACCESS_KEY && \
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # OR METHOD 3: GitHub Actions

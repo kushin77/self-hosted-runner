@@ -70,7 +70,7 @@ User granted approval "proceed now no waiting" for all Phase 2 blocker unblockin
 ---
 
 ### 3. 🟢 BLOCKER #2160 — Vault AppRole ✅ UNBLOCKED
-**Status:** 🟡 Ready to execute (awaiting VAULT_ADDR + VAULT_TOKEN secrets)
+**Status:** 🟡 Ready to execute (awaiting VAULT_ADDR + REDACTED_VAULT_TOKEN secrets)
 
 **Infrastructure:**
 - AppRole auth method: `auth/approle`
@@ -174,7 +174,7 @@ terraform apply \
 export GCP_PROJECT_ID="my-project"
 export AWS_ACCOUNT_ID="123456789"
 export VAULT_ADDR="https://vault.example.com"
-export VAULT_TOKEN="hvs.CAESIMxx..."
+export REDACTED_VAULT_TOKEN="hvs.CAESIMxx..."
 
 # Run all unblockers
 ./scripts/unblock-phase2-blockers.sh
@@ -203,7 +203,7 @@ cat logs/phase2-blockers-resolution-*.jsonl | jq .
 - ✅ Workflow summary in GitHub Actions
 
 **How to Execute:**
-1. Configure repo secrets: `GCP_PROJECT_ID`, `AWS_ACCOUNT_ID`, `VAULT_ADDR`, `VAULT_TOKEN`
+1. Configure repo secrets: `GCP_PROJECT_ID`, `AWS_ACCOUNT_ID`, `VAULT_ADDR`, `REDACTED_VAULT_TOKEN`
 2. Trigger workflow: 
    - Manual: Actions tab → "Unblock Blockers" → "Run workflow"
    - Scheduled: Daily 1 AM UTC
@@ -256,7 +256,7 @@ cat logs/phase2-blockers-resolution-*.jsonl | jq .
 gh secret set GCP_PROJECT_ID --body "my-gcp-project"
 gh secret set AWS_ACCOUNT_ID --body "123456789"
 gh secret set VAULT_ADDR --body "https://vault.example.com"
-gh secret set VAULT_TOKEN --body "hvs.XXXX..."
+gh secret set REDACTED_VAULT_TOKEN --body "hvs.XXXX..."
 ```
 
 **Step 2: Authenticate to Providers**
@@ -333,7 +333,7 @@ vault auth list
 ### Immediate (Today)
 1. Read blocker issues #2158, #2159, #2160, #2161
 2. Choose unblock method (Terraform / Script / Workflow)
-3. Set GitHub secrets (GCP_PROJECT_ID, AWS_ACCOUNT_ID, VAULT_ADDR, VAULT_TOKEN)
+3. Set GitHub secrets (GCP_PROJECT_ID, AWS_ACCOUNT_ID, VAULT_ADDR, REDACTED_VAULT_TOKEN)
 
 ### Short-term (This Week)
 1. Deploy GCP Workload Identity Pool (Monday)

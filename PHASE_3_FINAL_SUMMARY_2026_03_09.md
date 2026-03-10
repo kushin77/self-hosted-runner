@@ -110,7 +110,7 @@
    # Option A: Local file
    mkdir -p .credentials
    echo "AKIA..." > .credentials/aws_access_key_id
-   echo "SECRET..." > .credentials/aws_secret_access_key
+   echo "SECRET..." > .credentials/REDACTED_AWS_SECRET_ACCESS_KEY
    
    # Option B: AWS CLI
    aws sso login  # or aws configure

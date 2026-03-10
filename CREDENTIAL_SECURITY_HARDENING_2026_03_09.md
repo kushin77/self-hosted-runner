@@ -38,7 +38,7 @@ Status: ✅ Operational — blocks commits with hardcoded secrets
 
 #### 2. **Auto-Deploy Phase 3B** (.github/workflows/auto-deploy-phase3b.yml)
 ```yaml
-Before: AWS credentials from secrets (AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
+Before: AWS credentials from secrets (AWS_ACCESS_KEY_ID + REDACTED_AWS_SECRET_ACCESS_KEY)
 After:  Primary: OIDC assume-role (ephemeral STS, 1h TTL)
         Fallback: Long-lived keys (backward compatibility)
 Status: ✅ Live — uses OIDC for AWS by default
@@ -54,7 +54,7 @@ Status: ✅ Live — uses OIDC for AWS by default
 
 #### 3. **Phase 3 Revoke Keys** (.github/workflows/phase3-revoke-keys.yml)
 ```yaml
-Before: Hardcoded secrets (VAULT_TOKEN, GCP_SA_KEY, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+Before: Hardcoded secrets (REDACTED_VAULT_TOKEN, GCP_SA_KEY, AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY)
 After:  GCP OIDC (WIF) + AWS OIDC (STS) + Vault AppRole JWT
 Status: ✅ Updated — full OIDC coverage
 ```
@@ -116,7 +116,7 @@ Phase 3B (AWS+Vault):
 ### Phase 2 (Planned)
 - **#2160** — HARDEN: Vault AppRole + JWT auth (Phase 2)
   - Status: 0% (backlog; tracks Phase 2 work)
-  - Next: Replace VAULT_TOKEN secrets with AppRole; implement JWT auth support
+  - Next: Replace REDACTED_VAULT_TOKEN secrets with AppRole; implement JWT auth support
 
 ---
 
@@ -247,7 +247,7 @@ v2026-03-09-autodeploy — Production Deployment Release (final handoff)
 ## Rollback Plan (if needed)
 
 1. Revert to long-lived keys (workflows have fallback conditions)
-2. Restore previous GCP_SA_KEY + AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY secrets
+2. Restore previous GCP_SA_KEY + AWS_ACCESS_KEY_ID + REDACTED_AWS_SECRET_ACCESS_KEY secrets
 3. Disable credential linting workflow (or set to warn-only)
 4. No production impact — OIDC migration is non-breaking
 
@@ -264,7 +264,7 @@ v2026-03-09-autodeploy — Production Deployment Release (final handoff)
 ### Short-term (Next Week)
 - [ ] Implement Vault AppRole and JWT auth
 - [ ] Set VAULT_APPROLE_ROLE_ID + VAULT_APPROLE_SECRET_ID
-- [ ] Remove VAULT_TOKEN from repo secrets
+- [ ] Remove REDACTED_VAULT_TOKEN from repo secrets
 
 ### Medium-term (Next Month)
 - [ ] Sanitize docs (remove literal credential examples)
