@@ -10,6 +10,7 @@ services:
     ports:
       - "${FRONTEND_HOST_PORT:-13000}:80"
     environment:
+      REACT_APP_API_URL: http://api:3000
       VITE_API_BASE_URL: http://api:3000
       VITE_ENV: development
     volumes:
