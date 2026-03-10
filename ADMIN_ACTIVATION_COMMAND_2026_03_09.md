@@ -11,8 +11,8 @@
 ```bash
 # STEP 1: Set AWS credentials
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXXXXXXXXXX \
-  --secret XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  --key REDACTED_AWS_ACCESS_KEY_ID \
+  --secret REDACTED_AWS_SECRET_ACCESS_KEY
 
 # STEP 2: Verify (optional, recommended)
 ./scripts/phase3b-credential-manager.sh verify
@@ -26,8 +26,8 @@
 ### Alternative 1: Environment Variables
 ```bash
 # Set credentials in environment
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
-export AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=REDACTED_AWS_SECRET_ACCESS_KEY
 
 # Optional: Vault
 export VAULT_ADDR=https://vault.example.com:8200
@@ -45,8 +45,8 @@ bash scripts/phase3b-credentials-inject-activate.sh
 2. Select: "Phase 3B Credential Injection"
 3. Click: "Run workflow" (dropdown button)
 4. enter credentials:
-   - AWS_ACCESS_KEY_ID: AKIAXXXXXXXXXXXXXXXX
-   - AWS_SECRET_ACCESS_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   - AWS_ACCESS_KEY_ID: REDACTED_AWS_ACCESS_KEY_ID
+   - AWS_SECRET_ACCESS_KEY: REDACTED_AWS_SECRET_ACCESS_KEY
    - VAULT_ADDR: https://vault.example.com:8200 (optional)
 5. Click: "Run workflow" button
 6. Monitor: Status updates in real-time
@@ -97,8 +97,8 @@ ls -la scripts/phase3b-credential-manager.sh
 **Step 3: Set AWS credentials**
 ```bash
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXXXXXXXXXX \
-  --secret XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  --key REDACTED_AWS_ACCESS_KEY_ID \
+  --secret REDACTED_AWS_SECRET_ACCESS_KEY
 # Expected: "✅ AWS credentials stored securely (~/.phase3b-credentials)"
 ```
 
@@ -258,12 +258,12 @@ cd /home/akushnir/self-hosted-runner
 # Set and activate credentials (choose one method)
 
 # METHOD 1: CLI (Recommended)
-./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXXXXXXXXXXXXXX --secret XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret REDACTED_AWS_SECRET_ACCESS_KEY
 ./scripts/phase3b-credential-manager.sh activate
 
 # OR METHOD 2: Environment
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX && \
-export AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX && \
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID && \
+export AWS_SECRET_ACCESS_KEY=REDACTED_AWS_SECRET_ACCESS_KEY && \
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # OR METHOD 3: GitHub Actions

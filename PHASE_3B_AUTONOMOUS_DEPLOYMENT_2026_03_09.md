@@ -138,7 +138,7 @@ bash scripts/phase3b-credentials-aws-vault.sh  # Idempotent re-run
 **Action Required:** Admin sets cloud provider secrets in GitHub
 ```bash
 gh secret set AWS_ROLE_TO_ASSUME --body "arn:aws:iam::ACCOUNT:role/ROLE_NAME"
-gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --body "projects/PROJECT/locations/global/..."
+gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --body "REDACTED_AWS_SECRET_ACCESS_KEY..."
 gh secret set GCP_SA_EMAIL --body "github-actions@PROJECT.iam.gserviceaccount.com"
 ```
 

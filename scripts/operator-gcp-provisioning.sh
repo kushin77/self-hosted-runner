@@ -151,7 +151,7 @@ provision_aws_credentials() {
         log INFO "Creating new secret: $secret_name"
         
         local creds='{
-  "access_key_id": "AKIAIOSFODNN7EXAMPLE",
+  "access_key_id": "REDACTED_AWS_ACCESS_KEY_ID",
   "secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
   "region": "us-east-1"
 }'
