@@ -239,6 +239,22 @@ git push origin deployment/production-live-2026-03-10
 | `logs/phase6-quickstart-2026-03-10.jsonl` | Phase 6 execution audit |
 | `logs/complete-finalization-audit.jsonl` | Finalization checkpoint |
 
+## Automation & Hardening Actions (2026-03-10)
+
+- Added `scripts/deploy-direct.sh`: idempotent direct-deploy helper for remote host deployments (uploads compose payload, pulls images, starts containers with `--remove-orphans`).
+- Added `scripts/provision-secrets.sh`: template and CLI examples for provisioning secrets into Vault / GSM / KMS. DO NOT store secrets in git; copy `.env.example` to `.env` and populate with values via secret manager.
+- Added `.env.example` and updated `.gitignore` to avoid committing runtime secrets or compose overrides.
+- Disabled direct Prometheus scraping of Postgres (use `postgres_exporter` instead). Prometheus config updated in `monitoring/prometheus.yml` and deployed to the production host.
+- Opened PR: `chore/sanitize-compose-env-20260310` (adds `.env.example`, disables Postgres scrape) — see PR #2238.
+- RCA issue created for the Postgres startup-packet logs (issue #2237) and marked resolved after configuration change and runtime deployment.
+
+Recommended next automated steps:
+1. Deploy `postgres_exporter` as a container and add it to `monitoring/prometheus.yml` on the exporter HTTP port (e.g., 9187).
+2. Implement a secrets bootstrap that uses `provision-secrets.sh` to store secrets in Vault/GSM/KMS and generates a remote `.env` on the deploy host atomically.
+3. Add a scheduled orchestration job (cron or operator) on the deployment host for routine rotation and idempotent re-deploys — keep logs immutable (append-only JSONL) and push artifacts to the audit repo.
+4. Enforce direct-deploy-only policy in repo docs: no GitHub Actions and no automated PR releases. Document maintainers & emergency rollback steps.
+
+
 ---
 
 ## Success Criteria (Verification Checklist)
