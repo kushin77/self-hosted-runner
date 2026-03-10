@@ -52,15 +52,9 @@ scrape_configs:
         replacement: 'api-server'
 
   # ==================== PostgreSQL ====================
-  - job_name: 'postgres'
-    static_configs:
-      - targets: ['database:5432']
-        labels:
-          service: 'postgres'
-          env: 'development'
-    # Note: requires postgres_exporter if available
-    scrape_interval: 30s
-    scrape_timeout: 10s
+  # Disabled: scraping Postgres directly on 5432 sends HTTP probes to the
+  # PostgreSQL wire protocol and causes "invalid length of startup packet"
+  # If a postgres_exporter is deployed, re-enable and point to its HTTP port.
 
   # ==================== Redis ====================
   - job_name: 'redis'
