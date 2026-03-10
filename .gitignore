@@ -89,3 +89,9 @@ scripts/**/migrate-*.sh
 scripts/**/redact-*.sh
 docs/**/*.md.bak
 
+**/*.jsonl
+**/*.log
+**/*.bak
+**/*.plan
+**/*.tfstate*
+config/docker-compose.phase6.yml
