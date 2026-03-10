@@ -1,0 +1,7 @@
+[Unit]
+Description=Handoff verify runner
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/orchestration/auto-verify-handoff.sh
+Nice=10
