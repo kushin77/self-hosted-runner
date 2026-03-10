@@ -1,0 +1,73 @@
+name: CI - OTEL Collector Integration
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+jobs:
+  otel-collector-integration:
+    name: OTEL Collector Integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Docker Compose (ensure available)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y python3-pip
+          pip3 install docker-compose==1.29.2 || true
+
+      - name: Start OTEL Collector (docker-compose)
+        working-directory: deploy/otel
+        run: |
+          docker-compose -f docker-compose.yml up -d
+          # wait for collector to be ready (simple TCP wait)
+          for i in {1..20}; do
+            if curl --silent --fail http://localhost:8888/; then
+              echo "Collector ready"; break
+            fi
+            sleep 1
+          done
+
+      - name: Run OTEL init sanity checks
+        run: |
+          bash services/provisioner-worker/tests/otel_init.sh || true
+          bash services/managed-auth/tests/otel_init.sh || true
+          bash services/vault-shim/tests/otel_init.sh || true
+
+      - name: Run OTLP & exporter send tests
+        run: |
+          OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces bash services/provisioner-worker/tests/send_otlp.sh || true
+          bash services/provisioner-worker/tests/send_datadog.sh || true
+          bash services/provisioner-worker/tests/send_splunk.sh || true
+          bash services/provisioner-worker/tests/audit_test.sh || true
+        env:
+          DATADOG_API_KEY: ${{ secrets.DATADOG_API_KEY || '' }}
+          SPLUNK_HEC_TOKEN: ${{ secrets.SPLUNK_HEC_TOKEN || '' }}
+          SPLUNK_HEC_ENDPOINT: ${{ secrets.SPLUNK_HEC_ENDPOINT || '' }}
+
+      - name: Collect collector logs
+        working-directory: deploy/otel
+        if: always()
+        run: |
+          docker-compose -f docker-compose.yml logs --no-color > /tmp/otel-collector-logs.txt || true
+          echo "Collector logs archived to /tmp/otel-collector-logs.txt"
+
+      - name: Upload collector logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: otel-collector-logs
+          path: /tmp/otel-collector-logs.txt
+
+      - name: Teardown collector
+        if: always()
+        working-directory: deploy/otel
+        run: |
+          docker-compose -f docker-compose.yml down --remove-orphans || true

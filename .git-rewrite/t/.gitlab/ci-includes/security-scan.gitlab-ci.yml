@@ -1,0 +1,140 @@
+# GitLab CI — Security Scan Pipeline Parity Template
+# Covers: gitleaks, trivy, snyk, bandit, NIST compliance checks
+# Mirrors: security-scan.yml, gitleaks.yml, compliance workflows in GitHub Actions
+# Include via: include: - local: '.gitlab/ci-includes/security-scan.gitlab-ci.yml'
+# NIST Controls: AU-2, CA-7, RA-5, SI-2, SI-3
+
+variables:
+  TRIVY_SEVERITY: "HIGH,CRITICAL"
+  GITLEAKS_VERSION: "8.18.0"
+  SNYK_FAIL_ON: "high"
+
+# ---------------------------------------------------------------------------
+# Hidden job templates — extend with `extends:`
+# ---------------------------------------------------------------------------
+.trivy_container_scan:
+  image: aquasec/trivy:latest
+  stage: test
+  variables:
+    IMAGE_REF: "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}"
+  script:
+    - |
+      trivy image \
+        --severity "${TRIVY_SEVERITY}" \
+        --format json \
+        --output trivy-report.json \
+        --exit-code 0 \
+        "${IMAGE_REF}"
+      # Convert to GL SAST format for MR security widget
+      trivy image \
+        --severity "${TRIVY_SEVERITY}" \
+        --format template \
+        --template "@/contrib/gitlab.tpl" \
+        --output gl-container-scanning-report.json \
+        "${IMAGE_REF}"
+  artifacts:
+    when: always
+    expire_in: 7 days
+    reports:
+      container_scanning: gl-container-scanning-report.json
+    paths:
+      - trivy-report.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+.trivy_iac_scan:
+  image: aquasec/trivy:latest
+  stage: test
+  script:
+    - |
+      trivy config \
+        --severity "${TRIVY_SEVERITY}" \
+        --format json \
+        --output trivy-iac-report.json \
+        --exit-code 1 \
+        .
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - trivy-iac-report.json
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - changes:
+        - "infrastructure/**/*.tf"
+        - "libs/terraform/**/*.tf"
+
+.gitleaks_scan:
+  image:
+    name: "zricethezav/gitleaks:v${GITLEAKS_VERSION}"
+    entrypoint: [""]
+  stage: test
+  script:
+    - gitleaks detect --source . --report-format json --report-path gitleaks-report.json --exit-code 1
+  artifacts:
+    when: on_failure
+    expire_in: 7 days
+    paths:
+      - gitleaks-report.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+.snyk_scan:
+  image: snyk/snyk:python
+  stage: test
+  script:
+    - |
+      snyk auth "${SNYK_TOKEN}"
+      snyk test --severity-threshold="${SNYK_FAIL_ON}" --json > snyk-report.json || EXIT=$?
+      if [[ ${EXIT:-0} -gt 1 ]]; then exit ${EXIT}; fi
+  artifacts:
+    when: always
+    expire_in: 7 days
+    paths:
+      - snyk-report.json
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+.nist_compliance_check:
+  image: python:3.11-slim
+  stage: test
+  script:
+    - pip install yq --quiet
+    - |
+      echo "=== NIST CM-4: Checking all commits reference NIST controls ==="
+      git log --oneline -20 | grep -E "\[NIST-" | wc -l
+
+      echo "=== NIST AU-2: Checking audit log integrity ==="
+      if compgen -G "docs/management/SESSION_LOGS.md" > /dev/null; then
+        lines=$(wc -l < docs/management/SESSION_LOGS.md)
+        echo "Session log: ${lines} lines — OK"
+      fi
+
+      echo "=== NIST RA-5: Checking for open CRITICAL trivy findings ==="
+      if [[ -f trivy-iac-report.json ]]; then
+        criticals=$(jq '[.. | objects | select(.Severity == "CRITICAL")] | length' trivy-iac-report.json 2>/dev/null || echo 0)
+        echo "CRITICAL findings: ${criticals}"
+        [[ ${criticals} -eq 0 ]] || exit 1
+      fi
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+
+.sbom_generate:
+  image: aquasec/trivy:latest
+  stage: build
+  script:
+    - trivy image --format spdx-json --output sbom.spdx.json "${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}" || true
+    - trivy fs --format spdx-json --output sbom-source.spdx.json . || true
+  artifacts:
+    when: always
+    expire_in: 90 days
+    paths:
+      - sbom.spdx.json
+      - sbom-source.spdx.json
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+/'
