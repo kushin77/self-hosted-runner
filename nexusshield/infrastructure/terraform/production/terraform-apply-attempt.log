@@ -1,0 +1,57 @@
+[0m[1mgoogle_project_service.firestore: Refreshing state... [id=nexusshield-prod/firestore.googleapis.com][0m
+[0m[1mgoogle_project_service.firestore_api[0]: Refreshing state... [id=nexusshield-prod/firestore.googleapis.com][0m
+[0m[1mgoogle_service_account.portal_backend: Refreshing state... [id=projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com][0m
+[0m[1mgoogle_secret_manager_secret.firestore_config: Refreshing state... [id=projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production][0m
+[0m[1mgoogle_compute_network.portal_vpc: Refreshing state... [id=projects/nexusshield-prod/global/networks/nexusshield-vpc][0m
+[0m[1mgoogle_artifact_registry_repository.portal_repo: Refreshing state... [id=projects/nexusshield-prod/locations/us-central1/repositories/portal-backend-repo][0m
+
+[0m[1m[31mPlanning failed.[0m[1m Terraform encountered an error while generating this plan.[0m
+
+[0m[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing Project Service nexusshield-prod/firestore.googleapis.com: Get "https://cloudresourcemanager.googleapis.com/v1/projects/nexusshield-prod?alt=json&prettyPrint=false": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_project_service.firestore_api[0],
+[31m│[0m [0m  on firestore.tf line 32, in resource "google_project_service" "firestore_api":
+[31m│[0m [0m  32: resource "google_project_service" "firestore_api" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing ComputeNetwork "projects/nexusshield-prod/global/networks/nexusshield-vpc": Get "https://compute.googleapis.com/compute/v1/projects/nexusshield-prod/global/networks/nexusshield-vpc?alt=json": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_compute_network.portal_vpc,
+[31m│[0m [0m  on main.tf line 61, in resource "google_compute_network" "portal_vpc":
+[31m│[0m [0m  61: resource "google_compute_network" "portal_vpc" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing ArtifactRegistryRepository "projects/nexusshield-prod/locations/us-central1/repositories/portal-backend-repo": Get "https://artifactregistry.googleapis.com/v1/projects/nexusshield-prod/locations/us-central1/repositories/portal-backend-repo?alt=json": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_artifact_registry_repository.portal_repo,
+[31m│[0m [0m  on main.tf line 98, in resource "google_artifact_registry_repository" "portal_repo":
+[31m│[0m [0m  98: resource "google_artifact_registry_repository" "portal_repo" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing Service Account "projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com": Get "https://iam.googleapis.com/v1/projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com?alt=json&prettyPrint=false": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_service_account.portal_backend,
+[31m│[0m [0m  on main.tf line 112, in resource "google_service_account" "portal_backend":
+[31m│[0m [0m 112: resource "google_service_account" "portal_backend" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing Project Service nexusshield-prod/firestore.googleapis.com: Get "https://cloudresourcemanager.googleapis.com/v1/projects/nexusshield-prod?alt=json&prettyPrint=false": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_project_service.firestore,
+[31m│[0m [0m  on main.tf line 162, in resource "google_project_service" "firestore":
+[31m│[0m [0m 162: resource "google_project_service" "firestore" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing SecretManagerSecret "projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production": Get "https://secretmanager.googleapis.com/v1/projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production?alt=json": oauth2: token expired and refresh token is not set[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_secret_manager_secret.firestore_config,
+[31m│[0m [0m  on main.tf line 205, in resource "google_secret_manager_secret" "firestore_config":
+[31m│[0m [0m 205: resource "google_secret_manager_secret" "firestore_config" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
