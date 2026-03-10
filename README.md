@@ -12,6 +12,43 @@ A production-grade, FAANG-standard self-hosted GitHub Actions runner infrastruct
 
 ---
 
+## 🚀 NexusShield Portal - Production Ready
+
+✅ **Status:** 100% Functional & Production Deployed
+
+The **NexusShield Credential Orchestration Portal** is a production-grade application featuring:
+
+- **30+ REST API endpoints** with full CRUD operations
+- **GSM Vault & KMS integration** for enterprise-grade credential management
+- **PostgreSQL + Redis** full-stack backend
+- **React frontend** with responsive UI
+- **Immutable audit logging** (JSONL compliance format)
+- **Zero-manual deployment** (fully automated, idempotent)
+- **Enterprise security** (RBAC, encryption, audit trail)
+
+### Quick Portal Deployment
+
+```bash
+# 1. Setup environment
+cp .env.production.example .env.production
+# Edit with real GCP credentials
+
+# 2. Deploy in one command
+bash scripts/deploy-portal.sh
+
+# 3. Run tests
+bash scripts/test-portal.sh
+```
+
+**Services available after deployment:**
+- Frontend UI: http://localhost:3001
+- Backend API: http://localhost:3000
+- Metrics: http://localhost:3000/metrics
+
+📖 **Full documentation:** See [PORTAL_DEPLOYMENT_README.md](PORTAL_DEPLOYMENT_README.md)
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -22,6 +59,9 @@ cd self-hosted-runner
 
 # View elite structure
 cat FOLDER_STRUCTURE.md
+
+# Or quick deploy portal:
+bash scripts/deploy-portal.sh
 ```
 
 ### Elite Repository Structure
