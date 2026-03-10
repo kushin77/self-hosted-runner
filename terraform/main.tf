@@ -155,10 +155,8 @@ resource "google_compute_router_nat" "nat" {
 # ===========================================================================
 
 resource "google_vpc_access_connector" "cloud_run" {
-  # Use an explicit, RFC-compliant name for production to satisfy GCP's
-  # connector ID pattern. For non-production environments, keep the
-  # generated prefix-based name.
-  name = var.environment == "production" ? "production-portal-connector" : "${local.env_prefix}-connector"
+  # Name must match pattern ^[a-z][-a-z0-9]{0,23}[a-z0-9]$ (max 25 chars)
+  name = var.environment == "production" ? "prod-portal-connector" : "${local.env_prefix}-connector"
   region        = var.gcp_region
   ip_cidr_range = var.environment == "production" ? "10.8.0.0/28" : "10.9.0.0/28"
   network       = google_compute_network.vpc.name
@@ -275,52 +273,85 @@ resource "google_secret_manager_secret_iam_member" "backend_username" {
 # ===========================================================================
 # CLOUD SQL - POSTGRES
 # ===========================================================================
+# PRIVATE SERVICE CONNECTION FOR CLOUD SQL
+# Commented out due to organizational VPC peering constraint
+# Can use Cloud SQL Auth proxy or IP allowlist instead
+# ===========================================================================
 
-resource "google_sql_database_instance" "primary" {
-  name             = "${local.env_prefix}-db"
-  database_version = "POSTGRES_15"
-  region           = var.gcp_region
-  deletion_protection = var.environment == "production"
-  
-  settings {
-    tier              = var.instance_tier
-    availability_type = var.environment == "production" ? "REGIONAL" : "ZONAL"
-    
-    backup_configuration {
-      enabled                        = true
-      start_time                     = "03:00"
-      point_in_time_recovery_enabled = var.environment == "production"
-      transaction_log_retention_days = 7
-    }
+# resource "google_compute_global_address" "private_ip_address" {
+#   name          = "${local.env_prefix}-private-ip"
+#   purpose       = "VPC_PEERING"
+#   address_type  = "INTERNAL"
+#   prefix_length = 16
+#   network       = google_compute_network.vpc.id
+# }
 
-    ip_configuration {
-      require_ssl     = true
-      ipv4_enabled    = false
-      private_network = google_compute_network.vpc.id
-    }
-  }
-}
+# resource "google_service_networking_connection" "private_vpc_connection" {
+#   network                 = google_compute_network.vpc.id
+#   service                 = "servicenetworking.googleapis.com"
+#   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+# }
 
-resource "google_sql_database" "portal" {
-  name     = "portal"
-  instance = google_sql_database_instance.primary.name
-}
+# ===========================================================================
 
-resource "google_sql_user" "portal" {
-  name     = "portal_admin"
-  instance = google_sql_database_instance.primary.name
-  password = random_password.db_password.result
-}
+# ===========================================================================
+# CLOUD SQL DATABASE
+# NOTE: Commented out due to GCP Organization Policies:
+# - Private IP requires VPC peering (constraints/compute.restrictVpcPeering blocks this)
+# - Public IP is blocked (constraints/sql.restrictPublicIp blocks this)
+# - PSC requires peering (also blocked)
+#
+# Workaround: Use Cloud SQL Auth proxy sidecar in Cloud Run with IAM,
+# or contact GCP admin to relax org policies.
+# ===========================================================================
+
+# resource "google_sql_database_instance" "primary" {
+#   name             = "${local.env_prefix}-db"
+#   database_version = "POSTGRES_15"
+#   region           = var.gcp_region
+#   deletion_protection = var.environment == "production"
+#   
+#   settings {
+#     tier              = var.instance_tier
+#     availability_type = var.environment == "production" ? "REGIONAL" : "ZONAL"
+#     
+#     backup_configuration {
+#       enabled                        = true
+#       start_time                     = "03:00"
+#       point_in_time_recovery_enabled = var.environment == "production"
+#       transaction_log_retention_days = 7
+#     }
+# 
+#     ip_configuration {
+#       # Cloud SQL Proxy will be used for connections
+#       # Org policy blocks both public and private IPs, so use proxy-only mode
+#       require_ssl  = true
+#       ipv4_enabled = false
+#     }
+#   }
+# }
+# 
+# resource "google_sql_database" "portal" {
+#   name     = "portal"
+#   instance = google_sql_database_instance.primary.name
+# }
+# 
+# resource "google_sql_user" "portal" {
+#   name     = "portal_admin"
+#   instance = google_sql_database_instance.primary.name
+#   password = random_password.db_password.result
+# }
 
 # ===========================================================================
 # IAM ROLES - DATABASE ACCESS
+# NOTE: Commented out because Cloud SQL is disabled due to org policies
 # ===========================================================================
 
-resource "google_project_iam_member" "backend_sql_client" {
-  project = var.gcp_project
-  role    = "roles/cloudsql.client"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
+# resource "google_project_iam_member" "backend_sql_client" {
+#   project = var.gcp_project
+#   role    = "roles/cloudsql.client"
+#   member  = "serviceAccount:${google_service_account.backend.email}"
+# }
 
 resource "google_project_iam_member" "backend_secret_accessor" {
   project = var.gcp_project
@@ -363,10 +394,11 @@ resource "google_cloud_run_service" "backend" {
           container_port = 8080
         }
         
-        env {
-          name  = "DATABASE_URL"
-          value = "postgresql://portal_admin@${google_sql_database_instance.primary.connection_name}/portal"
-        }
+        # Disabled: DATABASE_URL references Cloud SQL which is unavailable due to org policies
+        # env {
+        #   name  = "DATABASE_URL"
+        #   value = "postgresql://portal_admin@${google_sql_database_instance.primary.connection_name}/portal"
+        # }
         
         env {
           name  = "ENVIRONMENT"
@@ -513,10 +545,10 @@ output "frontend_url" {
   description = "Frontend service URL"
 }
 
-output "database_connection_name" {
-  value       = google_sql_database_instance.primary.connection_name
-  description = "Cloud SQL connection string"
-}
+# output "database_connection_name" {
+#   value       = google_sql_database_instance.primary.connection_name
+#   description = "Cloud SQL connection string (disabled due to org policies)"
+# }
 
 output "vpc_id" {
   value = google_compute_network.vpc.id
@@ -533,7 +565,7 @@ output "deployment_summary" {
     deployment_id         = random_string.deployment_id.result
     backend_service       = google_cloud_run_service.backend.name
     frontend_service      = google_cloud_run_service.frontend.name
-    database              = google_sql_database_instance.primary.name
+    # database              = "Disabled due to GCP org policies blocking all SQL connectivity"
     vpc                   = google_compute_network.vpc.name
     credential_management = "GSM (primary) → Vault (secondary) → KMS (tertiary)"
     immutable_trail       = "git + JSONL audit logs"
