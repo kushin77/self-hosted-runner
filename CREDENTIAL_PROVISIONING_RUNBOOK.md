@@ -24,7 +24,7 @@ This runbook covers provisioning deployment credentials for the **immutable, eph
 | **AWS Secrets Manager** | ⏳ Pending | #2100 | [Create secret & IAM role](#aws-provisioning) |
 | **Google Secrets Manager** | ⏳ Pending | #2103 | [Grant IAM permissions](#gsm-provisioning) |
 | **CI/PR Workflows** | ❌ Enabled | #2102 | [Disable CI/PR policy](#disable-cipr-workflows) |
-| **Deployment Policy** | ⏳ Draft | #2104 | [Enforce immutable/ephemeral/idempotent](#deployment-policy-enforcement) |
+| **Deployment Policy** | ⏳ Draft | #2104 | [Enforce REDACTED_AWS_SECRET_ACCESS_KEY](#deployment-policy-enforcement) |
 
 ---
 
@@ -592,7 +592,7 @@ sudo journalctl -u wait-and-deploy.service --since "1 hour ago" | grep "Detected
 
 ## ✅ Completion Checklist
 
-**For full go-live of immutable/ephemeral/idempotent deployment system, complete in this order:**
+**For full go-live of REDACTED_AWS_SECRET_ACCESS_KEY deployment system, complete in this order:**
 
 ### Phase 1: Vault Production Hardening (Issue #2101)
 - [ ] Replace dev token with AppRole

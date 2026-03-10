@@ -138,7 +138,7 @@ Target 2: 192.168.168.42:9100 (node-exporter system metrics)
 ```bash
 # Set AWS credentials
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXX \
+  --key REDACTED_AWS_ACCESS_KEY_ID \
   --secret xxxxxxx
 
 # Set Vault credentials (optional)
@@ -157,7 +157,7 @@ Target 2: 192.168.168.42:9100 (node-exporter system metrics)
 **Best for:** CI/CD automation, Docker containers
 
 ```bash
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=xxxxxxx
 export VAULT_ADDR=https://vault.example.com
 export VAULT_JWT_TOKEN=$(cat jwt-token.txt)

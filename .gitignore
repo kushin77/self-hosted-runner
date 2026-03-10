@@ -58,3 +58,6 @@ infra/credentials/
 **/*.tfstate
 **/*.tfstate.backup
 **/*terraform.tfstate*
+
+# Local credentials (do not commit)
+.credentials/
