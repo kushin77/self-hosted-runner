@@ -1,0 +1,258 @@
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_started",
+  "status":"initiated",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"environment=staging"
+}
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"preflight_check",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"preflight_check",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"All checks passed for staging"
+}
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"check_credentials",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"check_credentials",
+  "status":"warning",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"Credentials not configured - set up GSM/Vault/KMS first"
+}
+{
+  "timestamp":"2026-03-10T00:56:06Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"check_infrastructure",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
+{
+  "timestamp":"2026-03-10T00:56:07Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"check_infrastructure",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
+{
+  "timestamp":"2026-03-10T00:56:07Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_simulation",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
+{
+  "timestamp":"2026-03-10T00:56:07Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=init"
+}
+{
+  "timestamp":"2026-03-10T00:56:08Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=init"
+}
+{
+  "timestamp":"2026-03-10T00:56:08Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=plan"
+}
+{
+  "timestamp":"2026-03-10T00:56:10Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=plan environment=staging"
+}
+{
+  "timestamp":"2026-03-10T00:56:10Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=apply"
+}
+{
+  "timestamp":"2026-03-10T00:56:13Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=apply environment=staging"
+}
+{
+  "timestamp":"2026-03-10T00:56:13Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=deploy_apps"
+}
+{
+  "timestamp":"2026-03-10T00:56:15Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=deploy_apps"
+}
+{
+  "timestamp":"2026-03-10T00:56:15Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=health"
+}
+{
+  "timestamp":"2026-03-10T00:56:16Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=health"
+}
+{
+  "timestamp":"2026-03-10T00:56:16Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=monitoring"
+}
+{
+  "timestamp":"2026-03-10T00:56:17Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_stage",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"stage=monitoring"
+}
+{
+  "timestamp":"2026-03-10T00:56:17Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"deployment_simulation",
+  "status":"success",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+  ,"details":"All stages completed"
+}
+{
+  "timestamp":"2026-03-10T00:56:17Z",
+  "deployment_id":"prod-1773104166",
+  "environment":"staging",
+  "event":"commit_audit_trail",
+  "status":"started",
+  "git_commit":"6f65bd0d8bfc9143e8547e561933c6323c3882a3",
+  "git_branch":"main",
+  "user":"akushnir",
+  "hostname":"dev-elevatediq-2"
+}
