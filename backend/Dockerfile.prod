@@ -17,14 +17,24 @@ FROM node:18-alpine
 WORKDIR /app
 
 ENV NODE_ENV=production \
-    PORT=3000 \
-    LOG_LEVEL=info
+  PORT=3000 \
+  LOG_LEVEL=info \
+  VAULT_TOKEN_FILE=/var/run/secrets/vault/token \
+  VAULT_AGENT_CONFIG=/etc/vault/agent-config.hcl
+
+# Small runtime utilities for optional vault agent and health checks
+RUN apk add --no-cache bash curl openssl ca-certificates
 
 # Copy from builder
 COPY --from=builder /app/node_modules ./node_modules
 
 # Copy app files
 COPY server.js package.json ./
+
+# Copy entrypoint and a template vault-agent config (optional)
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+COPY vault-agent-config.hcl.tpl /etc/vault/agent-config.hcl
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Create logs directory
 RUN mkdir -p /app/logs && chmod 755 /app/logs
@@ -36,5 +46,5 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
 # Expose port
 EXPOSE 3000
 
-# Run app
-CMD ["node", "server.js"]
+# Entrypoint handles VAULT_TOKEN_FILE, starts optional Vault Agent, then runs the app
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
