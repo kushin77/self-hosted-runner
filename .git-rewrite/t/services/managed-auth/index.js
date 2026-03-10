@@ -1,0 +1,145 @@
+#!/usr/bin/env node
+// Minimal Express-based backend for RunnerCloud Managed Mode (Issue #8)
+// - GitHub App OAuth flow skeleton
+// - In-memory runner registry with per-second billing metrics
+// - Simple API endpoints for portal integration
+// Usage: node index.js (requires NODE_ENV=development for mock tokens)
+
+import express from 'express';
+import crypto from 'crypto';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { setToken, getToken } = require('./lib/secretStore.cjs');
+// logger is implemented in CommonJS (renamed to logger.cjs)
+const logger = require('./lib/logger.cjs');
+const metrics = require('./lib/metrics.cjs');
+const metricsServer = require('./lib/metricsServer.cjs');
+const otel = require('./lib/otel.cjs');
+
+// optional OpenTelemetry
+otel.init();
+
+const app = express();
+const port = process.env.PORT || 4000;
+
+// start metrics listener separately
+if (process.env.ENABLE_METRICS !== 'false') {
+  metricsServer.start();
+}
+
+// each request can have a correlation id header; fallback to generated
+app.use((req, res, next) => {
+  req.correlation_id = req.headers['x-correlation-id'] || logger.genCorrelationId();
+  req.log = logger.child({ correlation_id: req.correlation_id });
+
+  // OTEL tracing
+  const tracer = otel.getTracer();
+  const span = tracer ? tracer.startSpan('http_request', { attributes: { path: req.path, method: req.method } }) : null;
+  if (span) req.span = span;
+  // metrics instrumentation: track active requests and latency
+  const start = Date.now();
+  metrics.incActive();
+  res.once('finish', () => {
+    metrics.decActive();
+    const ms = Date.now() - start;
+    const status = res.statusCode < 400 ? 'success' : 'failure';
+    metrics.recordRequest(status, ms);
+    if (span) {
+      span.setAttribute('http.status_code', res.statusCode);
+      span.addEvent('response_sent', { duration_ms: ms });
+      span.end();
+    }
+  });
+
+  next();
+});
+
+// simple in-memory stores for runners and usage
+const runners = [];
+const billingRecords = [];
+
+app.use(express.json());
+
+// redirect to GitHub OAuth endpoint (placeholder)
+app.get('/oauth/start', (req, res) => {
+  const log = logger.child({ correlation_id: req.correlation_id });
+  log.info('oauth/start invoked');
+  // in real world we would redirect to GitHub App installation flow
+  const state = crypto.randomBytes(8).toString('hex');
+  res.redirect(`https://github.com/login/oauth/authorize?client_id=${process.env.GITHUB_CLIENT_ID || 'fake'}&state=${state}`);
+});
+
+// callback from GitHub
+app.get('/oauth/callback', async (req, res) => {
+  const { code, state } = req.query;
+
+  // here we would exchange code for access_token
+  if (!code) {
+    return res.status(400).send('missing code');
+  }
+
+  // simulate token creation
+  const token = crypto.randomBytes(16).toString('hex');
+  await setToken({ token, created: new Date().toISOString(), code });
+
+  // respond with a small page instructing the user to create a runner
+  res.send(`<html><body><h1>OAuth successful</h1><p>Your token: ${token}</p>` +
+           `<p>Use POST /runners to provision your first managed runner.</p></body></html>`);
+});
+
+// list runners
+app.get('/runners', (req, res) => {
+  res.json(runners);
+});
+
+// provision a new runner (simplified)
+app.post('/runners', (req, res) => {
+  const { name, os = 'ubuntu-latest', pool = 'default', token } = req.body;
+  if (!token) return res.status(401).json({ error: 'token required' });
+  const owner = getToken(token);
+  if (!owner) return res.status(403).json({ error: 'invalid token' });
+
+  const id = `r-${runners.length + 1}`;
+  const runner = { id, name: name || id, mode: 'managed', os, status: 'provisioning', pool, created: new Date().toISOString() };
+  runners.push(runner);
+
+  // simulate async provisioning
+  setTimeout(() => {
+    runner.status = 'running';
+  }, 1000);
+
+  res.status(201).json(runner);
+});
+
+// billing calculation endpoint
+app.get('/billing', (req, res) => {
+  // simple sum of per-second records for each runner
+  const totalSeconds = billingRecords.reduce((sum, r) => sum + (r.seconds || 0), 0);
+  const costPerSecond = parseFloat(process.env.COST_PER_SECOND || '0.0015');
+  res.json({ totalSeconds, costPerSecond, estimate: (totalSeconds * costPerSecond).toFixed(2) });
+});
+
+// instant deploy orchestration (UI uses this to kick off mode selection)
+app.post('/instant-deploy', (req, res) => {
+  const { mode } = req.body || {};
+  if (!mode) return res.status(400).json({ error: 'mode required' });
+  // In a real system we would route to appropriate service (managed, byoc, onprem)
+  // For now we return a simple success token and a fake runner URL
+  const deployId = crypto.randomBytes(8).toString('hex');
+  res.json({ deployId, mode, status: 'initiated', runnerUrl: `https://runnercloud.example.com/${deployId}` });
+});
+
+// record usage (called by runner agents periodically)
+app.post('/usage', (req, res) => {
+  const { runnerId, seconds } = req.body;
+  if (!runnerId || !seconds) return res.status(400).json({ error: 'runnerId and seconds required' });
+  billingRecords.push({ runnerId, seconds, timestamp: new Date().toISOString() });
+  res.status(204).end();
+});
+
+// healthcheck
+app.get('/health', (req, res) => res.send('ok'));
+
+app.listen(port, '0.0.0.0', () => {
+  logger.info('managed-auth service listening', { port });
+});

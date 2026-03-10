@@ -1,0 +1,197 @@
+apiVersion: elevatediq.io/v1
+kind: Runner
+metadata:
+  name: gpu-runner-us-east-1
+  namespace: default
+  labels:
+    gpu: "true"
+    instance-type: g4dn.xlarge
+    region: us-east-1
+    team: platform
+    tier: premium
+  annotations:
+    description: "High-performance GPU runner for ML/compute workloads"
+    cost-per-hour: "0.56"
+    gpu-model: "NVIDIA T4 x1"
+    
+spec:
+  status: online
+  
+  capabilities:
+    - feature: docker
+      version: "24.0"
+      enabled: true
+    - feature: nvidia-cuda
+      version: "12.0"
+      enabled: true
+    - feature: python
+      version: "3.11"
+      enabled: true
+    - feature: pytorch
+      version: "2.1"
+      enabled: true
+    - feature: tensorflow
+      version: "2.13"
+      enabled: true
+    - feature: git-lfs
+      version: "3.4"
+      enabled: true
+      
+  resources:
+    cpu: "4"
+    memory: "16Gi"
+    disk: "100Gi"
+    gpu: "1x NVIDIA T4"
+    network-bandwidth: "10Gbps"
+    
+  quotas:
+    concurrent_jobs: 4
+    vpus: 8
+    max_job_duration_hours: 24
+    max_artifact_size_gb: 500
+    
+  routing_weight: 100  # Higher = prefer for job assignment
+  drain_timeout_secs: 300
+  
+  # Self-healing configuration
+  health_check:
+    interval_secs: 60
+    timeout_secs: 10
+    unhealthy_threshold: 3
+    
+  # Autoscaling hints
+  autoscaling:
+    scale_down_after_idle_mins: 5
+    preferred_az: us-east-1a
+    
+  # Cost optimization
+  spot_capable: true
+  preemption_tolerance_mins: 2
+---
+apiVersion: elevatediq.io/v1
+kind: Runner
+metadata:
+  name: standard-runner-us-east-1-a
+  namespace: default
+  labels:
+    gpu: "false"
+    instance-type: t3.large
+    region: us-east-1
+    team: platform
+    tier: standard
+  annotations:
+    description: "Standard CPU runner for general CI/CD workloads"
+    cost-per-hour: "0.08"
+    
+spec:
+  status: online
+  
+  capabilities:
+    - feature: docker
+      version: "24.0"
+      enabled: true
+    - feature: git
+      version: "2.42"
+      enabled: true
+    - feature: nodejs
+      version: "18.0"
+      enabled: true
+    - feature: python
+      version: "3.11"
+      enabled: true
+    - feature: go
+      version: "1.21"
+      enabled: true
+    - feature: rust
+      version: "1.70"
+      enabled: true
+      
+  resources:
+    cpu: "2"
+    memory: "8Gi"
+    disk: "50Gi"
+    network-bandwidth: "5Gbps"
+    
+  quotas:
+    concurrent_jobs: 8
+    vpus: 4
+    max_job_duration_hours: 6
+    max_artifact_size_gb: 100
+    
+  routing_weight: 50
+  drain_timeout_secs: 180
+  
+  health_check:
+    interval_secs: 120
+    timeout_secs: 10
+    unhealthy_threshold: 3
+    
+  autoscaling:
+    scale_down_after_idle_mins: 10
+    preferred_az: us-east-1a
+    
+  spot_capable: true
+  preemption_tolerance_mins: 5
+---
+apiVersion: elevatediq.io/v1
+kind: Runner
+metadata:
+  name: memory-runner-us-east-1-b
+  namespace: default
+  labels:
+    gpu: "false"
+    memory-tier: high
+    instance-type: r5.2xlarge
+    region: us-east-1
+    team: platform
+    tier: memory-optimized
+  annotations:
+    description: "High-memory runner for data processing and large builds"
+    cost-per-hour: "0.25"
+    
+spec:
+  status: online
+  
+  capabilities:
+    - feature: docker
+      version: "24.0"
+      enabled: true
+    - feature: jvm
+      version: "21"
+      enabled: true
+    - feature: elasticsearch
+      version: "8.9"
+      enabled: true
+    - feature: redis
+      version: "7.0"
+      enabled: true
+    - feature: postgres
+      version: "15"
+      enabled: true
+      
+  resources:
+    cpu: "8"
+    memory: "64Gi"
+    disk: "200Gi"
+    network-bandwidth: "10Gbps"
+    
+  quotas:
+    concurrent_jobs: 2
+    vpus: 16
+    max_job_duration_hours: 12
+    max_artifact_size_gb: 1000
+    
+  routing_weight: 75
+  drain_timeout_secs: 600
+  
+  health_check:
+    interval_secs: 180
+    timeout_secs: 15
+    unhealthy_threshold: 2
+    
+  autoscaling:
+    scale_down_after_idle_mins: 15
+    preferred_az: us-east-1b
+    
+  spot_capable: false  # Reserved instance only
+  preemption_tolerance_mins: 0
