@@ -16,7 +16,7 @@ use_firestore = true # PRIMARY: Use Firestore (no org policy constraints)
 # use_firestore = false  # FALLBACK: Use Cloud SQL (requires org policy exemption)
 
 # Cloud Run Configuration
-portal_image         = "gcr.io/nexusshield-prod/portal-backend:latest"
+portal_image         = "us-central1-docker.pkg.dev/nexusshield-prod/portal-backend-repo/portal-backend:latest"
 portal_memory        = "512Mi"
 portal_timeout       = 300
 portal_max_instances = 100
