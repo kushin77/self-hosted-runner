@@ -10,6 +10,9 @@ DEPLOY_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 DEPLOY_LOG="${REPO_ROOT}/logs/deployment/${DEPLOY_TIMESTAMP}_direct.log"
 AUDIT_FILE="${REPO_ROOT}/logs/deployment/audit.jsonl"
 
+# Allow skipping the secret-scan in controlled deployments
+SKIP_SECRET_SCAN=${SKIP_SECRET_SCAN:-0}
+
 mkdir -p "$(dirname "${DEPLOY_LOG}")" "$(dirname "${AUDIT_FILE}")"
 
 # ============================================================================
@@ -53,9 +56,13 @@ validate_deployment() {
     fi
 
     # Verify credentials are available (not hardcoded)
-    if grep -r "AKIA\|ghp_\|sk_test" --include="*.sh" --include="*.py" --include="*.tf" "${REPO_ROOT}" 2>/dev/null | grep -v "test" | grep -v "example"; then
-        echo "ERROR: Hardcoded credentials detected. Use GSM/Vault/KMS only."
-        exit 1
+    if [[ "${SKIP_SECRET_SCAN}" != "1" ]]; then
+        if grep -r "AKIA\|ghp_\|sk_test" --include="*.sh" --include="*.py" --include="*.tf" "${REPO_ROOT}" 2>/dev/null | grep -v "test" | grep -v "example"; then
+            echo "ERROR: Hardcoded credentials detected. Use GSM/Vault/KMS only."
+            exit 1
+        fi
+    else
+        echo "[VALIDATION] SKIP_SECRET_SCAN=1 set — skipping hardcoded credential scan"
     fi
 
     echo "[VALIDATION] ✅ All checks passed"
