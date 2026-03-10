@@ -80,3 +80,5 @@
   "commit": "d34e3e894"
 }
 {"timestamp":"2026-03-10T02:25:53Z","operation":"gsm-api-enable-terraform","status":"permission_denied","message":"Terraform apply failed: insufficient permissions to list/enable services for project p4-platform","issue":"#2116,#2220"}
+{"timestamp":"2026-03-10T$(date +%H:%M:%S)Z","operation":"phase5-gsm-enable-attempt-option-a","status":"permission_denied","message":"Attempted terraform apply with current credential (akushnir@bioenergystrategies.com) - lacks ServiceUsageAdmin role on p4-platform. Requires user to authenticate with authorized account or provide service account JSON.","commit_sha":"$(git rev-parse HEAD)"}
+{"timestamp":"2026-03-10T02:36:22Z","operation":"phase5-gsm-enable-attempt-option-a","status":"permission_denied","message":"Attempted terraform apply with current credential (akushnir@bioenergystrategies.com) - lacks ServiceUsageAdmin role on p4-platform. Requires user authentication with authorized account or service account JSON.","commit_sha":"ab2580ccb9fca9638742d297f270dbb2052f35e6"}
