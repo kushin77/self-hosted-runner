@@ -3,13 +3,12 @@ steps:
   args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA','backend/']
 
 # Build frontend assets first (try `npm ci`, fall back to `npm install`)
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: 'bash'
+- name: 'node:18-alpine'
+  entrypoint: 'sh'
   args:
   - '-c'
   - |
     set -e
-    if gcloud --version >/dev/null 2>&1; then :; fi
     echo "Install frontend dependencies and build"
     (npm ci --prefix frontend) || (npm install --prefix frontend)
     npm run build --prefix frontend
