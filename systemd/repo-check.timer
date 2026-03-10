@@ -1,0 +1,27 @@
+[Unit]
+Description=Daily repository policy check timer
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+[Unit]
+Description=Daily repository policy check timer
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+[Unit]
+Description=Daily Repository Health Check Timer
+
+[Timer]
+OnCalendar=*-*-* 05:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
