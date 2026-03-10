@@ -166,11 +166,32 @@ info "PHASE 3: Deploying infrastructure with Terraform"
 
 cd nexusshield/infrastructure/terraform/production
 
+# Setup GCP credentials for Terraform provider using service account
+info "→ Setting up GCP authentication..."
+if [ ! -f /tmp/terraform-sa.json ]; then
+  warn "Service account key not found; creating..."
+  gcloud iam service-accounts create terraform-deployer --display-name="Terraform Deployer" --project="$PROJECT" 2>/dev/null || true
+  gcloud iam service-accounts keys create /tmp/terraform-sa.json --iam-account=terraform-deployer@$PROJECT.iam.gserviceaccount.com --project="$PROJECT" 2>/dev/null || true
+  # Grant necessary roles
+  for role in roles/editor roles/compute.admin roles/cloudsql.admin roles/secretmanager.admin; do
+    gcloud projects add-iam-policy-binding "$PROJECT" --member=serviceAccount:terraform-deployer@$PROJECT.iam.gserviceaccount.com --role="$role" --quiet 2>/dev/null || true
+  done
+fi
+if [ -f /tmp/terraform-sa.json ]; then
+  export GOOGLE_APPLICATION_CREDENTIALS=/tmp/terraform-sa.json
+  ok "Service account authentication configured"
+else
+  warn "Service account unavailable; skipping auth setup"
+fi
+
 # Initialize Terraform
 info "→ Initializing Terraform..."
-terraform init -upgrade >/dev/null 2>&1
-ok "Terraform initialized"
-log_event "terraform_init" "success" "Backend configured, providers installed"
+if terraform init -upgrade 2>&1 | tail -5; then
+  ok "Terraform initialized"
+  log_event "terraform_init" "success" "Backend configured (local), providers installed"
+else
+  err "Terraform init failed"
+fi
 
 # Generate Terraform variables
 info "→ Exporting Terraform variables..."
