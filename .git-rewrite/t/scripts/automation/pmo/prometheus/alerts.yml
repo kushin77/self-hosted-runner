@@ -1,0 +1,70 @@
+groups:
+  - name: 'runner_alerts'
+    interval: 30s
+    rules:
+      # Runner offline alert
+      - alert: 'RunnerOffline'
+        expr: 'up{job="runners-metrics"} == 0'
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Runner {{ $labels.instance }} is offline"
+          description: "Runner {{ $labels.instance }} has been unreachable for 5 minutes"
+          runbook_url: "file:///home/akushnir/self-hosted-runner/docs/management/RUNNER_HEALTH_MONITOR_OPERATIONS.md"
+
+      # High CPU usage alert
+      - alert: 'RunnerHighCPU'
+        expr: 'node_cpu_seconds_total{instance=~"runner.*"} > 0.8'
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Runner {{ $labels.instance }} has high CPU usage"
+          description: "CPU usage is above 80% for 10 minutes"
+
+      # High memory usage alert
+      - alert: 'RunnerHighMemory'
+        expr: '(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.85'
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Runner {{ $labels.instance }} has high memory usage"
+          description: "Memory usage is above 85%"
+
+      # Disk space alert
+      - alert: 'RunnerDiskSpace'
+        expr: 'node_filesystem_avail_bytes{device=~"/dev.*",fstype!="tmpfs"} / node_filesystem_size_bytes < 0.15'
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Runner {{ $labels.instance }} disk space critical"
+          description: "Less than 15% disk space available: {{ $value | humanizePercentage }}"
+
+      # Health monitor offline
+      - alert: 'HealthMonitorOffline'
+        expr: 'up{job="runner-health"} == 0'
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Health monitor is offline"
+          description: "The runner health monitor has been unreachable for 5 minutes"
+
+      # Prometheus scrape error
+      - alert: 'PrometheusScrapeFailed'
+        expr: 'up == 0'
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Prometheus scrape failed for {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} scrape failed"

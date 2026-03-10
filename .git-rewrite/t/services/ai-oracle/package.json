@@ -1,0 +1,18 @@
+{
+  "name": "runnercloud-ai-oracle",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "AI Failure Oracle service skeleton (Issue #10)",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "bash tests/oracle_flow.sh"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "node-fetch": "^3.3.2"  
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
