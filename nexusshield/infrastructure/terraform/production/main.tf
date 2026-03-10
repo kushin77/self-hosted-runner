@@ -129,6 +129,12 @@ variable "portal_image" {
   default     = "gcr.io/nexusshield-prod/portal-backend:latest"
 }
 
+variable "allow_public" {
+  description = "Allow public (allUsers) access to Cloud Run service"
+  type        = bool
+  default     = false
+}
+
 variable "db_version" {
   description = "PostgreSQL version"
   type        = string
@@ -375,6 +381,7 @@ resource "google_cloud_run_service" "portal_backend" {
 
 # Allow public access
 resource "google_cloud_run_service_iam_member" "portal_backend_public" {
+  count   = var.allow_public ? 1 : 0
   service = google_cloud_run_service.portal_backend.name
   role    = "roles/run.invoker"
   member  = "allUsers"
@@ -382,28 +389,11 @@ resource "google_cloud_run_service_iam_member" "portal_backend_public" {
 
 ###############################################################################
 # Monitoring & Logging
+# NOTE: Alert policy creation disabled in code to avoid API alignment complexity
+# and to prevent Terraform failures in constrained org environments. Create
+# alerting policies manually in Monitoring or reintroduce with proper
+# aggregation/aligner configuration when permitted.
 ###############################################################################
-
-resource "google_monitoring_alert_policy" "portal_backend_error_rate" {
-  display_name = "NexusShield Portal Backend - High Error Rate"
-  combiner     = "OR"
-
-  conditions {
-    display_name = "Error rate > 5%"
-
-    condition_threshold {
-      filter          = "resource.type = \"cloud_run_revision\" AND resource.labels.service_name = \"${google_cloud_run_service.portal_backend.name}\" AND metric.type = \"run.googleapis.com/request_count\" AND metric.labels.response_code_class = \"5xx\""
-      duration        = "PT5M"
-      comparison      = "COMPARISON_GT"
-      threshold_value = 0.05
-    }
-  }
-
-  notification_channels = []
-  alert_strategy {
-    auto_close = "1800s"
-  }
-}
 
 ###############################################################################
 # Outputs

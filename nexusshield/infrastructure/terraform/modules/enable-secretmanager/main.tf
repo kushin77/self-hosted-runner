@@ -6,7 +6,4 @@ variable "project" {
 resource "google_project_service" "secretmanager" {
   project = var.project
   service = "secretmanager.googleapis.com"
-
-  # Keep the service enabled; do not disable on destroy to avoid outages.
-  disable_dependent_services_on_destroy = false
 }

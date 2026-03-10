@@ -71,6 +71,13 @@ echo ""
 echo -e "${BLUE}Step 3: Building Docker Images${NC}"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
+# Fetch secrets from secret manager (GSM / Vault) if helper exists
+if [ -x "scripts/fetch-secrets.sh" ]; then
+  echo "[quickstart] Running scripts/fetch-secrets.sh to populate credentials from GSM/Vault"
+  bash scripts/fetch-secrets.sh || echo "[quickstart] fetch-secrets returned non-zero (continuing with env values)"
+fi
+
+
 BUILD_START=$(date +%s)
 docker-compose -f docker-compose.phase6.yml build --no-cache 2>&1 | \
   tee -a "$AUDIT_LOG"
