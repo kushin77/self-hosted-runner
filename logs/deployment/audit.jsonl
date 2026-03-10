@@ -7,3 +7,21 @@
 }
 {"timestamp":"2026-03-10T20:14:11Z","actor":"automated-release-workflow","action":"release-published-v2026.03.10","tag":"v2026.03.10","branch":"release/go-live-2026-03-10","merged_to":"main","commit_sha":"a81b01359d97745c6e4c0f364da8aa1bf1e5ded1","commit_short":"a81b01359","github_issue":2339,"framework":"direct-deployment-immutable-audit","properties":["immutable","ephemeral","idempotent","no-ops","hands-off"]}
 {"timestamp":"2026-03-10T20:14:26Z","actor":"automated-release-workflow","action":"release-published-v2026.03.10","tag":"v2026.03.10","commit_sha":"a81b01359d97745c6e4c0f364da8aa1bf1e5ded1","github_issue":2339}
+{
+  "timestamp": "2026-03-10T20:28:16Z",
+  "status": "validation_passed",
+  "details": "deployment ready",
+  "commit": "cbe49e3b347e0fb8661ad2e1481a8e1c4999fb8d",
+  "branch": "main",
+  "deployer": "akushnir@dev-elevatediq-2",
+  "immutable": true
+}
+{
+  "timestamp": "2026-03-10T20:28:19Z",
+  "status": "credentials_bootstrapped",
+  "details": "gsm/vault/kms",
+  "commit": "cbe49e3b347e0fb8661ad2e1481a8e1c4999fb8d",
+  "branch": "main",
+  "deployer": "akushnir@dev-elevatediq-2",
+  "immutable": true
+}
