@@ -1,0 +1,59 @@
+{"timestamp":"2026-03-10T02:56:08Z","event":"preflight_checks","status":"success","details":"All tools available","commit":"cb6f6be28"}
+{"timestamp":"2026-03-10T02:56:09Z","event":"secret_manager_api","status":"enabled","details":"secretmanager.googleapis.com active","commit":"cb6f6be28"}
+{"timestamp":"2026-03-10T02:56:13Z","event":"secrets_verified","status":"ready","details":"All required secrets available or fallback ready","commit":"484ef7a67"}
+{"timestamp":"2026-03-10T02:56:15Z","event":"psa_status","status":"fallback_to_public_ip","details":"PSA unavailable; using public IP","commit":"484ef7a67"}
+{"timestamp":"2026-03-10T02:56:26Z","event":"service_account_roles","status":"granted","details":"All required roles assigned","commit":"484ef7a67"}
+{"timestamp":"2026-03-10T02:56:27Z","event":"terraform_init","status":"success","details":"Backend configured, providers installed","commit":"484ef7a67"}
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+
+Terraform planned the following actions, but then encountered a problem:
+
+[1m  # random_id.database_suffix[0m will be created
+[0m  [32m+[0m[0m resource "random_id" "database_suffix" {
+      [32m+[0m[0m b64_std     = (known after apply)
+      [32m+[0m[0m b64_url     = (known after apply)
+      [32m+[0m[0m byte_length = 2
+      [32m+[0m[0m dec         = (known after apply)
+      [32m+[0m[0m hex         = (known after apply)
+      [32m+[0m[0m id          = (known after apply)
+    }
+
+[1m  # random_password.db_password[0m will be created
+[0m  [32m+[0m[0m resource "random_password" "db_password" {
+      [32m+[0m[0m bcrypt_hash = (sensitive value)
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m length      = 32
+      [32m+[0m[0m lower       = true
+      [32m+[0m[0m min_lower   = 0
+      [32m+[0m[0m min_numeric = 0
+      [32m+[0m[0m min_special = 0
+      [32m+[0m[0m min_upper   = 0
+      [32m+[0m[0m number      = true
+      [32m+[0m[0m numeric     = true
+      [32m+[0m[0m result      = (sensitive value)
+      [32m+[0m[0m special     = true
+      [32m+[0m[0m upper       = true
+    }
+
+[1mPlan:[0m [0m2 to add, 0 to change, 0 to destroy.
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mAttempted to load application default credentials since neither `credentials` nor `access_token` was set in the provider block.  No credentials loaded. To use your gcloud credentials, run 'gcloud auth application-default login'[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with provider["registry.terraform.io/hashicorp/google"],
+[31m│[0m [0m  on main.tf line 46, in provider "google":
+[31m│[0m [0m  46: provider "google" [4m{[0m[0m
+[31m│[0m [0m
+[31m│[0m [0mgoogle: could not find default credentials. See
+[31m│[0m [0mhttps://cloud.google.com/docs/authentication/external/set-up-adc for more
+[31m│[0m [0minformation
+[31m╵[0m[0m
+{"timestamp":"2026-03-10T02:56:29Z","event":"terraform_plan","status":"warnings","details":"Plan completed; warnings logged","commit":"484ef7a67"}
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mCannot apply incomplete plan[0m
+[31m│[0m [0m
+[31m│[0m [0m[0mTerraform encountered an error when generating this plan, so it cannot be
+[31m│[0m [0mapplied.
+[31m╵[0m[0m
