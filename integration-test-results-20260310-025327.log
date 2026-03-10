@@ -1,0 +1,164 @@
+Integration test started: Tue Mar 10 02:53:27 AM UTC 2026
+[1] Service statuses on worker
+● vault-agent.service - Vault Agent
+     Loaded: loaded (/etc/systemd/system/vault-agent.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:17:54 UTC; 9h ago
+   Main PID: 3011406 (vault)
+      Tasks: 27 (limit: 76719)
+     Memory: 78.7M (peak: 84.4M)
+        CPU: 13h 30min 33.163s
+     CGroup: /system.slice/vault-agent.service
+             └─3011406 /usr/local/bin/vault agent -config=/etc/vault/agent-config.hcl
+
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating watcher
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) starting
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [ERROR] agent.template.server: template server error: error="error rendering \"/etc/vault/templates/ssh-key.tpl\" => \"/home/runner/.ssh/id_rsa\": failed reading file: open /home/runner/.ssh/id_rsa: permission denied"
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) stopping
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating new runner (dry: false, once: false)
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating watcher
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) starting
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [ERROR] agent.template.server: template server error: error="error rendering \"/etc/vault/templates/ssh-key.tpl\" => \"/home/runner/.ssh/id_rsa\": failed reading file: open /home/runner/.ssh/id_rsa: permission denied"
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) stopping
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating new runner (dry: false, once: false)
+
+● node_exporter.service - Prometheus Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 15:11:44 UTC; 11h ago
+   Main PID: 2470292 (node_exporter)
+      Tasks: 5 (limit: 76719)
+     Memory: 5.0M (peak: 8.7M)
+        CPU: 538ms
+     CGroup: /system.slice/node_exporter.service
+             └─2470292 /usr/local/bin/node_exporter "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys)(\$|/)" "--collector.netdev.device-exclude=^(veth.*)\$"
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 19:58:57 UTC; 6h ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 3671087 (filebeat)
+      Tasks: 24 (limit: 76719)
+     Memory: 62.1M (peak: 63.5M)
+        CPU: 9.227s
+     CGroup: /system.slice/filebeat.service
+             └─3671087 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 560 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:27 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:27.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570,"time":{"ms":10}},"total":{"ticks":9200,"time":{"ms":20},"value":9200},"user":{"ticks":7630,"time":{"ms":10}}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24810066},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":37663368,"memory_total":698961336,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.34,"15":3.76,"5":4.04,"norm":{"1":0.167,"15":0.188,"5":0.202}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 561 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.645Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:57 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:57.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570},"total":{"ticks":9200,"value":9200},"user":{"ticks":7630}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24840069},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":38106832,"memory_total":699404800,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.87,"15":3.78,"5":4.09,"norm":{"1":0.1935,"15":0.189,"5":0.2045}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 562 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+[2] Prometheus metrics endpoint
+[3] Test Vault credential retrieval via helper
+Vault credential retrieval failed
+[4] Verify Filebeat is shipping (local log)
+Integration test completed: Tue Mar 10 02:53:27 AM UTC 2026
+Integration test started: Tue Mar 10 02:53:27 AM UTC 2026
+[1] Service statuses on worker
+● vault-agent.service - Vault Agent
+     Loaded: loaded (/etc/systemd/system/vault-agent.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 17:17:54 UTC; 9h ago
+   Main PID: 3011406 (vault)
+      Tasks: 27 (limit: 76719)
+     Memory: 78.7M (peak: 84.4M)
+        CPU: 13h 30min 33.163s
+     CGroup: /system.slice/vault-agent.service
+             └─3011406 /usr/local/bin/vault agent -config=/etc/vault/agent-config.hcl
+
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating watcher
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) starting
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [ERROR] agent.template.server: template server error: error="error rendering \"/etc/vault/templates/ssh-key.tpl\" => \"/home/runner/.ssh/id_rsa\": failed reading file: open /home/runner/.ssh/id_rsa: permission denied"
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) stopping
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating new runner (dry: false, once: false)
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating watcher
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) starting
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [ERROR] agent.template.server: template server error: error="error rendering \"/etc/vault/templates/ssh-key.tpl\" => \"/home/runner/.ssh/id_rsa\": failed reading file: open /home/runner/.ssh/id_rsa: permission denied"
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) stopping
+Mar 10 02:53:25 dev-elevatediq vault[3011406]: 2026-03-10T02:53:25.999Z [INFO]  agent: (runner) creating new runner (dry: false, once: false)
+
+● node_exporter.service - Prometheus Node Exporter
+     Loaded: loaded (/etc/systemd/system/node_exporter.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 15:11:44 UTC; 11h ago
+   Main PID: 2470292 (node_exporter)
+      Tasks: 5 (limit: 76719)
+     Memory: 5.0M (peak: 8.7M)
+        CPU: 538ms
+     CGroup: /system.slice/node_exporter.service
+             └─2470292 /usr/local/bin/node_exporter "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys)(\$|/)" "--collector.netdev.device-exclude=^(veth.*)\$"
+
+Notice: journal has been rotated since unit was started, output may be incomplete.
+
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 19:58:57 UTC; 6h ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 3671087 (filebeat)
+      Tasks: 24 (limit: 76719)
+     Memory: 62.1M (peak: 63.5M)
+        CPU: 9.227s
+     CGroup: /system.slice/filebeat.service
+             └─3671087 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 560 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:27 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:27.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570,"time":{"ms":10}},"total":{"ticks":9200,"time":{"ms":20},"value":9200},"user":{"ticks":7630,"time":{"ms":10}}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24810066},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":37663368,"memory_total":698961336,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.34,"15":3.76,"5":4.04,"norm":{"1":0.167,"15":0.188,"5":0.202}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 561 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.645Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:57 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:57.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570},"total":{"ticks":9200,"value":9200},"user":{"ticks":7630}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24840069},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":38106832,"memory_total":699404800,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.87,"15":3.78,"5":4.09,"norm":{"1":0.1935,"15":0.189,"5":0.2045}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 562 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+[2] Prometheus metrics endpoint
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 2.4496e-05
+go_gc_duration_seconds{quantile="0.25"} 2.8072e-05
+go_gc_duration_seconds{quantile="0.5"} 2.9925e-05
+go_gc_duration_seconds{quantile="0.75"} 3.4304e-05
+go_gc_duration_seconds{quantile="1"} 6.3143e-05
+go_gc_duration_seconds_sum 0.011662014
+go_gc_duration_seconds_count 363
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 7
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.19.3"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 884112
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+curl: (23) Failure writing output to destination
+[3] Test Vault credential retrieval via helper
+Error: No Vault token available
+Vault credential retrieval failed
+[4] Verify Filebeat is shipping (local log)
+● filebeat.service - Filebeat sends log files to Logstash or directly to Elasticsearch.
+     Loaded: loaded (/usr/lib/systemd/system/filebeat.service; enabled; preset: enabled)
+     Active: active (running) since Mon 2026-03-09 19:58:57 UTC; 6h ago
+       Docs: https://www.elastic.co/beats/filebeat
+   Main PID: 3671087 (filebeat)
+      Tasks: 24 (limit: 76719)
+     Memory: 62.1M (peak: 63.5M)
+        CPU: 9.227s
+     CGroup: /system.slice/filebeat.service
+             └─3671087 /usr/share/filebeat/bin/filebeat --environment systemd -c /etc/filebeat/filebeat.yml --path.home /usr/share/filebeat --path.config /etc/filebeat --path.data /var/lib/filebeat --path.logs /var/log/filebeat
+
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 560 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:00 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:00.015Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:27 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:27.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570,"time":{"ms":10}},"total":{"ticks":9200,"time":{"ms":20},"value":9200},"user":{"ticks":7630,"time":{"ms":10}}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24810066},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":37663368,"memory_total":698961336,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.34,"15":3.76,"5":4.04,"norm":{"1":0.167,"15":0.188,"5":0.202}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:33.644Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 561 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:52:33 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:52:33.645Z","log.logger":"esclientleg","log.origin":{"file.name":"transport/logging.go","file.line":38},"message":"Error dialing dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","network":"tcp","address":"elk.internal:9200","ecs.version":"1.6.0"}
+Mar 10 02:52:57 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:52:57.813Z","log.logger":"monitoring","log.origin":{"file.name":"log/log.go","file.line":187},"message":"Non-zero metrics in the last 30s","service.name":"filebeat","monitoring":{"metrics":{"beat":{"cgroup":{"memory":{"mem":{"usage":{"bytes":65437696}}}},"cpu":{"system":{"ticks":1570},"total":{"ticks":9200,"value":9200},"user":{"ticks":7630}},"handles":{"limit":{"hard":524288,"soft":524288},"open":17},"info":{"ephemeral_id":"7e70d10b-1549-4b29-8f9a-37dc317de95a","uptime":{"ms":24840069},"version":"8.10.3"},"memstats":{"gc_next":73544152,"memory_alloc":38106832,"memory_total":699404800,"rss":127590400},"runtime":{"goroutines":60}},"filebeat":{"events":{"active":4157},"harvester":{"open_files":7,"running":10}},"libbeat":{"config":{"module":{"running":0}},"output":{"events":{"active":0}},"pipeline":{"clients":1,"events":{"active":4097,"retry":50}}},"registrar":{"states":{"current":11}},"system":{"load":{"1":3.87,"15":3.78,"5":4.09,"norm":{"1":0.1935,"15":0.189,"5":0.2045}}}},"ecs.version":"1.6.0"}}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"error","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":148},"message":"Failed to connect to backoff(elasticsearch(http://elk.internal:9200)): Get \"http://elk.internal:9200\": dial tcp 127.0.0.1:9200: connect: connection refused","service.name":"filebeat","ecs.version":"1.6.0"}
+Mar 10 02:53:03 dev-elevatediq filebeat[3671087]: {"log.level":"info","@timestamp":"2026-03-10T02:53:03.937Z","log.logger":"publisher_pipeline_output","log.origin":{"file.name":"pipeline/client_worker.go","file.line":139},"message":"Attempting to reconnect to backoff(elasticsearch(http://elk.internal:9200)) with 562 reconnect attempt(s)","service.name":"filebeat","ecs.version":"1.6.0"}
+Integration test completed: Tue Mar 10 02:53:27 AM UTC 2026
