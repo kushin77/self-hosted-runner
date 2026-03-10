@@ -1,5 +1,0 @@
-{"timestamp":"2026-03-10T02:52:27Z","event":"preflight_checks","status":"success","details":"All tools available","commit":"3ae6d479b"}
-{"timestamp":"2026-03-10T02:52:29Z","event":"secret_manager_api","status":"already_enabled","details":"Already active","commit":"3ae6d479b"}
-{"timestamp":"2026-03-10T02:52:34Z","event":"secrets_verified","status":"ready","details":"All required secrets available or fallback ready","commit":"3ae6d479b"}
-{"timestamp":"2026-03-10T02:52:36Z","event":"psa_status","status":"fallback_to_public_ip","details":"PSA unavailable; using public IP","commit":"3ae6d479b"}
-{"timestamp":"2026-03-10T02:52:44Z","event":"service_account_roles","status":"granted","details":"All required roles assigned","commit":"3ae6d479b"}
