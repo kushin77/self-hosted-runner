@@ -1,3 +1,97 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Minimal direct-deploy production/staging script
+# Usage: ./scripts/direct-deploy-production.sh [staging|production]
+
+ENV=${1:-staging}
+ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+LOG_DIR="$ROOT_DIR/logs"
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+AUDIT_FILE="$LOG_DIR/direct-deploy-$ENV-$(date -u +%Y%m%d).jsonl"
+
+mkdir -p "$LOG_DIR"
+
+audit() {
+  local status="$1"; shift
+  local msg="$*"
+  if command -v jq >/dev/null 2>&1; then
+    jq -n --arg ts "$TIMESTAMP" --arg env "$ENV" --arg status "$status" --arg msg "$msg" '{timestamp:$ts,environment:$env,status:$status,message:$msg}' >> "$AUDIT_FILE"
+  else
+    printf '{"timestamp":"%s","environment":"%s","status":"%s","message":"%s"}\n' "$TIMESTAMP" "$ENV" "$status" "$msg" >> "$AUDIT_FILE"
+  fi
+}
+
+echo "Direct deploy: $ENV"
+audit "started" "direct deploy started"
+
+# Load helper
+SECRETFETCH="$ROOT_DIR/scripts/secret-fetch.sh"
+if [ -x "$SECRETFETCH" ]; then
+  :
+else
+  chmod +x "$SECRETFETCH" || true
+fi
+
+# Set project and region
+GCP_PROJECT_ID=${GCP_PROJECT_ID:-$(bash "$SECRETFETCH" GCP_PROJECT_ID 2>/dev/null || echo "")}
+GCP_REGION=${GCP_REGION:-us-central1}
+
+echo "Using GCP project: ${GCP_PROJECT_ID:-(not set)}"
+
+set +e
+RC=0
+
+# Backend: if backend exists and has Dockerfile
+if [ -d "$ROOT_DIR/backend" ] && [ -f "$ROOT_DIR/backend/Dockerfile" ]; then
+  echo "Building backend image..."
+  IMAGE_REGISTRY=${ARTIFACT_REGISTRY:-us-central1-docker.pkg.dev}
+  SERVICE_NAME=${SERVICE_NAME:-nexusshield-portal-api}
+  TAG="$(date -u +%Y%m%d%H%M%S)"
+  IMAGE="$IMAGE_REGISTRY/$GCP_PROJECT_ID/$SERVICE_NAME:$TAG"
+
+  (cd "$ROOT_DIR/backend" && docker build -t "$IMAGE" .)
+  docker push "$IMAGE" || RC=$?
+
+  if [ $RC -eq 0 ]; then
+    echo "Deploying backend to Cloud Run..."
+    gcloud run deploy "$SERVICE_NAME" --image="$IMAGE" --project="$GCP_PROJECT_ID" --region="$GCP_REGION" --platform=managed --no-traffic || RC=$?
+  fi
+
+  audit "backend" "rc=$RC"
+fi
+
+# Frontend: if frontend/dist exists
+if [ -d "$ROOT_DIR/frontend" ]; then
+  echo "Building frontend (if npm scripts available)"
+  if [ -f "$ROOT_DIR/frontend/package.json" ]; then
+    (cd "$ROOT_DIR/frontend" && npm ci && npm run build) || true
+  fi
+
+  if [ -d "$ROOT_DIR/frontend/dist" ]; then
+    BUCKET_VAR=$( [ "$ENV" = "production" ] && echo BUCKET_PRODUCTION || echo BUCKET_STAGING )
+    BUCKET_NAME=${!BUCKET_VAR:-$(bash "$SECRETFETCH" "$BUCKET_VAR" 2>/dev/null || echo "")}
+    if [ -n "$BUCKET_NAME" ]; then
+      echo "Uploading frontend to bucket: $BUCKET_NAME"
+      gsutil -m rsync -r -d "$ROOT_DIR/frontend/dist" "gs://$BUCKET_NAME/" || RC=$?
+      audit "frontend" "bucket=$BUCKET_NAME rc=$RC"
+    else
+      audit "frontend" "skipped - no bucket configured"
+    fi
+  fi
+fi
+
+set -e
+
+if [ $RC -eq 0 ]; then
+  audit "success" "direct deploy completed"
+  echo "Direct deploy finished: success"
+else
+  audit "failure" "direct deploy failed with rc=$RC"
+  echo "Direct deploy finished: failure (rc=$RC)" >&2
+fi
+
+exit $RC
 #!/bin/bash
 # 🚀 Direct Deployment Framework - Complete Production Implementation
 # Date: 2026-03-10
