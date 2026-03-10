@@ -1,0 +1,64 @@
+[0m[1mgoogle_project_service.firestore: Refreshing state... [id=nexusshield-prod/firestore.googleapis.com][0m
+[0m[1mgoogle_project_service.firestore_api[0]: Refreshing state... [id=nexusshield-prod/firestore.googleapis.com][0m
+[0m[1mgoogle_compute_network.portal_vpc: Refreshing state... [id=projects/nexusshield-prod/global/networks/nexusshield-vpc][0m
+[0m[1mgoogle_service_account.portal_backend: Refreshing state... [id=projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com][0m
+[0m[1mgoogle_secret_manager_secret.firestore_config: Refreshing state... [id=projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production][0m
+[0m[1mgoogle_artifact_registry_repository.portal_repo: Refreshing state... [id=projects/nexusshield-prod/locations/us-central1/repositories/portal-backend-repo][0m
+[0m[1mgoogle_compute_subnetwork.private_subnet: Refreshing state... [id=projects/nexusshield-prod/regions/us-central1/subnetworks/nexusshield-subnet-us-central1][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+
+Terraform planned the following actions, but then encountered a problem:
+
+[1m  # google_firestore_database.portal_db[0][0m will be created
+[0m  [32m+[0m[0m resource "google_firestore_database" "portal_db" {
+      [32m+[0m[0m app_engine_integration_mode       = (known after apply)
+      [32m+[0m[0m concurrency_mode                  = "OPTIMISTIC"
+      [32m+[0m[0m create_time                       = (known after apply)
+      [32m+[0m[0m delete_protection_state           = (known after apply)
+      [32m+[0m[0m deletion_policy                   = "ABANDON"
+      [32m+[0m[0m earliest_version_time             = (known after apply)
+      [32m+[0m[0m etag                              = (known after apply)
+      [32m+[0m[0m id                                = (known after apply)
+      [32m+[0m[0m key_prefix                        = (known after apply)
+      [32m+[0m[0m location_id                       = "us-central1"
+      [32m+[0m[0m name                              = "(default)"
+      [32m+[0m[0m point_in_time_recovery_enablement = "POINT_IN_TIME_RECOVERY_DISABLED"
+      [32m+[0m[0m project                           = "nexusshield-prod"
+      [32m+[0m[0m type                              = "FIRESTORE_NATIVE"
+      [32m+[0m[0m uid                               = (known after apply)
+      [32m+[0m[0m update_time                       = (known after apply)
+      [32m+[0m[0m version_retention_period          = (known after apply)
+    }
+
+[1mPlan:[0m [0m1 to add, 0 to change, 0 to destroy.
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing Service Account "projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com": googleapi: Error 403: Permission 'iam.serviceAccounts.get' denied on resource (or it may not exist).
+[31m│[0m [0mDetails:
+[31m│[0m [0m[
+[31m│[0m [0m  {
+[31m│[0m [0m    "@type": "type.googleapis.com/google.rpc.ErrorInfo",
+[31m│[0m [0m    "domain": "iam.googleapis.com",
+[31m│[0m [0m    "metadata": {
+[31m│[0m [0m      "permission": "iam.serviceAccounts.get"
+[31m│[0m [0m    },
+[31m│[0m [0m    "reason": "IAM_PERMISSION_DENIED"
+[31m│[0m [0m  }
+[31m│[0m [0m]
+[31m│[0m [0m, forbidden[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_service_account.portal_backend,
+[31m│[0m [0m  on main.tf line 112, in resource "google_service_account" "portal_backend":
+[31m│[0m [0m 112: resource "google_service_account" "portal_backend" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError when reading or editing SecretManagerSecret "projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production": googleapi: Error 403: Permission 'secretmanager.secrets.get' denied for resource 'projects/nexusshield-prod/secrets/nexusshield-portal-firestore-config-production' (or it may not exist).[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_secret_manager_secret.firestore_config,
+[31m│[0m [0m  on main.tf line 205, in resource "google_secret_manager_secret" "firestore_config":
+[31m│[0m [0m 205: resource "google_secret_manager_secret" "firestore_config" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m

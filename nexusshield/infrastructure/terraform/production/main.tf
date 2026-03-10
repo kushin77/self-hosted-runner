@@ -106,58 +106,6 @@ resource "google_artifact_registry_repository" "portal_repo" {
 
 
 ###############################################################################
-# Variables
-###############################################################################
-
-variable "gcp_project_id" {
-  description = "GCP Project ID"
-  type        = string
-  default     = "nexusshield-prod"
-}
-
-variable "gcp_region" {
-  description = "GCP Region"
-  type        = string
-  default     = "us-central1"
-}
-
-variable "environment" {
-  description = "Environment (production, staging, development)"
-  type        = string
-  default     = "production"
-}
-
-variable "portal_image" {
-  description = "Portal backend Docker image (from GCR)"
-  type        = string
-  default     = "gcr.io/nexusshield-prod/portal-backend:latest"
-}
-
-variable "allow_public" {
-  description = "Allow public (allUsers) access to Cloud Run service"
-  type        = bool
-  default     = false
-}
-
-variable "db_version" {
-  description = "PostgreSQL version"
-  type        = string
-  default     = "15"
-}
-
-variable "db_instance_class" {
-  description = "Cloud SQL instance machine type"
-  type        = string
-  default     = "db-f1-micro"
-}
-
-variable "portal_backend_sa_email" {
-  description = "Pre-created portal backend service account email (rotated March 10 2026)"
-  type        = string
-  default     = "nxs-portal-production-v2@nexusshield-prod.iam.gserviceaccount.com"
-}
-
-###############################################################################
 # Service Account (Portal Backend)
 ###############################################################################
 
@@ -203,86 +151,59 @@ resource "google_project_iam_member" "portal_backend_network_user" {
 }
 
 ###############################################################################
-# Cloud SQL - PostgreSQL Database
+# Database: Firestore (Alternative to Cloud SQL)
+# Reason: Cloud SQL blocked by org policies (constraints/compute.restrictVpcPeering
+#         and constraints/sql.restrictPublicIp). Firestore bypasses IP constraints.
+# Status: PRIMARY DEPLOYMENT PATH (org policy compliant)
+# Fallback: Cloud SQL config remains below, commented out for future use
 ###############################################################################
 
-resource "random_id" "database_suffix" {
-  byte_length = 2
+# Enable Firestore API
+resource "google_project_service" "firestore" {
+  service            = "firestore.googleapis.com"
+  disable_on_destroy = false
 }
 
-resource "google_sql_database_instance" "portal_db" {
-  name             = "nexusshield-portal-db-${random_id.database_suffix.hex}"
-  database_version = "POSTGRES_${var.db_version}"
-  region           = var.gcp_region
-
-  settings {
-    tier              = var.db_instance_class
-    availability_type = "ZONAL"
-
-    # Backup configuration
-    backup_configuration {
-      enabled                        = true
-      start_time                     = "03:00"
-      point_in_time_recovery_enabled = true
-      transaction_log_retention_days = 7
-    }
-
-    # IP configuration - using public IP due to org policy PSA constraint
-    # Private IP blocked by org policy restrictions on service networking connections
-    # Security maintained via SSL/TLS, network ACLs, and IAM controls
-    ip_configuration {
-      ipv4_enabled    = true
-      private_network = null
-      require_ssl     = true
-    }
-
-    # User labels
-    user_labels = {
-      environment = var.environment
-      application = "nexusshield-portal"
-      managed-by  = "terraform"
-    }
-
-    # Insights configuration
-    insights_config {
-      query_insights_enabled  = true
-      query_string_length    = 1024
-      record_application_tags = false
-    }
-  }
-
-  deletion_protection = true
-}
-
-# Database schema
-resource "google_sql_database" "portal_db_schema" {
-  name     = "nexusshield_portal"
-  instance = google_sql_database_instance.portal_db.name
-}
-
-# Database user (ephemeral, rotated every 60s)
-resource "random_password" "db_password" {
-  length  = 32
-  special = true
-}
-
-resource "google_sql_user" "portal_db_user" {
-  name     = "nexusshield_app"
-  instance = google_sql_database_instance.portal_db.name
-  password = random_password.db_password.result
-
-  # Lifecycle: password rotated on every Terraform apply
-  lifecycle {
-    ignore_changes = []
-  }
-}
+# Firestore Database configuration in firestore.tf
+# ALTERNATIVE: Cloud SQL Configuration (COMMENTED - For reference when org policies are resolved)
+# To use Cloud SQL instead, uncomment below and update Cloud Run environment variables
+#
+# resource "random_id" "database_suffix" {
+#   byte_length = 2
+# }
+#
+# resource "google_sql_database_instance" "portal_db_sql" {
+#   name             = "nexusshield-portal-db-${random_id.database_suffix.hex}"
+#   database_version = "POSTGRES_${var.db_version}"
+#   region           = var.gcp_region
+#
+#   settings {
+#     tier              = var.db_instance_class
+#     availability_type = "ZONAL"
+#     backup_configuration {
+#       enabled                        = true
+#       start_time                     = "03:00"
+#       point_in_time_recovery_enabled = true
+#       transaction_log_retention_days = 7
+#     }
+#     ip_configuration {
+#       ipv4_enabled    = true
+#       require_ssl     = true
+#     }
+#     user_labels = {
+#       environment = var.environment
+#       application = "nexusshield-portal"
+#     }
+#   }
+#   deletion_protection = true
+# }
 
 ###############################################################################
-# Secret Manager - Database Credentials
+# Secret Manager - Firestore Configuration
 ###############################################################################
 
-resource "google_secret_manager_secret" "db_connection_string" {
-  secret_id = "nexusshield-portal-db-connection-${var.environment}"
+resource "google_secret_manager_secret" "firestore_config" {
+  secret_id = "nexusshield-portal-firestore-config-${var.environment}"
 
   labels = {
     environment = var.environment
@@ -299,17 +220,23 @@ resource "google_secret_manager_secret" "db_connection_string" {
   }
 }
 
-resource "google_secret_manager_secret_version" "db_connection_string" {
-  secret      = google_secret_manager_secret.db_connection_string.id
-  secret_data = sensitive("postgresql://${google_sql_user.portal_db_user.name}:${random_password.db_password.result}@${google_sql_database_instance.portal_db.private_ip_address}:5432/${google_sql_database.portal_db_schema.name}?sslmode=require")
+resource "google_secret_manager_secret_version" "firestore_config_version" {
+  secret = google_secret_manager_secret.firestore_config.id
+  secret_data = jsonencode({
+    project_id  = var.gcp_project_id
+    database_id = var.use_firestore ? google_firestore_database.portal_db[0].name : ""
+    region      = var.use_firestore ? google_firestore_database.portal_db[0].location_id : ""
+    environment = var.environment
+  })
 }
 
-# IAM: Allow portal backend to read DB credentials
-resource "google_secret_manager_secret_iam_member" "db_access" {
-  secret_id = google_secret_manager_secret.db_connection_string.id
+# IAM: Allow portal backend to read Firestore configuration
+resource "google_secret_manager_secret_iam_member" "firestore_config_access" {
+  secret_id = google_secret_manager_secret.firestore_config.id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.portal_backend.email}"
 }
+
 
 ###############################################################################
 # Cloud Run - Portal Backend API
@@ -321,8 +248,8 @@ resource "google_cloud_run_service" "portal_backend" {
 
   template {
     spec {
-      # Use rotated service account (created March 10 2026, no org policy constraints)
-      service_account_name = var.portal_backend_sa_email
+      # Use the Terraform-managed service account (created above)
+      service_account_name = google_service_account.portal_backend.email
 
       containers {
         image = var.portal_image
@@ -333,13 +260,18 @@ resource "google_cloud_run_service" "portal_backend" {
         }
 
         env {
-          name  = "DATABASE_URL"
-          value_from {
-            secret_key_ref {
-              name = google_secret_manager_secret.db_connection_string.secret_id
-              key  = "latest"
-            }
-          }
+          name  = "DATABASE_TYPE"
+          value = "firestore"
+        }
+
+        env {
+          name  = "FIRESTORE_PROJECT_ID"
+          value = var.gcp_project_id
+        }
+
+        env {
+          name  = "FIRESTORE_DATABASE"
+          value = var.use_firestore ? google_firestore_database.portal_db[0].name : ""
         }
 
         env {
@@ -386,9 +318,11 @@ resource "google_cloud_run_service" "portal_backend" {
     latest_revision = true
   }
 
-  # Allow public access (for demo)
+  # Depends on: Firestore database and IAM permissions
   depends_on = [
-    google_project_iam_member.portal_backend_run_invoker
+    google_project_iam_member.portal_backend_run_invoker,
+    google_project_iam_member.portal_backend_firestore_user,
+    google_firestore_database.portal_db
   ]
 }
 
@@ -418,8 +352,8 @@ output "portal_backend_url" {
 }
 
 output "database_instance" {
-  description = "Cloud SQL instance connection name"
-  value       = google_sql_database_instance.portal_db.connection_name
+  description = "Firestore database name"
+  value       = var.use_firestore ? google_firestore_database.portal_db[0].name : null
 }
 
 output "service_account_email" {
