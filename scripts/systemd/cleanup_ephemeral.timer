@@ -1,0 +1,11 @@
+[Unit]
+Description=Run ephemeral cleanup daily
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=24h
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
