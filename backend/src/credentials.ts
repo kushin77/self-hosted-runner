@@ -57,7 +57,7 @@ export class CredentialService {
     this.secretManager = new SecretManagerServiceClient();
     this.vault = NodeVault({
       endpoint: process.env.VAULT_ADDR || 'http://localhost:8200',
-      token: process.env.VAULT_TOKEN,
+      token: process.env.REDACTED_VAULT_TOKEN,
     });
     this.kms = new KeyManagementServiceClient();
   }

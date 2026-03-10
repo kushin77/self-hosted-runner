@@ -332,7 +332,7 @@ if curl -sf "$VAULT_ADDR/v1/sys/health" > /dev/null 2>&1; then
     echo ""
     echo "Step 2: JWT Authentication"
     
-    if curl -sf "$VAULT_ADDR/v1/auth/jwt/config" -H "X-Vault-Token: $VAULT_TOKEN" 2>/dev/null; then
+    if curl -sf "$VAULT_ADDR/v1/auth/jwt/config" -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" 2>/dev/null; then
         echo "   ✅ JWT auth already enabled (idempotent skip)"
         audit_log "vault_jwt_enable" "already_exists" "JWT auth already enabled"
     else

@@ -108,7 +108,7 @@
 - Updates `/etc/filebeat/filebeat.yml` on worker and restarts service
 - Modes: `--dry-run`, `--vault-path`, custom `--elk-host`
 - Audit log: `logs/elk-integration-audit.jsonl`
-- Usage: `VAULT_ADDR=... VAULT_TOKEN=... ./scripts/apply-elk-credentials-to-filebeat.sh --elk-host elk.internal`
+- Usage: `VAULT_ADDR=... REDACTED_VAULT_TOKEN=... ./scripts/apply-elk-credentials-to-filebeat.sh --elk-host elk.internal`
 
 **`scripts/apply-prometheus-scrape-config.sh`** (NEW - 150 lines)
 - Idempotent Prometheus scrape config application
@@ -190,7 +190,7 @@ To complete ELK ingestion and close issue #2121:
 ```bash
 # Set Vault credentials
 export VAULT_ADDR=http://127.0.0.1:8200  # or your Vault host
-export VAULT_TOKEN=<YOUR_VAULT_TOKEN_FROM_BOOTSTRAP>
+export REDACTED_VAULT_TOKEN=<YOUR_REDACTED_VAULT_TOKEN_FROM_BOOTSTRAP>
 
 # Apply ELK integration
 cd /home/akushnir/self-hosted-runner
@@ -253,7 +253,7 @@ All secrets are abstracted via Vault/GSM paths; no hardcoded credentials in code
 | Secret | Vault Path | GSM Name | Environment Var |
 |--------|------------|----------|-----------------|
 | ELK Filebeat | `secret/elk/filebeat-credentials` | `elk-filebeat-credentials` | `ELASTICSEARCH_PASSWORD` |
-| Vault JWT | `auth/jwt/...` | `vault-jwt-credentials` | `VAULT_TOKEN` |
+| Vault JWT | `auth/jwt/...` | `vault-jwt-credentials` | `REDACTED_VAULT_TOKEN` |
 | AWS Keys | `aws/creds/...` | `runner/aws-credentials` | `AWS_ACCESS_KEY_ID` |
 | SSH Keys | `secret/ssh-credentials` | `runner/ssh-credentials` | `SSH_PRIVATE_KEY` |
 | PagerDuty API | `secret/pagerduty` | `runner/pagerduty-api-key` | `PAGERDUTY_API_KEY` |
@@ -266,7 +266,7 @@ vault kv get -field=password secret/elk/filebeat-credentials
 # From GSM
 gcloud secrets versions access latest --secret="elk-filebeat-credentials" | jq .password
 
-# Or: set VAULT_ADDR/VAULT_TOKEN; agent queries automatically
+# Or: set VAULT_ADDR/REDACTED_VAULT_TOKEN; agent queries automatically
 ```
 
 **Guidelines:**

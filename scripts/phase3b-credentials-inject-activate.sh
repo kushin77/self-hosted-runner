@@ -12,10 +12,10 @@
 #     --vault-token hvs.xxx
 #
 # OR (from environment):
-#   export AWS_ACCESS_KEY_ID=xxx
-#   export AWS_SECRET_ACCESS_KEY=xxx
+#   export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+#   export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 #   export VAULT_ADDR=https://vault.example.com
-#   export VAULT_TOKEN=hvs.xxx
+#   export REDACTED_VAULT_TOKEN=hvs.xxx
 #   ./scripts/phase3b-credentials-inject-activate.sh
 #
 
@@ -72,11 +72,11 @@ parse_args() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --aws-key)
-                AWS_ACCESS_KEY_ID="$2"
+                AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"
                 shift 2
                 ;;
             --aws-secret)
-                AWS_SECRET_ACCESS_KEY="$2"
+                REDACTED_AWS_SECRET_ACCESS_KEY="$2"
                 shift 2
                 ;;
             --vault-addr)
@@ -84,7 +84,7 @@ parse_args() {
                 shift 2
                 ;;
             --vault-token)
-                VAULT_TOKEN="$2"
+                REDACTED_VAULT_TOKEN="$2"
                 shift 2
                 ;;
             --validate-only)
@@ -106,7 +106,7 @@ check_credentials() {
     local vault_ok=0
     
     # Check AWS
-    if [[ -n "${AWS_ACCESS_KEY_ID}" && -n "${AWS_SECRET_ACCESS_KEY}" ]]; then
+    if [[ -n "${AWS_ACCESS_KEY_ID}" && -n "${REDACTED_AWS_SECRET_ACCESS_KEY}" ]]; then
         log_success "AWS credentials detected (from environment or arguments)"
         aws_ok=1
         # Verify AWS credentials
@@ -121,7 +121,7 @@ check_credentials() {
     fi
     
     # Check Vault
-    if [[ -n "${VAULT_ADDR}" && -n "${VAULT_TOKEN}" ]]; then
+    if [[ -n "${VAULT_ADDR}" && -n "${REDACTED_VAULT_TOKEN}" ]]; then
         log_success "Vault credentials detected (token/address)"
         vault_ok=1
         # Verify Vault connection
@@ -146,21 +146,21 @@ check_credentials() {
 
 # Complete AWS configuration
 configure_aws() {
-    if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${AWS_SECRET_ACCESS_KEY}" ]]; then
+    if [[ -z "${AWS_ACCESS_KEY_ID}" || -z "${REDACTED_AWS_SECRET_ACCESS_KEY}" ]]; then
         log_warning "Skipping AWS configuration - credentials not provided"
         return 0
     fi
     
     log_info "=== CONFIGURING AWS LAYER ==="
     
-    export AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY
+    export AWS_ACCESS_KEY_ID REDACTED_AWS_SECRET_ACCESS_KEY
     
     log_info "Creating AWS OIDC Provider for GitHub..."
     aws iam create-open-id-connect-provider \
         --url https://token.actions.githubusercontent.com \
         --client-id-list sts.amazonaws.com \
-        --thumbprint-list REDACTED_AWS_SECRET_ACCESS_KEY \
-        --thumbprint-list REDACTED_AWS_SECRET_ACCESS_KEY 2>/dev/null || log_warning "OIDC Provider already exists or error occurred"
+        --thumbprint-list REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY \
+        --thumbprint-list REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY 2>/dev/null || log_warning "OIDC Provider already exists or error occurred"
     
     log_info "Creating AWS KMS key for credential encryption..."
     KMS_KEY_ID=$(aws kms create-key \
@@ -191,14 +191,14 @@ configure_aws() {
 
 # Complete Vault configuration
 configure_vault() {
-    if [[ -z "${VAULT_ADDR}" || -z "${VAULT_TOKEN}" ]]; then
+    if [[ -z "${VAULT_ADDR}" || -z "${REDACTED_VAULT_TOKEN}" ]]; then
         log_warning "Skipping Vault configuration - credentials not provided"
         return 0
     fi
     
     log_info "=== CONFIGURING VAULT LAYER ==="
     
-    export VAULT_ADDR VAULT_TOKEN
+    export VAULT_ADDR REDACTED_VAULT_TOKEN
     
     log_info "Checking Vault status..."
     VAULT_STATUS=$(vault status 2>&1 || echo "sealed")
@@ -278,7 +278,7 @@ verify_layers() {
     fi
     
     # Layer 2A: Vault JWT
-    if [[ -n "${VAULT_ADDR}" && -n "${VAULT_TOKEN}" ]]; then
+    if [[ -n "${VAULT_ADDR}" && -n "${REDACTED_VAULT_TOKEN}" ]]; then
         if vault status > /dev/null 2>&1; then
             log_success "Layer 2A (Vault): ✅ Connected and operational"
         else

@@ -30,17 +30,17 @@ load_secrets_and_auth() {
     fi
 
     # AWS credentials (optional)
-    if [[ -f "$CRED_DIR/aws_access_key_id" && -f "$CRED_DIR/aws_secret_access_key" ]]; then
-        export AWS_ACCESS_KEY_ID="$(< "$CRED_DIR/aws_access_key_id")"
-        export AWS_SECRET_ACCESS_KEY="$(< "$CRED_DIR/aws_secret_access_key")"
+    if [[ -f "$CRED_DIR/aws_access_key_id" && -f "$CRED_DIR/REDACTED_AWS_SECRET_ACCESS_KEY" ]]; then
+        export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"$CRED_DIR/aws_access_key_id")"
+        export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY"$CRED_DIR/REDACTED_AWS_SECRET_ACCESS_KEY")"
         export AWS_DEFAULT_REGION="${AWS_REGION}"
         log_info "AWS credentials loaded from $CRED_DIR"
     fi
 
     # Vault token (prefer AppRole if role_id/secret_id present)
     if [[ -f "$CRED_DIR/vault-token" ]]; then
-        export VAULT_TOKEN="$(< "$CRED_DIR/vault-token")"
-        log_info "VAULT_TOKEN loaded from $CRED_DIR/vault-token"
+        export REDACTED_VAULT_TOKEN="$(< "$CRED_DIR/vault-token")"
+        log_info "REDACTED_VAULT_TOKEN loaded from $CRED_DIR/vault-token"
     else
         # Try AppRole
         if [[ -f "$CRED_DIR/vault-credentials.role_id.cache" && -f "$CRED_DIR/vault-credentials.secret_id.cache" ]]; then
@@ -52,7 +52,7 @@ load_secrets_and_auth() {
                 local token
                 token=$(vault write -field=token auth/approle/login role_id="$role_id" secret_id="$secret_id" 2>/dev/null || true)
                 if [[ -n "$token" ]]; then
-                    export VAULT_TOKEN="$token"
+                    export REDACTED_VAULT_TOKEN="$token"
                     log_info "Logged into Vault via AppRole (token from AppRole)"
                 else
                     log_info "Vault AppRole login failed or Vault unreachable"
@@ -68,7 +68,7 @@ load_secrets_and_auth() {
     if [[ -n "${AWS_ACCESS_KEY_ID:-}" ]]; then
         log_info "AWS: credentials available"
     fi
-    if [[ -n "${VAULT_TOKEN:-}" ]]; then
+    if [[ -n "${REDACTED_VAULT_TOKEN:-}" ]]; then
         log_info "Vault: token available"
     fi
 }
@@ -81,7 +81,7 @@ get_secret() {
     local project="${GCP_PROJECT:-}"
 
     # 1) Vault (KV v2 path: secret/data/<name> or secret/<name>)
-    if [[ -n "${VAULT_TOKEN:-}" && -n "${VAULT_ADDR:-}" ]] && command -v vault &>/dev/null; then
+    if [[ -n "${REDACTED_VAULT_TOKEN:-}" && -n "${VAULT_ADDR:-}" ]] && command -v vault &>/dev/null; then
         # try v2 first
         local out
         out=$(vault kv get -field=value "secret/$name" 2>/dev/null || true)
@@ -174,7 +174,7 @@ setup_aws_oidc() {
     if provider_arn=$(aws iam create-open-id-connect-provider \
         --url https://token.actions.githubusercontent.com \
         --client-id-list sts.amazonaws.com \
-        --thumbprint-list "REDACTED_AWS_SECRET_ACCESS_KEY" \
+        --thumbprint-list "REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY" \
         --query 'OpenIDConnectProviderArn' \
         --output text 2>/dev/null); then
         log_success "AWS OIDC Provider created: $provider_arn"
@@ -327,12 +327,12 @@ populate_github_secrets() {
         log_info "  Setting VAULT_NAMESPACE secret..."
         gh secret set VAULT_NAMESPACE --body "$VAULT_NAMESPACE" 2>/dev/null || log_info "    (Secret already exists or skipped)"
 
-        # Optionally populate VAULT_TOKEN if available from backends (short-lived tokens not recommended in repo)
-        local vault_token
-        vault_token=$(get_secret vault-token || true)
-        if [[ -n "$vault_token" ]]; then
-            log_info "  Setting VAULT_TOKEN as GitHub secret (from Vault/GSM/local cache)..."
-            gh secret set VAULT_TOKEN --body "$vault_token" 2>/dev/null || log_info "    (Secret already exists or skipped)"
+        # Optionally populate REDACTED_VAULT_TOKEN if available from backends (short-lived tokens not recommended in repo)
+        local REDACTED_VAULT_TOKEN
+        REDACTED_VAULT_TOKEN=$(get_secret vault-token || true)
+        if [[ -n "$REDACTED_VAULT_TOKEN" ]]; then
+            log_info "  Setting REDACTED_VAULT_TOKEN as GitHub secret (from Vault/GSM/local cache)..."
+            gh secret set REDACTED_VAULT_TOKEN --body "$REDACTED_VAULT_TOKEN" 2>/dev/null || log_info "    (Secret already exists or skipped)"
         fi
     fi
     

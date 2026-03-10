@@ -158,7 +158,7 @@ Target 2: 192.168.168.42:9100 (node-exporter system metrics)
 
 ```bash
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=xxxxxxx
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com
 export VAULT_JWT_TOKEN=$(cat jwt-token.txt)
 
@@ -172,7 +172,7 @@ bash scripts/phase3b-credentials-inject-activate.sh
 1. Navigate to: https://github.com/kushin77/self-hosted-runner/actions
 2. Select: "Phase 3B Credential Injection"
 3. Click: "Run workflow" button
-4. Enter: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, VAULT_ADDR
+4. Enter: AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY, VAULT_ADDR
 5. Click: "Run workflow"
 6. Monitor: Status in Actions log
 ```

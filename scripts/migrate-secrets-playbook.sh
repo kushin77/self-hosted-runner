@@ -19,7 +19,7 @@ Migration playbook: migrating GitHub secrets to GSM and Vault
    #   gcloud secrets versions add SECRET_NAME --data-file=- --project=PROJECT_ID
 
 3) Or, store in Vault (example):
-   # vault must be authenticated (VAULT_ADDR+VAULT_TOKEN)
+   # vault must be authenticated (VAULT_ADDR+REDACTED_VAULT_TOKEN)
    # vault kv put secret/${REPO_NAME}/SECRET_NAME value="$SECRET_VALUE"
 
 4) After storing in secret backend, remove the GitHub Actions secret:

@@ -299,7 +299,7 @@ jq 'group_by(.status) | map({status: .[0].status, count: length})' \
 **Phase 3B fails with "Vault not accessible":**
 ```bash
 → Check Vault connectivity
-→ Export VAULT_ADDR and VAULT_TOKEN if needed
+→ Export VAULT_ADDR and REDACTED_VAULT_TOKEN if needed
 → bash scripts/phase3b-credentials-aws-vault.sh
 ```
 

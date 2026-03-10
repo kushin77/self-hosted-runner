@@ -380,7 +380,7 @@
 - [ ] Review: docs/PHASE_3B_CREDENTIAL_INJECTION_GUIDE.md
 - [ ] Verify: AWS account has permissions for KMS, OIDC, secrets
 - [ ] Verify: Vault is unsealed (or will be accessed via JWT)
-- [ ] Gather: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+- [ ] Gather: AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY
 
 ### Activation Options (Choose One)
 
@@ -394,7 +394,7 @@
 **Option 2: Environment Variables**
 ```bash
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=xxxxxxx
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -404,7 +404,7 @@ bash scripts/phase3b-credentials-inject-activate.sh
 1. Go to: https://github.com/kushin77/self-hosted-runner/actions
 2. Select: "Phase 3B Credential Injection"
 3. Click: "Run workflow"
-4. Enter: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+4. Enter: AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY
 5. Click: "Run"
 ```
 

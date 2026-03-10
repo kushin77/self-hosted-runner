@@ -92,8 +92,8 @@ Option B: Configure Environment on Worker
 ssh akushnir@192.168.168.42
 
 # Export credentials (for testing):
-export AWS_ACCESS_KEY_ID="xxxxx"
-export AWS_SECRET_ACCESS_KEY="xxxxx"
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY"
 export AWS_REGION="us-east-1"
 
 # Verify access:
