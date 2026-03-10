@@ -1,0 +1,93 @@
+# NexusShield Backend - Git Ignore Rules
+# Prevents committing secrets, build artifacts, and dependencies
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+.env.development
+.env.test
+
+# Build Artifacts
+dist/
+build/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+*.sublime-workspace
+*.sublime-project
+.vimrc
+.vim/
+.emacs.d/
+
+# Runtime
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary Files
+tmp/
+temp/
+*.tmp
+.cache/
+.parcel-cache/
+
+# OS Files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Testing
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+
+# Docker
+.dockerignore
+
+# Database
+*.sql
+*.sqlite
+*.sqlite3
+
+# Backups
+*.backup
+*.bak
+.backup/
+*~
+
+# Lock files (use when documenting exact versions)
+!package-lock.json
+
+# IDE configuration (except essential)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Prisma
+prisma-schema.json
+
+# Hot Module Replacement
+.module-cache/
