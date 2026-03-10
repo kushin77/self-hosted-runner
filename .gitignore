@@ -51,3 +51,10 @@ terraform/terraform.tfstate
 terraform/.terraform.tfstate.lock.info
 infra/credentials/
 .nexusshield_credentials
+
+# Terraform files (build artifacts, not source)
+**/.terraform/
+**/.terraform.lock.hcl
+**/*.tfstate
+**/*.tfstate.backup
+**/*terraform.tfstate*
