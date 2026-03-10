@@ -38,3 +38,12 @@
   "required_action": "GCP Admin with roles/resourcemanager.projectIamAdmin must enable required APIs",
   "apis_required": ["compute.googleapis.com","sqladmin.googleapis.com","cloudkms.googleapis.com","secretmanager.googleapis.com","artifactregistry.googleapis.com","run.googleapis.com","monitoring.googleapis.com","logging.googleapis.com","servicenetworking.googleapis.com"]
 }
+{
+  "timestamp": "2026-03-10T08:05:00Z",
+  "event": "api_enable_retry_attempted",
+  "result": "permission_denied",
+  "user": "akushnir@bioenergystrategies.com",
+  "services_attempted": ["compute.googleapis.com","sqladmin.googleapis.com","cloudkms.googleapis.com","secretmanager.googleapis.com","artifactregistry.googleapis.com","run.googleapis.com","monitoring.googleapis.com","logging.googleapis.com","servicenetworking.googleapis.com"],
+  "error": "AUTH_PERMISSION_DENIED on all services",
+  "blocking_role_required": "roles/resourcemanager.projectIamAdmin or eq equivalent"
+}
