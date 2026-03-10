@@ -5,4 +5,5 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 ENV PORT=8080
 EXPOSE 8080
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "app:app", "--workers", "2"]
+# Use gunicorn if available; fall back to the built-in Flask server for reliable startup
+CMD ["sh", "-c", "if command -v gunicorn >/dev/null 2>&1; then exec gunicorn --bind 0.0.0.0:${PORT} app:app --workers 2; else exec python -u app.py; fi"]
