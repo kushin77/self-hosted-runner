@@ -2,16 +2,18 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA','backend/']
 
-# Build frontend assets first (try `npm ci`, fall back to `npm install`)
+# Build frontend assets first (install then build)
 - name: 'node:18-alpine'
   entrypoint: 'sh'
   args:
   - '-c'
   - |
-    set -e
-    echo "Install frontend dependencies and build"
-    (npm ci --prefix frontend) || (npm install --prefix frontend)
-    npm run build --prefix frontend
+    echo "Installing frontend dependencies..."
+    cd frontend
+    npm install
+    echo "Building frontend assets..."
+    npm run build
+    cd ..
 
 # Then build frontend Docker image with built assets
 - name: 'gcr.io/cloud-builders/docker'
