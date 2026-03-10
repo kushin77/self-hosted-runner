@@ -39,6 +39,10 @@ RUN chmod +x /app/docker-entrypoint.sh
 # Create logs directory
 RUN mkdir -p /app/logs && chmod 755 /app/logs
 
+# Run as non-root for better security (use existing 'node' user in Node image)
+RUN chown -R node:node /app && chmod -R 755 /app
+USER node
+
 # Add health check
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})" || exit 1
@@ -47,4 +51,8 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
 EXPOSE 3000
 
 # Entrypoint handles VAULT_TOKEN_FILE, starts optional Vault Agent, then runs the app
+LABEL org.opencontainers.image.title="nexusshield-portal-backend"
+LABEL org.opencontainers.image.version="2026-03-10"
+LABEL org.opencontainers.image.licenses="proprietary"
+
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
