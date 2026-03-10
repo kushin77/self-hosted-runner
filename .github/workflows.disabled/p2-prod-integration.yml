@@ -1,0 +1,76 @@
+name: p2-managed-mode-prod-integration
+
+# This workflow is intended to run the full provisioning pipeline against a
+# production-like configuration. It launches supporting services (Vault dev,
+# Redis) and then exercises the managed-auth & provisioner workflows using the
+# production image built from the repository. At present this is a stub; when
+# the production container is available update the image reference below.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main ]
+
+jobs:
+  prod-integration:
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Start Vault dev server
+        run: |
+          docker run --cap-add=IPC_LOCK -d --name vault -p 8200:8200 vault:1.13.0 server -dev -dev-root-token-id=root
+
+      - name: Wait for Vault
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sSf http://127.0.0.1:8200/v1/sys/health >/dev/null 2>&1; then
+              echo "Vault is ready"; break
+            fi
+            sleep 1
+          done
+
+      - name: Setup Vault env
+        run: |
+          echo "VAULT_ADDR=http://127.0.0.1:8200" >> $GITHUB_ENV
+          # DO NOT store real tokens in repository. Use operator-provisioned
+          # secrets (Vault / GSM) or set via repository secrets at runtime.
+          # Vault tokens are provisioned out-of-band; do not echo token names here.
+          echo "SECRETS_BACKEND=vault" >> $GITHUB_ENV
+          echo "PROVISIONER_REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: |
+          cd services/managed-auth
+          npm ci --no-audit --no-fund || npm install
+          cd ../../services/provisioner-worker
+          npm ci --no-audit --no-fund || npm install
+
+      - name: Build production image placeholder
+        run: |
+          echo "# TODO: build or pull production image here" >/dev/null
+
+      - name: Run smoke test
+        env:
+          VAULT_ADDR: ${{ env.VAULT_ADDR }}
+          SECRETS_BACKEND: ${{ env.SECRETS_BACKEND }}
+          PROVISIONER_REDIS_URL: ${{ env.PROVISIONER_REDIS_URL }}
+        run: |
+          cd services/managed-auth/tests
+          bash provision_flow.sh
+
+      - name: Tear down Vault
+        if: always()
+        run: |
+          docker rm -f vault || true
