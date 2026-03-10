@@ -107,3 +107,5 @@ config/docker-compose.phase6.yml
 secrets/
 *.key
 *.pem
+scripts/deployment/provision-operator-credentials.sh
+scripts/gcp/*.sh
