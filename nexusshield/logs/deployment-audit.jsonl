@@ -5,3 +5,5 @@
   "file": "deployment-audit.jsonl",
   "description": "Immutable audit trail initialized"
 }
+
+{timestamp:2026-03-10T01:31:39Z,event:deployment_failed,details:{"error":"Terraform init failed: Unsupported argument encrypt_in_transit in main.tf","script":"direct-deploy-production.sh"}}
