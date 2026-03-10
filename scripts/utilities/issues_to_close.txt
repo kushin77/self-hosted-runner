@@ -1,0 +1,12 @@
+# Issue list to close
+# One per line
+# Use numbers or #NNN
+2263
+2262
+2247
+2229
+2258
+2261
+2250
+2214
+2213
