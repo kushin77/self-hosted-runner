@@ -1,0 +1,13 @@
+[Unit]
+Description=Phase 6 Quickstart Runner for %i
+After=network.target
+
+[Service]
+Type=oneshot
+User=%i
+WorkingDirectory=/home/%i/self-hosted-runner
+ExecStart=/usr/bin/bash /home/%i/self-hosted-runner/scripts/phase6-quickstart.sh
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
