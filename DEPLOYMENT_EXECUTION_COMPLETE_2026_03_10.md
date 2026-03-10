@@ -75,8 +75,8 @@ sudo systemctl list-timers | grep phase6
 
 **Credentials** (choose one):
 - Google Secret Manager: Set `GSM_PROJECT_ID` and `GSM_SECRET_NAME`
-- HashiCorp Vault: Set `VAULT_ADDR` and `VAULT_TOKEN`
-- Environment: Set `PHASE6_CREDS`
+- HashiCorp Vault: Set `VAULT_ADDR` and auth token via `.vault-token` file
+- Environment: Set `PHASE6_CREDS` environment variable
 
 **First Execution**: Automatic at 2026-03-10 01:00 UTC
 
