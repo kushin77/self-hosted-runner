@@ -53,6 +53,42 @@ provider "google-beta" {
 }
 
 ###############################################################################
+# Network: VPC, Subnet, PSC Reserved Range, Service Networking Connection
+###############################################################################
+
+# VPC for NexusShield
+resource "google_compute_network" "portal_vpc" {
+  name                    = "nexusshield-vpc"
+  auto_create_subnetworks = false
+}
+
+# Private subnet for Cloud SQL and services
+resource "google_compute_subnetwork" "private_subnet" {
+  name                     = "nexusshield-subnet-${var.gcp_region}"
+  ip_cidr_range            = "10.40.0.0/20"
+  region                   = var.gcp_region
+  network                  = google_compute_network.portal_vpc.self_link
+  private_ip_google_access = true
+}
+
+# Reserved IP range for Private Service Connect / VPC peering
+resource "google_compute_global_address" "psc_range" {
+  name         = "nexusshield-psc-range"
+  purpose      = "VPC_PEERING"
+  address_type = "INTERNAL"
+  prefix_length = 16
+  network      = google_compute_network.portal_vpc.self_link
+}
+
+# Service Networking connection for Cloud SQL private IP (requires service networking API enabled)
+resource "google_service_networking_connection" "portal_db_connection" {
+  network                 = google_compute_network.portal_vpc.self_link
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.psc_range.name]
+}
+
+
+###############################################################################
 # Variables
 ###############################################################################
 
@@ -165,7 +201,7 @@ resource "google_sql_database_instance" "portal_db" {
     # IP configuration - use private IP only to comply with org policy
     ip_configuration {
       ipv4_enabled    = false
-      private_network = var.private_network_self_link
+      private_network = google_compute_network.portal_vpc.self_link
       require_ssl     = true
     }
 
