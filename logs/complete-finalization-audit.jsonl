@@ -71,3 +71,11 @@
   "issue": "#2116",
   "commit": "cac1fc84a"
 }
+{
+  "timestamp": "2026-03-10T02:17:46Z",
+  "operation": "gsm-api-enable",
+  "status": "permission_denied",
+  "message": "ERROR: (gcloud.services.enable) PERMISSION_DENIED: Permission denied to enable service [secretmanager.googleapis.com] Help Token: AerXPhVshBrJMWFfIxhnEVQruWvojKPIQKBbtEJdVOMcdBZOFiudKbksof_f2Jkf8bNCkTq967w8XA5VOC91YRk_Qjir2HLOOCCtPQqw3VmUBDay. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property - '@type': type.googleapis.com/google.rpc.PreconditionFailure   violations:   - subject: '110002'     type: googleapis.com - '@type': type.googleapis.com/google.rpc.ErrorInfo   domain: serviceusage.googleapis.com   reason: AUTH_PERMISSION_DENIED ",
+  "issue": "#2116",
+  "commit": "d34e3e894"
+}
