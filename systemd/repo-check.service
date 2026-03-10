@@ -1,0 +1,25 @@
+[Unit]
+Description=Daily repository policy check
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/usr/bin/make check
+[Unit]
+Description=Daily repository policy check
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/usr/bin/make check
+[Unit]
+Description=Repository Health Check (make check)
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/usr/bin/make check
+User=akushnir
+
+[Install]
+WantedBy=multi-user.target
