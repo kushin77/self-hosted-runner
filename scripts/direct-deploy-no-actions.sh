@@ -90,8 +90,21 @@ bootstrap_credentials() {
         export DATABASE_SECRET=$(aws secretsmanager get-secret-value --secret-id "database_secret" --query SecretString --output text 2>/dev/null || echo "")
     fi
 
+    # Final fallback: local encrypted credential cache
+    if [[ -z "${RUNNER_SSH_KEY}" || -z "${DATABASE_SECRET}" ]]; then
+        if [[ -f "/etc/nexusshield/credcache.enc" ]]; then
+            # CREDCACHE_PASSPHRASE must be provided in env
+            source "${REPO_ROOT}/scripts/utilities/credcache.sh" || true
+            if load_credcache; then
+                echo "[CREDENTIALS] Loaded secrets from local encrypted cache"
+            else
+                echo "[CREDENTIALS] Local encrypted cache present but failed to load"
+            fi
+        fi
+    fi
+
     if [[ -z "${RUNNER_SSH_KEY}" ]] || [[ -z "${DATABASE_SECRET}" ]]; then
-        echo "ERROR: Could not bootstrap credentials from GSM/Vault/KMS"
+        echo "ERROR: Could not bootstrap credentials from GSM/Vault/KMS/local cache"
         audit_deploy "bootstrap_failed" "credentials unavailable from all backends"
         exit 1
     fi
