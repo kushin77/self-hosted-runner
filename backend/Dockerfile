@@ -1,4 +1,28 @@
-# NexusShield Portal Backend - Minimal Docker image for rapid deployment
+# NexusShield Portal Backend - Production-ready Docker image
+# Multi-stage build for minimal final image
+
+FROM node:18-alpine AS builder
+
+WORKDIR /build
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Install dependencies
+RUN npm ci --production
+
+# Copy source
+COPY src ./src
+COPY tsconfig.json ./
+COPY prisma ./prisma
+
+# Build TypeScript
+RUN npm run build
+
+# ============================================================================
+# FINAL IMAGE
+# ============================================================================
+
 FROM node:18-alpine
 
 WORKDIR /app
@@ -6,15 +30,24 @@ WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3000
 
-# Copy only minimal files needed
-COPY index.js package.json ./
+# Copy only necessary files from builder
+COPY --from=builder /build/dist ./dist
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/prisma ./prisma
+COPY --from=builder /build/package.json ./
 
-# No npm install needed - pure Node.js HTTP server
+# Create logs directory (immutable audit trail location)
+RUN mkdir -p /app/logs && chmod 755 /app/logs
+
 EXPOSE 3000
 
-# Simple health probe
-HEALTHCHECK --interval=10s --timeout=5s --start-period=5s --retries=3 \
-  CMD wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1
+# Health checks for Docker
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:3000/ready || exit 1
 
-# Run Node server
-CMD ["node", "index.js"]
+# Run as non-root user for security
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+USER nodejs
+
+# Start server
+CMD ["node", "dist/index.js"]
