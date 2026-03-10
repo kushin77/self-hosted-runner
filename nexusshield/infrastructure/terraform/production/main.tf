@@ -38,8 +38,7 @@ terraform {
   backend "gcs" {
     bucket  = "nexusshield-terraform-state"
     prefix  = "portal/production"
-    encrypt_in_transit = true
-    # Note: Additional locking/versioning configured in GCS bucket policy
+    # GCS bucket has versioning (immutable) and public-access prevention enabled
   }
 }
 
@@ -98,7 +97,7 @@ variable "db_instance_class" {
 ###############################################################################
 
 resource "google_service_account" "portal_backend" {
-  account_id   = "nexusshield-portal-backend-${var.environment}"
+  account_id   = "nxs-portal-${var.environment}"
   display_name = "NexusShield Portal Backend (${var.environment})"
   description  = "Service account for NexusShield portal backend API"
 }
@@ -131,6 +130,13 @@ resource "google_project_iam_member" "portal_backend_log_writer" {
   member  = "serviceAccount:${google_service_account.portal_backend.email}"
 }
 
+# IAM: Network user (for private service connection)
+resource "google_project_iam_member" "portal_backend_network_user" {
+  project = var.gcp_project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:${google_service_account.portal_backend.email}"
+}
+
 ###############################################################################
 # Cloud SQL - PostgreSQL Database
 ###############################################################################
@@ -158,8 +164,7 @@ resource "google_sql_database_instance" "portal_db" {
 
     # IP configuration
     ip_configuration {
-      require_ssl            = true
-      enable_private_path    = false
+      require_ssl = true
       authorized_networks {
         name  = "allow-all"
         value = "0.0.0.0/0"
@@ -221,7 +226,11 @@ resource "google_secret_manager_secret" "db_connection_string" {
   }
 
   replication {
-    automatic = true
+    user_managed {
+      replicas {
+        location = var.gcp_region
+      }
+    }
   }
 }
 
@@ -292,33 +301,10 @@ resource "google_cloud_run_service" "portal_backend" {
             memory = "512Mi"
           }
         }
-
-        # Liveness probe
-        liveness_probe {
-          http_get {
-            path = "/health"
-            port = 3000
-          }
-          initial_delay_seconds = 30
-          period_seconds        = 10
-        }
-
-        # Readiness probe
-        readiness_probe {
-          http_get {
-            path = "/ready"
-            port = 3000
-          }
-          initial_delay_seconds = 10
-          period_seconds        = 5
-        }
       }
 
       # Timeout: 30 minutes (for long-running operations)
       timeout_seconds = 1800
-
-      # Concurrency: 100 requests per instance
-      concurrency = 100
     }
 
     metadata {
