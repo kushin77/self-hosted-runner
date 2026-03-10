@@ -37,3 +37,10 @@ Thumbs.db
 dist/
 build/
 *.egg-info/
+
+# NexusShield runtime & secrets (ignore generated runtime artifacts)
+nexusshield/.credentials-config
+nexusshield/logs/*.jsonl
+deployment-execution-*.log
+logs/portal-mvp-phase*.jsonl
+fix-audit-logs.sh
