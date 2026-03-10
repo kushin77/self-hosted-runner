@@ -1,0 +1,27 @@
+[0;34m[INFO][0m PHASE 1: Pre-flight checks
+[0;32m[✓][0m gcloud CLI available
+[0;32m[✓][0m Working directory: /home/akushnir/self-hosted-runner
+[0;32m[✓][0m terraform available
+[0;32m[✓][0m docker available
+[0;32m[✓][0m git available
+[0;34m[INFO][0m Validating credentials...
+[1;33m[!][0m Credential validation incomplete; proceeding with fallback
+[0;34m[INFO][0m PHASE 2: Unblocking external dependencies
+[0;34m[INFO][0m → Enabling Secret Manager API...
+[1;33m[!][0m Secret Manager API enable failed (may already be enabled)
+[0;34m[INFO][0m → Verifying production secrets in Secret Manager...
+[1;33m[!][0m Secret missing: nexusshield-portal-db-connection-production (will use env var fallback)
+[1;33m[!][0m Secret missing: nexusshield-portal-db-username-production (will use env var fallback)
+[1;33m[!][0m Secret missing: nexusshield-portal-db-password-production (will use env var fallback)
+[1;33m[!][0m Secret missing: nexusshield-api-key-production (will use env var fallback)
+[1;33m[!][0m Secret missing: nexusshield-jwt-secret-production (will use env var fallback)
+[0;34m[INFO][0m → Attempting Private Service Access setup...
+[1;33m[!][0m PSA not configured. Will use public IP for Cloud SQL as fallback.
+[0;34m[INFO][0m → Verifying service account permissions...
+[1;33m[!][0m Role grant failed: roles/secretmanager.secretAccessor (may already be set)
+[1;33m[!][0m Role grant failed: roles/cloudsql.client (may already be set)
+[1;33m[!][0m Role grant failed: roles/logging.logWriter (may already be set)
+[1;33m[!][0m Role grant failed: roles/run.invoker (may already be set)
+[1;33m[!][0m Role grant failed: roles/artifactregistry.writer (may already be set)
+[0;34m[INFO][0m PHASE 3: Deploying infrastructure with Terraform
+scripts/complete-production-deployment.sh: line 167: cd: nexusshield/infrastructure/terraform/production: No such file or directory
