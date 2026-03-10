@@ -28,7 +28,7 @@ fi
 
 # Fetch secret payload (latest version) from Secret Manager
 echo "Fetching secret from Secret Manager: $SECRET_NAME"
-secret_payload=$(gcloud secrets versions access latest --secret="$SECRET_NAME" --format='get(payload.data)' 2>/dev/null | base64 --decode || true)
+secret_payload=$(gcloud secrets versions access latest --secret="$SECRET_NAME" --project="$PROJECT" --format='get(payload.data)' 2>/dev/null | base64 --decode || true)
 if [ -z "$secret_payload" ]; then
   echo "ERROR: failed to read secret or secret is empty"
   exit 5
