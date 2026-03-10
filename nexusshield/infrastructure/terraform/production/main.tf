@@ -162,13 +162,11 @@ resource "google_sql_database_instance" "portal_db" {
       transaction_log_retention_days = 7
     }
 
-    # IP configuration
+    # IP configuration - use private IP only to comply with org policy
     ip_configuration {
-      require_ssl = true
-      authorized_networks {
-        name  = "allow-all"
-        value = "0.0.0.0/0"
-      }
+      ipv4_enabled    = false
+      private_network = var.private_network_self_link
+      require_ssl     = true
     }
 
     # User labels
