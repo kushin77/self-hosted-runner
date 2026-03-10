@@ -69,3 +69,11 @@ logs/
 PHASE*_*.md
 scripts/deploy-with-secrets.sh
 nexusshield/infrastructure/terraform/production/logs/
+
+# Node modules (should not be committed)
+node_modules/
+frontend/node_modules/
+
+# Audit logs and runtime summaries
+scripts/audit/
+*.summary.log
