@@ -25,8 +25,8 @@ echo ""
 # ============================================================================
 echo "[1/6] 🔍 Verifying GCP prerequisites..."
 
-COMPUTE_ENABLED=$(gcloud services list --enabled --project=p4-platform 2>/dev/null | grep -c "compute.googleapis.com" || echo "0")
-if [ "$COMPUTE_ENABLED" -eq 0 ]; then
+COMPUTE_ENABLED=$(gcloud services list --enabled --project=p4-platform 2>/dev/null | grep "compute.googleapis.com" | wc -l)
+if [ "$COMPUTE_ENABLED" -lt 1 ]; then
   echo "❌ ERROR: Compute Engine API not enabled on p4-platform"
   echo "   GCP admin must run: gcloud services enable compute.googleapis.com --project=p4-platform"
   exit 1
@@ -37,7 +37,7 @@ IAM_ROLE=$(gcloud projects get-iam-policy p4-platform \
   --flatten="bindings[].members" \
   --filter="members:akushnir@bioenergystrategies.com AND bindings.role:iam.serviceAccountAdmin" \
   2>/dev/null | wc -l)
-if [ "$IAM_ROLE" -eq 0 ]; then
+if [ "$IAM_ROLE" -lt 1 ]; then
   echo "❌ ERROR: iam.serviceAccountAdmin role not granted to akushnir@bioenergystrategies.com"
   echo "   GCP admin must run: gcloud projects add-iam-policy-binding p4-platform --member=user:akushnir@bioenergystrategies.com --role=roles/iam.serviceAccountAdmin"
   exit 1
