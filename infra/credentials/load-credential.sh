@@ -35,7 +35,9 @@ load_from_vault() {
 
 # Layer 3: AWS KMS-Encrypted Environment Variables (Tertiary)
 load_from_kms_env() {
-  KMS_ENV_VAR_NAME="${CREDENTIAL_NAME^^}_ENCRYPTED"
+  # Convert credential name dashes to underscores for valid variable name
+  KMS_ENV_VAR_NAME="${CREDENTIAL_NAME//-/_}"
+  KMS_ENV_VAR_NAME="${KMS_ENV_VAR_NAME^^}_ENCRYPTED"
   ENCRYPTED_VALUE="${!KMS_ENV_VAR_NAME:-}"
   
   if [ -n "$ENCRYPTED_VALUE" ] && command -v aws >/dev/null 2>&1; then
