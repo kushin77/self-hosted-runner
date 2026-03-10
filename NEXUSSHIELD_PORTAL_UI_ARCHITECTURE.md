@@ -309,7 +309,7 @@ ORCHESTRATION CONTROL:
 │ │  └─ ✅ Vault AppRole roles defined                │
 │ │  └─ ✅ JWT policy templates ready                 │
 │ ├─ Risks:                                           │
-│ │  └─ Will revoke all long-lived VAULT_TOKENs      │
+│ │  └─ Will revoke all long-lived REDACTED_VAULT_TOKENs      │
 │ │  └─ All services must re-auth (plan: 30m)        │
 │ ├─ Action: [Simulate] [Schedule] [Execute Now]      │
 │ └─ Estimated cost: $0 (no infra)                    │

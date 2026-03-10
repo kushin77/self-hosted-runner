@@ -107,8 +107,8 @@ bash scripts/phase3b-credentials-aws-vault.sh --validate-only
 **Status:** ⏳ Awaiting AWS IAM credentials  
 **Action Required:** Admin provides AWS credentials in environment
 ```bash
-export AWS_ACCESS_KEY_ID=xxx
-export AWS_SECRET_ACCESS_KEY=xxx
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 # OR
 aws configure  # Interactive setup
 ```
@@ -124,7 +124,7 @@ bash scripts/phase3b-credentials-aws-vault.sh  # Idempotent re-run
 **Action Required:** Admin unseals Vault and provides access credentials
 ```bash
 export VAULT_ADDR=https://vault.example.com:8200
-export VAULT_TOKEN=hvs.xxx  # or use AppRole auth
+export REDACTED_VAULT_TOKEN=hvs.xxx  # or use AppRole auth
 ```
 
 **Auto-Resolution:**
@@ -138,7 +138,7 @@ bash scripts/phase3b-credentials-aws-vault.sh  # Idempotent re-run
 **Action Required:** Admin sets cloud provider secrets in GitHub
 ```bash
 gh secret set AWS_ROLE_TO_ASSUME --body "arn:aws:iam::ACCOUNT:role/ROLE_NAME"
-gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --body "REDACTED_AWS_SECRET_ACCESS_KEY..."
+gh secret set GCP_WORKLOAD_IDENTITY_PROVIDER --body "REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY..."
 gh secret set GCP_SA_EMAIL --body "github-actions@PROJECT.iam.gserviceaccount.com"
 ```
 
@@ -254,8 +254,8 @@ Once secrets configured, GitHub Actions CI/CD automatically runs Phase 3B on pus
 ### Immediate (Admin Action Required)
 1. **Set AWS Credentials:**
    ```bash
-   export AWS_ACCESS_KEY_ID=xxx
-   export AWS_SECRET_ACCESS_KEY=xxx
+   export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+   export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
    ```
 
 2. **Unseal Vault:**

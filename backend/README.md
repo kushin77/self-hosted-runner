@@ -85,7 +85,7 @@ GITHUB_CLIENT_SECRET=xxx
 
 # Secrets (GSM/Vault/KMS)
 VAULT_ADDR=https://vault.example.com
-VAULT_TOKEN=s.xxxxx (ephemeral, rotated hourly)
+REDACTED_VAULT_TOKEN=s.xxxxx (ephemeral, rotated hourly)
 GCP_PROJECT_ID=xxx
 AWS_KMS_KEY_ID=arn:aws:kms:us-east-1:xxx:key/xxx
 
