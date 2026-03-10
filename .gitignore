@@ -82,6 +82,7 @@ scripts/audit/
 scripts/**/*secret*.sh
 scripts/**/*credential*.sh
 scripts/**/*provision*.sh
+!scripts/deployment/hands-off-final-provisioning.sh
 scripts/**/deploy-with-secrets.sh
 scripts/**/apply-*.sh
 scripts/**/fetch-*.sh

@@ -1,0 +1,19 @@
+[Unit]
+Description=NexusShield Hands-Off Final Provisioning Service
+Documentation=file:///home/akushnir/self-hosted-runner/docs/INFRA_ACTIONS_FOR_ADMINS.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/home/akushnir/self-hosted-runner/scripts/deployment/hands-off-final-provisioning.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hands-off-provisioning
+Restart=no
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
