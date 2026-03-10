@@ -290,11 +290,6 @@ resource "google_sql_database_instance" "primary" {
       transaction_log_retention_days = 7
     }
 
-    database_flags {
-      name  = "cloudsql_iam_authentication"
-      value = "on"
-    }
-
     ip_configuration {
       require_ssl     = true
       ipv4_enabled    = false
