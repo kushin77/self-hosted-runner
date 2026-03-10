@@ -43,3 +43,21 @@
   "deployer": "akushnir@dev-elevatediq-2",
   "immutable": true
 }
+{
+  "timestamp": "2026-03-10T20:30:19Z",
+  "status": "validation_passed",
+  "details": "deployment ready",
+  "commit": "1b0686c518be8db0ae41a5a3cb919459041502fd",
+  "branch": "main",
+  "deployer": "akushnir@dev-elevatediq-2",
+  "immutable": true
+}
+{
+  "timestamp": "2026-03-10T20:30:21Z",
+  "status": "credentials_bootstrapped",
+  "details": "gsm/vault/kms",
+  "commit": "1b0686c518be8db0ae41a5a3cb919459041502fd",
+  "branch": "main",
+  "deployer": "akushnir@dev-elevatediq-2",
+  "immutable": true
+}
