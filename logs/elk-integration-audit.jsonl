@@ -1,2 +1,0 @@
-{"timestamp":"2026-03-09T22:41:33Z","action":"elk_integration_start","status":"STARTED","details":{"dry_run":true,"elk_host":"","vault_path":"secret/elk/filebeat-credentials"}}
-{"timestamp":"2026-03-09T22:41:33Z","action":"elk_integration_failed","status":"ERROR","details":{"reason":"elk_host_not_provided"}}
