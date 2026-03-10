@@ -122,7 +122,7 @@ aws sso login
 # Method B: Local credentials
 mkdir -p .credentials
 echo "KEY_ID" > .credentials/aws_access_key_id
-echo "SECRET" > .credentials/aws_secret_access_key
+echo "SECRET" > .credentials/REDACTED_AWS_SECRET_ACCESS_KEY
 ```
 **GitHub Issue:** Auto-created with unblocking instructions  
 **Impact When Unblocked:** Enables AWS OIDC provider + KMS key creation  
@@ -135,7 +135,7 @@ echo "SECRET" > .credentials/aws_secret_access_key
 ```bash
 # Method A: Token auth
 export VAULT_ADDR=https://your-vault:8200
-export VAULT_TOKEN=your-token
+export REDACTED_VAULT_TOKEN=your-token
 
 # Method B: AppRole (recommended)
 export VAULT_ADDR=https://your-vault:8200
@@ -160,7 +160,7 @@ aws configure  # or use .credentials/ files
 
 # 3. Configure Vault (optional)
 export VAULT_ADDR=https://your-vault:8200
-export VAULT_TOKEN=your-token
+export REDACTED_VAULT_TOKEN=your-token
 ```
 
 ### Phase 2: Deploy System (Agent)

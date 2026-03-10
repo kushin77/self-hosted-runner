@@ -357,12 +357,12 @@ unblock_vault_approle() {
   
   print_success "Connected to Vault: $VAULT_ADDR"
   
-  # Export Vault token (assumes VAULT_TOKEN is set)
-  export VAULT_TOKEN="${VAULT_TOKEN:-}"
+  # Export Vault token (assumes REDACTED_VAULT_TOKEN is set)
+  export REDACTED_VAULT_TOKEN="${REDACTED_VAULT_TOKEN:-}"
   
-  if [[ -z "$VAULT_TOKEN" ]]; then
-    print_error "VAULT_TOKEN not set"
-    log_audit "vault_auth" "error" "VAULT_TOKEN not configured"
+  if [[ -z "$REDACTED_VAULT_TOKEN" ]]; then
+    print_error "REDACTED_VAULT_TOKEN not set"
+    log_audit "vault_auth" "error" "REDACTED_VAULT_TOKEN not configured"
     return 0
   fi
   
@@ -370,12 +370,12 @@ unblock_vault_approle() {
   print_step "Enabling AppRole auth method..."
   
   curl -s -X GET "$VAULT_ADDR/v1/auth/approle" \
-    -H "X-Vault-Token: $VAULT_TOKEN" &>/dev/null && {
+    -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" &>/dev/null && {
     print_success "AppRole auth method already enabled"
     log_audit "vault_approle_enable" "exists" "AppRole auth already enabled"
   } || {
     curl -s -X POST "$VAULT_ADDR/v1/sys/auth/approle" \
-      -H "X-Vault-Token: $VAULT_TOKEN" \
+      -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{"type": "approle"}' &>/dev/null || {
       print_error "Failed to enable AppRole"
@@ -394,7 +394,7 @@ unblock_vault_approle() {
     
     # Create/update role
     curl -s -X POST "$VAULT_ADDR/v1/auth/approle/role/$ROLE" \
-      -H "X-Vault-Token: $VAULT_TOKEN" \
+      -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{
         "bind_secret_id": true,
@@ -411,11 +411,11 @@ unblock_vault_approle() {
     
     # Get or generate role ID
     ROLE_ID=$(curl -s -X GET "$VAULT_ADDR/v1/auth/approle/role/$ROLE/role-id" \
-      -H "X-Vault-Token: $VAULT_TOKEN" | jq -r '.data.role_id' 2>/dev/null)
+      -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" | jq -r '.data.role_id' 2>/dev/null)
     
     # Generate secret ID
     SECRET_ID=$(curl -s -X POST "$VAULT_ADDR/v1/auth/approle/role/$ROLE/secret-id" \
-      -H "X-Vault-Token: $VAULT_TOKEN" \
+      -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" \
       -H "Content-Type: application/json" \
       -d '{}' | jq -r '.data.secret_id' 2>/dev/null)
     
@@ -447,7 +447,7 @@ path \"sys/leases/renew\" {
   
   # Write policy (idempotent)
   curl -s -X PUT "$VAULT_ADDR/v1/sys/policy/github-actions" \
-    -H "X-Vault-Token: $VAULT_TOKEN" \
+    -H "X-Vault-Token: $REDACTED_VAULT_TOKEN" \
     -H "Content-Type: application/json" \
     -d "{\"policy\": $(echo "$POLICY" | jq -Rs '.')}" 2>/dev/null || true
   

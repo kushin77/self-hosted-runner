@@ -92,7 +92,7 @@ Attempted steps:
 - AWS KMS key creation: FAILED (no credentials)
 
 ### Root Cause
-Active environment has no AWS credentials loaded (`$AWS_ACCESS_KEY_ID`, `$AWS_SECRET_ACCESS_KEY` unset).
+Active environment has no AWS credentials loaded (`$AWS_ACCESS_KEY_ID`, `$REDACTED_AWS_SECRET_ACCESS_KEY` unset).
 
 ### Solution (Choose One)
 **Option A: Local Credentials File**
@@ -100,7 +100,7 @@ Active environment has no AWS credentials loaded (`$AWS_ACCESS_KEY_ID`, `$AWS_SE
 # Place credentials in .credentials/ folder:
 mkdir -p .credentials
 echo "REDACTED_AWS_ACCESS_KEY_ID" > .credentials/aws_access_key_id
-echo "REDACTED_AWS_SECRET_ACCESS_KEY" > .credentials/aws_secret_access_key
+echo "REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY" > .credentials/REDACTED_AWS_SECRET_ACCESS_KEY
 export AWS_REGION=us-east-1
 bash scripts/phase3b-credentials-aws-vault.sh
 ```
@@ -152,7 +152,7 @@ VAULT_ADDR points to unconfigured/unreachable endpoint or Vault is sealed.
 **Option A: Use Configured Vault**
 ```bash
 export VAULT_ADDR=https://your-vault-server:8200
-export VAULT_TOKEN=<your-vault-token>
+export REDACTED_VAULT_TOKEN=<your-vault-token>
 bash scripts/phase3b-credentials-aws-vault.sh
 ```
 
@@ -266,14 +266,14 @@ This document summarizes the complete state of the **Multi-Layer Credentials & A
 ### Blocker #2: AWS Credentials
 **What:** Provide AWS IAM credentials with KMS/OIDC permissions
 **Methods:**
-  - Place in `.credentials/aws_access_key_id` and `.credentials/aws_secret_access_key`
+  - Place in `.credentials/aws_access_key_id` and `.credentials/REDACTED_AWS_SECRET_ACCESS_KEY`
   - Or run: `aws configure` or `aws sso login`
 **Status:** PENDING credential provision
 **Impact:** AWS OIDC & KMS provisioning awaiting creds; GitHub CI/CD secrets not auto-populated
 
 ### Blocker #3: Vault Connectivity
 **What:** Provide reachable, unsealed Vault instance
-**Info:** Set `VAULT_ADDR` and `VAULT_TOKEN` env vars
+**Info:** Set `VAULT_ADDR` and `REDACTED_VAULT_TOKEN` env vars
 **Status:** PENDING Vault access or optional skip
 **Impact:** Vault JWT auth unavailable; system uses KMS/GSM fallback (functional)
 

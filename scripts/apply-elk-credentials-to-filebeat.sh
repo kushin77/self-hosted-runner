@@ -35,10 +35,10 @@ Options:
 
 Environment:
   WORKER_HOST                 SSH target for worker (default: akushnir@192.168.168.42)
-  VAULT_ADDR, VAULT_TOKEN     Vault connectivity (or use gcloud/gsm)
+  VAULT_ADDR, REDACTED_VAULT_TOKEN     Vault connectivity (or use gcloud/gsm)
 
 Example:
-  VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=<YOUR_VAULT_TOKEN> \\
+  VAULT_ADDR=http://127.0.0.1:8200 REDACTED_VAULT_TOKEN=<YOUR_REDACTED_VAULT_TOKEN> \\
     $0 --elk-host elk.internal --vault-path secret/elk/filebeat-credentials
 
 EOF
@@ -59,7 +59,7 @@ if [ -z "$ELK_HOST" ]; then
 fi
 
 log_info "[1/5] Fetching ELK credentials from Vault..."
-if [ -n "${VAULT_ADDR:-}" ] && [ -n "${VAULT_TOKEN:-}" ]; then
+if [ -n "${VAULT_ADDR:-}" ] && [ -n "${REDACTED_VAULT_TOKEN:-}" ]; then
   # Fetch from Vault
   ELK_CREDS=$(vault kv get -format=json "$VAULT_PATH" 2>/dev/null | jq -r '.data.data | "\(.username):\(.password)"' || true)
   if [ -z "$ELK_CREDS" ]; then

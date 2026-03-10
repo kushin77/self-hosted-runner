@@ -8,12 +8,12 @@ print_usage() {
 Usage: $0 --kubeconfig <file> --project <gcp-project> [--secret-name <name>] [--vault-path <path>]
 
 Creates/updates a Google Secret Manager secret with the provided kubeconfig content.
-If Vault is configured (VAULT_ADDR & VAULT_TOKEN) and 
+If Vault is configured (VAULT_ADDR & REDACTED_VAULT_TOKEN) and 
 `vault` CLI is present, it will optionally sync the secret to Vault at the provided --vault-path.
 
 Environment:
   GCP credentials must be available via gcloud auth or ADC.
-  Optionally set VAULT_ADDR and VAULT_TOKEN to sync to Vault.
+  Optionally set VAULT_ADDR and REDACTED_VAULT_TOKEN to sync to Vault.
 
 Example:
   $0 --kubeconfig ./kubeconfig --project my-gcp-project --secret-name runner/STAGING_KUBECONFIG --vault-path secret/runner/staging_kubeconfig
@@ -80,7 +80,7 @@ else
 fi
 
 # Optional: sync to Vault if configured
-if [[ -n "$VAULT_PATH" && -n "${VAULT_ADDR:-}" && -n "${VAULT_TOKEN:-}" ]] && command -v vault >/dev/null 2>&1; then
+if [[ -n "$VAULT_PATH" && -n "${VAULT_ADDR:-}" && -n "${REDACTED_VAULT_TOKEN:-}" ]] && command -v vault >/dev/null 2>&1; then
   echo "Syncing secret to Vault at $VAULT_PATH"
   # Use kv v2 if available; try kv get first
   if vault kv get -field=value "$VAULT_PATH" >/dev/null 2>&1; then

@@ -111,8 +111,8 @@ bd7edba6d automation: Phase 2 vault appRole + KMS
 **Status:** ⏳ Awaiting AWS credentials  
 **Unblock Path:**
 ```bash
-export AWS_ACCESS_KEY_ID=xxx
-export AWS_SECRET_ACCESS_KEY=xxx
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 bash scripts/phase3b-credentials-aws-vault.sh  # Re-run (idempotent)
 ```
 
@@ -228,7 +228,7 @@ bash scripts/credentials-failover.sh --test
 
 ### IMMEDIATE (Admin Action Required)
 1. **Configure AWS Credentials** (Unblock Issue #2136, #2124)
-   - Set `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`
+   - Set `AWS_ACCESS_KEY_ID` and `REDACTED_AWS_SECRET_ACCESS_KEY`
    - AWS OIDC Provider will auto-provision
    - Phase 3B script can re-run via: `bash scripts/phase3b-credentials-aws-vault.sh`
 

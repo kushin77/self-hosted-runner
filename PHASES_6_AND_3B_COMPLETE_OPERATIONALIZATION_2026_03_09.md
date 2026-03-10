@@ -237,7 +237,7 @@ Admin provides credentials via one of 3 methods:
 **Option 2: Environment**
 ```bash
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=xxxxx
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
 
