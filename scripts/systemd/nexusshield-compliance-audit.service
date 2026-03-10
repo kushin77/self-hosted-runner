@@ -1,0 +1,21 @@
+[Unit]
+Description=NexusShield Monthly Compliance Audit
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/home/akushnir/self-hosted-runner/scripts/compliance/monthly-audit-trail-check.sh
+StandardOutput=append:/var/log/nexusshield/compliance-audit.log
+StandardError=append:/var/log/nexusshield/compliance-audit-error.log
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="HOME=/root"
+
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ReadWritePaths=/home/akushnir/self-hosted-runner/logs
+
+[Install]
+WantedBy=multi-user.target
