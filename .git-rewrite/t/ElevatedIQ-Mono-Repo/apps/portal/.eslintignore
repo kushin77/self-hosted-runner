@@ -1,0 +1,7 @@
+node_modules
+dist
+.vite
+build
+public
+coverage
+*.d.ts
