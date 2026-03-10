@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: nexusshield-frontend
     ports:
-      - "3000:3000"
+      - "${FRONTEND_HOST_PORT:-13000}:80"
     environment:
       VITE_API_BASE_URL: http://api:8080
       VITE_ENV: development
@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
     container_name: nexusshield-api
     ports:
-      - "8080:8080"
+      - "${API_HOST_PORT:-18080}:3000"
     environment:
       DATABASE_URL: postgresql://portal_user:${DB_PASSWORD:-portalpass}@database:5432/portal_db
       ENVIRONMENT: development
