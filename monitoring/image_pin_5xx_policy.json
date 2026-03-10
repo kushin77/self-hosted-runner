@@ -1,0 +1,21 @@
+{
+  "displayName": "image-pin-service 5xx alert",
+  "combiner": "OR",
+  "notificationChannels": ["projects/nexusshield-prod/notificationChannels/8115562493953505013"],
+  "conditions": [
+    {
+      "displayName": "image-pin 5xx count",
+      "conditionThreshold": {
+        "filter": "metric.type=\"run.googleapis.com/request_count\" AND resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"image-pin-service\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": { "count": 1 },
+        "aggregations": [
+          { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_DELTA" }
+        ]
+      }
+    }
+  ],
+  
+}
