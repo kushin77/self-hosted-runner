@@ -30,3 +30,11 @@
   },
   "status": "ready_for_apply"
 }
+{
+  "timestamp": "2026-03-10T08:00:00Z",
+  "event": "gcp_api_enablement_blocked",
+  "details": "Permission denied when attempting to list/enable services for project p4-platform",
+  "user": "akushnir@bioenergystrategies.com",
+  "required_action": "GCP Admin with roles/resourcemanager.projectIamAdmin must enable required APIs",
+  "apis_required": ["compute.googleapis.com","sqladmin.googleapis.com","cloudkms.googleapis.com","secretmanager.googleapis.com","artifactregistry.googleapis.com","run.googleapis.com","monitoring.googleapis.com","logging.googleapis.com","servicenetworking.googleapis.com"]
+}
