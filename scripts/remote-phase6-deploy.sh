@@ -19,7 +19,7 @@ REMOTE_LOG="${REMOTE_REPO_DIR}/logs/phase6-deploy-${TIMESTAMP}.log"
 
 echo "Running Phase 6 deploy on ${TARGET_HOST} (logs -> ${REMOTE_LOG})"
 
-SSH_CMD=$(cat <<'SSH_EOF'
+SSH_CMD=$(cat <<SSH_EOF
 set -euo pipefail
 cd /home/akushnir/self-hosted-runner
 # load env from .env if present (no secrets printed)
