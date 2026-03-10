@@ -6,4 +6,4 @@
   "description": "Immutable audit trail initialized"
 }
 
-{timestamp:2026-03-10T01:31:39Z,event:deployment_failed,details:{"error":"Terraform init failed: Unsupported argument encrypt_in_transit in main.tf","script":"direct-deploy-production.sh"}}
+{timestamp:2026-03-10T01:31:39Z,event:deployment_failed,details:{"error":"Terraform init failed: Unsupported argument encrypt_in_transit in main.tf","script":"direct-deploy-production.sh"}}{"timestamp":"2026-03-10T02:30:00Z","event":"terraform_config_fixed","environment":"production","status":"success","fixed_issues":["removed encrypt_in_transit from GCS backend","removed enable_private_path from CloudSQL","removed readiness_probe and liveness_probe from Cloud Run","removed concurrency from Cloud Run","fixed service account ID length to 30 chars","changed Secret Manager replication to user_managed"],"validation":"success","gitignore_updated":true,"commit":"4e02a497b","pushed":true}
