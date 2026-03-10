@@ -26,3 +26,9 @@ Actions:
 - $(date -u +"%Y-%m-%dT%H:%M:%SZ") Created GitHub Actions workflow `.github/workflows/phase6-ci.yml` to run build, integration, and health checks in CI.
 - To trigger: push to `main` or run workflow manually via `workflow_dispatch` in Actions UI.
 
+
+## CI Trigger
+- $(date -u +"%Y-%m-%dT%H:%M:%SZ") Triggered CI via empty commit `ci(phase6): trigger Phase 6 CI run` (SHA: f0c9ab4e8).
+- Workflow: `.github/workflows/phase6-ci.yml` — runs build, migration, integration verify, health checks, tests, artifact collection.
+- To monitor: open the repository Actions tab -> select "Phase 6 CI - Build, Integration, Health" run for this commit.
+
