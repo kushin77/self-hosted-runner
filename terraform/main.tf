@@ -296,11 +296,9 @@ resource "google_sql_database_instance" "primary" {
     }
 
     ip_configuration {
-      require_ssl = true
-      
-      ipv4_enabled = var.environment == "staging"
-      
-      private_network = var.environment == "production" ? google_compute_network.vpc.id : null
+      require_ssl     = true
+      ipv4_enabled    = false
+      private_network = google_compute_network.vpc.id
     }
   }
 }
