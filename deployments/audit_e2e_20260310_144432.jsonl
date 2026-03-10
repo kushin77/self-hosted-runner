@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-03-10T14:44:32Z",
+  "test_run_id": "e2e_20260310_144432_3328495",
+  "suite": "api",
+  "test_name": "health_check",
+  "result": "FAIL"
+}
