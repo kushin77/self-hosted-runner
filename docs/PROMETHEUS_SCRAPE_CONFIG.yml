@@ -14,7 +14,7 @@
   metrics_path: '/v1/sys/metrics'
   params:
     format: ['prometheus']
-  bearer_token: 's.REPLACE_WITH_VAULT_TOKEN'
+  bearer_token: 's.REPLACE_WITH_REDACTED_VAULT_TOKEN'
   static_configs:
     - targets: ['192.168.168.42:8200']
 

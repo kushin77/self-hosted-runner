@@ -92,9 +92,9 @@ phase_1_vault_hardening() {
     fi
     
     # Get vault token (either from env or dev server)
-    if [[ -z "${VAULT_TOKEN:-}" ]]; then
-        error "VAULT_TOKEN not set. Export it before running:"
-        echo "  export VAULT_TOKEN=dev-token-XXXXX"
+    if [[ -z "${REDACTED_VAULT_TOKEN:-}" ]]; then
+        error "REDACTED_VAULT_TOKEN not set. Export it before running:"
+        echo "  export REDACTED_VAULT_TOKEN=dev-token-XXXXX"
         return 1
     fi
     
@@ -330,7 +330,7 @@ On bastion (192.168.168.42), create systemd drop-in:
   sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<'SVCEOF'
 [Service]
 Environment="VAULT_ADDR=http://127.0.0.1:8200"
-Environment="VAULT_TOKEN=<SET_FROM_APPROLE>"
+Environment="REDACTED_VAULT_TOKEN=<SET_FROM_APPROLE>"
 Environment="CRED_SOURCE=vault"
 ExecStart=
 ExecStart=/usr/local/bin/wait-and-deploy.sh

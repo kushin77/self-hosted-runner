@@ -30,9 +30,9 @@ cd /home/akushnir/self-hosted-runner
 #### 2️⃣ **Environment Variables**
 ```bash
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200
-export VAULT_TOKEN=hvs.xxxxxxxxxxxxx
+export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
 
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -138,7 +138,7 @@ Before running activation:
 
 - [ ] Vault ready (optional)
   - VAULT_ADDR: `https://vault.example.com:8200`
-  - VAULT_TOKEN: `hvs.xxxxxxxxxxxxx`
+  - REDACTED_VAULT_TOKEN: `hvs.xxxxxxxxxxxxx`
   - Status: Unsealed (not sealed)
 
 - [ ] GCP ready (optional)
@@ -253,7 +253,7 @@ aws sts get-caller-identity
 ```bash
 # Test connection
 export VAULT_ADDR=https://vault.example.com:8200
-export VAULT_TOKEN=hvs.xxx
+export REDACTED_VAULT_TOKEN=hvs.xxx
 vault status
 
 # If fails: Vault may be sealed

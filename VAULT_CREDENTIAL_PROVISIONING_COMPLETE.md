@@ -137,7 +137,7 @@
 ### ✅ Vault Setup (COMPLETE)
 - [x] Vault dev server started on bastion
 - [x] SSH key provisioned to Vault
-- [x] Watcher configured with VAULT_ADDR and VAULT_TOKEN
+- [x] Watcher configured with VAULT_ADDR and REDACTED_VAULT_TOKEN
 - [x] Watcher auto-detects and retrieves credentials
 
 ### 🔄 Optional: AWS Secrets Manager
@@ -165,7 +165,7 @@ sudo journalctl -u wait-and-deploy.service -f
 ### Check Vault Secret
 ```bash
 export VAULT_ADDR=http://127.0.0.1:8200
-export VAULT_TOKEN=devroot
+export REDACTED_VAULT_TOKEN=devroot
 vault kv get secret/runner-deploy
 ```
 

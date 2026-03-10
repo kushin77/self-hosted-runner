@@ -24,7 +24,7 @@ This runbook covers provisioning deployment credentials for the **immutable, eph
 | **AWS Secrets Manager** | ⏳ Pending | #2100 | [Create secret & IAM role](#aws-provisioning) |
 | **Google Secrets Manager** | ⏳ Pending | #2103 | [Grant IAM permissions](#gsm-provisioning) |
 | **CI/PR Workflows** | ❌ Enabled | #2102 | [Disable CI/PR policy](#disable-cipr-workflows) |
-| **Deployment Policy** | ⏳ Draft | #2104 | [Enforce REDACTED_AWS_SECRET_ACCESS_KEY](#deployment-policy-enforcement) |
+| **Deployment Policy** | ⏳ Draft | #2104 | [Enforce REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY](#deployment-policy-enforcement) |
 
 ---
 
@@ -73,7 +73,7 @@ vault server -dev -dev-root-token-id=dev-token-$(date +%s) -dev-listen-address=1
 
 # In another terminal, export credentials
 export VAULT_ADDR='http://127.0.0.1:8200'
-export VAULT_TOKEN='dev-token-...'  # From server output
+export REDACTED_VAULT_TOKEN='dev-token-...'  # From server output
 
 # Enable KV v2 (if not already enabled)
 vault secrets enable -version=2 kv
@@ -107,7 +107,7 @@ ssh akushnir@192.168.168.42
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
 Environment="VAULT_ADDR=http://127.0.0.1:8200"
-Environment="VAULT_TOKEN=dev-token-<your-token>"
+Environment="REDACTED_VAULT_TOKEN=dev-token-<your-token>"
 Environment="CRED_SOURCE=vault"
 ExecStart=
 ExecStart=/usr/local/bin/wait-and-deploy.sh
@@ -216,8 +216,8 @@ aws iam attach-user-policy \
   --policy-arn arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/runner-watcher-policy
 
 # Store credentials in Vault or environment
-echo "export AWS_ACCESS_KEY_ID='$ACCESS_KEY'"
-echo "export AWS_SECRET_ACCESS_KEY='$SECRET_KEY'"
+echo "export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID'"
+echo "export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'"
 echo "export AWS_REGION='us-east-1'"
 ```
 
@@ -230,8 +230,8 @@ ssh akushnir@192.168.168.42
 # Update systemd drop-in to use AWS
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
-Environment="AWS_ACCESS_KEY_ID=<your-access-key>"
-Environment="AWS_SECRET_ACCESS_KEY=<your-secret-key>"
+Environment="AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"
+Environment="REDACTED_AWS_SECRET_ACCESS_KEY=<your-secret-key>"
 Environment="AWS_REGION=us-east-1"
 Environment="CRED_SOURCE=aws"
 ExecStart=
@@ -422,7 +422,7 @@ sudo systemctl enable --now vault-agent.service
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
 Environment="VAULT_ADDR=https://vault.production.example.com:8200"
-Environment="VAULT_TOKEN_FILE=/var/run/vault/.vault-token"
+Environment="REDACTED_VAULT_TOKEN_FILE=/var/run/vault/.vault-token"
 Environment="CRED_SOURCE=vault"
 ExecStart=
 ExecStart=/usr/local/bin/wait-and-deploy.sh
@@ -573,7 +573,7 @@ sudo journalctl -u wait-and-deploy.service --since "1 hour ago" | grep "Detected
 | `secret not found in vault` | SSH key not provisioned | Run `bash scripts/deploy-operator-credentials.sh vault` |
 | `gcloud: permission denied on project` | Service account lacks IAM role | Run `gcloud projects add-iam-policy-binding` with correct role |
 | `No such file or directory: direct-deploy.sh` | Watcher script path misconfigured | Ensure `cd $REPO_ROOT` before invoking `./scripts/direct-deploy.sh` |
-| `AWS: Unable to locate credentials` | AWS CLI not authenticated | Run `aws configure` or set `AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY` |
+| `AWS: Unable to locate credentials` | AWS CLI not authenticated | Run `aws configure` or set `AWS_ACCESS_KEY_ID/REDACTED_AWS_SECRET_ACCESS_KEY` |
 
 ---
 
@@ -592,7 +592,7 @@ sudo journalctl -u wait-and-deploy.service --since "1 hour ago" | grep "Detected
 
 ## ✅ Completion Checklist
 
-**For full go-live of REDACTED_AWS_SECRET_ACCESS_KEY deployment system, complete in this order:**
+**For full go-live of REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY deployment system, complete in this order:**
 
 ### Phase 1: Vault Production Hardening (Issue #2101)
 - [ ] Replace dev token with AppRole
