@@ -1,0 +1,15 @@
+[Unit]
+Description=Ephemeral Runner Cleanup Service
+After=network.target
+
+[Service]
+Type=oneshot
+Environment=PROJECT=
+Environment=ZONE=
+Environment=TTL_HOURS=24
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/cleanup/cleanup_ephemeral_runners.sh "$PROJECT" "$ZONE" "$TTL_HOURS"
+User=root
+
+[Install]
+WantedBy=multi-user.target
