@@ -147,6 +147,12 @@ variable "db_instance_class" {
   default     = "db-f1-micro"
 }
 
+variable "portal_backend_sa_email" {
+  description = "Pre-created portal backend service account email (rotated March 10 2026)"
+  type        = string
+  default     = "nxs-portal-production-v2@nexusshield-prod.iam.gserviceaccount.com"
+}
+
 ###############################################################################
 # Service Account (Portal Backend)
 ###############################################################################
@@ -309,7 +315,8 @@ resource "google_cloud_run_service" "portal_backend" {
 
   template {
     spec {
-      service_account_name = google_service_account.portal_backend.email
+      # Use rotated service account (created March 10 2026, no org policy constraints)
+      service_account_name = var.portal_backend_sa_email
 
       containers {
         image = var.portal_image
