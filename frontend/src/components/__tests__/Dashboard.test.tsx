@@ -273,7 +273,7 @@ describe('NexusShield Portal Dashboard', () => {
       expect(tabs.length).toBe(3);
     });
 
-    it('✅ should handle loading state', (), {
+    it('✅ should handle loading state', () => {
       render(<Dashboard />);
       // Dashboard should show loading message while fetching
       expect(screen.getByText(/Loading dashboard/i)).toBeInTheDocument();
