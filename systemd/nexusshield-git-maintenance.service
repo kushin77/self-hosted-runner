@@ -1,0 +1,20 @@
+[Unit]
+Description=NexusShield Git Repository Maintenance
+Documentation=docs/git-maintenance.md
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=%h/self-hosted-runner/.git
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=%h/self-hosted-runner
+ExecStart=%h/self-hosted-runner/scripts/git-maintenance-automation.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=git-maintenance
+PrivateTmp=yes
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
