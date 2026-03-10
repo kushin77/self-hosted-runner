@@ -9,9 +9,6 @@ VERBOSE="${1:-}"
 ERRORS=0
 CHECKED=0
 
-# Load credential resolver
-source "$SCRIPT_DIR/load-credential.sh"
-
 # Define required credentials by category
 declare -A REQUIRED_CREDENTIALS=(
   # GCP
@@ -56,7 +53,7 @@ for CRED in "${!REQUIRED_CREDENTIALS[@]}"; do
   ((CHECKED++))
   DESC="${REQUIRED_CREDENTIALS[$CRED]}"
   
-  if source "$SCRIPT_DIR/load-credential.sh" "$CRED" >/dev/null 2>&1; then
+  if bash "$SCRIPT_DIR/load-credential.sh" "$CRED" >/dev/null 2>&1; then
     echo "  ✅ $CRED"
     [ -n "$VERBOSE" ] && echo "     → $DESC"
   else
@@ -72,7 +69,7 @@ for CRED in "${!OPTIONAL_CREDENTIALS[@]}"; do
   ((CHECKED++))
   DESC="${OPTIONAL_CREDENTIALS[$CRED]}"
   
-  if source "$SCRIPT_DIR/load-credential.sh" "$CRED" >/dev/null 2>&1; then
+  if bash "$SCRIPT_DIR/load-credential.sh" "$CRED" >/dev/null 2>&1; then
     echo "  ✅ $CRED"
     [ -n "$VERBOSE" ] && echo "     → $DESC"
   else
