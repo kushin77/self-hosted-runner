@@ -165,7 +165,7 @@ sudo journalctl -u wait-and-deploy.service -f
 ### Check Vault Secret
 ```bash
 export VAULT_ADDR=http://127.0.0.1:8200
-export REDACTED_VAULT_TOKEN=devroot
+export REDACTED_VAULT_TOKEN=<REDACTED>
 vault kv get secret/runner-deploy
 ```
 

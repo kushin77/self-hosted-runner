@@ -17,7 +17,7 @@
 # 2. Set Vault credentials (optional Layer 2A)
 ./scripts/phase3b-credential-manager.sh set-vault \
   --addr https://vault.example.com:8200 \
-  --token hvs.xxxxxxxxxxxxx
+  --token <REDACTED>
 
 # 3. Verify all layers
 ./scripts/phase3b-credential-manager.sh verify
@@ -36,7 +36,7 @@
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200
-export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
+export REDACTED_VAULT_TOKEN=<REDACTED>
 
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -60,7 +60,7 @@ gh workflow run phase3b-credential-injection.yml \
   -f AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
   -f REDACTED_AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx \
   -f vault_addr=https://vault.example.com:8200 \
-  -f REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
+  -f REDACTED_VAULT_TOKEN=<REDACTED>
 ```
 
 **Result:** GitHub Actions auto-runs Phase 3B, creates workflow job comment on issues
@@ -108,7 +108,7 @@ Verifies credentials via `aws sts get-caller-identity`
 ```bash
 ./scripts/phase3b-credential-manager.sh set-vault \
   --addr https://vault.example.com:8200 \
-  --token hvs.xxxxxxxxxxxxx
+  --token <REDACTED>
 ```
 
 Verifies connection via `vault status`
@@ -333,12 +333,12 @@ All changes are idempotent and reversible.
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200 && \
-export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx && \
+export REDACTED_VAULT_TOKEN=<REDACTED> && \
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # 2. Or via CLI tool
 ./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxxxxxxxxxx && \
-./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token hvs.xxxxxxxxxxxxx && \
+./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token <REDACTED> && \
 ./scripts/phase3b-credential-manager.sh activate
 ```
 
