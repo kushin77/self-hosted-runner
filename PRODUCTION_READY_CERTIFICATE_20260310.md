@@ -6,6 +6,10 @@
 **Manual Operations:** 0 Required  
 **Automation Level:** 100% Hands-Off  
 
+**Repository:** https://github.com/kushin77/self-hosted-runner.git
+
+**Branch Protection:** Applied locally and enforcement confirmed via pre-commit hook (`.githooks/prevent-workflows`). To update remote branch protections or GitHub Issues, export a GitHub admin token as `auth_token` and run the provided automation scripts or the curl commands in `scripts/github/` (optional automated sync).
+
 ---
 
 ## EXECUTIVE SUMMARY
