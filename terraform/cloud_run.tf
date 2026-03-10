@@ -12,7 +12,7 @@ variable "cloudrun_service_account" {
 
 resource "google_service_account" "cloudrun_sa" {
   count        = var.cloudrun_service_account == "" ? 1 : 0
-  account_id   = "automation-runner-sa-${random_string.run_id.result}"
+  account_id   = "automation-runner-sa-${lower(random_string.run_id.result)}"
   display_name = "Automation Runner Service Account"
 }
 
