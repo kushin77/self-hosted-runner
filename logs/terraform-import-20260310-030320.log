@@ -1,0 +1,10 @@
+[0m[1mgoogle_secret_manager_secret.db_connection_string: Importing from ID "projects/nexusshield-prod/secrets/nexusshield-portal-db-connection-production"...[0m
+[0m[1m[32mgoogle_secret_manager_secret.db_connection_string: Import prepared![0m
+[0m[32m  Prepared google_secret_manager_secret for import[0m
+[0m[1mgoogle_secret_manager_secret.db_connection_string: Refreshing state... [id=projects/nexusshield-prod/secrets/nexusshield-portal-db-connection-production][0m
+[0m[32m
+Import successful!
+
+The resources that were imported are shown above. These resources are now in
+your Terraform state and will henceforth be managed by Terraform.
+[0m
