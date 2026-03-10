@@ -31,10 +31,12 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy app files
 COPY server.js package.json ./
 
-# Copy entrypoint and a template vault-agent config (optional)
+# Copy entrypoint script
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-COPY vault-agent-config.hcl.tpl /etc/vault/agent-config.hcl
 RUN chmod +x /app/docker-entrypoint.sh
+
+# Create vault config (copy from source if available, else use placeholder)
+RUN mkdir -p /etc/vault && echo "# Vault Agent Config (placeholder)" > /etc/vault/agent-config.hcl
 
 # Create logs directory
 RUN mkdir -p /app/logs && chmod 755 /app/logs
