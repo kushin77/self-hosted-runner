@@ -33,10 +33,19 @@ done
 
 echo "Deploying to ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}"
 
-tar -C $(dirname "$COMPOSE_FILE") -czf /tmp/compose_payload.tgz $(basename "$COMPOSE_FILE") || true
-scp /tmp/compose_payload.tgz ${REMOTE_USER}@${REMOTE_HOST}:/tmp/ || true
+LIBDIR="$(cd "$(dirname "$0")/.." && pwd)/lib"
+if [ -f "${LIBDIR}/deploy-common.sh" ]; then
+  # Use centralized deploy helpers (idempotent + auditable)
+  source "${LIBDIR}/deploy-common.sh"
+  deploy_upload_payload "${COMPOSE_FILE}" "${REMOTE_USER}" "${REMOTE_HOST}" "${REMOTE_DIR}"
+  deploy_execute_remote "${COMPOSE_FILE}" "${REMOTE_USER}" "${REMOTE_HOST}" "${REMOTE_DIR}" ${NO_BUILD}
+  echo "Deploy completed via deploy-common.sh"
+else
+  # Fallback to embedded transport (legacy)
+  tar -C $(dirname "$COMPOSE_FILE") -czf /tmp/compose_payload.tgz $(basename "$COMPOSE_FILE") || true
+  scp /tmp/compose_payload.tgz ${REMOTE_USER}@${REMOTE_HOST}:/tmp/ || true
 
-ssh ${REMOTE_USER}@${REMOTE_HOST} bash -s <<'EOF'
+  ssh ${REMOTE_USER}@${REMOTE_HOST} bash -s <<'EOF'
 set -euo pipefail
 cd ${REMOTE_DIR}
 tar xzf /tmp/compose_payload.tgz -C .
@@ -56,7 +65,8 @@ sleep 5
 docker-compose -f ${COMPOSE_FILE} ps
 EOF
 
-echo "Deploy completed (check remote for service statuses)."
+  echo "Deploy completed (check remote for service statuses)."
+fi
 #!/usr/bin/env bash
 set -euo pipefail
 # Direct, idempotent deploy helper (SSH + docker-compose)
