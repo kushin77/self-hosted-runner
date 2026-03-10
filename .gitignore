@@ -44,3 +44,10 @@ nexusshield/logs/*.jsonl
 deployment-execution-*.log
 logs/portal-mvp-phase*.jsonl
 fix-audit-logs.sh
+
+# Secrets and runtime artifacts
+.ssh/
+terraform/terraform.tfstate
+terraform/.terraform.tfstate.lock.info
+infra/credentials/
+.nexusshield_credentials
