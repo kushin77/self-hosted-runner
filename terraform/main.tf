@@ -155,7 +155,10 @@ resource "google_compute_router_nat" "nat" {
 # ===========================================================================
 
 resource "google_vpc_access_connector" "cloud_run" {
-  name          = "${local.env_prefix}-connector"
+  # Use an explicit, RFC-compliant name for production to satisfy GCP's
+  # connector ID pattern. For non-production environments, keep the
+  # generated prefix-based name.
+  name = var.environment == "production" ? "production-portal-connector" : "${local.env_prefix}-connector"
   region        = var.gcp_region
   ip_cidr_range = var.environment == "production" ? "10.8.0.0/28" : "10.9.0.0/28"
   network       = google_compute_network.vpc.name
