@@ -1,10 +1,10 @@
 #!/bin/sh
 set -euo pipefail
 
-# Load VAULT_TOKEN from file if provided (ephemeral token file recommended)
-if [ -n "${VAULT_TOKEN_FILE:-}" ] && [ -f "$VAULT_TOKEN_FILE" ]; then
-  export VAULT_TOKEN="$(cat "$VAULT_TOKEN_FILE")"
-  echo "VAULT_TOKEN loaded from $VAULT_TOKEN_FILE"
+# Load VAULT_TOKEN from mounted path if provided (ephemeral token file recommended)
+if [ -n "${VAULT_TOKEN_MOUNT_PATH:-}" ] && [ -f "$VAULT_TOKEN_MOUNT_PATH" ]; then
+  export VAULT_TOKEN="$(cat "$VAULT_TOKEN_MOUNT_PATH")"
+  echo "VAULT_TOKEN loaded from $VAULT_TOKEN_MOUNT_PATH"
 fi
 
 # If Vault binary is available and a config file exists, run Vault Agent in background
