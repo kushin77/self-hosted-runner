@@ -4,9 +4,9 @@
  * Supports SOC2, GDPR, and HIPAA compliance requirements
  */
 
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from './prisma-wrapper';
 
-const prisma = new PrismaClient();
+const prisma = getPrisma();
 
 // ============================================================================
 // TYPE DEFINITIONS
