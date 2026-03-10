@@ -6,9 +6,9 @@ services:
     image: postgres:15-alpine
     container_name: nexusshield-postgres
     environment:
-      POSTGRES_USER: nexusshield
-      POSTGRES_PASSWORD: nexusshield_secure_password_change_me
-      POSTGRES_DB: nexusshield
+      POSTGRES_USER: ${DB_USER:-nexusshield}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?error: DB_PASSWORD not set}
+      POSTGRES_DB: ${DB_NAME:-nexusshield}
     ports:
       - "5432:5432"
     volumes:
@@ -45,12 +45,16 @@ services:
       dockerfile: Dockerfile
     container_name: nexusshield-backend
     environment:
-      NODE_ENV: production
-      PORT: 3000
-      DATABASE_URL: postgresql://nexusshield:nexusshield_secure_password_change_me@postgres:5432/nexusshield
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production}
-      CORS_ORIGINS: http://localhost:3000,http://localhost:8000,http://frontend:3001
-      LOG_LEVEL: info
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:?error: DATABASE_URL not set}
+      JWT_SECRET: ${JWT_SECRET:?error: JWT_SECRET not set}
+      CORS_ORIGINS: ${CORS_ORIGINS:?error: CORS_ORIGINS not set}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DEPLOYMENT_HOST: ${DEPLOYMENT_HOST:-192.168.168.42}
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+      VAULT_ADDR: ${VAULT_ADDR:-}
+      KMS_KEY_ID: ${KMS_KEY_ID:-}
     ports:
       - "3000:3000"
     depends_on:
