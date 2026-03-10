@@ -1,0 +1,19 @@
+[Unit]
+Description=NexusShield Terraform State Backup Timer
+Requires=nexusshield-terraform-backup.service
+After=network-online.target
+
+[Timer]
+# Run every 6 hours (0:00, 6:00, 12:00, 18:00 UTC)
+OnCalendar=*-*-* 00:00:00
+OnCalendar=*-*-* 06:00:00
+OnCalendar=*-*-* 12:00:00
+OnCalendar=*-*-* 18:00:00
+Persistent=true
+Unit=nexusshield-terraform-backup.service
+
+# Initial backup on boot
+OnBootSec=10min
+
+[Install]
+WantedBy=timers.target
