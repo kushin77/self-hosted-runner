@@ -10,7 +10,9 @@
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "test": "vitest",
-    "test:cov": "vitest --coverage"
+    "test:cov": "vitest --coverage",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run --env host=$REACT_APP_API_URL"
   },
   "dependencies": {
     "react": "^18.2.0",
