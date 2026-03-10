@@ -65,3 +65,7 @@ infra/credentials/
 # Local credentials (do not commit)
 .credentials/
 nexusshield/*/terraform/*.log
+logs/
+PHASE*_*.md
+scripts/deploy-with-secrets.sh
+nexusshield/infrastructure/terraform/production/logs/
