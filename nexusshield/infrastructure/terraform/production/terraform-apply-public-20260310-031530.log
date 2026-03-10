@@ -1,0 +1,66 @@
+2026-03-10T03:15:30.450Z [INFO]  Terraform version: 1.14.6
+2026-03-10T03:15:30.450Z [INFO]  Go runtime version: go1.25.6
+2026-03-10T03:15:30.450Z [INFO]  CLI args: []string{"terraform", "apply", "tfplan.production.public"}
+2026-03-10T03:15:30.451Z [INFO]  CLI command args: []string{"apply", "tfplan.production.public"}
+2026-03-10T03:15:31.087Z [INFO]  backend/local: starting Apply operation
+2026-03-10T03:15:31.096Z [INFO]  provider: configuring client automatic mTLS
+2026-03-10T03:15:31.140Z [INFO]  provider.terraform-provider-google_v5.45.2_x5: configuring server automatic mTLS: timestamp=2026-03-10T03:15:31.140Z
+2026-03-10T03:15:31.451Z [INFO]  provider: plugin process exited: plugin=.terraform/providers/registry.terraform.io/hashicorp/google/5.45.2/linux_amd64/terraform-provider-google_v5.45.2_x5 id=2877011
+2026-03-10T03:15:31.451Z [INFO]  provider: configuring client automatic mTLS
+2026-03-10T03:15:31.496Z [INFO]  provider.terraform-provider-google-beta_v5.45.2_x5: configuring server automatic mTLS: timestamp=2026-03-10T03:15:31.496Z
+2026-03-10T03:15:31.882Z [INFO]  provider: plugin process exited: plugin=.terraform/providers/registry.terraform.io/hashicorp/google-beta/5.45.2/linux_amd64/terraform-provider-google-beta_v5.45.2_x5 id=2877032
+2026-03-10T03:15:31.883Z [INFO]  provider: configuring client automatic mTLS
+2026-03-10T03:15:31.902Z [INFO]  provider.terraform-provider-random_v3.8.1_x5: configuring server automatic mTLS: timestamp=2026-03-10T03:15:31.902Z
+2026-03-10T03:15:31.933Z [INFO]  provider: plugin process exited: plugin=.terraform/providers/registry.terraform.io/hashicorp/random/3.8.1/linux_amd64/terraform-provider-random_v3.8.1_x5 id=2877049
+2026-03-10T03:15:31.933Z [INFO]  backend/local: apply calling Apply
+2026-03-10T03:15:31.938Z [INFO]  provider: configuring client automatic mTLS
+2026-03-10T03:15:31.954Z [INFO]  provider.terraform-provider-random_v3.8.1_x5: configuring server automatic mTLS: timestamp=2026-03-10T03:15:31.954Z
+2026-03-10T03:15:31.980Z [INFO]  provider: configuring client automatic mTLS
+2026-03-10T03:15:32.024Z [INFO]  provider.terraform-provider-google_v5.45.2_x5: configuring server automatic mTLS: timestamp=2026-03-10T03:15:32.023Z
+2026-03-10T03:15:32.052Z [INFO]  provider: plugin process exited: plugin=.terraform/providers/registry.terraform.io/hashicorp/random/3.8.1/linux_amd64/terraform-provider-random_v3.8.1_x5 id=2877059
+2026-03-10T03:15:32.099Z [INFO]  provider.terraform-provider-google_v5.45.2_x5: Authenticating using DefaultClient...: @module=google tf_req_id=4cfcb955-0f8a-2c6b-89df-8bee2db6bb8d tf_mux_provider="*proto5server.Server" tf_provider_addr=registry.terraform.io/hashicorp/google tf_rpc=ConfigureProvider @caller=github.com/hashicorp/terraform-provider-google/google/fwtransport/framework_config.go:1842 timestamp=2026-03-10T03:15:32.099Z
+2026-03-10T03:15:32.099Z [INFO]  provider.terraform-provider-google_v5.45.2_x5:   -- Scopes: [https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email]: @caller=github.com/hashicorp/terraform-provider-google/google/fwtransport/framework_config.go:1843 @module=google tf_mux_provider="*proto5server.Server" tf_provider_addr=registry.terraform.io/hashicorp/google tf_req_id=4cfcb955-0f8a-2c6b-89df-8bee2db6bb8d tf_rpc=ConfigureProvider timestamp=2026-03-10T03:15:32.099Z
+2026-03-10T03:15:32.099Z [INFO]  provider.terraform-provider-google_v5.45.2_x5: Authenticating using DefaultClient...: @caller=github.com/hashicorp/terraform-provider-google/google/fwtransport/framework_config.go:1842 @module=google tf_mux_provider="*proto5server.Server" tf_provider_addr=registry.terraform.io/hashicorp/google tf_rpc=ConfigureProvider tf_req_id=4cfcb955-0f8a-2c6b-89df-8bee2db6bb8d timestamp=2026-03-10T03:15:32.099Z
+2026-03-10T03:15:32.099Z [INFO]  provider.terraform-provider-google_v5.45.2_x5:   -- Scopes: [https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/userinfo.email]: @module=google tf_provider_addr=registry.terraform.io/hashicorp/google tf_req_id=4cfcb955-0f8a-2c6b-89df-8bee2db6bb8d tf_rpc=ConfigureProvider @caller=github.com/hashicorp/terraform-provider-google/google/fwtransport/framework_config.go:1843 tf_mux_provider="*proto5server.Server" timestamp=2026-03-10T03:15:32.099Z
+2026-03-10T03:15:32.403Z [INFO]  provider.terraform-provider-google_v5.45.2_x5: Terraform is using this identity: terraform-deployer@nexusshield-prod.iam.gserviceaccount.com: @caller=github.com/hashicorp/terraform-provider-google/google/fwtransport/framework_config.go:1712 tf_rpc=ConfigureProvider @module=google tf_mux_provider="*proto5server.Server" tf_provider_addr=registry.terraform.io/hashicorp/google tf_req_id=4cfcb955-0f8a-2c6b-89df-8bee2db6bb8d timestamp=2026-03-10T03:15:32.403Z
+2026-03-10T03:15:32.537Z [WARN]  provider.terraform-provider-google_v5.45.2_x5: Response contains warning diagnostic: @caller=github.com/hashicorp/terraform-plugin-go@v0.23.0/tfprotov5/internal/diag/diagnostics.go:60 diagnostic_attribute="AttributeName(\"settings\").ElementKeyInt(0).AttributeName(\"ip_configuration\").ElementKeyInt(0).AttributeName(\"require_ssl\")" diagnostic_detail="`require_ssl` will be fully deprecated in a future major release. For now, please use `ssl_mode` with a compatible `require_ssl` value instead." diagnostic_severity=WARNING diagnostic_summary="Argument is deprecated" tf_provider_addr=registry.terraform.io/hashicorp/google tf_resource_type=google_sql_database_instance @module=sdk.proto tf_proto_version=5.6 tf_req_id=38732f96-cbdb-8103-1169-5b2c1570aa7b tf_rpc=ValidateResourceTypeConfig timestamp=2026-03-10T03:15:32.537Z
+2026-03-10T03:15:32.559Z [WARN]  Provider "registry.terraform.io/hashicorp/google" produced an invalid plan for google_sql_database_instance.portal_db, but we are tolerating it because it is using the legacy plugin SDK.
+    The following problems may be the cause of any confusing errors from downstream operations:
+      - .replica_configuration: attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead
+      - .settings[0].disk_autoresize_limit: planned value cty.NumberIntVal(0) for a non-computed attribute
+      - .settings[0].disk_autoresize: planned value cty.True for a non-computed attribute
+      - .settings[0].edition: planned value cty.StringVal("ENTERPRISE") for a non-computed attribute
+      - .settings[0].pricing_plan: planned value cty.StringVal("PER_USE") for a non-computed attribute
+      - .settings[0].activation_policy: planned value cty.StringVal("ALWAYS") for a non-computed attribute
+      - .settings[0].disk_type: planned value cty.StringVal("PD_SSD") for a non-computed attribute
+      - .settings[0].backup_configuration[0].backup_retention_settings: attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead
+      - .settings[0].location_preference: attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead
+[0m[1mgoogle_sql_database_instance.portal_db: Creating...[0m[0m
+2026-03-10T03:15:32.560Z [INFO]  Starting apply for google_sql_database_instance.portal_db
+2026-03-10T03:15:32.562Z [WARN]  Provider "registry.terraform.io/hashicorp/google" produced an invalid plan for google_cloud_run_service.portal_backend, but we are tolerating it because it is using the legacy plugin SDK.
+    The following problems may be the cause of any confusing errors from downstream operations:
+      - .autogenerate_revision_name: planned value cty.False for a non-computed attribute
+      - .template[0].spec[0].containers[0].startup_probe: attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead
+      - .metadata: attribute representing nested block must not be unknown itself; set nested attribute values to unknown instead
+[0m[1mgoogle_cloud_run_service.portal_backend: Creating...[0m[0m
+2026-03-10T03:15:32.563Z [INFO]  Starting apply for google_cloud_run_service.portal_backend
+2026-03-10T03:15:33.145Z [ERROR] provider.terraform-provider-google_v5.45.2_x5: Response contains error diagnostic: @caller=github.com/hashicorp/terraform-plugin-go@v0.23.0/tfprotov5/internal/diag/diagnostics.go:58 diagnostic_detail="" tf_proto_version=5.6 tf_req_id=5b08c936-c19b-367b-cc27-c7689b42a7f0 tf_rpc=ApplyResourceChange @module=sdk.proto diagnostic_severity=ERROR diagnostic_summary="Error, failed to create instance nexusshield-portal-db-e67c: googleapi: Error 400: Invalid request: Organization Policy check failure: the external IP of this instance violates the constraints/sql.restrictPublicIp enforced at the 151423364222 project.., invalid" tf_provider_addr=registry.terraform.io/hashicorp/google tf_resource_type=google_sql_database_instance timestamp=2026-03-10T03:15:33.145Z
+2026-03-10T03:15:33.153Z [ERROR] vertex "google_sql_database_instance.portal_db" error: Error, failed to create instance nexusshield-portal-db-e67c: googleapi: Error 400: Invalid request: Organization Policy check failure: the external IP of this instance violates the constraints/sql.restrictPublicIp enforced at the 151423364222 project.., invalid
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [00m10s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [00m20s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [00m30s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [00m40s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [00m50s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m00s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m10s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m20s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m30s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m40s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [01m50s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m00s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m10s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m20s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m30s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m40s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [02m50s elapsed][0m[0m
+[0m[1mgoogle_cloud_run_service.portal_backend: Still creating... [03m00s elapsed][0m[0m
