@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Prevent adding GitHub workflow files to commits (local safety guard)
+STAGED=$(git diff --cached --name-only)
+if echo "$STAGED" | grep -q "^.github/workflows/"; then
+  echo "ERROR: committing files under .github/workflows is disallowed by repository policy." >&2
+  echo "If you are an admin and need to add a workflow, coordinate via admin channel and update policy." >&2
+  exit 1
+fi
+
+exit 0
