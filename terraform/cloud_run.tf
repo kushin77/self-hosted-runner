@@ -22,6 +22,12 @@ variable "vault_secret_id_secret_name" {
   default     = ""
 }
 
+variable "vault_addr" {
+  description = "Address of the Vault server (eg: https://vault.example.com)"
+  type        = string
+  default     = ""
+}
+
 resource "google_service_account" "cloudrun_sa" {
   count        = var.cloudrun_service_account == "" ? 1 : 0
   account_id   = "automation-runner-sa-${lower(random_string.run_id.result)}"
@@ -50,21 +56,24 @@ resource "google_cloud_run_service" "automation" {
           value = var.vault_addr
         }
 
-        dynamic "secret_env" {
-          for_each = var.vault_role_id_secret_name != "" ? [var.vault_role_id_secret_name] : []
-          content {
-            name    = "VAULT_ROLE_ID"
-            secret  = "projects/${var.gcp_project}/secrets/${secret_env.value}"
-            version = "latest"
+        # Map Vault AppRole credentials from Secret Manager into container env vars
+        env {
+          name = "VAULT_ROLE_ID"
+          value_from {
+            secret_key_ref {
+              name = var.vault_role_id_secret_name
+              key  = "latest"
+            }
           }
         }
 
-        dynamic "secret_env" {
-          for_each = var.vault_secret_id_secret_name != "" ? [var.vault_secret_id_secret_name] : []
-          content {
-            name    = "VAULT_SECRET_ID"
-            secret  = "projects/${var.gcp_project}/secrets/${secret_env.value}"
-            version = "latest"
+        env {
+          name = "VAULT_SECRET_ID"
+          value_from {
+            secret_key_ref {
+              name = var.vault_secret_id_secret_name
+              key  = "latest"
+            }
           }
         }
       }
