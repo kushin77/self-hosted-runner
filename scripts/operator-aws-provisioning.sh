@@ -181,7 +181,7 @@ provision_aws_credentials() {
         run_cmd "aws secretsmanager create-secret"
         run_cmd "  --name '$secret_name'"
         run_cmd "  --description 'AWS credentials for runner deployment'"
-        run_cmd "  --secret-string '{\"access_key_id\":\"AKIAIOSFODNN7EXAMPLE\",\"secret_access_key\":\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"}'"
+        run_cmd "  --secret-string '{\"access_key_id\":\"REDACTED_AWS_ACCESS_KEY_ID\",\"secret_access_key\":\"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY\"}'"
         run_cmd "  --region '$AWS_REGION'"
         
         if [[ "$DRY_RUN" != "true" ]]; then

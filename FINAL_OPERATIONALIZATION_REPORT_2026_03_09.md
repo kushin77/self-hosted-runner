@@ -203,8 +203,8 @@ cd /home/akushnir/self-hosted-runner
 
 # Set AWS credentials
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXXXXXXXXXX \
-  --secret XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+  --key REDACTED_AWS_ACCESS_KEY_ID \
+  --secret REDACTED_AWS_SECRET_ACCESS_KEY
 
 # Verify (optional)
 ./scripts/phase3b-credential-manager.sh verify
@@ -215,8 +215,8 @@ cd /home/akushnir/self-hosted-runner
 
 ### Method 2: Environment Variables
 ```bash
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
-export AWS_SECRET_ACCESS_KEY=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export AWS_SECRET_ACCESS_KEY=REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200  # Optional
 
 bash /home/akushnir/self-hosted-runner/scripts/phase3b-credentials-inject-activate.sh
@@ -228,8 +228,8 @@ bash /home/akushnir/self-hosted-runner/scripts/phase3b-credentials-inject-activa
 2. Select: "Phase 3B Credential Injection"
 3. Click: "Run workflow" dropdown
 4. Enter:
-   - AWS_ACCESS_KEY_ID: AKIAXXXXXXXXXXXXXXXX
-   - AWS_SECRET_ACCESS_KEY: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+   - AWS_ACCESS_KEY_ID: REDACTED_AWS_ACCESS_KEY_ID
+   - AWS_SECRET_ACCESS_KEY: REDACTED_AWS_SECRET_ACCESS_KEY
 5. Click: "Run workflow"
 6. Monitor: Status updates in real-time
 ```

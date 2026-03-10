@@ -174,7 +174,7 @@ setup_aws_oidc() {
     if provider_arn=$(aws iam create-open-id-connect-provider \
         --url https://token.actions.githubusercontent.com \
         --client-id-list sts.amazonaws.com \
-        --thumbprint-list "6938fd4d98bab03faadb97b34396831e3780aea1" \
+        --thumbprint-list "REDACTED_AWS_SECRET_ACCESS_KEY" \
         --query 'OpenIDConnectProviderArn' \
         --output text 2>/dev/null); then
         log_success "AWS OIDC Provider created: $provider_arn"

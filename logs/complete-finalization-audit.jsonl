@@ -79,3 +79,4 @@
   "issue": "#2116",
   "commit": "d34e3e894"
 }
+{"timestamp":"2026-03-10T02:25:53Z","operation":"gsm-api-enable-terraform","status":"permission_denied","message":"Terraform apply failed: insufficient permissions to list/enable services for project p4-platform","issue":"#2116,#2220"}

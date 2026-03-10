@@ -12,7 +12,7 @@
 
 ```bash
 # 1. Set AWS credentials
-./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXXXXXX --secret xxxxxxxxxxxxxxx
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxxxxxxxxxx
 
 # 2. Set Vault credentials (optional Layer 2A)
 ./scripts/phase3b-credential-manager.sh set-vault \
@@ -33,7 +33,7 @@
 ### Option 2: Direct Environment Variables
 
 ```bash
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx
 export VAULT_ADDR=https://vault.example.com:8200
 export VAULT_TOKEN=hvs.xxxxxxxxxxxxx
@@ -57,7 +57,7 @@ bash scripts/phase3b-credentials-inject-activate.sh
 **Via GitHub CLI:**
 ```bash
 gh workflow run phase3b-credential-injection.yml \
-  -f aws_access_key_id=AKIAXXXXXXXX \
+  -f aws_access_key_id=REDACTED_AWS_ACCESS_KEY_ID \
   -f aws_secret_access_key=xxxxxxxxxxxxxxx \
   -f vault_addr=https://vault.example.com:8200 \
   -f vault_token=hvs.xxxxxxxxxxxxx
@@ -98,7 +98,7 @@ gh workflow run phase3b-credential-injection.yml \
 ### Set AWS Credentials
 ```bash
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key AKIAXXXXXXXX \
+  --key REDACTED_AWS_ACCESS_KEY_ID \
   --secret xxxxxxxxxxxxxxx
 ```
 
@@ -330,14 +330,14 @@ All changes are idempotent and reversible.
 
 ```bash
 # 1. Single-liner with environment variables
-export AWS_ACCESS_KEY_ID=AKIAXXXXXXXX && \
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID && \
 export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx && \
 export VAULT_ADDR=https://vault.example.com:8200 && \
 export VAULT_TOKEN=hvs.xxxxxxxxxxxxx && \
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # 2. Or via CLI tool
-./scripts/phase3b-credential-manager.sh set-aws --key AKIAXXXXXXXX --secret xxxxxxxxxxxxxxx && \
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxxxxxxxxxx && \
 ./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token hvs.xxxxxxxxxxxxx && \
 ./scripts/phase3b-credential-manager.sh activate
 ```
