@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-03-10T02:53:24Z",
+  "phase": "deployment-start",
+  "status": "initiated",
+  "message": "Comprehensive deployment framework started",
+  "severity": "info",
+  "commit": "ea94c7bff"
+}
+{
+  "timestamp": "2026-03-10T02:53:24Z",
+  "phase": "prerequisites",
+  "status": "verified",
+  "message": "All required tools available",
+  "severity": "info",
+  "commit": "ea94c7bff"
+}
+{
+  "timestamp": "2026-03-10T02:53:24Z",
+  "phase": "credentials",
+  "status": "failed",
+  "message": "No credentials available from any source",
+  "severity": "error",
+  "commit": "ea94c7bff"
+}
+{
+  "timestamp": "2026-03-10T02:53:24Z",
+  "phase": "cleanup",
+  "status": "success",
+  "message": "Ephemeral credentials and temporary files removed",
+  "severity": "info",
+  "commit": "ea94c7bff"
+}
