@@ -95,3 +95,14 @@ docs/**/*.md.bak
 **/*.plan
 **/*.tfstate*
 config/docker-compose.phase6.yml
+# Ignore logs, backups, and sensitive artifacts
+**/*.jsonl
+**/*.log
+**/*.bak
+**/*.plan
+**/*.tfstate*
+/*.tfplan
+config/docker-compose.phase6.yml
+secrets/
+*.key
+*.pem
