@@ -11,3 +11,6 @@ database_version          = "15"
 # api_container_image parameterized at runtime with git SHA
 api_container_port        = 3000
 instance_count            = 1  # Minimum instances in staging
+
+# GCP Project Configuration
+gcp_project = "p4-platform"
