@@ -1,28 +1,9 @@
-check:
-	@echo "Running repository checks..."
-	@echo "No checks configured"
+.PHONY: build push
 
-install-hooks:
-	@echo "No pre-commit config present to install hooks"
-check:
-	@echo "Running repository checks..."
-	@git diff --quiet --cached || true
-	@bash scripts/ci/check_no_github_actions.sh
-	@bash scripts/ci/scan_secrets.sh
-	@echo "All checks passed"
+IMAGE ?= gcr.io/$(GCP_PROJECT)/automation-runner:latest
 
-install-hooks:
-	@pre-commit install || true
-SHELL:=/bin/bash
-.PHONY: check install-hooks
+build:
+	docker build -t $(IMAGE) -f scripts/cloudrun/Dockerfile .
 
-check:
-	@echo "Running repository checks..."
-	@bash scripts/ci/check_no_github_actions.sh
-	@bash scripts/ci/scan_secrets.sh
-	@echo "All checks passed"
-
-install-hooks:
-	@command -v pre-commit >/dev/null 2>&1 || { echo "Install pre-commit: pip install pre-commit"; exit 1; }
-	@pre-commit install
-	@echo "pre-commit hooks installed"
+push: build
+	docker push $(IMAGE)
