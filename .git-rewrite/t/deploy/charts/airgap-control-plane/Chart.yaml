@@ -1,0 +1,5 @@
+apiVersion: v2
+name: airgap-control-plane
+description: Helm chart for air-gapped RunnerCloud control plane components
+version: 0.1.0
+appVersion: "1.0.0"
