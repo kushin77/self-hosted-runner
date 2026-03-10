@@ -19,4 +19,4 @@ api_container_port        = 3000
 instance_count            = 3  # Minimum instances in production (HA)
 
 # GCP Project Configuration  
-gcp_project = "dev-app-001-prod"
+gcp_project = "nexusshield-prod"
