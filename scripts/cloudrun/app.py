@@ -27,11 +27,11 @@ def handler():
             pass
 
     if action == 'vault_sync':
-        path = '/app/../vault/sync_gsm_to_vault.sh'
+        path = '/opt/scripts/sync_gsm_to_vault.sh'
         code, out = run_script(path)
         return jsonify({'action': 'vault_sync', 'exit': code, 'output': out}), (200 if code == 0 else 500)
     elif action == 'cleanup_ephemeral':
-        path = '/app/../cleanup/cleanup_ephemeral_runners.sh'
+        path = '/opt/scripts/cleanup_ephemeral_runners.sh'
         # expect env PROJECT and ZONE to be set in runtime
         code, out = run_script(path)
         return jsonify({'action': 'cleanup_ephemeral', 'exit': code, 'output': out}), (200 if code == 0 else 500)
