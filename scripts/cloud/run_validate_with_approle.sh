@@ -32,19 +32,19 @@ if [[ -z "$VAULT_TOKEN" ]]; then
 fi
 
 export VAULT_TOKEN
-export VAULT_TOKEN_FILE="/tmp/vault_token_$$"
-# Write token to a temp file for compatibility
-printf "%s" "$VAULT_TOKEN" > "$VAULT_TOKEN_FILE"
-chmod 600 "$VAULT_TOKEN_FILE"
+export VAULT_TOKEN_MOUNT_PATH="/tmp/vault-token-$$"
+# Write token to a temp file for compatibility (using mount-path variable)
+printf "%s" "$VAULT_TOKEN" > "$VAULT_TOKEN_MOUNT_PATH"
+chmod 600 "$VAULT_TOKEN_MOUNT_PATH"
 
 echo "Logged in to Vault via AppRole; running cloud validation..."
 
-# Run validation script (it will look for VAULT_TOKEN_FILE or VAULT_TOKEN)
+# Run validation script (it will look for VAULT_TOKEN_MOUNT_PATH or VAULT_TOKEN_FILE or VAULT_TOKEN)
 ./scripts/cloud/validate_gsm_vault_kms.sh
 STATUS=$?
 
 # Clean up token
-rm -f "$VAULT_TOKEN_FILE"
+rm -f "$VAULT_TOKEN_MOUNT_PATH"
 unset VAULT_TOKEN
 
 if [[ $STATUS -ne 0 ]]; then

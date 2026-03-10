@@ -21,8 +21,12 @@ timestamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 
 # If a Vault token file is present (vault-agent sink), export it for the duration of the run.
 # This keeps tokens out of repo secrets and process args.
-if [[ -z "${VAULT_TOKEN:-}" && -n "${VAULT_TOKEN_FILE:-}" && -f "${VAULT_TOKEN_FILE}" ]]; then
-  export VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE" | tr -d '\n' || true)
+if [[ -z "${VAULT_TOKEN:-}" ]]; then
+  if [[ -f "${VAULT_TOKEN_MOUNT_PATH:-}" ]]; then
+    export VAULT_TOKEN=$(cat "$VAULT_TOKEN_MOUNT_PATH" | tr -d '\n' || true)
+  elif [[ -n "${VAULT_TOKEN_FILE:-}" && -f "${VAULT_TOKEN_FILE}" ]]; then
+    export VAULT_TOKEN=$(cat "$VAULT_TOKEN_FILE" | tr -d '\n' || true)
+  fi
 fi
 
 # Run provisioning, capture output

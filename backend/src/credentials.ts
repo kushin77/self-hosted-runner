@@ -58,7 +58,7 @@ export class CredentialService {
     // Prefer Vault Agent token sink file to avoid env token exposure
     const vaultAddr = process.env.VAULT_ADDR || 'http://localhost:8200';
     const vaultNamespace = process.env.VAULT_NAMESPACE || '';
-    const vaultTokenFile = process.env.VAULT_TOKEN_FILE || '/var/run/secrets/vault/token';
+    const vaultTokenFile = process.env.VAULT_TOKEN_MOUNT_PATH || process.env.VAULT_TOKEN_FILE || '/var/run/secrets/vault/token';
     let vaultToken = process.env.REDACTED_VAULT_TOKEN || process.env.VAULT_TOKEN || '';
     try {
       const fs = require('fs');
