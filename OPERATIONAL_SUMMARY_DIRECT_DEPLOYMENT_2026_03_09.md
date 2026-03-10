@@ -182,7 +182,7 @@ scrape_configs:
     metrics_path: '/v1/sys/metrics'
     params:
       format: ['prometheus']
-    bearer_token: 's.YOUR_REDACTED_VAULT_TOKEN_HERE'
+    bearer_token: '<REDACTED>'
     static_configs:
       - targets: ['192.168.168.42:8200']
 ```

@@ -18,7 +18,7 @@ cd /home/akushnir/self-hosted-runner
 ./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxx
 
 # Set Vault (optional)
-./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token hvs.xxx
+./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token <REDACTED>
 
 # Verify all layers
 ./scripts/phase3b-credential-manager.sh verify
@@ -32,7 +32,7 @@ cd /home/akushnir/self-hosted-runner
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
 export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200
-export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
+export REDACTED_VAULT_TOKEN=<REDACTED>
 
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -138,7 +138,7 @@ Before running activation:
 
 - [ ] Vault ready (optional)
   - VAULT_ADDR: `https://vault.example.com:8200`
-  - REDACTED_VAULT_TOKEN: `hvs.xxxxxxxxxxxxx`
+  - REDACTED_VAULT_TOKEN: `<REDACTED>`
   - Status: Unsealed (not sealed)
 
 - [ ] GCP ready (optional)
@@ -253,7 +253,7 @@ aws sts get-caller-identity
 ```bash
 # Test connection
 export VAULT_ADDR=https://vault.example.com:8200
-export REDACTED_VAULT_TOKEN=hvs.xxx
+export REDACTED_VAULT_TOKEN=<REDACTED>
 vault status
 
 # If fails: Vault may be sealed

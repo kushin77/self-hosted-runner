@@ -124,7 +124,7 @@ bash scripts/phase3b-credentials-aws-vault.sh  # Idempotent re-run
 **Action Required:** Admin unseals Vault and provides access credentials
 ```bash
 export VAULT_ADDR=https://vault.example.com:8200
-export REDACTED_VAULT_TOKEN=hvs.xxx  # or use AppRole auth
+export REDACTED_VAULT_TOKEN=<REDACTED>  # or use AppRole auth
 ```
 
 **Auto-Resolution:**
