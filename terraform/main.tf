@@ -353,17 +353,17 @@ resource "google_secret_manager_secret_iam_member" "backend_username" {
 #   member  = "serviceAccount:${google_service_account.backend.email}"
 # }
 
-resource "google_project_iam_member" "backend_secret_accessor" {
-  project = var.gcp_project
-  role    = "roles/secretmanager.secretAccessor"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
+# resource "google_project_iam_member" "backend_secret_accessor" {
+#   project = var.gcp_project
+#   role    = "roles/secretmanager.secretAccessor"
+#   member  = "serviceAccount:${google_service_account.backend.email}"
+# }
 
-resource "google_project_iam_member" "backend_logging" {
-  project = var.gcp_project
-  role    = "roles/logging.logWriter"
-  member  = "serviceAccount:${google_service_account.backend.email}"
-}
+# resource "google_project_iam_member" "backend_logging" {
+#   project = var.gcp_project
+#   role    = "roles/logging.logWriter"
+#   member  = "serviceAccount:${google_service_account.backend.email}"
+# }
 
 # ===========================================================================
 # ARTIFACT REGISTRY
@@ -380,96 +380,96 @@ resource "google_artifact_registry_repository" "docker" {
 # CLOUD RUN - BACKEND
 # ===========================================================================
 
-resource "google_cloud_run_service" "backend" {
-  name     = "${local.service}-backend"
-  location = var.gcp_region
-
-  template {
-    spec {
-      service_account_name = google_service_account.backend.email
-      
-      containers {
-        image = "gcr.io/${var.gcp_project}/${local.service}-backend:latest"
-        ports {
-          container_port = 8080
-        }
-        
-        # Disabled: DATABASE_URL references Cloud SQL which is unavailable due to org policies
-        # env {
-        #   name  = "DATABASE_URL"
-        #   value = "postgresql://portal_admin@${google_sql_database_instance.primary.connection_name}/portal"
-        # }
-        
-        env {
-          name  = "ENVIRONMENT"
-          value = var.environment
-        }
-        
-        resources {
-          limits = {
-            memory = var.environment == "production" ? "1Gi" : "512Mi"
-            cpu    = var.environment == "production" ? "1" : "0.5"
-          }
-        }
-      }
-
-      timeout_seconds = 30
-    }
-
-    metadata {
-      annotations = {
-        "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.cloud_run.name
-        "run.googleapis.com/vpc-access-egress"    = "private-ranges-only"
-      }
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-}
+# resource "google_cloud_run_service" "backend" {
+#   name     = "${local.service}-backend"
+#   location = var.gcp_region
+# 
+#   template {
+#     spec {
+#       service_account_name = google_service_account.backend.email
+#       
+#       containers {
+#         image = "gcr.io/${var.gcp_project}/${local.service}-backend:latest"
+#         ports {
+#           container_port = 8080
+#         }
+#         
+#         # Disabled: DATABASE_URL references Cloud SQL which is unavailable due to org policies
+#         # env {
+#         #   name  = "DATABASE_URL"
+#         #   value = "postgresql://portal_admin@${google_sql_database_instance.primary.connection_name}/portal"
+#         # }
+#         
+#         env {
+#           name  = "ENVIRONMENT"
+#           value = var.environment
+#         }
+#         
+#         resources {
+#           limits = {
+#             memory = var.environment == "production" ? "1Gi" : "512Mi"
+#             cpu    = var.environment == "production" ? "1" : "0.5"
+#           }
+#         }
+#       }
+# 
+#       timeout_seconds = 30
+#     }
+# 
+#     metadata {
+#       annotations = {
+#         "run.googleapis.com/vpc-access-connector" = google_vpc_access_connector.cloud_run.name
+#         "run.googleapis.com/vpc-access-egress"    = "private-ranges-only"
+#       }
+#     }
+#   }
+# 
+#   traffic {
+#     percent         = 100
+#     latest_revision = true
+#   }
+# }
 
 # ===========================================================================
 # CLOUD RUN - FRONTEND
 # ===========================================================================
 
-resource "google_cloud_run_service" "frontend" {
-  name     = "${local.service}-frontend"
-  location = var.gcp_region
-
-  template {
-    spec {
-      service_account_name = google_service_account.frontend.email
-      
-      containers {
-        image = "gcr.io/${var.gcp_project}/${local.service}-frontend:latest"
-        ports {
-          container_port = 3000
-        }
-        
-        env {
-          name  = "REACT_APP_API_URL"
-          value = "${google_cloud_run_service.backend.status[0].url}/api"
-        }
-        
-        resources {
-          limits = {
-            memory = "256Mi"
-            cpu    = "0.2"
-          }
-        }
-      }
-
-      timeout_seconds = 20
-    }
-  }
-
-  traffic {
-    percent         = 100
-    latest_revision = true
-  }
-}
+# resource "google_cloud_run_service" "frontend" {
+#   name     = "${local.service}-frontend"
+#   location = var.gcp_region
+# 
+#   template {
+#     spec {
+#       service_account_name = google_service_account.frontend.email
+#       
+#       containers {
+#         image = "gcr.io/${var.gcp_project}/${local.service}-frontend:latest"
+#         ports {
+#           container_port = 3000
+#         }
+#         
+#         env {
+#           name  = "REACT_APP_API_URL"
+#           value = "${google_cloud_run_service.backend.status[0].url}/api"
+#         }
+#         
+#         resources {
+#           limits = {
+#             memory = "256Mi"
+#             cpu    = "0.2"
+#           }
+#         }
+#       }
+# 
+#       timeout_seconds = 20
+#     }
+#   }
+# 
+#   traffic {
+#     percent         = 100
+#     latest_revision = true
+#   }
+# }
 
 # ===========================================================================
 # IAM - CLOUD RUN PUBLIC ACCESS
@@ -484,43 +484,43 @@ data "google_iam_policy" "noauth" {
   }
 }
 
-resource "google_cloud_run_service_iam_policy" "backend_noauth" {
-  service  = google_cloud_run_service.backend.name
-  location = google_cloud_run_service.backend.location
-  policy_data = data.google_iam_policy.noauth.policy_data
-}
+# resource "google_cloud_run_service_iam_policy" "backend_noauth" {
+#   service  = google_cloud_run_service.backend.name
+#   location = google_cloud_run_service.backend.location
+#   policy_data = data.google_iam_policy.noauth.policy_data
+# }
 
-resource "google_cloud_run_service_iam_policy" "frontend_noauth" {
-  service  = google_cloud_run_service.frontend.name
-  location = google_cloud_run_service.frontend.location
-  policy_data = data.google_iam_policy.noauth.policy_data
-}
+# resource "google_cloud_run_service_iam_policy" "frontend_noauth" {
+#   service  = google_cloud_run_service.frontend.name
+#   location = google_cloud_run_service.frontend.location
+#   policy_data = data.google_iam_policy.noauth.policy_data
+# }
 
 # ===========================================================================
 # CLOUD MONITORING
 # ===========================================================================
 
-resource "google_monitoring_uptime_check_config" "backend" {
-  display_name = "${local.env_prefix}-uptime-check"
-  timeout      = "10s"
-  period       = "60s"
-
-  http_check {
-    request_method = "GET"
-    use_ssl        = true
-    path           = "/health"
-    port           = 443
-  }
-
-  monitored_resource {
-    type = "uptime-url"
-    labels = {
-      host = replace(google_cloud_run_service.backend.status[0].url, "https://", "")
-    }
-  }
-
-  selected_regions = ["USA", "EUROPE", "ASIA_PACIFIC"]
-}
+# resource "google_monitoring_uptime_check_config" "backend" {
+#   display_name = "${local.env_prefix}-uptime-check"
+#   timeout      = "10s"
+#   period       = "60s"
+# 
+#   http_check {
+#     request_method = "GET"
+#     use_ssl        = true
+#     path           = "/health"
+#     port           = 443
+#   }
+# 
+#   monitored_resource {
+#     type = "uptime-url"
+#     labels = {
+#       host = replace(google_cloud_run_service.backend.status[0].url, "https://", "")
+#     }
+#   }
+# 
+#   selected_regions = ["USA", "EUROPE", "ASIA_PACIFIC"]
+# }
 
 # ===========================================================================
 # OUTPUTS
@@ -535,15 +535,15 @@ output "environment" {
   value = var.environment
 }
 
-output "backend_url" {
-  value       = google_cloud_run_service.backend.status[0].url
-  description = "Backend service URL"
-}
+# output "backend_url" {
+#   value       = google_cloud_run_service.backend.status[0].url
+#   description = "Backend service URL"
+# }
 
-output "frontend_url" {
-  value       = google_cloud_run_service.frontend.status[0].url
-  description = "Frontend service URL"
-}
+# output "frontend_url" {
+#   value       = google_cloud_run_service.frontend.status[0].url
+#   description = "Frontend service URL"
+# }
 
 # output "database_connection_name" {
 #   value       = google_sql_database_instance.primary.connection_name
@@ -559,18 +559,18 @@ output "artifact_registry_url" {
   description = "Artifact Registry path"
 }
 
-output "deployment_summary" {
-  value = jsonencode({
-    environment           = var.environment
-    deployment_id         = random_string.deployment_id.result
-    backend_service       = google_cloud_run_service.backend.name
-    frontend_service      = google_cloud_run_service.frontend.name
-    # database              = "Disabled due to GCP org policies blocking all SQL connectivity"
-    vpc                   = google_compute_network.vpc.name
-    credential_management = "GSM (primary) → Vault (secondary) → KMS (tertiary)"
-    immutable_trail       = "git + JSONL audit logs"
-    automation            = "GitHub Actions CI/CD"
-    timestamp             = timestamp()
-  })
-  description = "Complete deployment summary"
-}
+# output "deployment_summary" {
+#   value = jsonencode({
+#     environment           = var.environment
+#     deployment_id         = random_string.deployment_id.result
+#     backend_service       = google_cloud_run_service.backend.name
+#     frontend_service      = google_cloud_run_service.frontend.name
+#     # database              = "Disabled due to GCP org policies blocking all SQL connectivity"
+#     vpc                   = google_compute_network.vpc.name
+#     credential_management = "GSM (primary) → Vault (secondary) → KMS (tertiary)"
+#     immutable_trail       = "git + JSONL audit logs"
+#     automation            = "GitHub Actions CI/CD"
+#     timestamp             = timestamp()
+#   })
+#   description = "Complete deployment summary"
+# }
