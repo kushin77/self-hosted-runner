@@ -1,0 +1,13 @@
+[Unit]
+Description=NexusShield Hands-Off Final Provisioning Timer
+Documentation=file:///home/akushnir/self-hosted-runner/docs/INFRA_ACTIONS_FOR_ADMINS.md
+PartOf=hands-off-final-provisioning.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Persistent=true
+Accuracy=1s
+
+[Install]
+WantedBy=timers.target
