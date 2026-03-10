@@ -8,8 +8,8 @@ WORKDIR /build
 # Copy package files
 COPY package.json package-lock.json* ./
 
-# Install dependencies
-RUN npm ci --production
+# Install dependencies (including devDependencies needed for build)
+RUN npm ci
 
 # Copy source
 COPY src ./src
