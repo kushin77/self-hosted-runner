@@ -218,6 +218,10 @@ resource "google_secret_manager_secret" "firestore_config" {
       }
     }
   }
+
+  rotation {
+    rotation_period = "${tostring(var.secret_rotation_days * 86400)}s"
+  }
 }
 
 resource "google_secret_manager_secret_version" "firestore_config_version" {
