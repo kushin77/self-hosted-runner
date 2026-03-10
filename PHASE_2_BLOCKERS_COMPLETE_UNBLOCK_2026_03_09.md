@@ -174,7 +174,7 @@ terraform apply \
 export GCP_PROJECT_ID="my-project"
 export AWS_ACCOUNT_ID="123456789"
 export VAULT_ADDR="https://vault.example.com"
-export REDACTED_VAULT_TOKEN="hvs.CAESIMxx..."
+export REDACTED_VAULT_TOKEN="<REDACTED>..."
 
 # Run all unblockers
 ./scripts/unblock-phase2-blockers.sh
@@ -256,7 +256,7 @@ cat logs/phase2-blockers-resolution-*.jsonl | jq .
 gh secret set GCP_PROJECT_ID --body "my-gcp-project"
 gh secret set AWS_ACCOUNT_ID --body "123456789"
 gh secret set VAULT_ADDR --body "https://vault.example.com"
-gh secret set REDACTED_VAULT_TOKEN --body "hvs.XXXX..."
+gh secret set REDACTED_VAULT_TOKEN --body "<REDACTED>..."
 ```
 
 **Step 2: Authenticate to Providers**

@@ -100,7 +100,7 @@ scrape_configs:
 
 **Configuration:**
 - Mode: Development (`-dev` flag)
-- Dev Root Token: `devroot`
+- Dev Root Token: `<REDACTED>`
 - AppRole Auth: Enabled via `POST /sys/auth/approle`
 - Runner Policy: `runner-policy` (created and bound)
 - AppRole Role: `runner-agent` (created with full config)
@@ -154,7 +154,7 @@ ssh akushnir@192.168.168.42 "sudo systemctl status vault-agent filebeat node_exp
 ```bash
 ssh akushnir@192.168.168.42 << 'ROTATE'
 VAULT_ADDR="http://127.0.0.1:8200"
-ADMIN_TOKEN="devroot"  # or obtain from secure store
+ADMIN_TOKEN="<REDACTED>"  # or obtain from secure store
 
 # Generate new secret-id
 NEW_SECRET_ID=$(curl -s -H "X-Vault-Token: $ADMIN_TOKEN" \
@@ -228,7 +228,7 @@ External Systems:
 | 17:03 UTC | Vault server initialized | ✅ Ready |
 | 17:10 UTC | Filebeat + Prometheus config deployed | ✅ Active |
 | 17:15 UTC | Initial integration test | ⏳ AppRole pending |
-| 17:17 UTC | AppRole auth provisioned (devroot token) | ✅ Success |
+| 17:17 UTC | AppRole auth provisioned (<REDACTED> token) | ✅ Success |
 | 17:18 UTC | Vault Agent authentication verified | ✅ Token renewed |
 | 17:20 UTC | Final operational handoff | ✅ Complete |
 
