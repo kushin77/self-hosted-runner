@@ -10,6 +10,18 @@ variable "cloudrun_service_account" {
   default     = ""
 }
 
+variable "vault_role_id_secret_name" {
+  description = "Secret Manager secret name (not full path) that stores Vault AppRole role_id"
+  type        = string
+  default     = ""
+}
+
+variable "vault_secret_id_secret_name" {
+  description = "Secret Manager secret name that stores Vault AppRole secret_id"
+  type        = string
+  default     = ""
+}
+
 resource "google_service_account" "cloudrun_sa" {
   count        = var.cloudrun_service_account == "" ? 1 : 0
   account_id   = "automation-runner-sa-${lower(random_string.run_id.result)}"
@@ -29,7 +41,32 @@ resource "google_cloud_run_service" "automation" {
     spec {
       containers {
         image = var.cloudrun_image
-        env {}
+        env {
+          name  = "PROJECT"
+          value = var.gcp_project
+        }
+        env {
+          name  = "VAULT_ADDR"
+          value = var.vault_addr
+        }
+
+        dynamic "secret_env" {
+          for_each = var.vault_role_id_secret_name != "" ? [var.vault_role_id_secret_name] : []
+          content {
+            name    = "VAULT_ROLE_ID"
+            secret  = "projects/${var.gcp_project}/secrets/${secret_env.value}"
+            version = "latest"
+          }
+        }
+
+        dynamic "secret_env" {
+          for_each = var.vault_secret_id_secret_name != "" ? [var.vault_secret_id_secret_name] : []
+          content {
+            name    = "VAULT_SECRET_ID"
+            secret  = "projects/${var.gcp_project}/secrets/${secret_env.value}"
+            version = "latest"
+          }
+        }
       }
       service_account_name = var.cloudrun_service_account != "" ? var.cloudrun_service_account : google_service_account.cloudrun_sa[0].email
     }
@@ -39,6 +76,23 @@ resource "google_cloud_run_service" "automation" {
     percent         = 100
     latest_revision = true
   }
+}
+
+// Grant the Cloud Run service account access to read the Vault AppRole secrets
+resource "google_secret_manager_secret_iam_member" "vault_role_accessor" {
+  count   = var.vault_role_id_secret_name != "" ? 1 : 0
+  project = var.gcp_project
+  secret_id = var.vault_role_id_secret_name
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${var.cloudrun_service_account != "" ? var.cloudrun_service_account : google_service_account.cloudrun_sa[0].email}"
+}
+
+resource "google_secret_manager_secret_iam_member" "vault_secret_accessor" {
+  count   = var.vault_secret_id_secret_name != "" ? 1 : 0
+  project = var.gcp_project
+  secret_id = var.vault_secret_id_secret_name
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${var.cloudrun_service_account != "" ? var.cloudrun_service_account : google_service_account.cloudrun_sa[0].email}"
 }
 
 // Note: Pub/Sub push subscriptions are intentionally left out to avoid
