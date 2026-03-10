@@ -1,0 +1,77 @@
+# Repository Job Quotas Configuration
+# Defines per-repository limits for fair resource allocation
+# Used by fair-job-scheduler to enforce organization-wide fairness
+
+repositories:
+  # Critical organizational infrastructure
+  my-org/platform-core:
+    max_concurrent_jobs: 8
+    max_jobs_per_hour: 100
+    max_vpus_per_hour: 500
+    reserved_slots: 2  # Always have 2 slots available
+    priority_boost: 2.0  # 2x weight in scheduling
+    priority_class: high
+
+  my-org/security-scanning:
+    max_concurrent_jobs: 4
+    max_jobs_per_hour: 50
+    max_vpus_per_hour: 200
+    priority_class: high
+
+  # Standard repositories
+  my-org/backend-service:
+    max_concurrent_jobs: 3
+    max_jobs_per_hour: 30
+    max_vpus_per_hour: 150
+    priority_class: normal
+
+  my-org/frontend-app:
+    max_concurrent_jobs: 3
+    max_jobs_per_hour: 30
+    max_vpus_per_hour: 100
+    priority_class: normal
+
+  my-org/data-pipeline:
+    max_concurrent_jobs: 2
+    max_jobs_per_hour: 20
+    max_vpus_per_hour: 200  # High VPU usage (ML workloads)
+    required_labels: "gpu=true"
+    priority_class: normal
+
+  # Development repositories (lower priority)
+  my-org/mobile-app:
+    max_concurrent_jobs: 2
+    max_jobs_per_hour: 20
+    max_vpus_per_hour: 80
+    priority_class: normal
+
+  # Batch/house-keeping jobs (lowest priority)
+  my-org/maintenance-scripts:
+    max_concurrent_jobs: 1
+    max_jobs_per_hour: 10
+    max_vpus_per_hour: 30
+    priority_class: batch
+
+  # Default quota for any unspecified repository
+  default:
+    max_concurrent_jobs: 1
+    max_jobs_per_hour: 5
+    max_vpus_per_hour: 20
+    priority_class: batch
+
+# Global organization limits
+global:
+  total_runner_slots: 32
+  total_vpus_per_hour: 1000
+  starvation_timeout_hours: 2  # Boost priority if waiting longer
+  preemption_enabled: true
+  preemption_for_priorities: ["high", "system"]
+  
+# Fair sharing rules
+fairsharing:
+  algorithm: "deficit-round-robin"
+  quantum: 8  # Time slices per scheduler round
+  enforce_hard_limits: true
+  allow_burst: true
+  burst_multiplier: 1.5  # Temp 50% over limit if available
+  burst_duration_secs: 300

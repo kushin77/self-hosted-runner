@@ -1,0 +1,51 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "airgap-control-plane.fullname" . }}-image-load
+  labels:
+    app.kubernetes.io/name: {{ include "airgap-control-plane.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: image-loader
+          image: {{ .Values.imageLoader.image }}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              set -euo pipefail
+              echo "This job expects image tarballs to be placed under /images (e.g. via a PVC or an initContainer)."
+              if [ -z "$(ls -A /images 2>/dev/null)" ]; then
+                echo "No tarballs found in /images; exiting"
+                exit 1
+              fi
+              for f in /images/*.tar /images/*.tar.gz; do
+                [ -e "$f" ] || continue
+                echo "Loading $f"
+                if command -v ctr >/dev/null 2>&1; then
+                  ctr -n=k8s.io images import "$f"
+                elif command -v docker >/dev/null 2>&1; then
+                  docker load -i "$f"
+                elif command -v podman >/dev/null 2>&1; then
+                  podman load -i "$f"
+                else
+                  echo "No supported image loader found in the container." >&2
+                  exit 2
+                fi
+              done
+              echo "Image load complete"
+          volumeMounts:
+            - name: images
+              mountPath: /images
+      volumes:
+        - name: images
+          persistentVolumeClaim:
+            claimName: {{ .Values.imageLoader.pvc }}
+{{- if .Values.imagePullSecrets.enabled }}
+      imagePullSecrets:
+        - name: {{ include "airgap-control-plane.fullname" . }}-image-pull
+{{- end }}

@@ -1,0 +1,96 @@
+groups:
+  - name: provisioner-worker
+    interval: 30s
+    rules:
+      - alert: ProvisionerHighErrorRate
+        expr: |
+          (provisioner_jobs_failed_total / provisioner_jobs_processed_total) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Provisioner error rate above 10%"
+          description: "Job failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: ProvisionerQueueBackup
+        expr: provisioner_queue_depth > 20
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Provisioner queue depth high"
+          description: "{{ $value }} jobs queued"
+
+      - alert: ProvisionerVaultDisconnected
+        expr: provisioner_vault_connected == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Provisioner cannot reach Vault"
+          description: "Vault connectivity lost"
+
+      - alert: ProvisionerJobStoreError
+        expr: provisioner_jobstore_operational == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Provisioner jobStore error"
+          description: "JobStore is not operational"
+
+      - alert: ProvisionerLatencySLO
+        expr: |
+          histogram_quantile(0.95, provisioner_job_processing_latency_ms) > 3000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Provisioner p95 latency above 3000ms"
+          description: "p95 latency: {{ $value }}ms"
+
+  - name: managed-auth
+    interval: 30s
+    rules:
+      - alert: ManagedAuthHighErrorRate
+        expr: |
+          (managed_auth_requests_failure_total / managed_auth_requests_total) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Managed-auth error rate above 5%"
+          description: "API failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: ManagedAuthLatencySLO
+        expr: |
+          histogram_quantile(0.95, managed_auth_request_latency_ms) > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Managed-auth p95 latency above 1000ms"
+          description: "p95 latency: {{ $value }}ms"
+
+  - name: vault-shim
+    interval: 30s
+    rules:
+      - alert: VaultShimHighErrorRate
+        expr: |
+          (vault_shim_requests_failure_total / vault_shim_requests_total) > 0.01
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Vault-shim error rate above 1%"
+          description: "Secrets API failure rate is {{ $value | humanizePercentage }}"
+
+      - alert: VaultShimLatencySLO
+        expr: |
+          histogram_quantile(0.95, vault_shim_request_latency_ms) > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Vault-shim p95 latency above 500ms"
+          description: "p95 latency: {{ $value }}ms"

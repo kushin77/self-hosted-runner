@@ -1,0 +1,12 @@
+# Example terraform.tfvars for runner deployment
+# Copy to terraform.tfvars and fill in your values
+
+aws_region     = "us-east-1"
+project_name   = "elevatediq-runners"
+environment    = "prod"
+runner_count   = 2
+github_owner   = "elevatediq-ai"      # Replace with your org
+github_repo    = "your-repo"           # Replace with your repo
+vpc_id         = "vpc-xxxxxxxx"        # Replace with your VPC ID
+subnet_ids     = ["subnet-xxxxxxxx"]   # Replace with your subnet IDs
+runner_token   = "sensitive_token"     # Generate from GitHub Settings > Runners

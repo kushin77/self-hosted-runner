@@ -1,0 +1,56 @@
+# Vault Secrets Rotation Configuration (Phase P1)
+# Defines credentials to rotate and their lifecycle
+
+credentials:
+  # GitHub runner registration token
+  - path: secret/data/runners/github-token
+    name: github-token
+    ttl: 21600  # 6 hours
+    alert-on-expiry: true
+    required: true
+
+  # Docker registry credentials
+  - path: secret/data/runners/docker-credentials
+    name: docker-creds
+    ttl: 21600
+    alert-on-expiry: true
+    required: false
+
+  # AWS credentials (for S3 artifacts)
+  - path: secret/data/runners/aws-credentials
+    name: aws-creds
+    ttl: 3600  # 1 hour for extra security
+    alert-on-expiry: true
+    required: false
+
+  # Private registry credentials
+  - path: secret/data/runners/npm-token
+    name: npm-token
+    ttl: 86400  # 24 hours
+    alert-on-expiry: false
+    required: false
+
+rotation:
+  interval-secs: 3600  # Check every hour
+  pre-rotation-warning-secs: 300  # Alert 5 minutes before rotation
+  retry-on-failure: 3
+  retry-backoff-secs: 10
+  max-concurrent-rotations: 5
+
+audit:
+  enabled: true
+  log-path: /var/log/vault-audit.log
+  include-values: false  # Never log secret values
+
+fallback:
+  enabled: true
+  use-cached-if-unavailable: true
+  cache-ttl-secs: 86400  # Fall back to day-old cache if Vault down
+  alert-on-fallback: true
+
+high-availability:
+  vault-servers:
+    - https://vault-1.internal:8200
+    - https://vault-2.internal:8200
+    - https://vault-3.internal:8200
+  failover-strategy: round-robin
