@@ -1,0 +1,63 @@
+[0m[1mgoogle_compute_network.portal_vpc: Creating...[0m[0m
+[0m[1mgoogle_service_account.portal_backend: Creating...[0m[0m
+[0m[1mgoogle_secret_manager_secret.db_connection_string: Creating...[0m[0m
+[0m[1mgoogle_artifact_registry_repository.portal_repo: Creating...[0m[0m
+[0m[1mgoogle_sql_database_instance.portal_db: Creating...[0m[0m
+[33m╷[0m[0m
+[33m│[0m [0m[1m[33mWarning: [0m[0m[1mArgument is deprecated[0m
+[33m│[0m [0m
+[33m│[0m [0m[0m  with google_sql_database_instance.portal_db,
+[33m│[0m [0m  on main.tf line 236, in resource "google_sql_database_instance" "portal_db":
+[33m│[0m [0m 236:       require_ssl     = [4mtrue[0m[0m
+[33m│[0m [0m
+[33m│[0m [0m`require_ssl` will be fully deprecated in a future major release. For now,
+[33m│[0m [0mplease use `ssl_mode` with a compatible `require_ssl` value instead.
+[33m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError creating Network: googleapi: Error 409: The resource 'projects/nexusshield-prod/global/networks/nexusshield-vpc' already exists, alreadyExists[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_compute_network.portal_vpc,
+[31m│[0m [0m  on main.tf line 61, in resource "google_compute_network" "portal_vpc":
+[31m│[0m [0m  61: resource "google_compute_network" "portal_vpc" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError creating Repository: googleapi: Error 409: the repository already exists[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_artifact_registry_repository.portal_repo,
+[31m│[0m [0m  on main.tf line 98, in resource "google_artifact_registry_repository" "portal_repo":
+[31m│[0m [0m  98: resource "google_artifact_registry_repository" "portal_repo" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError creating service account: googleapi: Error 409: Service account nxs-portal-production already exists within project projects/nexusshield-prod.
+[31m│[0m [0mDetails:
+[31m│[0m [0m[
+[31m│[0m [0m  {
+[31m│[0m [0m    "@type": "type.googleapis.com/google.rpc.ResourceInfo",
+[31m│[0m [0m    "resourceName": "projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com"
+[31m│[0m [0m  }
+[31m│[0m [0m]
+[31m│[0m [0m, alreadyExists[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_service_account.portal_backend,
+[31m│[0m [0m  on main.tf line 164, in resource "google_service_account" "portal_backend":
+[31m│[0m [0m 164: resource "google_service_account" "portal_backend" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError, failed to create instance nexusshield-portal-db-e67c: googleapi: Error 400: Invalid request: Organization Policy check failure: the external IP of this instance violates the constraints/sql.restrictPublicIp enforced at the 151423364222 project.., invalid[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_sql_database_instance.portal_db,
+[31m│[0m [0m  on main.tf line 213, in resource "google_sql_database_instance" "portal_db":
+[31m│[0m [0m 213: resource "google_sql_database_instance" "portal_db" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
+[31m╷[0m[0m
+[31m│[0m [0m[1m[31mError: [0m[0m[1mError creating Secret: googleapi: Error 409: Secret [projects/151423364222/secrets/nexusshield-portal-db-connection-production] already exists.[0m
+[31m│[0m [0m
+[31m│[0m [0m[0m  with google_secret_manager_secret.db_connection_string,
+[31m│[0m [0m  on main.tf line 284, in resource "google_secret_manager_secret" "db_connection_string":
+[31m│[0m [0m 284: resource "google_secret_manager_secret" "db_connection_string" [4m{[0m[0m
+[31m│[0m [0m
+[31m╵[0m[0m
