@@ -82,6 +82,7 @@ scripts/audit/
 scripts/**/*secret*.sh
 scripts/**/*credential*.sh
 scripts/**/*provision*.sh
+!scripts/deployment/hands-off-final-provisioning.sh
 scripts/**/deploy-with-secrets.sh
 scripts/**/apply-*.sh
 scripts/**/fetch-*.sh
@@ -106,3 +107,7 @@ config/docker-compose.phase6.yml
 secrets/
 *.key
 *.pem
+scripts/deployment/provision-operator-credentials.sh
+scripts/gcp/*.sh
+terraform/terraform.tfvars
+terraform/*.backup
