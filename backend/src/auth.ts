@@ -7,9 +7,9 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { PrismaClient } from '@prisma/client';
+import { getPrisma } from './prisma-wrapper';
 
-const prisma = new PrismaClient();
+const prisma = getPrisma();
 
 // ============================================================================
 // TYPE DEFINITIONS
