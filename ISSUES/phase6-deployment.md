@@ -21,3 +21,8 @@ Actions:
 - Option A: I can generate a GitHub Actions workflow to run build, tests, and health checks in CI — create if you want.
 - Option B: I can produce exact commands and a checklist to run on the fullstack host.
 
+
+## Automation Update
+- $(date -u +"%Y-%m-%dT%H:%M:%SZ") Created GitHub Actions workflow `.github/workflows/phase6-ci.yml` to run build, integration, and health checks in CI.
+- To trigger: push to `main` or run workflow manually via `workflow_dispatch` in Actions UI.
+
