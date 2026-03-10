@@ -40,6 +40,15 @@
   "message": "Phase 5 planning tasks prepared for March 30 kickoff",
   "commit": "81278a286"
 }
+
+{
+  "timestamp": "2026-03-10T12:00:00Z",
+  "operation": "gsm-api-enable-request",
+  "status": "approval_required",
+  "message": "Approval requested to enable Secret Manager API on project p4-platform. Run: gcloud services enable secretmanager.googleapis.com --project=p4-platform",
+  "issue": "#2116",
+  "commit": "unknown"
+}
 {
   "timestamp": "2026-03-09T17:51:58Z",
   "operation": "update-issue-2041",
@@ -53,4 +62,12 @@
   "status": "success",
   "message": "Complete production finalization finished successfully",
   "commit": "81278a286"
+}
+{
+  "timestamp": "2026-03-10T02:17:22Z",
+  "operation": "gsm-api-enable",
+  "status": "permission_denied",
+  "message": "ERROR: (gcloud.services.enable) PERMISSION_DENIED: Permission denied to enable service [secretmanager.googleapis.com] Help Token: AerXPhUYX4faezz6EBurTMCpOGWhywdZITV58yIUpybnHZp5nRVbhEuCZs9wTV1hG86GNC35oB3CaQFmJ9nQqTGRZ8tu7pSccaiRvLrtlFC4JtH4. This command is authenticated as akushnir@bioenergystrategies.com which is the active account specified by the [core/account] property - '@type': type.googleapis.com/google.rpc.PreconditionFailure   violations:   - subject: '110002'     type: googleapis.com - '@type': type.googleapis.com/google.rpc.ErrorInfo   domain: serviceusage.googleapis.com   reason: AUTH_PERMISSION_DENIED ",
+  "issue": "#2116",
+  "commit": "cac1fc84a"
 }
