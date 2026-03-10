@@ -34,9 +34,9 @@
 
 ```bash
 export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200
-export VAULT_TOKEN=hvs.xxxxxxxxxxxxx
+export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
 
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -57,10 +57,10 @@ bash scripts/phase3b-credentials-inject-activate.sh
 **Via GitHub CLI:**
 ```bash
 gh workflow run phase3b-credential-injection.yml \
-  -f aws_access_key_id=REDACTED_AWS_ACCESS_KEY_ID \
-  -f aws_secret_access_key=xxxxxxxxxxxxxxx \
+  -f AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+  -f REDACTED_AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx \
   -f vault_addr=https://vault.example.com:8200 \
-  -f vault_token=hvs.xxxxxxxxxxxxx
+  -f REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx
 ```
 
 **Result:** GitHub Actions auto-runs Phase 3B, creates workflow job comment on issues
@@ -189,7 +189,7 @@ aws sts get-caller-identity
 
 # If fails:
 # 1. Check AWS_ACCESS_KEY_ID is set
-# 2. Check AWS_SECRET_ACCESS_KEY is set
+# 2. Check REDACTED_AWS_SECRET_ACCESS_KEY is set
 # 3. Verify credentials have IAM permissions:
 #    - iam:CreateOpenIDConnectProvider
 #    - kms:CreateKey
@@ -204,7 +204,7 @@ vault status
 # If fails:
 # 1. Vault may be sealed - use unsealing keys
 # 2. Check VAULT_ADDR is correct (with :8200)
-# 3. Check VAULT_TOKEN is valid
+# 3. Check REDACTED_VAULT_TOKEN is valid
 # 4. Check network connectivity to Vault endpoint
 ```
 
@@ -330,10 +330,10 @@ All changes are idempotent and reversible.
 
 ```bash
 # 1. Single-liner with environment variables
-export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID && \
-export AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx && \
+export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
 export VAULT_ADDR=https://vault.example.com:8200 && \
-export VAULT_TOKEN=hvs.xxxxxxxxxxxxx && \
+export REDACTED_VAULT_TOKEN=hvs.xxxxxxxxxxxxx && \
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # 2. Or via CLI tool
