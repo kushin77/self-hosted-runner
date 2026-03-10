@@ -10,7 +10,7 @@ services:
     ports:
       - "${FRONTEND_HOST_PORT:-13000}:80"
     environment:
-      VITE_API_BASE_URL: http://api:8080
+      VITE_API_BASE_URL: http://api:3000
       VITE_ENV: development
     volumes:
       - ./frontend/src:/app/src
@@ -20,7 +20,7 @@ services:
     networks:
       - nexusshield
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:80" ]
       interval: 30s
       timeout: 10s
       retries: 3
