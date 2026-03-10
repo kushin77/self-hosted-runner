@@ -1,0 +1,14 @@
+[Unit]
+Description=NexusShield Git Maintenance
+Documentation=docs/git-maintenance.md
+After=network-online.target
+Wants=network-online.target
+
+[Timer]
+# Run weekly on Sunday at 2 AM UTC
+OnCalendar=Sun *-*-* 02:00:00
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
