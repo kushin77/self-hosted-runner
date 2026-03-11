@@ -47,6 +47,9 @@ class CanonicalSecretsProvider:
         self.azure_vault = os.environ.get('AZURE_VAULT_NAME')
         
         self.audit_log = []
+        # In test-mode (FORCE_SERVICE_OK), use an ephemeral in-memory store to
+        # emulate Vault writes when real provider clients are not configured.
+        self._test_store: Dict[str, str] = {}
         self._init_vault_client()
         self._init_gsm_client()
         self._init_aws_client()
@@ -279,6 +282,10 @@ class CanonicalSecretsProvider:
     
     def get_secret(self, name: str) -> Optional[str]:
         """Get secret with automatic fallback"""
+        # Fast path: return from in-memory test store when present (test-mode)
+        if name in self._test_store:
+            return self._test_store.get(name)
+
         provider, fallback_chain = self.resolve_provider(name)
         
         if not provider:
