@@ -1,0 +1,4 @@
+2026-03-11T20:25:35Z | starting trigger bootstrap | account=monitoring-uchecker@nexusshield-prod.iam.gserviceaccount.com | project=nexusshield-prod
+2026-03-11T20:25:37Z | trigger create FAILED (rc=1)
+2026-03-11T20:25:37Z | output: ERROR: (gcloud.beta.builds.triggers.create.github) PERMISSION_DENIED: The caller does not have permission. This command is authenticated as monitoring-uchecker@nexusshield-prod.iam.gserviceaccount.com which is the active account specified by the [core/account] property
+2026-03-11T20:25:37Z | no GITHUB_TOKEN; skipping GitHub comment

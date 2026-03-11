@@ -1,0 +1,10 @@
+Local secrets health check starting at Wed Mar 11 09:00:00 PM UTC 2026
+DRY-RUN mode: running mirror script without writes
+
+╔════════════════════════════════════════════════════╗
+║   Unified Secrets Mirror (GSM → Vault/KMS/KeyVault)║
+║         Canonical Source: GSM (nexusshield-prod)      ║
+╚════════════════════════════════════════════════════╝
+
+[0;31m✗[0m gcloud CLI not found
+[0;31m✗[0m gcloud CLI required; cannot proceed
