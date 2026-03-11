@@ -35,4 +35,19 @@ resource "google_monitoring_alert_policy" "synthetic_uptime_alert" {
       }
     }
   }
+
+  # Fallback: log-based metric created from function structured logs
+  conditions {
+    display_name = "Synthetic fallback log metric missing"
+    condition_threshold {
+      filter = "metric.type = \"logging.googleapis.com/user/synthetic_uptime_log_count\""
+      comparison = "COMPARISON_LT"
+      threshold_value = 1
+      duration = "300s"
+      aggregations {
+        alignment_period = "60s"
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
 }
