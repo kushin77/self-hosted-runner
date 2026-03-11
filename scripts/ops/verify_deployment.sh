@@ -18,7 +18,8 @@ OUT="/tmp/deployment_verification_$(date -u +%Y%m%dT%H%M%SZ).txt"
 echo "Deployment verification started at $(date -u)" | tee "$OUT"
 
 printf '\n=== Crontab (runner) ===\n' | tee -a "$OUT"
-sudo crontab -u runner -l 2>&1 | tee -a "$OUT" || echo "(no crontab found)" | tee -a "$OUT"
+# Use non-interactive sudo to avoid password prompt in automated runs
+sudo -n crontab -u runner -l 2>&1 | tee -a "$OUT" || echo "(no crontab found)" | tee -a "$OUT"
 
 printf '\n=== Orchestrator log (tail 200) ===\n' | tee -a "$OUT"
 if ls "$LOG_DIR"/orchestrator-*.log 1> /dev/null 2>&1; then
