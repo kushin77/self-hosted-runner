@@ -35,6 +35,28 @@ steps:
   - |
     gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet
     gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet
+    
+# Post-deploy verification: run the post-deploy hook which will run the verify script.
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    set -euo pipefail
+    # If GITHUB_TOKEN is available in the build environment (preferred), use it.
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+      echo "Using GITHUB_TOKEN from environment for post-deploy verification"
+      export GITHUB_TOKEN
+    elif [ -n "${_GITHUB_TOKEN_SECRET:-}" ]; then
+      echo "Fetching GITHUB_TOKEN from Secret Manager: ${_GITHUB_TOKEN_SECRET}"
+      GITHUB_TOKEN=$(gcloud secrets versions access latest --secret="${_GITHUB_TOKEN_SECRET}" --project="$PROJECT_ID")
+      export GITHUB_TOKEN
+    else
+      echo "No GITHUB_TOKEN available; skipping post-deploy verification"
+      exit 0
+    fi
+    chmod +x tools/post-deploy-verify.sh
+    ./tools/post-deploy-verify.sh
 images:
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA'
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA'
@@ -42,4 +64,5 @@ options:
   substitution_option: ALLOW_LOOSE
 substitutions:
   _TAG: 'latest'
+  _GITHUB_TOKEN_SECRET: ''
 timeout: '1200s'
