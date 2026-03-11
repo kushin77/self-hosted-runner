@@ -7,7 +7,7 @@ set -euo pipefail
 
 ENDPOINT="${ENDPOINT:-http://192.168.168.42:8000}"
 ONPREM_HOST="${ONPREM_HOST:-192.168.168.42}"
-ONPREM_USER="${ONPREM_USER:-runner}"
+ONPREM_USER="${ONPREM_USER:-akushnir}"
 REPORT_FILE="/tmp/post_deploy_validation_$(date +%s).jsonl"
 
 log_validation() {
@@ -43,19 +43,35 @@ if [ -f "$CRED_SCRIPT" ]; then
   set -e
 fi
 
-# Check 1: API is reachable (directly or via SSH tunnel)
+# Check 1: API is reachable (try canonical health paths, fall back to SSH)
 echo "[1] Checking API reachability..."
-if curl -sf --connect-timeout 5 "$ENDPOINT/api/v1/secrets/health" > /dev/null 2>&1; then
-  log_validation "api_reachable" "PASS" "API responding at $ENDPOINT"
+HEALTH_OK=false
+http_status() {
+  curl -s --connect-timeout 5 -o /dev/null -w "%{http_code}" "$1" 2>/dev/null || echo "000"
+}
+
+if [ "$(http_status "$ENDPOINT/api/v1/secrets/health")" = "200" ]; then
+  HEALTH_PATH="/api/v1/secrets/health"
+  HEALTH_OK=true
+elif [ "$(http_status "$ENDPOINT/api/v1/secrets/health/all")" = "200" ]; then
+  HEALTH_PATH="/api/v1/secrets/health/all"
+  HEALTH_OK=true
+fi
+
+if [ "$HEALTH_OK" = true ]; then
+  log_validation "api_reachable" "PASS" "API responding at $ENDPOINT (health: $HEALTH_PATH)"
   REMOTE_MODE=false
 elif [ -n "${SSH_KEY_PATH:-}" ] && [ -f "${SSH_KEY_PATH:-}" ] && [ -n "$ONPREM_HOST" ]; then
   echo "  Direct API unreachable; falling back to SSH remote validation on $ONPREM_HOST"
   log_validation "api_reachable" "PASS" "API checked via SSH to $ONPREM_HOST"
   REMOTE_MODE=true
+  HEALTH_PATH="/api/v1/secrets/health"
 else
   log_validation "api_reachable" "FAIL" "API unreachable at $ENDPOINT and no SSH key available"
   exit 1
 fi
+
+# api_curl will use HEALTH_PATH when checking health structure
 
 # SSH helper — runs a command on the on-prem host via the secret-fetched key.
 # Usage: ssh_exec "command" (returns stdout; exit code forwarded)
@@ -76,17 +92,37 @@ api_curl() {
 
 # Check 2: Health endpoint structure
 echo "[2] Validating health endpoint..."
-if HEALTH=$(api_curl "/api/v1/secrets/health") && echo "$HEALTH" | jq -e '.status' > /dev/null 2>&1; then
-  STATUS=$(echo "$HEALTH" | jq -r '.status')
-  log_validation "health_structure" "PASS" "Health response valid (status: $STATUS)"
+# Use the detected HEALTH_PATH if set (from reachability check)
+if [ -n "${HEALTH_PATH:-}" ]; then
+  CHECK_PATH="$HEALTH_PATH"
 else
-  log_validation "health_structure" "FAIL" "Health response missing required fields"
+  CHECK_PATH="/api/v1/secrets/health/all"
 fi
 
-# Check 3: Provider resolution
+if HEALTH=$(api_curl "$CHECK_PATH"); then
+  if echo "$HEALTH" | jq -e '.providers' > /dev/null 2>&1; then
+    log_validation "health_structure" "PASS" "Health response contains providers list"
+  elif echo "$HEALTH" | jq -e '.status' > /dev/null 2>&1; then
+    STATUS=$(echo "$HEALTH" | jq -r '.status')
+    log_validation "health_structure" "PASS" "Health response valid (status: $STATUS)"
+  else
+    log_validation "health_structure" "FAIL" "Health response missing required fields"
+  fi
+else
+  log_validation "health_structure" "FAIL" "Health endpoint not responding"
+fi
+
+# Check 3: Provider resolution (POST with a test secret name)
 echo "[3] Testing provider resolution..."
-if RESOLVE=$(api_curl "/api/v1/secrets/resolve") && echo "$RESOLVE" | jq -e '.primary_provider' > /dev/null 2>&1; then
-  PRIMARY=$(echo "$RESOLVE" | jq -r '.primary_provider')
+TEST_SECRET_NAME="postdeploy-test-$(date +%s)"
+if [ "$REMOTE_MODE" = true ]; then
+  RESOLVE=$(ssh_exec "curl -s -X POST 'http://localhost:8000/api/v1/secrets/resolve?secret_name=$TEST_SECRET_NAME'" ) || true
+else
+  RESOLVE=$(curl -s -X POST "${ENDPOINT}/api/v1/secrets/resolve?secret_name=$TEST_SECRET_NAME") || true
+fi
+
+if echo "$RESOLVE" | jq -e '.resolved_provider // .primary_provider' > /dev/null 2>&1; then
+  PRIMARY=$(echo "$RESOLVE" | jq -r '.resolved_provider // .primary_provider')
   log_validation "provider_resolve" "PASS" "Primary provider: $PRIMARY"
 else
   log_validation "provider_resolve" "FAIL" "Unable to resolve primary provider"
@@ -119,29 +155,32 @@ fi
 # Check 7: Service logs accessible
 echo "[7] Checking service logs..."
 if [ "$REMOTE_MODE" = true ]; then
-  if ssh_exec "sudo journalctl -u canonical-secrets-api.service -n 5" > /dev/null 2>&1; then
+  if ssh_exec "sudo -n journalctl -u canonical-secrets-api.service -n 5" > /dev/null 2>&1; then
     log_validation "service_logs" "PASS" "Systemd logs accessible (via SSH)"
   else
     log_validation "service_logs" "FAIL" "Cannot access systemd logs (via SSH)"
   fi
 else
-  if sudo journalctl -u canonical-secrets-api.service -n 5 > /dev/null 2>&1; then
+  if sudo -n journalctl -u canonical-secrets-api.service -n 5 > /dev/null 2>&1; then
     log_validation "service_logs" "PASS" "Systemd logs accessible"
   else
-    log_validation "service_logs" "FAIL" "Cannot access systemd logs"
+    log_validation "service_logs" "FAIL" "Cannot access systemd logs (sudo unavailable or no logs)"
   fi
 fi
 
-# Check 8: Environment file exists and is readable
+## Check 8: Environment file exists and is readable
+## Allows override with CANONICAL_ENV_FILE for local testing
+ENV_FILE=${CANONICAL_ENV_FILE:-/etc/canonical_secrets.env}
 echo "[8] Checking environment configuration..."
 if [ "$REMOTE_MODE" = true ]; then
-  if ssh_exec "test -f /etc/canonical_secrets.env && sudo test -r /etc/canonical_secrets.env" 2>/dev/null; then
+  # remote check uses sudo non-interactively
+  if ssh_exec "test -f $ENV_FILE && sudo -n test -r $ENV_FILE" 2>/dev/null; then
     log_validation "env_config" "PASS" "Environment file configured (via SSH)"
   else
     log_validation "env_config" "FAIL" "Environment file missing or unreadable (via SSH)"
   fi
 else
-  if [ -f "/etc/canonical_secrets.env" ] && sudo test -r "/etc/canonical_secrets.env"; then
+  if [ -f "$ENV_FILE" ] && [ -r "$ENV_FILE" ]; then
     log_validation "env_config" "PASS" "Environment file configured"
   else
     log_validation "env_config" "FAIL" "Environment file missing or unreadable"
@@ -150,35 +189,35 @@ fi
 
 # Check 9: Service is enabled
 echo "[9] Checking service enablement..."
-if [ "$REMOTE_MODE" = true ]; then
-  if ssh_exec "sudo systemctl is-enabled canonical-secrets-api.service" > /dev/null 2>&1; then
-    log_validation "service_enabled" "PASS" "Service enabled for auto-start (via SSH)"
+  if [ "$REMOTE_MODE" = true ]; then
+    if ssh_exec "sudo -n systemctl is-enabled canonical-secrets-api.service" > /dev/null 2>&1; then
+      log_validation "service_enabled" "PASS" "Service enabled for auto-start (via SSH)"
+    else
+      log_validation "service_enabled" "FAIL" "Service not enabled (via SSH)"
+    fi
   else
-    log_validation "service_enabled" "FAIL" "Service not enabled (via SSH)"
+    if sudo -n systemctl is-enabled canonical-secrets-api.service > /dev/null 2>&1; then
+      log_validation "service_enabled" "PASS" "Service enabled for auto-start"
+    else
+      log_validation "service_enabled" "FAIL" "Service not enabled (sudo unavailable or disabled)"
+    fi
   fi
-else
-  if sudo systemctl is-enabled canonical-secrets-api.service > /dev/null 2>&1; then
-    log_validation "service_enabled" "PASS" "Service enabled for auto-start"
-  else
-    log_validation "service_enabled" "FAIL" "Service not enabled"
-  fi
-fi
 
 # Check 10: Service is running
 echo "[10] Checking service status..."
-if [ "$REMOTE_MODE" = true ]; then
-  if ssh_exec "sudo systemctl is-active canonical-secrets-api.service" > /dev/null 2>&1; then
-    log_validation "service_running" "PASS" "Service is running (via SSH)"
+  if [ "$REMOTE_MODE" = true ]; then
+    if ssh_exec "sudo -n systemctl is-active canonical-secrets-api.service" > /dev/null 2>&1; then
+      log_validation "service_running" "PASS" "Service is running (via SSH)"
+    else
+      log_validation "service_running" "FAIL" "Service is not running (via SSH)"
+    fi
   else
-    log_validation "service_running" "FAIL" "Service is not running (via SSH)"
+    if sudo -n systemctl is-active canonical-secrets-api.service > /dev/null 2>&1; then
+      log_validation "service_running" "PASS" "Service is running"
+    else
+      log_validation "service_running" "FAIL" "Service is not running (sudo unavailable or inactive)"
+    fi
   fi
-else
-  if sudo systemctl is-active canonical-secrets-api.service > /dev/null 2>&1; then
-    log_validation "service_running" "PASS" "Service is running"
-  else
-    log_validation "service_running" "FAIL" "Service is not running"
-  fi
-fi
 
 # Summary
 echo ""

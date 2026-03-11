@@ -51,7 +51,8 @@ if ! credentials=$(fetch_from_gsm 2>/dev/null); then
   if ! credentials=$(fetch_from_vault 2>/dev/null); then
     if ! credentials=$(fetch_from_kms 2>/dev/null); then
       echo "ERROR: Could not fetch credentials from GSM, Vault, or KMS." >&2
-      exit 1
+      # If this file is sourced, return non-zero; if executed directly, exit.
+      return 1 2>/dev/null || exit 1
     fi
   fi
 fi
