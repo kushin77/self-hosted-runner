@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily timer to rotate and upload NexusShield audit logs
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+Persistent=true
+Unit=rotate_audit.service
+
+[Install]
+WantedBy=timers.target
