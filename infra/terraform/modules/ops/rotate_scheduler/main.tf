@@ -1,9 +1,3 @@
-variable "project" { type = string }
-variable "region" { type = string }
-variable "function_source_dir" { type = string }
-variable "function_name" { type = string }
-variable "schedule" { type = string }
-
 resource "google_pubsub_topic" "rotate_topic" {
   name    = "rotate-uptime-token-topic"
   project = var.project
@@ -13,6 +7,9 @@ resource "google_storage_bucket" "function_source" {
   name     = "${var.project}-rotate-fn-src"
   location = var.region
   project  = var.project
+  # Ensure uniform bucket-level access to comply with org constraints
+  uniform_bucket_level_access = true
+  force_destroy = false
 }
 
 # NOTE: This is a skeleton. Deploy the Cloud Function from the source archive or
