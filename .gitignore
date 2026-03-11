@@ -75,12 +75,25 @@ id_rsa*
 id_ecdsa*
 id_ed25519*
 
-# Runtime artifacts
+# Runtime artifacts & logs (never commit)
+logs/
+artifacts/
+backups/
+*.log
+*.jsonl
 nexusshield/logs/*.jsonl
 nexusshield/cache/*
 nexusshield/tmp/*
 *.pyc
 __pycache__/
+
+# Build/deployment artifacts
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
 
 # Encrypted/sensitive outputs
 *.enc
@@ -88,6 +101,14 @@ __pycache__/
 *.gpg
 docker-compose.override.yml
 docker-compose.secrets.yml
+
+# Sensitive audit trails & temporary files
+audit-*.jsonl
+setup-*.jsonl
+*-setup-*.jsonl
+tmp/
+.tmp/
+temp/
 
 # IDE/Editor
 .vscode/
