@@ -303,6 +303,45 @@ async def list_credentials(provider: Optional[Provider] = None, limit: int = 50)
     return []
 
 
+@app.post("/api/v1/secrets/credentials", tags=["Credentials"])
+async def create_credential_compat(payload: Dict):
+    """Compatibility endpoint: accept legacy payloads like {name,value,provider}.
+    This maps to the new create_credential behavior and syncs to providers.
+    """
+    from canonical_secrets_provider import _provider
+
+    name = payload.get("name") or payload.get("secret_name")
+    value = payload.get("value") or payload.get("secret_value")
+
+    if not name or not value:
+        raise HTTPException(status_code=400, detail="Missing name or value in payload")
+
+    results = _provider.sync_to_all_providers(name, value)
+
+    return {
+        "id": name,
+        "name": name,
+        "type": Provider.VAULT,
+        "source_provider": Provider.VAULT,
+        "migrated_to_primary": results.get("vault", False),
+        "created_at": datetime.utcnow().isoformat() + "Z"
+    }
+
+
+@app.get("/api/v1/secrets/credentials", tags=["Credentials"])  # overload: support ?name= for legacy tests
+async def get_credential_value(name: Optional[str] = None):
+    """Return a single credential value for legacy smoke tests which query by name."""
+    from canonical_secrets_provider import _provider
+
+    if not name:
+        return []
+
+    value = _provider.get_secret(name)
+    if value is None:
+        raise HTTPException(status_code=404, detail="Secret not found")
+    return {"value": value}
+
+
 @app.post("/api/v1/secrets/credentials/create", response_model=CredentialMetadata, tags=["Credentials"])
 async def create_credential(request: SyncRequest):
     """
