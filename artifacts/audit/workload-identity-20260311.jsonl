@@ -1,0 +1,3 @@
+{"timestamp":"2026-03-11T15:34:39Z","event":"WI_POOL_CREATED","pool":"runner-pool-20260311"}
+{"timestamp":"2026-03-11T15:49:59Z","event":"WI_PROVIDER_CREATED","pool":"runner-pool-20260311","provider":"runner-provider-20260311","issuer":"https://token.actions.githubusercontent.com"}
+{"timestamp":"2026-03-11T15:49:59Z","event":"WI_BINDING_GRANTED","service_account":"nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com","role":"roles/iam.workloadIdentityUser","principal":"principalSet://iam.googleapis.com/projects/151423364222/locations/global/workloadIdentityPools/runner-pool-20260311/*"}
