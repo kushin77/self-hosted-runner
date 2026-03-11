@@ -52,7 +52,7 @@ A **100% production-ready, fully-automated NexusShield Portal system** that:
 ## 🚀 Getting Started
 
 ### Prerequisites
-1. **SSH Access:** `runner@192.168.168.42` (fullstack production host)
+1. **SSH Access:** `akushnir@192.168.168.42` (fullstack production host)
 2. **Docker:** Installed on 192.168.168.42 with compose support
 3. **Git Access:** Clone rights to this repository
 4. **GCP Credentials:** Service account JSON for GSM/KMS operations
