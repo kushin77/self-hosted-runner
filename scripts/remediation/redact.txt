@@ -1,0 +1,8 @@
+# Replace common credential patterns with REDACTED placeholders
+regex:AKIA[0-9A-Z]{16}==>AKIA_REDACTED
+regex:ghp_[A-Za-z0-9_]+==>GITHUB_PAT_REDACTED
+regex:-----BEGIN (RSA|OPENSSH|PRIVATE) KEY-----(?:.|\n)*?-----END (RSA|OPENSSH|PRIVATE) KEY-----==>PRIVATE_KEY_REDACTED
+regex:"private_key"\s*:\s*"[^"]+"==>"private_key":"REDACTED"
+regex:"client_secret"\s*:\s*"[^"]+"==>"client_secret":"REDACTED"
+regex:"private_key_id"\s*:\s*"[^"]+"==>"private_key_id":"REDACTED"
+regex:[A-Za-z0-9+/]{40,}={0,2}==>BASE64_BLOB_REDACTED
