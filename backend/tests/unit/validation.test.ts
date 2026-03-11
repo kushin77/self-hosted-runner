@@ -13,8 +13,7 @@ import {
   AuditQuerySchema,
   validate,
   validateSafe,
-  ValidationError,
-} from '../src/validation';
+} from '../../src/validation';
 import { ZodError } from 'zod';
 
 describe('Input Validation Schemas', () => {
