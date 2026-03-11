@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>DR Migration Dashboard</title>
+  <style>body{font-family:Inter,Arial;margin:20px}#events{white-space:pre-wrap;background:#f7f7f9;padding:12px;border-radius:6px;max-height:400px;overflow:auto}</style>
+</head>
+<body>
+  <h2>DR Migration Dashboard</h2>
+  <div>
+    <label>Admin Key: <input id="adminKey" type="password" placeholder="X-ADMIN-KEY"></label>
+    <label style="margin-left:12px">MFA OTP: <input id="mfaOtp" type="text" placeholder="123456" size="6"></label>
+  </div>
+  <div style="margin-top:12px">
+    <button id="dryRunBtn">Start Dry-Run</button>
+    <button id="liveBtn">Start Live (MFA required)</button>
+  </div>
+
+  <h3 style="margin-top:16px">Audit Stream</h3>
+  <div id="events">Connecting...</div>
+
+  <script>
+    const adminInput = document.getElementById('adminKey');
+    const mfaInput = document.getElementById('mfaOtp');
+    const events = document.getElementById('events');
+
+    function appendLine(s){ events.textContent += '\n' + s; events.scrollTop = events.scrollHeight; }
+
+    document.getElementById('dryRunBtn').addEventListener('click', async ()=>{
+      const admin = adminInput.value;
+      if(!admin){ alert('enter admin key'); return }
+      const res = await fetch('/api/v1/migrate', {
+        method:'POST', headers:{'Content-Type':'application/json','X-ADMIN-KEY': admin},
+        body: JSON.stringify({mode:'dry-run', dry_run:true})
+      });
+      const j = await res.json(); appendLine('dry-run: ' + JSON.stringify(j));
+    });
+
+    document.getElementById('liveBtn').addEventListener('click', async ()=>{
+      const admin = adminInput.value; const otp = mfaInput.value;
+      if(!admin){ alert('enter admin key'); return }
+      if(!otp){ alert('enter MFA OTP'); return }
+      const res = await fetch('/api/v1/migrate', {
+        method:'POST', headers:{'Content-Type':'application/json','X-ADMIN-KEY': admin},
+        body: JSON.stringify({mode:'live', dry_run:false, mfa_otp: otp})
+      });
+      const j = await res.json(); appendLine('live: ' + JSON.stringify(j));
+    });
+
+    // SSE connect using admin_key query param for simple bootstrap flows
+    async function connectSSE(){
+      const admin = adminInput.value || '';
+      const url = '/api/v1/audit/stream' + (admin? '?admin_key=' + encodeURIComponent(admin) : '');
+      const es = new EventSource(url);
+      es.onmessage = (ev)=>{ try{ const d = JSON.parse(ev.data); appendLine(JSON.stringify(d)); }catch(e){ appendLine(ev.data); } };
+      es.onerror = ()=>{ appendLine('SSE: connection error'); setTimeout(()=>{connectSSE()},3000)};
+    }
+
+    // reconnect when admin key changes
+    adminInput.addEventListener('change', ()=>{ connectSSE(); events.textContent=''; });
+    connectSSE();
+  </script>
+</body>
+</html>
