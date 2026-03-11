@@ -5,15 +5,10 @@ const fs = require('fs');
 const path = require('path');
 
 const PORT = process.env.PORT || 3000;
-
-// Simple UUID-like ID generator
-function generateId() {
-  return crypto.randomBytes(16).toString('hex').substring(0, 12);
-}
+const { generateId, generateToken, logAuditEntry, auditTrail } = require('./lib/utils');
 
 // In-memory stores (would be backed by PostgreSQL in production)
 const credentials = new Map();
-const auditTrail = [];
 const users = new Map();
 const sessions = new Map();
 
@@ -62,42 +57,7 @@ function initializeDemoData() {
   });
 }
 
-// Logging & audit trail middleware
-function logAuditEntry(action, resource, status, userId, details) {
-  const entry = {
-    id: generateId(),
-    timestamp: new Date().toISOString(),
-    action,
-    resource,
-    status,
-    userId: userId || 'system',
-    details
-  };
-  auditTrail.push(entry);
-  
-  // Log to file (immutable append-only)
-  const logDir = '/home/akushnir/self-hosted-runner/logs';
-  if (!fs.existsSync(logDir)) {
-    fs.mkdirSync(logDir, { recursive: true });
-  }
-  try {
-    fs.appendFileSync(
-      path.join(logDir, 'portal-api-audit.jsonl'),
-      JSON.stringify(entry) + '\n'
-    );
-  } catch(e) {
-    console.error('Failed to write audit log:', e.message);
-  }
-}
-
-// Helper: Generate JWT-like token (simplified)
-function generateToken(userId) {
-  return Buffer.from(JSON.stringify({
-    userId,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 86400 // 24 hours
-  })).toString('base64');
-}
+// Logging & audit helpers are provided by backend/lib/utils.js
 
 // Helper: Parse JSON body
 function parseBody(req) {
