@@ -20,3 +20,9 @@ instance_count            = 3  # Minimum instances in production (HA)
 
 # GCP Project Configuration  
 gcp_project = "nexusshield-prod"
+
+# Cloud Monitoring Configuration
+alert_email                  = "ops@nexusshield.local"
+slack_webhook_url            = ""  # Set via environment variable if needed
+uptime_check_period_seconds  = 60  # 1-minute checks for production
+enable_cloud_monitoring      = true
