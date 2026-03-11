@@ -1,0 +1,111 @@
+#cloud-config
+# Hardened Self-Hosted Runner — Cloud-Init Provisioner
+# Immutable, ephemeral, idempotent — no GitHub Actions, direct deploy only
+# Safe to re-apply (idempotent user/package/cron setup)
+
+users:
+  - name: runner
+    shell: /bin/bash
+    groups: [adm]
+    sudo: false
+    lock_passwd: true
+    ssh_authorized_keys:
+      - "${SSH_PUBLIC_KEY}"
+
+package_update: true
+package_upgrade: true
+packages:
+  - git
+  - bash
+  - coreutils
+  - curl
+  - jq
+  - awscli
+  - unzip
+  - openssh-server
+  - fail2ban
+  - unattended-upgrades
+
+write_files:
+  # Sysctl hardening
+  - path: /etc/sysctl.d/99-hardening.conf
+    content: |
+      net.ipv4.conf.all.send_redirects = 0
+      net.ipv4.conf.default.send_redirects = 0
+      net.ipv4.conf.all.accept_redirects = 0
+      net.ipv4.conf.default.accept_redirects = 0
+      net.ipv4.conf.all.accept_source_route = 0
+      net.ipv4.conf.default.accept_source_route = 0
+      net.ipv4.conf.all.log_martians = 1
+      kernel.randomize_va_space = 2
+
+  # SSH hardening
+  - path: /etc/ssh/sshd_config.d/99-harden.conf
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      ChallengeResponseAuthentication no
+      UsePAM yes
+      X11Forwarding no
+      MaxAuthTries 3
+      ClientAliveInterval 300
+      ClientAliveCountMax 2
+
+  # Cron: chaos orchestrator (daily 03:00 UTC)
+  - path: /etc/cron.d/chaos-orchestrator
+    content: |
+      SHELL=/bin/bash
+      PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+      0 3 * * * runner /bin/bash -lc 'source /opt/runner/repo/scripts/ops/fetch_credentials.sh && /opt/runner/repo/scripts/testing/run-all-chaos-tests.sh' >> /var/log/chaos/orchestrator-$(date +\%F).log 2>&1
+
+  # Cron: forensic log upload (daily 03:15 UTC)
+  - path: /etc/cron.d/chaos-log-upload
+    content: |
+      SHELL=/bin/bash
+      PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+      15 3 * * * runner /bin/bash -lc 'source /opt/runner/repo/scripts/ops/fetch_credentials.sh && LOG_DIR=/opt/runner/repo/reports/chaos /opt/runner/repo/scripts/ops/upload_jsonl_to_s3.sh' >> /var/log/chaos/uploader-$(date +\%F).log 2>&1
+
+  # Logrotate for chaos logs
+  - path: /etc/logrotate.d/chaos
+    content: |
+      /var/log/chaos/*.log {
+        daily
+        missingok
+        rotate 30
+        compress
+        delaycompress
+        notifempty
+        create 0640 runner runner
+      }
+
+runcmd:
+  # Apply sysctl
+  - sysctl --system
+
+  # Create directories
+  - mkdir -p /opt/runner /var/log/chaos
+  - chown runner:runner /opt/runner /var/log/chaos
+  - chmod 750 /opt/runner /var/log/chaos
+
+  # Clone repo as runner user
+  - sudo -u runner git clone https://github.com/kushin77/self-hosted-runner /opt/runner/repo || sudo -u runner bash -c 'cd /opt/runner/repo && git pull origin main'
+
+  # Make scripts executable
+  - chmod +x /opt/runner/repo/scripts/ops/*.sh /opt/runner/repo/scripts/testing/*.sh /opt/runner/repo/scripts/policy/*.sh 2>/dev/null || true
+
+  # Enable fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+  # Enable automatic security updates
+  - systemctl enable unattended-upgrades
+  - systemctl start unattended-upgrades
+
+  # Restart SSH with hardened config
+  - systemctl restart sshd
+
+  # Initial manual test (append-only log)
+  - sudo -u runner bash -c '/opt/runner/repo/scripts/testing/run-all-chaos-tests.sh' >> /var/log/chaos/orchestrator-initial.log 2>&1 || true
+
+  # Audit log: provisioning event
+  - echo "{\"event\":\"runner_provisioned\",\"timestamp\":\"$(date -u +%FT%TZ)\",\"host\":\"$(hostname)\",\"method\":\"cloud-init\",\"idempotent\":true}" >> /var/log/chaos/provision-audit.jsonl
