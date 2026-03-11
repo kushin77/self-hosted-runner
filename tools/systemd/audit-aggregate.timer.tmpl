@@ -1,0 +1,11 @@
+[Unit]
+Description=Run audit aggregation daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+AccuracySec=1m
+Unit=audit-aggregate.service
+
+[Install]
+WantedBy=timers.target
