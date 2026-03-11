@@ -12,3 +12,4 @@ gunicorn
 requests
 
 flask-cors
+prometheus_client
