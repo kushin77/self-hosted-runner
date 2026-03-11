@@ -287,19 +287,23 @@ async def resolve_provider_get(secret_name: Optional[str] = None):
 # CREDENTIAL MANAGEMENT ENDPOINTS
 # ============================================================================
 
-@app.get("/api/v1/secrets/credentials", response_model=List[CredentialMetadata], tags=["Credentials"])
-async def list_credentials(provider: Optional[Provider] = None, limit: int = 50):
+@app.get("/api/v1/secrets/credentials", tags=["Credentials"])
+async def list_credentials(provider: Optional[Provider] = None, limit: int = 50, name: Optional[str] = None):
     """
-    List all credentials with metadata
-    
-    Query Parameters:
-    - provider: Filter by specific provider (optional)
-    - limit: Maximum results (default: 50)
-    
-    Returns all registered credentials with their provider, migration status, and timestamps.
+    List credentials or return a single credential value when `name` is provided.
+
+    - If `name` query param is provided, return `{"value": ...}` for the secret.
+    - Otherwise return an empty list (placeholder) for metadata listing.
     """
+    from canonical_secrets_provider import _provider
+
+    if name:
+        value = _provider.get_secret(name)
+        if value is None:
+            raise HTTPException(status_code=404, detail="Secret not found")
+        return {"value": value}
+
     # In production, this would query a credential registry
-    # For now, return structure example
     return []
 
 
