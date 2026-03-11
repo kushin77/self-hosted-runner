@@ -1,0 +1,63 @@
+groups:
+  - name: canonical_secrets_alerts
+    interval: 30s
+    rules:
+      # Alert: API response time high
+      - alert: CanonicalSecretsHighLatency
+        expr: canonical_secrets_api_response_time_ms > 500
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Canonical Secrets API high latency ({{ $value }}ms)"
+          description: "API response time exceeded 500ms on {{ $labels.instance }}"
+
+      # Alert: Health check failed
+      - alert: CanonicalSecretsUnhealthy
+        expr: up{job="canonical-secrets-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Canonical Secrets API is down"
+          description: "API failed to respond to health checks on {{ $labels.instance }}"
+
+      # Alert: Provider failover occurred
+      - alert: CanonicalSecretsProviderFailover
+        expr: canonical_secrets_provider_failover_total > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Canonical Secrets provider failover detected"
+          description: "Provider failover to {{ $labels.provider }} on {{ $labels.instance }}"
+
+      # Alert: Migration errors
+      - alert: CanonicalSecretsMigrationErrors
+        expr: rate(canonical_secrets_migration_errors_total[5m]) > 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Canonical Secrets migration errors detected"
+          description: "{{ $value | humanize }} errors/sec on {{ $labels.instance }}"
+
+      # Alert: Audit log write failures
+      - alert: CanonicalSecretsAuditWriteFailure
+        expr: rate(canonical_secrets_audit_write_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Audit trail write failures"
+          description: "Cannot write to immutable audit log on {{ $labels.instance }}"
+
+      # Alert: KMS encryption errors
+      - alert: CanonicalSecretsKMSError
+        expr: rate(canonical_secrets_kms_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "KMS encryption/decryption failures"
+          description: "{{ $value | humanize }} KMS errors/sec on {{ $labels.instance }}"
