@@ -457,7 +457,7 @@ terraform refresh
 ## 📚 Additional Resources
 
 - [Terraform Documentation](https://www.terraform.io/docs)
-- [Google Provider Docs](https://registry.terraform.io/providers/hashicorp/google/latest/docs)
+- [Google Provider Docs](https://registry.terraform.BASE64_BLOB_REDACTED)
 - [GCP Best Practices](https://cloud.google.com/docs/terraform/best-practices)
 - [Infrastructure as Code Guide](https://www.terraform.io/cloud-docs)
 

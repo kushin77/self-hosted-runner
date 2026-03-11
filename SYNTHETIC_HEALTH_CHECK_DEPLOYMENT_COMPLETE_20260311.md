@@ -44,8 +44,8 @@ Full observability stack for synthetic health checks deployed to GCP project `ne
 
 ### 4. Notification Channels (GSM-Backed)
 **Email Channels** (stored in Google Secret Manager):
-- `synthetic-health-alert-email-channel` → `notificationChannels/16284129900945210911`
-- `synthetic-health-alert-critical-channel` → `notificationChannels/8473220498823178928`
+- `synthetic-health-alert-email-channel` → `BASE64_BLOB_REDACTED`
+- `synthetic-health-alert-critical-channel` → `BASE64_BLOB_REDACTED`
 
 **Access**: Terraform reads from GSM dynamically; scripts use `gcloud secrets` API
 
