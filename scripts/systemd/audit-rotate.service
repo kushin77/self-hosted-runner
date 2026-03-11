@@ -1,0 +1,15 @@
+[Unit]
+Description=Rotate and upload portal audit logs
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/cloudrun/rotate_and_upload_audit.sh
+Environment=GCS_AUDIT_BUCKET=
+Environment=S3_AUDIT_BUCKET=
+
+[Install]
+WantedBy=multi-user.target
