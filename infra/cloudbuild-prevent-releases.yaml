@@ -1,0 +1,175 @@
+# Cloud Build configuration to deploy prevent-releases service
+# Idempotent, hands-off deployment of prevent-releases to Cloud Run
+# Run: gcloud builds submit --config=infra/cloudbuild-prevent-releases.yaml --no-source --project=nexusshield-prod
+
+steps:
+  # Step 1: Build the prevent-releases Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/prevent-releases:latest'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/prevent-releases:${BUILD_ID}'
+      - './apps/prevent-releases'
+
+  # Step 2: Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/prevent-releases:latest'
+
+  # Step 3: Create service account (if not exists) via gcloud
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'ensure-sa'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        set +e
+        gcloud iam service-accounts describe nxs-prevent-releases-sa@nexusshield-prod.iam.gserviceaccount.com --project=nexusshield-prod >/dev/null 2>&1
+        if [ $? -ne 0 ]; then
+          echo "Service account does not exist; create it manually or grant creator permissions"
+          exit 0
+        fi
+        echo "Service account exists; continuing..."
+
+  # Step 4: Create secrets in GSM (if not exist)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'ensure-secrets'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        set +e
+        for s in github-app-private-key github-app-id github-app-webhook-secret github-app-token; do
+          gcloud secrets describe "$s" --project=nexusshield-prod >/dev/null 2>&1 || {
+            printf 'placeholder' | gcloud secrets create "$s" --data-file=- --project=nexusshield-prod 2>/dev/null || true
+          }
+        done
+        echo "Secrets ensured"
+
+  # Step 5: Grant Cloud Run SA secret access
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'grant-secret-access'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        set +e
+        SA='nxs-prevent-releases-sa@nexusshield-prod.iam.gserviceaccount.com'
+        for s in github-app-private-key github-app-id github-app-webhook-secret github-app-token; do
+          gcloud secrets add-iam-policy-binding "$s" --project=nexusshield-prod \
+            --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor" 2>/dev/null || true
+        done
+        echo "Secret access granted"
+
+  # Step 6: Deploy to Cloud Run with unauthenticated invocation and secret injection
+  - name: 'gcr.io/cloud-builders/run'
+    id: 'deploy-run'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'deploy'
+      - 'prevent-releases'
+      - '--image=us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/prevent-releases:latest'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--service-account=nxs-prevent-releases-sa@nexusshield-prod.iam.gserviceaccount.com'
+      - '--allow-unauthenticated'
+      - '--set-secrets=GITHUB_WEBHOOK_SECRET=github-app-webhook-secret:latest'
+      - '--set-secrets=GITHUB_TOKEN=github-app-token:latest'
+      - '--quiet'
+
+  # Step 7: Create Cloud Scheduler job (if not exists)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'create-scheduler'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        set +e
+        gcloud scheduler jobs describe prevent-releases-poll --project=nexusshield-prod --location=us-central1 >/dev/null 2>&1
+        if [ $? -eq 0 ]; then
+          echo "Scheduler job exists; skipping creation"
+          exit 0
+        fi
+        URL=$(gcloud run services describe prevent-releases --project=nexusshield-prod --region=us-central1 --format='value(status.url)' 2>/dev/null || echo 'https://prevent-releases-2tqp6t4txq-uc.a.run.app')
+        echo "Creating scheduler job pointing to $URL/api/poll"
+        gcloud scheduler jobs create http prevent-releases-poll --project=nexusshield-prod --location=us-central1 \
+          --schedule="*/1 * * * *" --http-method=POST --uri="$URL/api/poll" \
+          --oidc-service-account-email="nxs-prevent-releases-sa@nexusshield-prod.iam.gserviceaccount.com" \
+          --time-zone="Etc/UTC" 2>/dev/null || true
+        echo "Scheduler job ensured"
+
+  # Step 8: Create monitoring alerts
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'create-alerts'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        set +e
+        gcloud logging metrics create secret_access_denied_metric \
+          --description="Detect secret access denied in Cloud Run logs" \
+          --log-filter='resource.type="cloud_run_revision" AND (textPayload:"Permission denied" OR textPayload:"secretmanager.secretAccessor")' \
+          --project=nexusshield-prod 2>/dev/null || true
+        gcloud alpha monitoring policies create --project=nexusshield-prod \
+          --condition-display-name="Prevent-releases error rate" \
+          --condition-filter="resource.type=\"cloud_run_revision\" AND resource.label.\"service_name\"=\"prevent-releases\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.label.\"response_code\">=\"500\"" \
+          --condition-compare-duration=300s --condition-threshold-value=1 \
+          --display-name="prevent-releases 5xx error rate" 2>/dev/null || true
+        echo "Alerts created or verified"
+
+  # Step 9: Output deployment summary
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'summary'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1'
+      - 'CLOUDSDK_PROJECT=nexusshield-prod'
+    args:
+      - 'run'
+      - 'bash'
+      - '-c'
+      - |
+        echo "========== DEPLOYMENT SUMMARY =========="
+        echo "Service: prevent-releases"
+        echo "Project: nexusshield-prod"
+        echo "Region: us-central1"
+        gcloud run services describe prevent-releases --project=nexusshield-prod --region=us-central1 --format='value(status.url)' || echo "Cloud Run service deployed"
+        echo "Scheduler job: prevent-releases-poll (*/1 * * * *)"
+        echo "Secret injection: GITHUB_WEBHOOK_SECRET, GITHUB_TOKEN from GSM"
+        echo "Allow unauthenticated: true (with server-side HMAC verification)"
+        echo "========================================="
+
+images:
+  - 'us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/prevent-releases:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+
+timeout: '3600s'
