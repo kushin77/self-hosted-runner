@@ -45,7 +45,7 @@ gcloud services enable \
 GCP_PROJECT_ID=your-project-id
 GCP_REGION=us-central1
 GCP_SERVICE_ACCOUNT=nexusshield-sa@your-project-id.iam.gserviceaccount.com
-GCP_WORKLOAD_IDENTITY_PROVIDER=projects/YOUR_PROJECT_NUMBER/locations/global/workloadIdentityPools/github-pool/providers/github
+GCP_WORKLOAD_IDENTITY_PROVIDER=projects/YOUR_PROJECT_BASE64_BLOB_REDACTED-pool/providers/github
 TF_STATE_BUCKET=nexusshield-terraform-state
 GCP_AUDIT_BUCKET=nexusshield-audit-trail
 ```

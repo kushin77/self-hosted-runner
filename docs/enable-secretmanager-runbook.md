@@ -1,7 +1,7 @@
 **Enable Secret Manager API — Runbook**
 
 - Purpose: idempotently enable `secretmanager.googleapis.com` on `p4-platform`.
-- Preferred method: apply Terraform module `nexusshield/infrastructure/terraform/modules/enable-secretmanager`.
+- Preferred method: apply Terraform module `BASE64_BLOB_REDACTED-secretmanager`.
 
 Prerequisites:
 - GCP account with `serviceusage.services.enable` (Project Owner / Service Usage Admin).

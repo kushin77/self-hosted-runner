@@ -54,7 +54,7 @@ infra/
 
 **Example - Invalid (6 levels):**
 ```
-infra/terraform/modules/vpc/subnets/az1/main.tf  ❌ VIOLATION
+BASE64_BLOB_REDACTED.tf  ❌ VIOLATION
 ```
 
 **Remediation:** If exceeding 5 levels, create index files or consolidate.
