@@ -1,0 +1,12 @@
+Local secrets health check starting at Wed Mar 11 01:30:06 PM UTC 2026
+APPLY mode: running mirror script with --apply
+
+╔════════════════════════════════════════════════════╗
+║   Unified Secrets Mirror (GSM → Vault/KMS/KeyVault)║
+║         Canonical Source: GSM (nexusshield-prod)      ║
+╚════════════════════════════════════════════════════╝
+
+[2026-03-11 13:30:07] 
+[2026-03-11 13:30:07] Processing secret: azure-client-id
+[2026-03-11 13:30:08] Mirroring azure-client-id to Key Vault nsv298610...
+✓ Key Vault: azure-client-id
