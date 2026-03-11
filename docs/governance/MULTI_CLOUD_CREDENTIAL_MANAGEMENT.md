@@ -106,7 +106,7 @@ Scope: Single project
 ```bash
 # Login to Vault
 export VAULT_ADDR="https://vault.company.com:8200"
-export VAULT_TOKEN="s.hvUg12345abcDEF..."
+export REDACTED="s.hvUg12345abcDEF..."
 
 # Fetch secret
 vault kv get -field=password secret/databases/prod
@@ -187,7 +187,7 @@ assume-role() {
     --query 'Credentials.[AccessKeyId,SecretAccessKey,SessionToken]' \
     --output text)
   
-  export AWS_ACCESS_KEY_ID=$(echo $CREDENTIALS | awk '{print $1}')
+  export AWS_ACCESS_KEY_ID=REDACTED'{print $1}')
   export AWS_SECRET_ACCESS_KEY=$(echo $CREDENTIALS | awk '{print $2}')
   export AWS_SESSION_TOKEN=$(echo $CREDENTIALS | awk '{print $3}')
 }
@@ -289,7 +289,7 @@ fetch_from_kms() {
 }
 
 # Usage in deployment scripts:
-export DB_PASSWORD=$(fetch_credential "prod-db-password") || {
+export REDACTED=REDACTED"prod-db-password") || {
   echo "❌ Failed to fetch database password"
   exit 1
 }
@@ -308,7 +308,7 @@ export DB_PASSWORD=$(fetch_credential "prod-db-password") || {
 export DB_HOST=$(fetch_credential "prod-db-host")
 export DB_PORT=$(fetch_credential "prod-db-port")
 export DB_USER=$(fetch_credential "prod-db-user")
-export DB_PASSWORD=$(fetch_credential "prod-db-password")
+export REDACTED=REDACTED"prod-db-password")
 export API_KEY=$(fetch_credential "prod-api-key")
 $PLACEHOLDER
 
@@ -317,7 +317,7 @@ docker run -d \
   -e DB_HOST="$DB_HOST" \
   -e DB_PORT="$DB_PORT" \
   -e DB_USER="$DB_USER" \
-  -e DB_PASSWORD="$DB_PASSWORD" \
+  -e REDACTED=REDACTED" \
   -e API_KEY="$API_KEY" \
 $PLACEHOLDER
   app:latest

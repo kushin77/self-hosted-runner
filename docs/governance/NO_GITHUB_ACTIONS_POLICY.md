@@ -61,13 +61,13 @@ FATAL_ERROR: Exit code 1 (no plaintext fallback)
 ```bash
 #!/bin/bash
 # Fetch from GSM (primary)
-DB_PASSWORD=$(gcloud secrets versions access latest --secret="prod-db-password") || \
+REDACTED=REDACTED"prod-db-password") || \
 # Fetch from Vault (fallback)
-DB_PASSWORD=$(vault kv get -field=password secret/db-creds) || \
+REDACTED=REDACTED
 # Fetch from AWS (tertiary)
-DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id=prod-db --query SecretString --output text)
+REDACTED=REDACTED
 
-export DB_PASSWORD
+export REDACTED
 ./deploy.sh
 ```
 
@@ -302,11 +302,11 @@ find .github/workflows -name "*.yml" > /tmp/actions-to-migrate.txt
 - name: Deploy
   run: npm run deploy
   env:
-    DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+    REDACTED: ${{ secrets.REDACTED }}
 
 # NEW (Direct Script - APPROVED)
 #!/bin/bash
-export DB_PASSWORD=$(gcloud secrets versions access latest --secret="db-password")
+export REDACTED=REDACTED"db-password")
 npm run deploy
 ```
 
