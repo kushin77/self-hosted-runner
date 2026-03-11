@@ -193,7 +193,7 @@ secret/data/nexusshield/prod/oauth
 private async getFromVault(secretName: string): Promise<string> {
   const client = require('node-vault')({
     endpoint: process.env.VAULT_ADDR,
-    token: process.env.VAULT_TOKEN,
+    token: process.env.REDACTED,
   });
 
   const [path, key] = secretName.split('/');
@@ -360,7 +360,7 @@ DATABASE_PASSWORD=my_secure_password_123  # in .env or docker-compose.yml
 JWT_SECRET=dev-secret-key                   # in code
 
 # RIGHT ✅
-DATABASE_PASSWORD=${DB_PASSWORD:?error: required}  # on docker-compose
+DATABASE_PASSWORD=${REDACTED:?error: required}  # on docker-compose
 JWT_SECRET=${JWT_SECRET:?error: required}         # required in environment
 ```
 
@@ -368,10 +368,10 @@ JWT_SECRET=${JWT_SECRET:?error: required}         # required in environment
 
 ```bash
 # WRONG ❌
-VAULT_TOKEN="s.xxxxxxxxxxxxxxxxxxxxx"  # stored forever
+REDACTED="s.xxxxxxxxxxxxxxxxxxxxx"  # stored forever
 
 # RIGHT ✅
-VAULT_TOKEN=$(rotate-token-script.sh)  # rotated hourly
+REDACTED=$(rotate-token-script.sh)  # rotated hourly
 ```
 
 ### ❌ Never Log Credentials
@@ -390,7 +390,7 @@ logger.info('Credentials loaded', { username, passwordHash: hash(password) });
 ```bash
 # WRONG ❌
 echo "Here's the password: xyz123" | mail team@example.com
-slack "Database password is: ${DB_PASSWORD}"
+slack "Database password is: ${REDACTED}"
 
 # RIGHT ✅
 # Use Vault link or GSM secret reference
@@ -525,7 +525,7 @@ Before production deployment:
 grep -E "password|secret|token" docker-compose.yml | grep -v "\${" && echo "FAIL: Found hardcoded creds" || echo "PASS: No hardcoded credentials"
 
 # Verify environment variables enforced
-docker-compose config | grep -E "DB_PASSWORD|JWT_SECRET" | grep -v "\${" && echo "FAIL" || echo "PASS"
+docker-compose config | grep -E "REDACTED|JWT_SECRET" | grep -v "\${" && echo "FAIL" || echo "PASS"
 
 # Verify GSM connection
 gcloud secrets versions access latest --secret="nexusshield/prod/database/password"

@@ -350,7 +350,7 @@ gcloud secrets versions access latest --secret="aws-credentials"
 ### Step 3: Vault (Priority 2)
 ```bash
 # HashiCorp Vault - enterprise secret management
-curl -H "X-Vault-Token: $VAULT_TOKEN" \
+curl -H "X-Vault-Token: $REDACTED" \
   $VAULT_ADDR/v1/secret/data/credentials/aws
 ```
 ✅ Advantages: Multi-cloud, audit logging, dynamic secrets  
@@ -797,7 +797,7 @@ Get overall system status.
 gcloud secrets list --project=YOUR_PROJECT
 
 # Check Vault (Priority 2)
-curl -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/list/credentials/
+curl -H "X-Vault-Token: $REDACTED" $VAULT_ADDR/v1/secret/list/credentials/
 
 # Check KMS (Priority 3)
 aws kms list-keys --profile YOUR_PROFILE
