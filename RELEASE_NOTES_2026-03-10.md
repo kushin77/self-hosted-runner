@@ -10,7 +10,7 @@ Summary
 
 Details
 -------
-- Pinned `image-pin-service` image to digest: sha256:5035306fbda2891c6eb289f2696b6024617aed0c2315b338fc586520f946965b
+- Pinned `image-pin-service` image to digest: sha256:BASE64_BLOB_REDACTED
 - `backend/Dockerfile` & `backend/Dockerfile.prod`: added `npm ci` fallback to `npm install` when `package-lock.json` is absent.
 - `tools/image_pin_service/Dockerfile`: added gunicorn -> python fallback to ensure startup compatibility.
 - Terraform: imported existing Cloud Run service into `terraform/image_pin` state, applied update to pin image, created `image-pin-scheduler` job.

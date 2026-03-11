@@ -45,21 +45,21 @@ This guide provides step-by-step instructions to deploy and operate the chaos te
 gcloud secrets create aws-chaos-credentials \
   --replication-policy="automatic" \
   --data-file=- <<EOF
-AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY:AQoDYXdzEJr...
+AKIA_REDACTED:BASE64_BLOB_REDACTED:AQoDYXdzEJr...
 EOF
 ```
 
 ### Option B: HashiCorp Vault
 
 ```bash
-vault kv put secret/aws/chaos credentials="AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY:AQoDYXdzEJr..."
+vault kv put secret/aws/chaos credentials="AKIA_REDACTED:BASE64_BLOB_REDACTED:AQoDYXdzEJr..."
 ```
 
 ### Option C: AWS KMS
 
 ```bash
 # Encrypt credentials and place at /etc/secrets/aws-credentials.kms
-echo -n "AKIAIOSFODNN7EXAMPLE:wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY:AQoDYXdzEJr..." | \
+echo -n "AKIA_REDACTED:BASE64_BLOB_REDACTED:AQoDYXdzEJr..." | \
   aws kms encrypt --key-id "arn:aws:kms:us-east-1:123456789012:key/00000000-0000-0000-0000-000000000000" \
   --plaintext fileb:///dev/stdin \
   --output text --query CiphertextBlob > /etc/secrets/aws-credentials.kms
