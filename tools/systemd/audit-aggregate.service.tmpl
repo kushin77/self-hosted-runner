@@ -8,6 +8,7 @@ Type=oneshot
 WorkingDirectory={{REPO_ROOT}}
 ExecStart=/usr/bin/env bash {{REPO_ROOT}}/tools/audit-aggregate.sh
 User=root
+ExecStartPost=/usr/bin/env bash {{REPO_ROOT}}/tools/upload-aggregate.sh $(ls -1 {{REPO_ROOT}}/logs/secret-mirror/aggregate-*.jsonl | tail -1) gcs
 
 [Install]
 WantedBy=multi-user.target
