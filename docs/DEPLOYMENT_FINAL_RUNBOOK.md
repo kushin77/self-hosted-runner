@@ -27,7 +27,7 @@ The NexusShield Portal deployment is **100% automated**, **fully immutable**, an
 ### 1. **Verify Deployment Host Accessibility**
 ```bash
 # Test SSH connectivity to fullstack host
-ssh runner@192.168.168.42 "echo 'SSH OK'; docker --version; docker-compose --version"
+ssh akushnir@192.168.168.42 "echo 'SSH OK'; docker --version; docker-compose --version"
 ```
 **Expected Output:**
 ```
@@ -41,7 +41,7 @@ Create `.env.production` on the deployment host or configure it before deploymen
 
 ```bash
 # On deployment host or pass via deploy script
-cat > /home/runner/.env.production << 'EOF'
+cat > /home/akushnir/.env.production << 'EOF'
 # GCP Configuration
 GCP_PROJECT_ID=your-actual-gcp-project-id
 GCP_KMS_KEY=projects/your-project/locations/us-BASE64_BLOB_REDACTED
@@ -70,8 +70,8 @@ EOF
 ### 3. **Place GCP Service Account Key**
 ```bash
 # Copy your GCP service account JSON to the deployment host
-scp /path/to/service-account-key.json runner@192.168.168.42:/home/runner/
-ssh runner@192.168.168.42 "chmod 600 /home/runner/service-account-key.json"
+scp /path/to/service-account-key.json akushnir@192.168.168.42:/home/akushnir/
+ssh akushnir@192.168.168.42 "chmod 600 /home/akushnir/service-account-key.json"
 ```
 
 ### 4. **Run Pre-Deployment Validation**
