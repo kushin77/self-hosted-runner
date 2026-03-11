@@ -6,7 +6,8 @@ After=network-online.target
 [Service]
 Type=simple
 # ExecStart should point to the installed location of the script on the management host
-ExecStart=/usr/local/bin/auto_reverify.sh --host 192.168.168.42 --s3-bucket YOUR_BUCKET --github-token YOUR_TOKEN --issue 2594
+EnvironmentFile=/etc/default/auto_reverify_env
+ExecStart=/usr/local/bin/auto_reverify.sh --host 192.168.168.42 --s3-bucket "$S3_BUCKET" --github-token "$GITHUB_TOKEN" --issue "$ISSUE_NUMBER"
 User=akushnir
 Restart=on-failure
 
