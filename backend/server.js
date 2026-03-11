@@ -24,7 +24,7 @@ const kmsClient = new KeyManagementServiceClient();
 
 // In-memory stores (production: use PostgreSQL via Prisma)
 const credentials = new Map();
-const auditTrail = [];
+const { generateId, generateToken, logAuditEntry, auditTrail } = require('./lib/utils');
 const users = new Map();
 const sessions = new Map();
 const deployments = new Map();
@@ -41,64 +41,25 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logAudit('http_request', 'api', 'ok', null, 
+    logAuditEntry('http_request', 'api', 'ok', null,
       `${req.method} ${req.path} [${res.statusCode}] ${duration}ms`);
   });
   next();
 });
 
 // ===== HELPERS =====
-function generateId() {
-  return crypto.randomBytes(16).toString('hex').substring(0, 12);
-}
-
-function generateToken(userId) {
-  const payload = {
-    userId,
-    iat: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + 86400
-  };
-  return Buffer.from(JSON.stringify(payload)).toString('base64');
-}
-
-function logAudit(action, resource, status, userId, details) {
-  const entry = {
-    id: generateId(),
-    timestamp: new Date().toISOString(),
-    action,
-    resource,
-    status,
-    userId: userId || 'system',
-    details
-  };
-  auditTrail.push(entry);
-  
-  // Immutable JSONL append
-  const logDir = '/home/akushnir/self-hosted-runner/logs';
-  try {
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    fs.appendFileSync(
-      path.join(logDir, 'portal-api-audit.jsonl'),
-      JSON.stringify(entry) + '\n'
-    );
-  } catch (e) {
-    console.error('Audit log error:', e.message);
-  }
-  return entry;
-}
+// Core helpers are implemented in backend/lib/utils.js
 
 // Verify token middleware
 function verifyToken(req, res, next) {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
-  
+
   if (!token) {
-    logAudit('auth_denied', 'api', 'unauthorized', null, `No token provided for ${req.path}`);
+    logAuditEntry('auth_denied', 'api', 'unauthorized', null, `No token provided for ${req.path}`);
     return res.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   try {
     const payload = JSON.parse(Buffer.from(token, 'base64').toString());
     if (payload.exp < Math.floor(Date.now() / 1000)) {
@@ -108,7 +69,7 @@ function verifyToken(req, res, next) {
     req.user = users.get(payload.userId);
     next();
   } catch (e) {
-    logAudit('auth_error', 'api', 'invalid_token', null, `Token parse error: ${e.message}`);
+    logAuditEntry('auth_error', 'api', 'invalid_token', null, `Token parse error: ${e.message}`);
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
@@ -230,7 +191,7 @@ function initializeDemoData() {
     lastDeployed: new Date(Date.now() - 2*60*60*1000).toISOString()
   });
 
-  logAudit('system_init', 'system', 'ok', adminId, 'Backend initialized with demo data');
+  logAuditEntry('system_init', 'system', 'ok', adminId, 'Backend initialized with demo data');
 }
 
 // ===== ROUTES =====
@@ -295,10 +256,10 @@ app.post('/auth/login', express.json(), async (req, res) => {
     users.set(userId, user);
     const token = generateToken(userId);
     
-    logAudit('auth_login', 'user', 'ok', userId, `Login via ${provider}`);
+    logAuditEntry('auth_login', 'user', 'ok', userId, `Login via ${provider}`);
     res.json({ token, user });
   } catch (e) {
-    logAudit('auth_login', 'user', 'error', null, e.message);
+    logAuditEntry('auth_login', 'user', 'error', null, e.message);
     res.status(500).json({ error: 'Login failed' });
   }
 });
@@ -307,7 +268,7 @@ app.post('/auth/logout', express.json(), verifyToken, (req, res) => {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
   sessions.delete(token);
-  logAudit('auth_logout', 'user', 'ok', req.userId, 'Logout');
+  logAuditEntry('auth_logout', 'user', 'ok', req.userId, 'Logout');
   res.json({ status: 'logged_out' });
 });
 
@@ -324,17 +285,17 @@ app.get('/auth/profile', verifyToken, (req, res) => {
 // Credentials Management
 app.get('/api/credentials', verifyToken, (req, res) => {
   const list = Array.from(credentials.values());
-  logAudit('credentials_list', 'credentials', 'ok', req.userId, `Listed ${list.length} credentials`);
+  logAuditEntry('credentials_list', 'credentials', 'ok', req.userId, `Listed ${list.length} credentials`);
   res.json({ credentials: list, total: list.length });
 });
 
 app.get('/api/credentials/:id', verifyToken, (req, res) => {
   const cred = credentials.get(req.params.id);
   if (!cred) {
-    logAudit('credentials_get', 'credential', 'not_found', req.userId, `Credential ${req.params.id} not found`);
+    logAuditEntry('credentials_get', 'credential', 'not_found', req.userId, `Credential ${req.params.id} not found`);
     return res.status(404).json({ error: 'Credential not found' });
   }
-  logAudit('credentials_get', 'credential', 'ok', req.userId, `Retrieved credential ${req.params.id}`);
+  logAuditEntry('credentials_get', 'credential', 'ok', req.userId, `Retrieved credential ${req.params.id}`);
   res.json(cred);
 });
 
@@ -367,10 +328,10 @@ app.post('/api/credentials', verifyToken, express.json(), async (req, res) => {
     }
     
     credentials.set(credId, cred);
-    logAudit('credentials_create', 'credential', 'ok', req.userId, `Created ${type} credential ${credId}`);
+    logAuditEntry('credentials_create', 'credential', 'ok', req.userId, `Created ${type} credential ${credId}`);
     res.status(201).json(cred);
   } catch (e) {
-    logAudit('credentials_create', 'credential', 'error', req.userId, e.message);
+    logAuditEntry('credentials_create', 'credential', 'error', req.userId, e.message);
     res.status(500).json({ error: 'Failed to create credential' });
   }
 });
@@ -387,10 +348,10 @@ app.put('/api/credentials/:id', verifyToken, express.json(), async (req, res) =>
     if (rotationPolicy) cred.rotationPolicy = rotationPolicy;
     
     credentials.set(req.params.id, cred);
-    logAudit('credentials_update', 'credential', 'ok', req.userId, `Updated credential ${req.params.id}`);
+    logAuditEntry('credentials_update', 'credential', 'ok', req.userId, `Updated credential ${req.params.id}`);
     res.json(cred);
   } catch (e) {
-    logAudit('credentials_update', 'credential', 'error', req.userId, e.message);
+    logAuditEntry('credentials_update', 'credential', 'error', req.userId, e.message);
     res.status(500).json({ error: 'Failed to update credential' });
   }
 });
@@ -411,10 +372,10 @@ app.post('/api/credentials/:id/rotate', verifyToken, express.json(), async (req,
     }
     
     credentials.set(req.params.id, cred);
-    logAudit('credentials_rotate', 'credential', 'ok', req.userId, `Rotated credential ${req.params.id}`);
+    logAuditEntry('credentials_rotate', 'credential', 'ok', req.userId, `Rotated credential ${req.params.id}`);
     res.json({ status: 'rotated', credential: cred });
   } catch (e) {
-    logAudit('credentials_rotate', 'credential', 'error', req.userId, e.message);
+    logAuditEntry('credentials_rotate', 'credential', 'error', req.userId, e.message);
     res.status(500).json({ error: 'Rotation failed' });
   }
 });
@@ -425,7 +386,7 @@ app.delete('/api/credentials/:id', verifyToken, (req, res) => {
   }
   const credId = req.params.id;
   credentials.delete(credId);
-  logAudit('credentials_delete', 'credential', 'ok', req.userId, `Deleted credential ${credId}`);
+  logAuditEntry('credentials_delete', 'credential', 'ok', req.userId, `Deleted credential ${credId}`);
   res.json({ status: 'deleted', id: credId });
 });
 
@@ -453,7 +414,7 @@ app.get('/api/audit/export', verifyToken, (req, res) => {
   } catch (e) {
     return res.status(500).json({ error: 'Export failed', message: e.message });
   }
-  logAudit('audit_export', 'audit', 'ok', req.userId, `Exported ${exported} entries`);
+  logAuditEntry('audit_export', 'audit', 'ok', req.userId, `Exported ${exported} entries`);
   res.json({ status: 'exported', count: exported });
 });
 
@@ -491,10 +452,10 @@ app.post('/api/deployments', verifyToken, express.json(), async (req, res) => {
     };
     
     deployments.set(deployId, deploy);
-    logAudit('deployment_create', 'deployment', 'ok', req.userId, `Created deployment ${deployId}`);
+    logAuditEntry('deployment_create', 'deployment', 'ok', req.userId, `Created deployment ${deployId}`);
     res.status(201).json(deploy);
   } catch (e) {
-    logAudit('deployment_create', 'deployment', 'error', req.userId, e.message);
+    logAuditEntry('deployment_create', 'deployment', 'error', req.userId, e.message);
     res.status(500).json({ error: 'Deployment creation failed' });
   }
 });
@@ -507,7 +468,7 @@ app.post('/api/deployments/:id/restart', verifyToken, express.json(), (req, res)
   deploy.status = 'restarting';
   deploy.lastDeployed = new Date().toISOString();
   deployments.set(req.params.id, deploy);
-  logAudit('deployment_restart', 'deployment', 'ok', req.userId, `Restarted deployment ${req.params.id}`);
+  logAuditEntry('deployment_restart', 'deployment', 'ok', req.userId, `Restarted deployment ${req.params.id}`);
   res.json({ status: 'restarting', deployment: deploy });
 });
 
@@ -539,14 +500,14 @@ app.get('/api/stats', verifyToken, (req, res) => {
 
 // 404
 app.use((req, res) => {
-  logAudit('http_404', 'route', 'not_found', null, `${req.method} ${req.path}`);
+  logAuditEntry('http_404', 'route', 'not_found', null, `${req.method} ${req.path}`);
   res.status(404).json({ error: 'Not found', path: req.path });
 });
 
 // Error handling
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  logAudit('http_error', 'api', 'error', req.userId, `${err.message}`);
+  logAuditEntry('http_error', 'api', 'error', req.userId, `${err.message}`);
   res.status(500).json({ error: 'Internal server error', message: err.message });
 });
 
