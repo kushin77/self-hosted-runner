@@ -1,0 +1,16 @@
+{
+  "name": "NexusShield Portal Backend API Documentation",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/api",
+  "includeVersion": true,
+  "readme": "README.md",
+  "theme": "default",
+  "stripInternal": false,
+  "searchInComments": true,
+  "excludePrivate": false,
+  "excludeInternal": false,
+  "excludeExternals": false,
+  "hideGenerator": false,
+  "cleanOutputDir": true,
+  "logLevel": "Verbose"
+}
