@@ -1,0 +1,8 @@
+{
+  "tag_name": "epic5-prod-2026-03-11",
+  "target_commitish": "9af4b77de",
+  "name": "EPIC-5 Production Release (EPIC5-PROD-1773198442)",
+  "body": "$(cat releases/epic5-prod-2026-03-11/GITHUB_RELEASE_BODY.md)",
+  "draft": false,
+  "prerelease": false
+}
