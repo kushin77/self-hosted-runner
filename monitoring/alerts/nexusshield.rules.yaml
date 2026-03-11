@@ -1,0 +1,33 @@
+groups:
+  - name: nexusshield.rules
+    rules:
+      - alert: NexusShieldHighErrorRate
+        expr: |
+          (increase(nexusshield_http_requests_total{http_status=~"5.."}[5m]) + increase(nexusshield_http_requests_total{http_status=~"4.."}[5m]))
+            / max(increase(nexusshield_http_requests_total[5m]), 1)
+            > 0.05
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "High error rate on NexusShield ({{ $value }})"
+          description: "Error rate >5% over 5m. Check API health and recent deployments. Runbook: RUNBOOKS/alerts_nexusshield.md"
+
+      - alert: NexusShieldLongJobDuration
+        expr: |
+          histogram_quantile(0.95, sum(rate(nexusshield_job_duration_seconds_bucket[5m])) by (le)) > 30
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "Long running NexusShield jobs (95th percentile >30s)"
+          description: "95th percentile job duration exceeded 30s over 10m. Investigate running jobs and worker health. Runbook: RUNBOOKS/alerts_nexusshield.md"
+
+      - alert: NexusShieldJobCompletionFailures
+        expr: increase(nexusshield_jobs_total{event=~"job_completed|job_started"}[15m]) == 0
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "No job lifecycle events in NexusShield"
+          description: "No job_started/job_completed events observed in last 15m. Possible worker outage. Runbook: RUNBOOKS/alerts_nexusshield.md"
