@@ -212,7 +212,7 @@ terraform apply tfplan
 ### Manual Infrastructure Modifications
 ```bash
 # Import external resource
-terraform import google_compute_instance.manual-server projects/PROJECT/zones/ZONE/instances/INSTANCE
+terraform import google_compute_instance.manual-server BASE64_BLOB_REDACTED
 
 # Taint resource for recreation
 terraform taint google_compute_instance.app_server
