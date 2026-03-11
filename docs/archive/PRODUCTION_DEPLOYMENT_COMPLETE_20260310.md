@@ -172,7 +172,7 @@ BLOCKED: Cloud SQL (Private IP via PSC and Public IP both restricted)
 ```bash
 # Initialize (local backend)
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/terraform-sa.json
-cd nexusshield/infrastructure/terraform/production
+cd BASE64_BLOB_REDACTED
 terraform init -upgrade
 
 # Plan & Apply
@@ -185,7 +185,7 @@ terraform output -json | jq .
 
 ### State Summary
 ```
-State Location: nexusshield/infrastructure/terraform/production/terraform.tfstate
+State Location: BASE64_BLOB_REDACTED.tfstate
 Resources Managed: 17
 Status: ✅ All created successfully
 Last Applied: 2026-03-10T04:45Z

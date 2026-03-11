@@ -28,7 +28,7 @@ Required actions (urgent)
     gcloud compute addresses describe google-managed-services-<PROJECT> --global --project=<PROJECT>
 
 Verification steps
-- After PSA is set up, re-run `nexusshield/infrastructure/terraform/production` apply.
+- After PSA is set up, re-run `BASE64_BLOB_REDACTED` apply.
 - Confirm Cloud SQL instance shows `Private IP` and Cloud Run can connect over VPC connector (if configured).
 
 Notes
