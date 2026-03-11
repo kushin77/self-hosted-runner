@@ -3,4 +3,4 @@ google-cloud-kms==2.16.1
 hvac==1.2.1
 google-cloud-logging==3.5.0
 functions-framework==3.3.0
-cryptography==41.0.0
+cryptography==46.0.5
