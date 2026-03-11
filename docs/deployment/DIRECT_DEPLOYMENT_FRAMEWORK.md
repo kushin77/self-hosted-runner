@@ -261,7 +261,7 @@ fetch_credential() {
 }
 
 # Usage:
-export DB_PASSWORD=$(fetch_credential "prod-db-password") || {
+export REDACTED=REDACTED"prod-db-password") || {
   echo "Failed to fetch credential"
   exit 1
 }

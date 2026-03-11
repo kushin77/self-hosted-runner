@@ -54,7 +54,7 @@ Status: ✅ Live — uses OIDC for AWS by default
 
 #### 3. **Phase 3 Revoke Keys** (.github/workflows/phase3-revoke-keys.yml)
 ```yaml
-Before: Hardcoded secrets (REDACTED_VAULT_TOKEN, GCP_SA_KEY, AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY)
+Before: Hardcoded secrets (REDACTED_REDACTED, GCP_SA_KEY, AWS_ACCESS_KEY_ID, REDACTED_AWS_SECRET_ACCESS_KEY)
 After:  GCP OIDC (WIF) + AWS OIDC (STS) + Vault AppRole JWT
 Status: ✅ Updated — full OIDC coverage
 ```
@@ -116,7 +116,7 @@ Phase 3B (AWS+Vault):
 ### Phase 2 (Planned)
 - **#2160** — HARDEN: Vault AppRole + JWT auth (Phase 2)
   - Status: 0% (backlog; tracks Phase 2 work)
-  - Next: Replace REDACTED_VAULT_TOKEN secrets with AppRole; implement JWT auth support
+  - Next: Replace REDACTED_REDACTED secrets with AppRole; implement JWT auth support
 
 ---
 
@@ -264,7 +264,7 @@ v2026-03-09-autodeploy — Production Deployment Release (final handoff)
 ### Short-term (Next Week)
 - [ ] Implement Vault AppRole and JWT auth
 - [ ] Set VAULT_APPROLE_ROLE_ID + VAULT_APPROLE_SECRET_ID
-- [ ] Remove REDACTED_VAULT_TOKEN from repo secrets
+- [ ] Remove REDACTED_REDACTED from repo secrets
 
 ### Medium-term (Next Month)
 - [ ] Sanitize docs (remove literal credential examples)
