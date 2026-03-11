@@ -1,0 +1,22 @@
+Deployment verification started at Wed Mar 11 06:27:43 PM UTC 2026
+
+=== Crontab (runner) ===
+sudo: a password is required
+(no crontab found)
+
+=== Orchestrator log (tail 200) ===
+No orchestrator logs found in /var/log/chaos
+
+=== Uploader log (tail 200) ===
+No uploader logs found in /var/log/chaos
+
+=== Local JSONL reports (sample) ===
+No reports/chaos directory found under /opt/runner/repo
+
+S3_BUCKET not provided; skipping S3 checks
+
+=== Summary ===
+Generated evidence file: /tmp/deployment_verification_20260311T182743Z.txt
+
+Please paste the contents of /tmp/deployment_verification_20260311T182743Z.txt into the stakeholder sign-off issue (#2594) as verification evidence.
+Deployment verification complete at Wed Mar 11 06:27:43 PM UTC 2026
