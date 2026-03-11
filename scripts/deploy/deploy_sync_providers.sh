@@ -133,13 +133,13 @@ fetch_credentials() {
     
     vault)
       # Try HashiCorp Vault
-      if [[ -n "${VAULT_ADDR:-}" && -n "${VAULT_TOKEN:-}" ]]; then
+      if [[ -n "${VAULT_ADDR:-}" && -n "${VAULT_TKN:-}" ]]; then
         if curl -sSf \
-          -H "X-Vault-Token: $VAULT_TOKEN" \
+          -H "X-Vault-Token: $VAULT_TKN" \
           "${VAULT_ADDR}/v1/secret/data/credentials/$provider" 2>/dev/null; then
           mkdir -p "$CRED_CACHE_DIR"
           curl -sSf \
-            -H "X-Vault-Token: $VAULT_TOKEN" \
+            -H "X-Vault-Token: $VAULT_TKN" \
             "${VAULT_ADDR}/v1/secret/data/credentials/$provider" | jq '.data.data' > "$cache_file"
           cat "$cache_file"
           audit_log "fetch_credentials" "success" "{\"provider\":\"$provider\",\"source\":\"vault\"}"

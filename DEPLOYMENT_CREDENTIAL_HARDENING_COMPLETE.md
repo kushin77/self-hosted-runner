@@ -3,15 +3,15 @@
 Status: Implementation applied to `main` and local validations completed (2026-03-10).
 
 Summary of changes
-- `scripts/vault/sync_gsm_to_vault.sh`: prefer `VAULT_TOKEN_FILE`, AppRole fallback, transient token usage.
-- `backend/src/credentials.ts`: Vault client now prefers token file then `VAULT_TOKEN` env; added robustness.
+- `scripts/vault/sync_gsm_to_vault.sh`: prefer `VAULT_TKN_FILE`, AppRole fallback, transient token usage.
+- `backend/src/credentials.ts`: Vault client now prefers token file then `VAULT_TKN` env; added robustness.
 - `docker-compose.yml` and `.env.production.example`: removed persistent SA key mounts and added Workload Identity Federation (WIF) guidance.
 - `docs/runbooks/credential_unblock_runbook.md`: operator runbook with one-liners.
 - `docs/verification/credential_verification.md`: verification checklist.
 - Local test harness: mocked `gcloud` and Vault dev validation scripts under `backend/scripts/`.
 
 What was validated locally
-- VAULT token selection: token-file preferred, then `VAULT_TOKEN` env.
+- VAULT token selection: token-file preferred, then `VAULT_TKN` env.
 - Mocked GSM → Vault sync using `scripts/vault/sync_gsm_to_vault.sh` with a mocked `gcloud` — confirmed secret written to local Vault KV v2.
 - `getCredentialService().resolveCredential()` read secret from local Vault using token-file.
 

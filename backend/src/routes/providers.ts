@@ -17,7 +17,7 @@ const router = Router();
 const credentialManager = CredentialManagerFactory.create({
   gsmProjectId: process.env.GCP_PROJECT_ID,
   vaultAddr: process.env.VAULT_ADDR,
-  vaultToken: process.env.VAULT_TOKEN,
+  vaultToken: process.env.VAULT_TKN,
   kmsKeyId: process.env.KMS_KEY_ID,
   auditLogDir: '.sync_audit',
 });
