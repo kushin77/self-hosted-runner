@@ -28,9 +28,7 @@ export type LoginRequest = z.infer<typeof LoginSchema>;
  * OAuth authorization request
  */
 export const OAuthSchema = z.object({
-  provider: z.enum(['google', 'github'], {
-    errorMap: () => ({ message: 'Provider must be "google" or "github"' }),
-  }).describe('OAuth provider'),
+  provider: z.enum(['google', 'github']).describe('OAuth provider'),
   code: z.string()
     .min(1, 'Authorization code required')
     .describe('OAuth authorization code from provider'),
@@ -67,9 +65,7 @@ export const CredentialCreateSchema = z.object({
     .min(1, 'Credential value required')
     .max(10000, 'Credential value too large')
     .describe('Secret value (encrypted at rest)'),
-  type: z.enum(['api_key', 'token', 'password', 'connection_string'], {
-    errorMap: () => ({ message: 'Invalid credential type' }),
-  }).describe('Credential classification'),
+  type: z.enum(['api_key', 'token', 'password', 'connection_string']).describe('Credential classification'),
   metadata: z.record(z.string(), z.any())
     .optional()
     .describe('Optional metadata tags'),
@@ -87,9 +83,7 @@ export const CredentialRotationSchema = z.object({
   newValue: z.string()
     .min(1, 'New value required')
     .describe('New secret value'),
-  reason: z.enum(['scheduled', 'manual', 'revoked', 'compromised', 'expired'], {
-    errorMap: () => ({ message: 'Invalid rotation reason' }),
-  }).describe('Reason for rotation'),
+  reason: z.enum(['scheduled', 'manual', 'revoked', 'compromised', 'expired']).describe('Reason for rotation'),
 });
 
 export type CredentialRotationRequest = z.infer<typeof CredentialRotationSchema>;

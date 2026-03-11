@@ -39,6 +39,7 @@ function createTestApp(): Express {
       return res.status(400).json({
         code: 'VALIDATION_FAILED',
         message: 'Email and password required',
+        timestamp: new Date().toISOString(),
       });
     }
 
@@ -46,12 +47,14 @@ function createTestApp(): Express {
       return res.status(200).json({
         token: 'jwt-token-here',
         expiresIn: 3600,
+        timestamp: new Date().toISOString(),
       });
     }
 
     return res.status(401).json({
       code: 'AUTH_FAILED',
       message: 'Invalid credentials',
+      timestamp: new Date().toISOString(),
     });
   });
 

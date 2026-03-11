@@ -9,118 +9,125 @@ import { jest } from '@jest/globals';
 // PRISMA MOCK
 // ============================================================================
 
-export const createMockPrisma = () => ({
-  auditLog: {
-    create: jest.fn().mockResolvedValue({
-      id: 'audit-1',
-      created_at: new Date(),
-      event: 'test_event',
-      resource_type: 'test',
-      actor_id: 'test_user',
-      action: 'test',
-      hash: 'abc123',
-      previous_hash: 'prev123',
-    }),
-    findFirst: jest.fn().mockResolvedValue({
-      id: 'audit-1',
-      hash: 'abc123',
-      created_at: new Date(),
-    }),
-    findMany: jest.fn().mockResolvedValue([]),
-  },
-  credentialPolicy: {
-    findMany: jest.fn().mockResolvedValue([]),
-    findUnique: jest.fn().mockResolvedValue(null),
-    create: jest.fn().mockResolvedValue({
-      id: 'policy-1',
-      name: 'test_policy',
-      rules: {},
-    }),
-  },
-  credential: {
-    findUnique: jest.fn().mockResolvedValue({
-      id: 'cred-1',
-      name: 'test_cred',
-      type: 'password',
-    }),
-    findMany: jest.fn().mockResolvedValue([]),
-    create: jest.fn().mockResolvedValue({
-      id: 'cred-1',
-      name: 'test_cred',
-      type: 'password',
-    }),
-    update: jest.fn().mockResolvedValue({
-      id: 'cred-1',
-      name: 'test_cred',
-      type: 'password',
-    }),
-  },
-  $executeRaw: jest.fn().mockResolvedValue(undefined),
-  $queryRaw: jest.fn().mockResolvedValue([]),
-});
+export const createMockPrisma = () => {
+  let auditLogCounter = 0;
+  let credentialCounter = 0;
+  
+  return {
+    auditLog: {
+      create: jest.fn(async (input: any) => {
+        const data = input.data || {};
+        return {
+          id: `audit-${++auditLogCounter}`,
+          created_at: data.created_at || new Date(),
+          event: data.event || 'test_event',
+          resource_type: data.resource_type || 'test',
+          resource_id: data.resource_id || null,
+          actor_id: data.actor_id || 'test_user',
+          action: data.action || 'test',
+          details: data.details || null,
+          hash: data.hash || 'abc123',
+          previous_hash: data.previous_hash || null,
+        };
+      }),
+      findFirst: jest.fn(async () => ({
+        id: 'audit-1',
+        hash: 'abc123',
+        created_at: new Date(),
+      })),
+      findMany: jest.fn(async () => []),
+    },
+    credentialPolicy: {
+      findMany: jest.fn(async () => []),
+      findUnique: jest.fn(async () => null),
+      create: jest.fn(async () => ({
+        id: 'policy-1',
+        name: 'test_policy',
+        rules: {},
+      })),
+    },
+    credential: {
+      findUnique: jest.fn(async () => ({
+        id: 'cred-1',
+        name: 'test_cred',
+        type: 'password',
+      })),
+      findMany: jest.fn(async () => []),
+      create: jest.fn(async (input: any) => {
+        const data = input.data || {};
+        return {
+          id: `cred-${++credentialCounter}`,
+          name: data.name || 'test_cred',
+          type: data.type || 'password',
+        };
+      }),
+      update: jest.fn(async (input: any) => {
+        const data = input.data || {};
+        return {
+          id: input.where?.id || 'cred-1',
+          name: data.name || 'test_cred',
+          type: data.type || 'password',
+        };
+      }),
+    },
+    $executeRaw: jest.fn(async () => undefined),
+    $queryRaw: jest.fn(async () => []),
+  };
+};
 
 // ============================================================================
 // GCP SECRET MANAGER MOCK
 // ============================================================================
 
-export const createMockSecretManager = () => {
-  const mockClient = jest.mocked({
-    accessSecret: jest.fn().mockResolvedValue({
-      payload: { data: Buffer.from('test-secret-value') },
-    }),
-    getSecret: jest.fn().mockResolvedValue({ name: 'test-secret' }),
-    addSecretVersion: jest.fn().mockResolvedValue({ name: 'test-version' }),
-    createSecret: jest.fn().mockResolvedValue({ name: 'test-secret' }),
-  });
-  return mockClient;
-};
+export const createMockSecretManager = () => ({
+  accessSecret: jest.fn(async () => ({
+    payload: { data: Buffer.from('test-secret-value') },
+  })),
+  getSecret: jest.fn(async () => ({ name: 'test-secret' })),
+  addSecretVersion: jest.fn(async () => ({ name: 'test-version' })),
+  createSecret: jest.fn(async () => ({ name: 'test-secret' })),
+});
 
 // ============================================================================
 // VAULT MOCK
 // ============================================================================
 
-export const createMockVault = () => {
-  const mockVault = {
-    read: jest
-      .fn()
-      .mockResolvedValue({ data: { data: { value: 'vault-secret-value' } } }),
-    write: jest
-      .fn()
-      .mockResolvedValue({ data: { data: { version: 1 } } }),
-    destroy: jest.fn().mockResolvedValue({}),
-  };
-  return mockVault;
-};
+export const createMockVault = () => ({
+  read: jest.fn(async () => ({ 
+    data: { data: { value: 'vault-secret-value' } } 
+  })),
+  write: jest.fn(async () => ({ 
+    data: { data: { version: 1 } } 
+  })),
+  destroy: jest.fn(async () => ({})),
+});
 
 // ============================================================================
 // KMS MOCK
 // ============================================================================
 
-export const createMockKMS = () => {
-  const mockKMS = {
-    decrypt: jest.fn().mockResolvedValue({
-      plaintext: Buffer.from('decrypted-value'),
-    }),
-    encrypt: jest.fn().mockResolvedValue({
-      ciphertext: Buffer.from('encrypted-value'),
-    }),
-  };
-  return mockKMS;
-};
+export const createMockKMS = () => ({
+  decrypt: jest.fn(async () => ({
+    plaintext: Buffer.from('decrypted-value'),
+  })),
+  encrypt: jest.fn(async () => ({
+    ciphertext: Buffer.from('encrypted-value'),
+  })),
+});
 
 // ============================================================================
 // JWT MOCK
 // ============================================================================
 
 export const createMockJWT = () => ({
-  sign: jest.fn().mockReturnValue('mock-jwt-token'),
-  verify: jest.fn().mockReturnValue({
+  sign: jest.fn(() => 'mock-jwt-token'),
+  verify: jest.fn(() => ({
     userId: 'test-user',
     email: 'test@example.com',
     role: 'admin',
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 86400,
-  }),
+  })),
 });
 
 // ============================================================================
@@ -156,13 +163,11 @@ export const createMockNext = () => jest.fn();
 // ============================================================================
 
 export const createMockFS = () => ({
-  readFileSync: jest
-    .fn()
-    .mockReturnValue('{"id":"abc123","hash":"def456"}'),
-  writeFileSync: jest.fn().mockReturnValue(undefined),
-  appendFileSync: jest.fn().mockReturnValue(undefined),
-  existsSync: jest.fn().mockReturnValue(true),
-  mkdirSync: jest.fn().mockReturnValue(undefined),
+  readFileSync: jest.fn(() => '{"id":"abc123","hash":"def456"}'),
+  writeFileSync: jest.fn(),
+  appendFileSync: jest.fn(),
+  existsSync: jest.fn(() => true),
+  mkdirSync: jest.fn(),
 });
 
 // ============================================================================
@@ -198,12 +203,12 @@ export const createMockLogger = () => ({
 // ============================================================================
 
 export const createMockRedis = () => ({
-  get: jest.fn().mockResolvedValue(null),
-  set: jest.fn().mockResolvedValue('OK'),
-  del: jest.fn().mockResolvedValue(1),
-  exists: jest.fn().mockResolvedValue(0),
-  expire: jest.fn().mockResolvedValue(1),
-  ttl: jest.fn().mockResolvedValue(-1),
+  get: jest.fn(async () => null),
+  set: jest.fn(async () => 'OK'),
+  del: jest.fn(async () => 1),
+  exists: jest.fn(async () => 0),
+  expire: jest.fn(async () => 1),
+  ttl: jest.fn(async () => -1),
 });
 
 // ============================================================================

@@ -4,10 +4,21 @@
  */
 
 import { TextEncoder, TextDecoder } from 'util';
+import { jest } from '@jest/globals';
 
 // Polyfills for Node.js
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder as any;
+
+/**
+ * Mock Prisma wrapper globally
+ */
+jest.mock('../src/prisma-wrapper', () => {
+  const mocks = require('./mocks');
+  return {
+    getPrisma: () => mocks.createMockPrisma(),
+  };
+});
 
 /**
  * Mock environment variables for testing

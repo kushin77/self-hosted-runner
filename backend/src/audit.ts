@@ -72,6 +72,7 @@ export class AuditService {
         previousHash: this.lastHash,
       });
       const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
+      const previousHash = this.lastHash; // Store previous hash before updating
 
       // Write to database (immutable append-only)
       const logEntry = await prisma.auditLog.create({
@@ -83,7 +84,7 @@ export class AuditService {
           action: entry.action,
           details: entry.details ? JSON.stringify(entry.details) : null,
           hash,
-          previous_hash: this.lastHash,
+          previous_hash: previousHash,
         },
       });
 
@@ -102,21 +103,23 @@ export class AuditService {
         status: 'success',
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
         hash,
-        previousHash: this.lastHash,
+        previousHash,
       });
 
       return {
         id: logEntry.id,
-        timestamp: logEntry.created_at,
+        timestamp: entry.timestamp || logEntry.created_at,
         event: logEntry.event,
         resourceType: logEntry.resource_type,
         resourceId: logEntry.resource_id || undefined,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: 'success',
+        status: entry.status || 'success',
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+        ipAddress: entry.ipAddress,
+        userAgent: entry.userAgent,
         hash,
-        previousHash: this.lastHash,
+        previousHash,
       };
     } catch (error: any) {
       console.error(`❌ Failed to log audit entry: ${error.message}`);
