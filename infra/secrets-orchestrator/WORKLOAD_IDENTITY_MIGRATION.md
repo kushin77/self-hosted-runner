@@ -41,5 +41,5 @@ gcloud iam workload-identity-pools providers create-oidc wif-provider \
 # Allow provider to impersonate SA
 gcloud iam service-accounts add-iam-policy-binding nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com \
   --project=nexusshield-prod --role roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/wif-pool/attribute.repository/REPO"
+  --member="principalSet://iam.googleapis.com/projects/PROJECT_BASE64_BLOB_REDACTED-pool/attribute.repository/REPO"
 ```

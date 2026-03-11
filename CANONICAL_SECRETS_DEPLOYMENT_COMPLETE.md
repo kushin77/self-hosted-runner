@@ -47,7 +47,7 @@
   - Features: Parity information
 
 #### React Portal
-- **[SecretsManagementDashboard.tsx](frontend/src/components/SecretsManagementDashboard.tsx)** (800 lines)
+- **[SecretsManagementDashboard.tsx](BASE64_BLOB_REDACTED.tsx)** (800 lines)
   - Real-time provider hierarchy visualization
   - Health status cards with latency metrics
   - Credential management UI
@@ -341,7 +341,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 1. [scripts/secrets/canonical-provider-hierarchy.sh](scripts/secrets/canonical-provider-hierarchy.sh)
 2. [scripts/cloudrun/canonical_secrets_provider.py](scripts/cloudrun/canonical_secrets_provider.py)
 3. [backend/src/api/canonical_secrets_api.py](backend/src/api/canonical_secrets_api.py)
-4. [frontend/src/components/SecretsManagementDashboard.tsx](frontend/src/components/SecretsManagementDashboard.tsx)
+4. [BASE64_BLOB_REDACTED.tsx](BASE64_BLOB_REDACTED.tsx)
 5. [scripts/secrets/canonical-migration-orchestrator.sh](scripts/secrets/canonical-migration-orchestrator.sh)
 6. [scripts/nexusshield-secrets-cli.sh](scripts/nexusshield-secrets-cli.sh)
 7. [CANONICAL_SECRETS_IMPLEMENTATION.md](CANONICAL_SECRETS_IMPLEMENTATION.md)

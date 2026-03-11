@@ -56,7 +56,7 @@ Completed end-to-end deployment of immutable, ephemeral, idempotent audit aggreg
 | Health-check logs | `logs/health-check/` (local) | JSONL | Append-only |
 | Mirror audit logs | `logs/secret-mirror/mirror-*.jsonl` | Append-only JSONL | ✅ Yes |
 | KMS Keyring | `projects/nexusshield-prod/locations/us-central1/keyRings/nexusshield` | KMS | ✅ Yes |
-| KMS Key | `projects/nexusshield-prod/locations/us-central1/keyRings/nexusshield/cryptoKeys/mirror-key-us-central1` | Encryption | ✅ Yes |
+| KMS Key | `projects/nexusshield-prod/locations/us-BASE64_BLOB_REDACTED-key-us-central1` | Encryption | ✅ Yes |
 | Systemd Timer | `/etc/systemd/system/audit-aggregate.timer` | Enabled | ✅ Yes |
 | Scripts | `tools/audit-aggregate.sh`, `scripts/secrets/verify-audit.sh`, `tools/upload-aggregate.sh`, `tools/install-audit-timer.sh` | Git-tracked | ✅ Yes |
 
@@ -115,7 +115,7 @@ journalctl -u audit-aggregate.service --no-pager | tail -20
 
 ## Follow-up Recommendations
 
-1. **CMEK finalization:** Re-run `gsutil kms encryption -k projects/nexusshield-prod/locations/us-central1/keyRings/nexusshield/cryptoKeys/mirror-key-us-central1 gs://nexusshield-secret-audit` to finalize regional key binding (gcloud auth may need refresh).
+1. **CMEK finalization:** Re-run `gsutil kms encryption -k projects/nexusshield-prod/locations/us-BASE64_BLOB_REDACTED-key-us-central1 gs://nexusshield-secret-audit` to finalize regional key binding (gcloud auth may need refresh).
 2. **Automated uploads:** Modify systemd timer to also upload aggregate to GCS after creation (add ExecStartPost).
 3. **Monitoring:** Set up Cloud Logging sink to track all KMS key operations for compliance.
 4. **KMS rotation:** Enable auto-rotation on the regional KMS key (gcloud kms keys versions create ...).

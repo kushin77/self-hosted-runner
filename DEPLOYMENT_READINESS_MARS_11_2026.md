@@ -9,7 +9,7 @@
 - **Redis Worker:** ✅ Active (systemd service)
   - Auth: GSM-provisioned `runner-redis-password`
 - **Audit Trail:** ✅ Immutable append-only JSONL with SHA256 chaining
-  - Location: `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+  - Location: `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - **Rotation Automation:** ✅ Daily systemd timer running 03:30 UTC
   - Script: `scripts/ops/rotate_audit.sh`
   - GCS bucket: `nexusshield-audit-archive` (configurable)
@@ -84,7 +84,7 @@ bash scripts/ops/import_grafana_dashboard.sh
 
 ### Audit Trail
 - **Type:** Immutable append-only JSONL with SHA256 chaining
-- **Location:** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+- **Location:** `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - **Entries:** 14+ (verified after production deployment)
 - **Sample Events:** job_queued, dry_run_simulation_start, dry_run_validation, dry_run_completed
 - **Backup:** Rotated daily to GCS bucket `nexusshield-audit-archive`

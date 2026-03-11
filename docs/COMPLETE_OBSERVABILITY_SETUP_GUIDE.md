@@ -447,7 +447,7 @@ curl http://localhost:9090/api/v1/targets | jq '.data.activeTargets[]'
 
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
-- [Elasticsearch Filebeat Guide](https://www.elastic.co/guide/en/beats/filebeat/current/filebeat-overview.html)
+- [Elasticsearch Filebeat Guide](https://www.elastic.BASE64_BLOB_REDACTED-overview.html)
 - [Datadog Agent Documentation](https://docs.datadoghq.com/agent/)
 - [AlertManager Configuration](https://prometheus.io/docs/alerting/latest/configuration/)
 

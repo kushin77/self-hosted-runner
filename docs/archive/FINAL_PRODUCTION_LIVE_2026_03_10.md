@@ -82,7 +82,7 @@ All services: **Healthy | All health checks: Passing | All ports: Configured**
 - **Git History:** Immutable commits documenting all changes
 
 ### Infrastructure Code
-- **Terraform Module:** nexusshield/infrastructure/terraform/modules/enable-secretmanager/
+- **Terraform Module:** BASE64_BLOB_REDACTED-secretmanager/
 - **Docker Compose:** docker-compose.phase6.yml (9 services)
 - **Orchestration Script:** scripts/comprehensive-deployment-framework.sh
 
