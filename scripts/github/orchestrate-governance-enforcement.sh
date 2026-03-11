@@ -21,6 +21,10 @@ fi
 # never appear in the environment. Arguments: METHOD URL DATA_JSON(optional)
 run_api_via_helper() {
   local METHOD="$1"; local URL="$2"; local DATA_JSON="${3:-}"
+  if [ "$DRY_RUN" = "true" ]; then
+    log_info "DRY-RUN: would call API via helper: $METHOD $URL ${DATA_JSON:+with body}"
+    return 0
+  fi
   tmp_script=$(mktemp)
   cat > "$tmp_script" <<'BASH'
 #!/usr/bin/env bash
@@ -111,11 +115,16 @@ log_success() {
 
 # Parse arguments
 TOKEN_ARG=""
+DRY_RUN=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --token)
       TOKEN_ARG="$2"
       shift 2
+      ;;
+    --dry-run)
+      DRY_RUN=true
+      shift
       ;;
     *)
       log_error "Unknown argument: $1"
@@ -174,7 +183,11 @@ if [ "$USE_SECRET_HELPER" = "true" ]; then
   fi
 else
   if [ "$USE_GH" = "true" ]; then
-    gh repo edit ${OWNER}/${REPO} --enable-auto-merge && log_success "Repository auto-merge enabled (via gh)" || log_error "Failed to enable auto-merge"
+    if [ "$DRY_RUN" = "true" ]; then
+      log_info "DRY-RUN: gh repo edit ${OWNER}/${REPO} --enable-auto-merge"
+    else
+      gh repo edit ${OWNER}/${REPO} --enable-auto-merge && log_success "Repository auto-merge enabled (via gh)" || log_error "Failed to enable auto-merge"
+    fi
   else
     if curl -sS -X PATCH \
       -H "Authorization: Bearer ${TOKEN}" \
@@ -187,7 +200,6 @@ else
     else
       log_error "Failed to enable auto-merge; continuing anyway"
     fi
-  fi
 fi
 
 # Step 3: Disable GitHub Actions
