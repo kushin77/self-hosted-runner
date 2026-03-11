@@ -82,7 +82,7 @@ echo "Generated evidence file: $OUT" | tee -a "$OUT"
 
 # Optional: if ONPREM_HOST is provided, attempt to SSH and run remote verifier
 ONPREM_HOST="${ONPREM_HOST:-}"
-ONPREM_USER="${ONPREM_USER:-runner}"
+ONPREM_USER="${ONPREM_USER:-akushnir}"
 if [ -n "$ONPREM_HOST" ]; then
   printf '\n=== Remote verification on %s ===\n' "$ONPREM_HOST" | tee -a "$OUT"
   # Ensure fetch_credentials is available to provide SSH_KEY_PATH
