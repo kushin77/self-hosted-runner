@@ -200,6 +200,7 @@ else
     else
       log_error "Failed to enable auto-merge; continuing anyway"
     fi
+  fi
 fi
 
 # Step 3: Disable GitHub Actions
@@ -213,7 +214,11 @@ if [ "$USE_SECRET_HELPER" = "true" ]; then
   fi
 else
   if [ "$USE_GH" = "true" ]; then
-    gh api -X PUT /repos/${OWNER}/${REPO}/actions/permissions -f enabled=false -f allowed_actions=none >/dev/null 2>&1 && log_success "GitHub Actions disabled (via gh)" || log_error "Failed to disable Actions"
+    if [ "$DRY_RUN" = "true" ]; then
+      log_info "DRY-RUN: gh api -X PUT /repos/${OWNER}/${REPO}/actions/permissions -f enabled=false -f allowed_actions=none"
+    else
+      gh api -X PUT /repos/${OWNER}/${REPO}/actions/permissions -f enabled=false -f allowed_actions=none >/dev/null 2>&1 && log_success "GitHub Actions disabled (via gh)" || log_error "Failed to disable Actions"
+    fi
   else
     if curl -sS -X PUT \
       -H "Authorization: Bearer ${TOKEN}" \
@@ -271,8 +276,13 @@ if [ "$USE_SECRET_HELPER" = "true" ]; then
   fi
 else
   if [ "$USE_GH" = "true" ]; then
-    gh issue comment ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} --body "$COMMENT_BODY" >/dev/null 2>&1 && log_success "Comment posted (via gh)" || log_error "Failed to post comment"
-    gh issue close ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} >/dev/null 2>&1 && log_success "Issue #$ISSUE_NUMBER closed (via gh)" || log_error "Failed to close issue"
+    if [ "$DRY_RUN" = "true" ]; then
+      log_info "DRY-RUN: gh issue comment ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} --body <comment>"
+      log_info "DRY-RUN: gh issue close ${ISSUE_NUMBER} --repo ${OWNER}/${REPO}"
+    else
+      gh issue comment ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} --body "$COMMENT_BODY" >/dev/null 2>&1 && log_success "Comment posted (via gh)" || log_error "Failed to post comment"
+      gh issue close ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} >/dev/null 2>&1 && log_success "Issue #$ISSUE_NUMBER closed (via gh)" || log_error "Failed to close issue"
+    fi
   else
     COMMENT_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}/comments"
     ISSUE_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}"
@@ -315,11 +325,15 @@ if [ "$USE_SECRET_HELPER" = "true" ]; then
   fi
 else
   if [ "$USE_GH" = "true" ]; then
-    gh api -X PUT /repos/${OWNER}/${REPO}/branches/main/protection \
-      -f enforce_admins=true \
-      -f allow_deletions=false \
-      -f allow_force_pushes=false \
-      >/dev/null 2>&1 && log_success "Branch protection applied to main (via gh)" || log_error "Failed to apply branch protection"
+    if [ "$DRY_RUN" = "true" ]; then
+      log_info "DRY-RUN: gh api -X PUT /repos/${OWNER}/${REPO}/branches/main/protection -f enforce_admins=true -f allow_deletions=false -f allow_force_pushes=false"
+    else
+      gh api -X PUT /repos/${OWNER}/${REPO}/branches/main/protection \
+        -f enforce_admins=true \
+        -f allow_deletions=false \
+        -f allow_force_pushes=false \
+        >/dev/null 2>&1 && log_success "Branch protection applied to main (via gh)" || log_error "Failed to apply branch protection"
+    fi
   else
     curl -sS -X PUT \
       -H "Authorization: Bearer ${TOKEN}" \
