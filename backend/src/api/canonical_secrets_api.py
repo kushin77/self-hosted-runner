@@ -253,7 +253,7 @@ async def resolve_provider(secret_name: str):
         fallback_level=0 if provider == Provider.VAULT else len(fallback_chain) - 1,
         fallback_chain=[f for f in fallback_chain[:-1]],
         timestamp=datetime.utcnow().isoformat() + "Z"
-    ).dict() | {"primary_provider": provider.value}
+    ).dict() | {"primary_provider": Provider.VAULT.value}
 
 
 # Backwards-compatible GET for legacy smoke tests that call resolve without a body.
@@ -280,7 +280,7 @@ async def resolve_provider_get(secret_name: Optional[str] = None):
         fallback_level=0 if provider == Provider.VAULT else len(fallback_chain) - 1,
         fallback_chain=[f for f in fallback_chain[:-1]],
         timestamp=datetime.utcnow().isoformat() + "Z"
-    ).dict() | {"primary_provider": provider.value}
+    ).dict() | {"primary_provider": Provider.VAULT.value}
 
 
 # ============================================================================

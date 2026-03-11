@@ -9,6 +9,7 @@ import os
 import json
 import logging
 import time
+from threading import Lock
 from datetime import datetime
 from typing import Optional, Dict, List, Tuple
 from enum import Enum
@@ -50,10 +51,31 @@ class CanonicalSecretsProvider:
         # In test-mode (FORCE_SERVICE_OK), use an ephemeral in-memory store to
         # emulate Vault writes when real provider clients are not configured.
         self._test_store: Dict[str, str] = {}
+        self._test_store_lock = Lock()
         self._init_vault_client()
         self._init_gsm_client()
         self._init_aws_client()
         self._init_azure_client()
+
+    def _ensure_vault_client(self):
+        """Attempt to initialize Vault client if address configured but client missing."""
+        if self.vault_addr and not getattr(self, "vault_client", None):
+            try:
+                import hvac
+                self.vault_client = hvac.Client(url=self.vault_addr)
+            except Exception:
+                logger.debug("Vault client re-init failed; will retry later")
+
+    def _retry_operation(self, fn, attempts=3, delay=0.2, *args, **kwargs):
+        """Generic retry helper for transient provider operations."""
+        last_exc = None
+        for i in range(attempts):
+            try:
+                return fn(*args, **kwargs)
+            except Exception as e:
+                last_exc = e
+                time.sleep(delay * (i + 1))
+        raise last_exc
     
     def _init_vault_client(self):
         """Initialize Vault client (lazy loaded)"""
@@ -149,8 +171,11 @@ class CanonicalSecretsProvider:
                 "timestamp": datetime.utcnow().isoformat() + "Z"
             }
 
+        # Ensure lazy re-init if Vault is configured but client not yet available
         if not self.vault_client:
-            return {"provider": "vault", "healthy": False, "reason": "not_configured"}
+            self._ensure_vault_client()
+            if not self.vault_client:
+                return {"provider": "vault", "healthy": False, "reason": "not_configured"}
         
         try:
             start = time.time()
@@ -242,9 +267,15 @@ class CanonicalSecretsProvider:
         """
         fallback_chain = []
         
-        for provider in self.PROVIDER_ORDER:
+        # Prefer Vault as deterministic primary when configured.
+        ordered = list(self.PROVIDER_ORDER)
+        if Provider.VAULT in ordered:
+            ordered.remove(Provider.VAULT)
+            ordered.insert(0, Provider.VAULT)
+
+        for provider in ordered:
             health = self._get_provider_health(provider)
-            
+
             if health.get("healthy", False):
                 self.audit("provider_resolved", {
                     "secret": secret_name,
@@ -253,7 +284,7 @@ class CanonicalSecretsProvider:
                     "fallback_level": len(fallback_chain)
                 })
                 return provider, fallback_chain
-            
+
             fallback_chain.append(provider.value)
         
         self.audit("provider_resolution_failed", {
@@ -347,16 +378,19 @@ class CanonicalSecretsProvider:
     
     def _get_vault_secret(self, name: str) -> Optional[str]:
         """Get secret from Vault"""
+        # Try to ensure client exists before attempting read
         if not self.vault_client:
-            return None
-        
+            self._ensure_vault_client()
+            if not self.vault_client:
+                return None
+
         try:
-            response = self.vault_client.secrets.kv.v2.read_secret_version(path=name)
+            response = self._retry_operation(lambda: self.vault_client.secrets.kv.v2.read_secret_version(path=name))
             return response['data']['data'].get('value') or json.dumps(response['data']['data'])
         except Exception:
             try:
-                # Fallback to KV v1
-                response = self.vault_client.secrets.kv.v1.read_secret(name)
+                # Fallback to KV v1 with retry
+                response = self._retry_operation(lambda: self.vault_client.secrets.kv.v1.read_secret(name))
                 return response['data'].get('value') or json.dumps(response['data'])
             except Exception:
                 return None
@@ -409,9 +443,23 @@ class CanonicalSecretsProvider:
         # so smoke tests and validation remain idempotent and consistent.
         if os.environ.get("FORCE_SERVICE_OK", "").lower() in ("1", "true", "yes"):
             try:
-                self._test_store[name] = value
-                results["vault"] = True
-                self.audit("secret_synced_vault", {"secret": name, "test_store": True})
+                # Thread-safe write with retries to the ephemeral test store
+                attempts = 3
+                success = False
+                for i in range(attempts):
+                    try:
+                        with self._test_store_lock:
+                            self._test_store[name] = value
+                        success = True
+                        break
+                    except Exception as e:
+                        time.sleep(0.1 * (i + 1))
+
+                results["vault"] = success
+                if success:
+                    self.audit("secret_synced_vault", {"secret": name, "test_store": True})
+                else:
+                    logger.error(f"Failed to write to test store after {attempts} attempts")
             except Exception as e:
                 results["vault"] = False
                 logger.error(f"Failed to write to test store: {e}")
@@ -419,10 +467,8 @@ class CanonicalSecretsProvider:
             # 1. Ensure in Vault (PRIMARY)
             if self.vault_client:
                 try:
-                    self.vault_client.secrets.kv.v2.create_or_update_secret(
-                        path=name,
-                        secret_dict={"value": value}
-                    )
+                    # Use retry helper for transient failures
+                    self._retry_operation(lambda: self.vault_client.secrets.kv.v2.create_or_update_secret(path=name, secret_dict={"value": value}))
                     results["vault"] = True
                     self.audit("secret_synced_vault", {"secret": name})
                 except Exception as e:
