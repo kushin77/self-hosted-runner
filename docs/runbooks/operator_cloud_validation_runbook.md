@@ -38,7 +38,7 @@ Run automated cloud validation (after above steps completed):
   export GCP_PROJECT=your-project-id
   export GCP_WORKLOAD_IDENTITY_PROVIDER="projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/my-pool/providers/my-provider"
   export GCP_SERVICE_ACCOUNT_EMAIL="svc-account@${GCP_PROJECT}.iam.gserviceaccount.com"
-  export VAULT_TOKEN_FILE=/var/run/secrets/vault/token OR export VAULT_TOKEN=...
+  export VAULT_TKN_FILE=/var/run/secrets/vault/token OR export VAULT_TKN=...
   ./scripts/cloud/validate_gsm_vault_kms.sh
 
 If validation fails, share the script output and `journalctl`/runner logs with the security operator.
