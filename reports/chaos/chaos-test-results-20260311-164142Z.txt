@@ -1,0 +1,4 @@
+🧪 E2E SECURITY CHAOS TESTING SUITE
+=====================================
+
+[0;34m[SUITE 1/4] Running Core Framework Tests...[0m
