@@ -272,11 +272,40 @@ deploy_to_production() {
 EOF
   log_success "Services stopped"
   
-  # Transfer configuration
-  log_info "Transferring configuration files..."
-  scp docker-compose.yml "$SSH_USER@$DEPLOYMENT_HOST:~/"
-  scp backend/.env.production "$SSH_USER@$DEPLOYMENT_HOST:~/.env"
-  log_success "Configuration transferred"
+  # Transfer configuration: prefer GSM secrets (immutable secret manager) for credentials
+  log_info "Transferring configuration files (using GSM for secrets)..."
+  scp docker-compose.yml "$SSH_USER@$DEPLOYMENT_HOST:~/" || error "Failed to transfer docker-compose.yml"
+
+  # Build remote .env from GSM secrets
+  TMP_ENV=$(mktemp)
+  # Map of env KEY:nexus secret name
+  ./scripts/lib.sh >/dev/null 2>&1 || true
+  if [ -f scripts/lib.sh ]; then
+    # Known secret mappings — update as your GSM inventory requires
+    build_env_from_gsm "$TMP_ENV" \
+      GCP_PROJECT_ID:nexusshield-gcp-project-id \
+      GCP_KMS_KEY:nexusshield-gcp-kms-key \
+      DATABASE_URL:nexusshield-portal-db-connection-production \
+      REDIS_PASSWORD:runner-redis-password \
+      PORTAL_MFA_SECRET:portal-mfa-secret \
+      JWT_PUBLIC_KEY:nexusshield-portal-jwt-public-key || true
+  else
+    # Fallback: if no lib, attempt to pull a monolithic env secret
+    get_secret "nexusshield-portal-env-production" > "$TMP_ENV" 2>/dev/null || true
+  fi
+
+  # If TMP_ENV empty, fall back to existing file if present
+  if [ ! -s "$TMP_ENV" ] && [ -f backend/.env.production ]; then
+    cp backend/.env.production "$TMP_ENV"
+  fi
+
+  if [ ! -s "$TMP_ENV" ]; then
+    log_warning "No env content built from GSM and no local backend/.env.production found; proceeding without remote .env"
+  else
+    scp "$TMP_ENV" "$SSH_USER@$DEPLOYMENT_HOST:~/.env" || error "Failed to copy env to remote host"
+    rm -f "$TMP_ENV"
+    log_success "Remote .env created from GSM secrets"
+  fi
   
   # Start services
   log_info "Starting services..."
