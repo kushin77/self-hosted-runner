@@ -21,7 +21,7 @@ declare -A FILE_BACKUPS=(
 )
 
 DRY_RUN=false
-PUSH_FILE=$false
+PUSH_FILE=false
 
 # Parse args
 while [[ $# -gt 0 ]]; do
