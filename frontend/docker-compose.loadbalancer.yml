@@ -1,0 +1,135 @@
+version: '3.9'
+
+# Nginx Load Balancer Configuration for Dashboard
+# Source: frontend/docker-compose.loadbalancer.yml
+# Usage: docker-compose -f frontend/docker-compose.loadbalancer.yml up -d
+
+services:
+  # Nginx as reverse proxy and load balancer
+  dashboard-lb:
+    image: nginx:1.25-alpine
+    container_name: nexusshield-dashboard-lb
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl/:/etc/nginx/ssl:ro
+      - ./nginx/conf.d/:/etc/nginx/conf.d:ro
+    environment:
+      - UPSTREAM_1=dashboard-primary:3000
+      - UPSTREAM_2=dashboard-secondary:3000
+      - UPSTREAM_3=dashboard-tertiary:3000
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.nexusshield.service=dashboard-loadbalancer"
+      - "com.nexusshield.immutable=true"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-primary
+      - dashboard-secondary
+      - dashboard-tertiary
+
+  # Primary dashboard instance
+  dashboard-primary:
+    build:
+      context: dashboard/
+      dockerfile: Dockerfile
+    image: nexusshield-dashboard:latest
+    container_name: nexusshield-dashboard-1
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: "production"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nexusshield
+
+  # Secondary dashboard instance
+  dashboard-secondary:
+    build:
+      context: dashboard/
+      dockerfile: Dockerfile
+    image: nexusshield-dashboard:latest
+    container_name: nexusshield-dashboard-2
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: "production"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-primary
+
+  # Tertiary dashboard instance (optional)
+  dashboard-tertiary:
+    build:
+      context: dashboard/
+      dockerfile: Dockerfile
+    image: nexusshield-dashboard:latest
+    container_name: nexusshield-dashboard-3
+    restart: unless-stopped
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: "production"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 20s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-secondary
+
+networks:
+  nexusshield:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# Deployment modes:
+# - Single instance: Use deploy_dashboard.sh
+# - Multi-instance (no LB): Use docker-compose.dashboard.yml --profile load-balanced
+# - Multi-instance (with LB): Use this file
+#
+# Scaling to 5 instances:
+#   1. Add dashboard-quaternary and dashboard-quinary services
+#   2. Update nginx.conf upstream block
+#   3. docker-compose -f frontend/docker-compose.loadbalancer.yml up -d --scale dashboard=5
+#
+# Health check aggregation:
+#   - Each dashboard instance: /health
+#   - Load balancer: GET /health returns upstream health
+#   - Monitoring: GET /health/status returns detailed metrics
