@@ -1,3 +1,25 @@
+# Canonical Secrets FastAPI Service
+
+Quick steps to build and run locally (direct-deploy, no GitHub Actions):
+
+Build image locally:
+```bash
+docker build -f backend/Dockerfile -t canonical-secrets-api:local .
+```
+
+Run with environment file (recommended):
+```bash
+cp .env.sample .env
+docker run --env-file .env -p 8000:8000 canonical-secrets-api:local
+```
+
+To deploy to staging with docker-compose:
+```bash
+export DOCKER_REGISTRY=registry.example.com/org
+export IMAGE_TAG=20260311
+scripts/deploy/build_and_push_images.sh
+scripts/deploy/deploy_staging.sh
+```
 # NexusShield Portal — Backend API
 
 **Status:** MVP Implementation Starting | **Language:** TypeScript/Node.js | **Framework:** Express.js
