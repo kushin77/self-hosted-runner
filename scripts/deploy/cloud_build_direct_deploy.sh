@@ -19,6 +19,7 @@ log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2; }
 error() { echo "[ERROR] $*" >&2; exit 1; }
 info() { echo "[INFO] $*" >&2; }
 success() { echo "[✓ SUCCESS] $*" >&2; }
+warn() { echo "[WARN] $*" >&2; }
 
 # ============================================================================
 # BUILD CONFIGURATION
@@ -90,9 +91,9 @@ build_and_push_images() {
 run_migrations() {
     info "Running database migrations (idempotent)..."
     
-    local db_password=$(get_secret "${ENVIRONMENT}-db-password")
+    local db_pass=$(get_secret "${ENVIRONMENT}-db-password")
     local db_username=$(get_secret "${ENVIRONMENT}-db-username")
-    local database_url="postgresql://${db_username}:${db_password}@${DB_HOST}:5432/${DB_NAME}"
+    local database_url="postgresql://${db_username}:${db_pass}@${DB_HOST}:5432/${DB_NAME}"
     
     export DATABASE_URL="$database_url"
     
