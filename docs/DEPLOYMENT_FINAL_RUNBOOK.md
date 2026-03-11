@@ -48,8 +48,8 @@ GCP_KMS_KEY=projects/your-project/locations/us-central1/keyRings/nexusshield/cry
 GOOGLE_APPLICATION_CREDENTIALS=/home/runner/service-account-key.json
 
 # Database Configuration
-DATABASE_URL=postgresql://nexusshield:$SECURE_DB_PASSWORD@192.168.168.42:5432/nexusshield
-DB_PASSWORD=$SECURE_DB_PASSWORD
+DATABASE_URL=postgresql://nexusshield:$SECURE_REDACTED@192.168.168.42:5432/nexusshield
+REDACTED=REDACTED
 
 # Cache Configuration
 REDIS_PASSWORD=$SECURE_REDIS_PASSWORD
