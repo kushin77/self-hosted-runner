@@ -61,41 +61,14 @@ Should show your Cloud Run service account has `roles/secretmanager.secretAccess
 
 ### Step 4: Update Services to Fetch Secrets
 
-**Python Example:**
+**Implementation (canonical source)**
 
-```python
-from google.cloud import secretmanager
-import os
+Do not copy these examples into implementations to avoid stale docs. Refer to the canonical runtime helpers in the repository:
 
-def get_secret(secret_id, version="latest"):
-    client = secretmanager.SecretManagerServiceClient()
-    project = os.environ.get("GCP_PROJECT", "nexusshield-prod")
-    name = f"projects/{project}/secrets/{secret_id}/versions/{version}"
-    response = client.access_secret_version(request={"name": name})
-    return response.payload.data.decode("UTF-8")
+- Backend GSM helper: [backend/server.js](backend/server.js)
+- Shared utilities: [backend/lib/utils.js](backend/lib/utils.js)
 
-# Usage in application
-db_secret = get_secret("backend-db-secret")
-auth_secret = get_secret("backend-auth-secret")
-```
-
-**Node.js Example:**
-
-```javascript
-const secretmanager = require("@google-cloud/secret-manager");
-
-async function getSecret(secretId, version = "latest") {
-  const client = new secretmanager.SecretManagerServiceClient();
-  const projectId = process.env.GCP_PROJECT || "nexusshield-prod";
-  const name = `projects/${projectId}/secrets/${secretId}/versions/${version}`;
-  const [version_obj] = await client.accessSecretVersion({ name });
-  return version_obj.payload.data.toString("utf8");
-}
-
-// Usage
-const dbSecret = await getSecret("backend-db-secret");
-const authSecret = await getSecret("backend-auth-secret");
-```
+These helpers use the Google Cloud Secret Manager client and are the single source of truth for secret access patterns in the codebase.
 
 ## Security Guarantees
 
