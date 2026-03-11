@@ -236,14 +236,16 @@ async def resolve_provider(secret_name: str):
             detail="No healthy provider available"
         )
     
+    # Provide backward-compatible `primary_provider` field for older test
+    # harnesses while returning the richer `resolved_provider` value.
     return ProviderResolution(
         secret_name=secret_name,
         resolved_provider=provider.value,
         is_primary=(provider == Provider.VAULT),
         fallback_level=0 if provider == Provider.VAULT else len(fallback_chain) - 1,
-        fallback_chain=[Provider(f) for f in fallback_chain[:-1]],
+        fallback_chain=[f for f in fallback_chain[:-1]],
         timestamp=datetime.utcnow().isoformat() + "Z"
-    )
+    ).dict() | {"primary_provider": provider.value}
 
 
 # ============================================================================
