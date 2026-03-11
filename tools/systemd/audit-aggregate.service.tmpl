@@ -1,0 +1,13 @@
+[Unit]
+Description=Aggregate secret mirror audits
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory={{REPO_ROOT}}
+ExecStart=/usr/bin/env bash {{REPO_ROOT}}/tools/audit-aggregate.sh
+User=root
+
+[Install]
+WantedBy=multi-user.target
