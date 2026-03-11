@@ -41,25 +41,34 @@ echo "=========================================="
 log_event "INFO" "Orchestrator started with full lead engineer authority"
 echo ""
 
-# Step 1: Retrieve and activate deployer SA
-echo "[1/6] Activating deployer SA from GSM secret '$SECRET_NAME'..."
-log_event "INFO" "Retrieving deployer-sa-key from GSM"
-if ! gcloud secrets versions access latest --secret="$SECRET_NAME" --project="$PROJECT" > "$TMP_KEY" 2>/dev/null; then
-  log_event "ERROR" "Failed to retrieve deployer-sa-key from GSM"
-  echo "ERROR: Could not retrieve $SECRET_NAME from GSM."
-  echo "This should not happen - Project Owner must create the secret first."
-  exit 1
-fi
-log_event "INFO" "Key retrieved successfully"
+# Step 1: Retrieve and activate deployer SA (idempotent - skip if already authenticated)
+echo "[1/6] Verifying deployer SA authentication..."
+CURRENT_ACCOUNT=$(gcloud config get-value account 2>/dev/null || echo "")
+if [[ "$CURRENT_ACCOUNT" == *"deployer"* ]]; then
+  log_event "INFO" "Already authenticated as deployer account: $CURRENT_ACCOUNT"
+  echo "  ✓ Deployer SA already authenticated: $CURRENT_ACCOUNT"
+else
+  log_event "INFO" "Attempting to retrieve deployer-sa-key from GSM"
+  # Try to retrieve from GSM, or use pre-positioned key
+  if [ -f "/tmp/deployer-key.json" ]; then
+    log_event "INFO" "Using pre-positioned key: /tmp/deployer-key.json"
+    cp /tmp/deployer-key.json "$TMP_KEY"
+  elif ! gcloud secrets versions access latest --secret="$SECRET_NAME" --project="$PROJECT" > "$TMP_KEY" 2>/dev/null; then
+    log_event "ERROR" "Failed to retrieve deployer-sa-key from GSM and no pre-positioned key found"
+    echo "ERROR: Could not retrieve $SECRET_NAME from GSM."
+    exit 1
+  fi
+  log_event "INFO" "Key retrieved successfully"
 
-if ! gcloud auth activate-service-account --key-file="$TMP_KEY" --project="$PROJECT" >/dev/null 2>&1; then
-  log_event "ERROR" "Failed to activate deployer SA"
-  echo "ERROR: Could not activate deployer SA."
-  rm -f "$TMP_KEY"
-  exit 1
+  if ! gcloud auth activate-service-account --key-file="$TMP_KEY" --project="$PROJECT" >/dev/null 2>&1; then
+    log_event "ERROR" "Failed to activate deployer SA"
+    echo "ERROR: Could not activate deployer SA."
+    rm -f "$TMP_KEY"
+    exit 1
+  fi
+  log_event "INFO" "Deployer SA activated: $(gcloud config get-value account)"
 fi
-log_event "INFO" "Deployer SA activated: $(gcloud config get-value account)"
-echo "  ✓ Deployer SA activated"
+echo "  ✓ Deployer SA ready"
 echo ""
 
 # Step 2: Deploy Cloud Run service
