@@ -121,6 +121,5 @@ __pycache__/
 *.key
 *.env
 tools/image_pin_service/.venv/
-# Ignore secrets template
-secrets.env.template
+# Ignore runtime secrets
 secrets.env
