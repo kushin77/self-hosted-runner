@@ -213,7 +213,7 @@ async def get_provider_health(provider: Provider):
 # PROVIDER RESOLUTION ENDPOINTS
 # ============================================================================
 
-@app.post("/api/v1/secrets/resolve", response_model=ProviderResolution, tags=["Secrets Resolution"])
+@app.post("/api/v1/secrets/resolve", tags=["Secrets Resolution"])
 async def resolve_provider(secret_name: str):
     """
     Resolve which provider to use for a secret
