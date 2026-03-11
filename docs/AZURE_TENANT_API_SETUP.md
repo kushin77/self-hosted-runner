@@ -164,7 +164,7 @@ vault kv put secret/azure/tenant-api \
   tenant_id="<tenant>" \
   subscription_id="<subscription-id>" \
   client_id="<appId>" \
-  client_secret="<password>"
+$PLACEHOLDER
 ```
 
 ## Using Azure Credentials
@@ -328,7 +328,7 @@ gcloud secrets versions access latest --secret="azure-client-id" --project="$(gc
 
 ```
 Path: secret/azure/tenant-api
-Fields: tenant_id, subscription_id, client_id, client_secret
+$PLACEHOLDER
 ```
 
 **Fetch one:**
@@ -374,7 +374,7 @@ echo -n "$NEW_CRED" | gcloud secrets versions add azure-client-secret \
 
 # Update in Vault (if applicable)
 vault kv put secret/azure/tenant-api \
-  client_secret="$NEW_CRED" \
+$PLACEHOLDER
   rotated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # Audit

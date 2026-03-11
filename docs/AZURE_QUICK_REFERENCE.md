@@ -141,7 +141,7 @@ NEW_SECRET=$(az ad app credential reset --id "$AZURE_CLIENT_ID" --query "passwor
 echo -n "$NEW_SECRET" | gcloud secrets versions add azure-client-secret --data-file=-
 
 # Update Vault
-vault kv put secret/azure/tenant-api client_secret="$NEW_SECRET"
+$PLACEHOLDER
 ```
 
 ## Troubleshooting

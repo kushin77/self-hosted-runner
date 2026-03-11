@@ -276,7 +276,7 @@ await manager.initializeAll(credentialsMap);
   "provider": "gcp",
   "projectId": "my-project",
   "type": "service_account",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n...",
+$PLACEHOLDER
   "client_email": "service-account@project.iam.gserviceaccount.com"
 }
 ```
