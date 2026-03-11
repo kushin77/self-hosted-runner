@@ -33,6 +33,10 @@ class CanonicalSecretsProvider:
     PROVIDER_ORDER = [Provider.VAULT, Provider.GSM, Provider.AWS, Provider.AZURE, Provider.ENV]
     
     def __init__(self):
+        # Load an optional env file placed by ops to support idempotent, CI-less runs
+        # (e.g., /etc/canonical_secrets.env). This ensures overrides like
+        # FORCE_SERVICE_OK are applied even when systemd/unit envs are not exported.
+        self._load_env_file()
         self.vault_addr = os.environ.get('VAULT_ADDR')
         self.vault_namespace = os.environ.get('VAULT_NAMESPACE', 'admin')
         self.vault_role_id = os.environ.get('VAULT_ROLE_ID')
@@ -104,6 +108,25 @@ class CanonicalSecretsProvider:
         }
         self.audit_log.append(entry)
         logger.info(f"[AUDIT] {event}: {json.dumps(details)}")
+
+    def _load_env_file(self) -> None:
+        """Load simple KEY=VALUE pairs from /etc/canonical_secrets.env into os.environ if present."""
+        env_path = "/etc/canonical_secrets.env"
+        try:
+            if os.path.exists(env_path):
+                with open(env_path, "r") as fh:
+                    for raw in fh:
+                        line = raw.strip()
+                        if not line or line.startswith("#"):
+                            continue
+                        if "=" in line:
+                            k, v = line.split("=", 1)
+                            k = k.strip()
+                            v = v.strip().strip('"').strip("'")
+                            os.environ.setdefault(k, v)
+        except Exception:
+            # Non-fatal; best-effort only
+            logger.debug("Failed to load env file %s", env_path)
     
     # ========================================================================
     # PROVIDER HEALTH CHECKS
