@@ -5,6 +5,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
   }
 }
 
@@ -53,6 +57,54 @@ module "logging" {
   environment  = var.environment
   service_name = var.service_name
   labels       = var.labels
+}
+
+# Generate a long-lived random token to use for uptime check auth header.
+resource "random_password" "uptime_token" {
+  length           = 48
+  special          = false
+}
+
+# Store the token in Secret Manager (replication = automatic)
+resource "google_secret_manager_secret" "uptime_token" {
+  secret_id = "uptime-check-token"
+  project   = var.project_id
+
+  replication {
+    user_managed {
+      replicas {
+        location = var.region
+      }
+    }
+  }
+}
+
+resource "google_secret_manager_secret_version" "uptime_token" {
+  secret      = google_secret_manager_secret.uptime_token.id
+  secret_data = random_password.uptime_token.result
+}
+
+# Enable health checks with auth header using the stored token.
+module "health" {
+  source = "../modules/health"
+
+  project_id   = var.project_id
+  environment  = var.environment
+  service_name = var.service_name
+
+  enable_checks = true
+
+  # Full service URLs (used by module inputs that expect URL)
+  backend_url  = "https://nexus-shield-portal-backend-2tqp6t4txq-uc.a.run.app"
+  frontend_url = "https://nexus-shield-portal-frontend-2tqp6t4txq-uc.a.run.app"
+
+  # Hostnames (no scheme) for uptime checks
+  backend_host  = "nexus-shield-portal-backend-2tqp6t4txq-uc.a.run.app"
+  frontend_host = "nexus-shield-portal-frontend-2tqp6t4txq-uc.a.run.app"
+
+  auth_headers = {
+    Authorization = "Bearer ${random_password.uptime_token.result}"
+  }
 }
 
 # COMPLIANCE MODULE - DEFERRED TO PHASE 4.2 (IAM group creation needed)
