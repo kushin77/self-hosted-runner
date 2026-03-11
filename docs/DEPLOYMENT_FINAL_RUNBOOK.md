@@ -44,7 +44,7 @@ Create `.env.production` on the deployment host or configure it before deploymen
 cat > /home/runner/.env.production << 'EOF'
 # GCP Configuration
 GCP_PROJECT_ID=your-actual-gcp-project-id
-GCP_KMS_KEY=projects/your-project/locations/us-central1/keyRings/nexusshield/cryptoKeys/portal
+GCP_KMS_KEY=projects/your-project/locations/us-BASE64_BLOB_REDACTED
 GOOGLE_APPLICATION_CREDENTIALS=/home/runner/service-account-key.json
 
 # Database Configuration

@@ -218,7 +218,7 @@ git push origin deployment/production-live-2026-03-10
 ### Infrastructure
 | File | Purpose |
 |------|---------|
-| `nexusshield/infrastructure/terraform/production/main.tf` | Central IaC (VPC, Cloud Run, Cloud SQL, etc.) |
+| `BASE64_BLOB_REDACTED.tf` | Central IaC (VPC, Cloud Run, Cloud SQL, etc.) |
 | `docker-compose.phase6.yml` | 9-service stack definition |
 | `backend/Dockerfile` | Backend API container |
 | `frontend/Dockerfile` | Frontend React/Vite container |
