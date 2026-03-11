@@ -64,9 +64,11 @@ class CanonicalSecretsProvider:
         if self.gcp_project:
             try:
                 from google.cloud import secretmanager
+                # Creating the client may attempt to load ADC; fail gracefully
+                # when credentials are not present so the service remains up.
                 self.gsm_client = secretmanager.SecretManagerServiceClient()
-            except ImportError:
-                logger.warning("google-cloud-secret-manager not available, GSM provider disabled")
+            except Exception as e:
+                logger.warning("GSM provider disabled or unavailable: %s", e)
     
     def _init_aws_client(self):
         """Initialize AWS client (lazy loaded)"""
