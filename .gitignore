@@ -98,6 +98,19 @@ docs/**/*.md.bak
 config/docker-compose.phase6.yml
 # Ignore logs, backups, and sensitive artifacts
 **/*.jsonl
+
+# Template and example env files that may contain credential patterns
+secrets.env.template
+backend/.env.example
+backend/README.md.bak2
+docs/PHASE_3B_CREDENTIAL_INJECTION_GUIDE.md.bak2
+docs/deployment/CREDENTIAL_PROVISIONING_RUNBOOK.md.bak2
+docs/archive/CREDENTIAL_SECURITY_HARDENING_2026_03_09.md.bak2
+
+# Credential documentation archives
+docs/archive/*CREDENTIAL*.md
+docs/*CREDENTIAL*.md
+docs/governance/*CREDENTIAL*.md
 **/*.log
 **/*.bak
 **/*.plan
