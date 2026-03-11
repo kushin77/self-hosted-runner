@@ -10,7 +10,7 @@ OWNER="kushin77"
 REPO="self-hosted-runner"
 ISSUE_NUMBER=1615
 
-# Attempt to discover GITHUB_TOKEN from multiple sources
+# Attempt to discover GITHUB_TOKEN from multiple sources, or use gh CLI if authenticated
 get_github_token() {
   # 1. Check command-line argument
   if [ -n "${TOKEN_ARG:-}" ]; then
@@ -36,7 +36,15 @@ get_github_token() {
     return 0
   fi
   
-  # 5. Return empty if not found
+  # 5. Check if gh CLI is available and authenticated
+  if command -v gh >/dev/null 2>&1; then
+    if gh auth status >/dev/null 2>&1; then
+      echo "USE_GH_CLI"
+      return 0
+    fi
+  fi
+  
+  # 6. Return empty if not found
   return 1
 }
 
@@ -72,12 +80,13 @@ log_info "Target: $OWNER/$REPO (issue #$ISSUE_NUMBER)"
 
 # Discover GITHUB_TOKEN
 if ! TOKEN=$(get_github_token); then
-  log_error "GITHUB_TOKEN not found in env, git config, or ~/.github_token"
+  log_error "GITHUB_TOKEN not found in env, git config, ~/.github_token, or gh CLI"
   log_error "To proceed, either:"
-  log_error "  1. Set GITHUB_TOKEN env var"
-  log_error "  2. Run: git config --global github.token <token>"
-  log_error "  3. Create ~/.github_token file with token content"
-  log_error "  4. Pass --token <token> as argument"
+  log_error "  1. Authenticate gh: gh auth login"
+  log_error "  2. Set GITHUB_TOKEN env var"
+  log_error "  3. Run: git config --global github.token <token>"
+  log_error "  4. Create ~/.github_token file with token content"
+  log_error "  5. Pass --token <token> as argument"
   exit 1
 fi
 
@@ -86,8 +95,15 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-export GITHUB_TOKEN="$TOKEN"
-log_success "GitHub token acquired"
+# Determine if using gh CLI or raw token
+USE_GH="false"
+if [ "$TOKEN" = "USE_GH_CLI" ]; then
+  USE_GH="true"
+  log_success "Using GitHub CLI (gh) for authentication"
+else
+  export GITHUB_TOKEN="$TOKEN"
+  log_success "GitHub token acquired"
+fi
 
 # Step 1: Install local git hooks
 log_info "Step 1: Installing local git hooks..."
@@ -100,38 +116,44 @@ fi
 
 # Step 2: Enable auto-merge
 log_info "Step 2: Enabling repository auto-merge..."
-API_URL="https://api.github.com/repos/${OWNER}/${REPO}"
-if curl -sS -X PATCH \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "${API_URL}" \
-  -d '{"allow_auto_merge":true}' \
-  | jq -e '.allow_auto_merge == true' >/dev/null 2>&1; then
-  log_success "Repository auto-merge enabled"
+if [ "$USE_GH" = "true" ]; then
+  gh repo edit ${OWNER}/${REPO} --enable-auto-merge && log_success "Repository auto-merge enabled (via gh)" || log_error "Failed to enable auto-merge"
 else
-  log_error "Failed to enable auto-merge; continuing anyway"
+  API_URL="https://api.github.com/repos/${OWNER}/${REPO}"
+  if curl -sS -X PATCH \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${API_URL}" \
+    -d '{"allow_auto_merge":true}' \
+    | jq -e '.allow_auto_merge == true' >/dev/null 2>&1; then
+    log_success "Repository auto-merge enabled"
+  else
+    log_error "Failed to enable auto-merge; continuing anyway"
+  fi
 fi
 
 # Step 3: Disable GitHub Actions
 log_info "Step 3: Disabling GitHub Actions..."
-ACTIONS_API="https://api.github.com/repos/${OWNER}/${REPO}/actions/permissions"
-if curl -sS -X PUT \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "${ACTIONS_API}" \
-  -d '{"enabled":false,"allowed_actions":"none"}' \
-  | jq -e '.enabled == false' >/dev/null 2>&1; then
-  log_success "GitHub Actions disabled"
+if [ "$USE_GH" = "true" ]; then
+  gh api -X PUT /repos/${OWNER}/${REPO}/actions/permissions -f enabled=false -f allowed_actions=none >/dev/null 2>&1 && log_success "GitHub Actions disabled (via gh)" || log_error "Failed to disable Actions"
 else
-  log_error "Failed to disable Actions; continuing anyway"
+  ACTIONS_API="https://api.github.com/repos/${OWNER}/${REPO}/actions/permissions"
+  if curl -sS -X PUT \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${ACTIONS_API}" \
+    -d '{"enabled":false,"allowed_actions":"none"}' \
+    | jq -e '.enabled == false' >/dev/null 2>&1; then
+    log_success "GitHub Actions disabled"
+  else
+    log_error "Failed to disable Actions; continuing anyway"
+  fi
 fi
 
 # Step 4: Post comment to issue and close it
 log_info "Step 4: Posting comment to issue #$ISSUE_NUMBER and closing..."
-COMMENT_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}/comments"
-ISSUE_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}"
 
 COMMENT_BODY="Auto-merge has been enabled via automation. Repository-level enforcement applied:
 
@@ -157,40 +179,56 @@ COMMENT_BODY="Auto-merge has been enabled via automation. Repository-level enfor
 
 Closing issue per governance framework. If further action needed, re-open and update."
 
-curl -sS -X POST \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "${COMMENT_API}" \
-  -d "$(jq -nc --arg b "$COMMENT_BODY" '{body:$b}')" >/dev/null 2>&1 && log_success "Comment posted" || log_error "Failed to post comment"
+if [ "$USE_GH" = "true" ]; then
+  gh issue comment ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} --body "$COMMENT_BODY" >/dev/null 2>&1 && log_success "Comment posted (via gh)" || log_error "Failed to post comment"
+  gh issue close ${ISSUE_NUMBER} --repo ${OWNER}/${REPO} >/dev/null 2>&1 && log_success "Issue #$ISSUE_NUMBER closed (via gh)" || log_error "Failed to close issue"
+else
+  COMMENT_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}/comments"
+  ISSUE_API="https://api.github.com/repos/${OWNER}/${REPO}/issues/${ISSUE_NUMBER}"
+  
+  curl -sS -X POST \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${COMMENT_API}" \
+    -d "$(jq -nc --arg b "$COMMENT_BODY" '{body:$b}')" >/dev/null 2>&1 && log_success "Comment posted" || log_error "Failed to post comment"
 
-curl -sS -X PATCH \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "${ISSUE_API}" \
-  -d '{"state":"closed"}' >/dev/null 2>&1 && log_success "Issue #$ISSUE_NUMBER closed" || log_error "Failed to close issue"
+  curl -sS -X PATCH \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${ISSUE_API}" \
+    -d '{"state":"closed"}' >/dev/null 2>&1 && log_success "Issue #$ISSUE_NUMBER closed" || log_error "Failed to close issue"
+fi
 
 # Step 5: Apply branch protection (recommend main)
 log_info "Step 5: Applying branch protection to main..."
-BRANCH_PROTECTION_API="https://api.github.com/repos/${OWNER}/${REPO}/branches/main/protection"
-curl -sS -X PUT \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Accept: application/vnd.github+json" \
-  -H "X-GitHub-Api-Version: 2022-11-28" \
-  "${BRANCH_PROTECTION_API}" \
-  -d '{
-    "required_status_checks":null,
-    "enforce_admins":true,
-    "required_pull_request_reviews":null,
-    "restrictions":null,
-    "allow_deletions":false,
-    "allow_force_pushes":false,
-    "require_code_owner_reviews":false,
-    "required_approving_review_count":0,
-    "dismiss_stale_reviews":false,
-    "require_last_push_approval":false
-  }' >/dev/null 2>&1 && log_success "Branch protection applied to main" || log_error "Failed to apply branch protection"
+if [ "$USE_GH" = "true" ]; then
+  gh api -X PUT /repos/${OWNER}/${REPO}/branches/main/protection \
+    -f enforce_admins=true \
+    -f allow_deletions=false \
+    -f allow_force_pushes=false \
+    >/dev/null 2>&1 && log_success "Branch protection applied to main (via gh)" || log_error "Failed to apply branch protection"
+else
+  BRANCH_PROTECTION_API="https://api.github.com/repos/${OWNER}/${REPO}/branches/main/protection"
+  curl -sS -X PUT \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Accept: application/vnd.github+json" \
+    -H "X-GitHub-Api-Version: 2022-11-28" \
+    "${BRANCH_PROTECTION_API}" \
+    -d '{
+      "required_status_checks":null,
+      "enforce_admins":true,
+      "required_pull_request_reviews":null,
+      "restrictions":null,
+      "allow_deletions":false,
+      "allow_force_pushes":false,
+      "require_code_owner_reviews":false,
+      "required_approving_review_count":0,
+      "dismiss_stale_reviews":false,
+      "require_last_push_approval":false
+    }' >/dev/null 2>&1 && log_success "Branch protection applied to main" || log_error "Failed to apply branch protection"
+fi
 
 log_success "Governance enforcement orchestration complete!"
 log_info "Summary: auto-merge enabled, Actions disabled, issue #$ISSUE_NUMBER closed, hooks installed"
