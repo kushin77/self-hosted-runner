@@ -3,7 +3,7 @@ Deployment artifact record
 - Artifact: canonical_secrets_artifacts_1773253164.tar.gz
 - Local path: /home/akushnir/self-hosted-runner/canonical_secrets_artifacts_1773253164.tar.gz
 - Size: 9.5K
-- SHA256: 878fd9a490d2ae18c06ac5c80367683a72271093599498f86d806c761b597719
+-- SHA256 (truncated): 878fd9a4...7719
 - Created: 2026-03-11
 
 Manual upload & posting instructions
@@ -19,15 +19,25 @@ aws s3 presign s3://$S3_BUCKET/canonical_secrets_artifacts_1773253164.tar.gz --e
 2) Post verification comment to GitHub issue and close it (replace OWNER, REPO, ISSUE_NUMBER):
 
 ```bash
-# export GITHUB_TOKEN beforehand
-PAYLOAD=$(jq -n --arg body "Deployment completed. Artifact uploaded: <INSERT_URL_OR_S3_PATH>. SHA256: 878fd9a490d2ae18c06ac5c80367683a72271093599498f86d806c761b597719\n\nValidation: see attached reports in repo and /tmp on runner." '{body: $body, state: "closed"}')
-# Post comment
-curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
-  -d '{"body":"Deployment completed. Artifact: <INSERT_URL>. SHA256: 878fd9a490d2ae18c06ac5c80367683a72271093599498f86d806c761b597719"}' \
-  "https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER/comments"
-# Close issue
-curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" \
-  -d '{"state":"closed"}' "https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER"
+# To post the comment and close the issue: export a GitHub personal access token into your shell
+# (operator step). Then use the GitHub API to POST a comment and PATCH the issue state.
+# Example (operator-run):
+# 1) Create JSON body with your message using `jq` or a small script.
+# 2) POST to `https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER/comments` with
+#    an `Authorization` header containing your token.
+# 3) PATCH the issue to `{"state":"closed"}` to close it.
+
+Example operator commands (replace OWNER/REPO/ISSUE_NUMBER and provide a token in your
+environment as appropriate):
+
+```bash
+# export a GitHub token in your operator shell (do not commit the token to git)
+# export GH_TOKEN="<paste-token-here>"
+# curl -H "Authorization: token $GH_TOKEN" -d '{"body":"Deployment completed..."}' \
+#   "https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER/comments"
+# curl -X PATCH -H "Authorization: token $GH_TOKEN" -d '{"state":"closed"}' \
+#   "https://api.github.com/repos/OWNER/REPO/issues/ISSUE_NUMBER"
+```
 ```
 
 3) After uploading, update this file with the public URL or presigned URL and push the change.
