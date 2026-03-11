@@ -1,0 +1,82 @@
+[
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/rotate-uptime-token-job",
+    "pubsubTarget": {
+      "data": "eyJhY3Rpb24iOiJyb3RhdGUifQ==",
+      "topicName": "projects/nexusshield-prod/topics/rotate-uptime-token-topic"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/backup-tfstate",
+    "pubsubTarget": {
+      "data": "eyJhY3Rpb24iOiJiYWNrdXAifQ==",
+      "topicName": "projects/nexusshield-prod/topics/nexusshield-tfstate-backup-topic"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/cleanup-stale-resources",
+    "pubsubTarget": {
+      "data": "eyJhY3Rpb24iOiJjbGVhbnVwIn0=",
+      "topicName": "projects/nexusshield-prod/topics/nexusshield-cleanup-topic"
+    }
+  },
+  {
+    "attemptDeadline": "180s",
+    "httpTarget": {
+      "body": "eyAib3duZXIiOiAia3VzaGluNzciLCAicmVwbyI6ICJzZWxmLWhvc3RlZC1ydW5uZXIiIH0=",
+      "headers": {
+        "Content-Type": "application/octet-stream",
+        "User-Agent": "Google-Cloud-Scheduler"
+      },
+      "httpMethod": "POST",
+      "oidcToken": {
+        "audience": "https://prevent-releases-2tqp6t4txq-uc.a.run.app",
+        "serviceAccountEmail": "nxs-scheduler-sa@nexusshield-prod.iam.gserviceaccount.com"
+      },
+      "uri": "https://prevent-releases-2tqp6t4txq-uc.a.run.app/api/poll"
+    },
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/prevent-releases-poll"
+  },
+  {
+    "attemptDeadline": "180s",
+    "httpTarget": {
+      "body": "eyJpbWFnZV9uYW1lIjoiaW1hZ2UtcGluIiwicmVwb3NpdG9yeSI6InByb2R1Y3Rpb24tcG9ydGFsLWRvY2tlciIsInRhZyI6ImltYWdlLXBpbi1maXgifQ==",
+      "headers": {
+        "Content-Type": "application/octet-stream",
+        "User-Agent": "Google-Cloud-Scheduler"
+      },
+      "httpMethod": "POST",
+      "oidcToken": {
+        "audience": "https://https//image-pin-service-2tqp6t4txq-uc.a.run.app/pin",
+        "serviceAccountEmail": "151423364222-compute@developer.gserviceaccount.com"
+      },
+      "uri": "https://https//image-pin-service-2tqp6t4txq-uc.a.run.app/pin"
+    },
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/image-pin-scheduler"
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/daily-summary-schedule",
+    "pubsubTarget": {
+      "data": "e30=",
+      "topicName": "projects/nexusshield-prod/topics/daily-summary-topic"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/synthetic-health-schedule",
+    "pubsubTarget": {
+      "data": "eyJydW4iOiJzeW50aGV0aWMifQ==",
+      "topicName": "projects/nexusshield-prod/topics/synthetic-health-topic"
+    }
+  },
+  {
+    "attemptDeadline": "180s",
+    "httpTarget": {
+      "headers": {
+        "User-Agent": "Google-Cloud-Scheduler"
+      },
+      "httpMethod": "GET",
+      "uri": "https://nexusshield-portal-backend-production-2tqp6t4txq-uc.a.run.app/health"
+    },
+    "name": "projects/nexusshield-prod/locations/us-central1/jobs/health-check-nexusshield"
+  }
+]
