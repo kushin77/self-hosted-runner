@@ -1,0 +1,9 @@
+# Disabled workflows sentinel — prevents automated GH Actions triggers
+# This workflow intentionally does nothing and has no triggers to prevent accidental runs.
+# Maintaining this file ensures repository-level explicit decision to disable Actions.
+
+name: "DISABLED - No GitHub Actions"
+
+on: []
+
+jobs: {}
