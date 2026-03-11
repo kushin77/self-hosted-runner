@@ -1,0 +1,14 @@
+[Unit]
+Description=Rotate and upload NexusShield audit logs
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/nexusshield/scripts/ops/rotate_audit.sh
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
