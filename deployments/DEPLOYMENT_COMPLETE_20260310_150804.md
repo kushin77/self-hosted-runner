@@ -30,7 +30,7 @@
 - Audit Log: `deployments/audit_*.jsonl`
 - Summary: `deployments/DEPLOYMENT_*.md`
 - Report: This file
-- Git Commit: `9929f3b20fedc3b11fac240f3266991425ce85e4`
+- Git Commit: `BASE64_BLOB_REDACTED`
 
 ## Services Ready
 - Frontend: http://localhost:3000

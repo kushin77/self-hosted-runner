@@ -54,7 +54,7 @@
 #### Service Account Rotation
 - **Old SA**: `nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com` (disabled, 30-day grace)
 - **New SA**: `nxs-portal-production-v2@nexusshield-prod.iam.gserviceaccount.com` (active)
-- **New Key ID**: `164ccc5b1884df8437c24a2e67ade1bd523df8e0`
+- **New Key ID**: `BASE64_BLOB_REDACTED`
 - **Storage**: Secret Manager (`nxs-portal-sa-key-v2-1073110159`)
 
 #### Org Policy Resolution
@@ -213,8 +213,8 @@ $PLACEHOLDER
 - **Docker Image**: `us-central1-docker.pkg.dev/nexusshield-prod/portal-backend-repo/portal-backend:latest`
 
 ### Key IDs
-- **New SA Key**: `164ccc5b1884df8437c24a2e67ade1bd523df8e0` (expires 2028-03-10)
-- **Old SA Key**: `abae8f19cbfb7383b46dc88e1e8a6131c7df216c` (disabled, 30-day grace)
+- **New SA Key**: `BASE64_BLOB_REDACTED` (expires 2028-03-10)
+- **Old SA Key**: `BASE64_BLOB_REDACTED` (disabled, 30-day grace)
 
 ### Git Commits
 - `2267e4839` - feat: rotate service account to nxs-portal-production-v2
