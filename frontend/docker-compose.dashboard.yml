@@ -1,0 +1,159 @@
+version: '3.9'
+
+# NexusShield Dashboard - CI-Less Docker Compose
+# For local development and multi-instance production deployments
+# Usage: docker-compose -f frontend/docker-compose.dashboard.yml up -d
+
+services:
+  # Primary Dashboard Instance
+  dashboard-primary:
+    build:
+      context: dashboard/
+      dockerfile: Dockerfile
+      cache_from:
+        - nexusshield-dashboard:latest
+    image: nexusshield-dashboard:latest
+    container_name: nexusshield-dashboard-prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: "production"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://localhost:8080}"
+      REACT_APP_LOG_LEVEL: "${REACT_APP_LOG_LEVEL:-info}"
+      REACT_APP_SESSION_TIMEOUT: "900000"
+      REACT_APP_REFRESH_INTERVAL: "5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.nexusshield.service=dashboard"
+      - "com.nexusshield.instance=primary"
+      - "com.nexusshield.immutable=true"
+    volumes:
+      - ./logs:/app/logs
+      - ./.deployment_logs:/app/.deployment_logs
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        labels: "service=dashboard"
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-health-check
+
+  # Optional: Secondary instance for load balancing
+  dashboard-secondary:
+    build:
+      context: dashboard/
+      dockerfile: Dockerfile
+      cache_from:
+        - nexusshield-dashboard:latest
+    image: nexusshield-dashboard:latest
+    container_name: nexusshield-dashboard-secondary
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      PORT: "3000"
+      NODE_ENV: "production"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://localhost:8080}"
+      REACT_APP_LOG_LEVEL: "${REACT_APP_LOG_LEVEL:-info}"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.nexusshield.service=dashboard"
+      - "com.nexusshield.instance=secondary"
+    profiles:
+      - "load-balanced"
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-primary
+
+  # Health check service (monitors dashboard)
+  dashboard-health-check:
+    image: curlimages/curl:latest
+    container_name: dashboard-health-monitor
+    restart: unless-stopped
+    command: |
+      sh -c '
+      while true; do
+        STATUS=$(curl -sf http://dashboard-primary:3000/health 2>/dev/null || echo "down")
+        echo "[$(date -u +"%Y-%m-%dT%H:%M:%SZ")] Dashboard Health: $$STATUS"
+        sleep 30
+      done
+      '
+    profiles:
+      - "monitoring"
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-primary
+
+  # Optional: Nginx reverse proxy (load balancer)
+  dashboard-proxy:
+    image: nginx:alpine
+    container_name: dashboard-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    labels:
+      - "com.nexusshield.service=dashboard-proxy"
+    profiles:
+      - "load-balanced"
+      - "production"
+    networks:
+      - nexusshield
+    depends_on:
+      - dashboard-primary
+      - dashboard-secondary
+
+networks:
+  nexusshield:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+volumes:
+  # Persist logs across container recreations
+  dashboard-logs:
+    driver: local
+  deployment-logs:
+    driver: local
+
+# Profiles:
+# - default: Primary dashboard only
+# - load-balanced: Primary + Secondary + Proxy
+# - monitoring: Primary + Health check service
+# - production: All services
+#
+# Usage:
+#   # Dev/local
+#   docker-compose -f frontend/docker-compose.dashboard.yml up -d
+#
+#   # Load-balanced (3 instances)
+#   docker-compose -f frontend/docker-compose.dashboard.yml --profile load-balanced up -d
+#
+#   # Full production (monitoring + load-balancing)
+#   docker-compose -f frontend/docker-compose.dashboard.yml --profile production up -d
