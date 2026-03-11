@@ -15,7 +15,7 @@ All core requirements met. Staging deployment fully validated and operational.
 #### ✅ Immutable Audit Trail
 - **Status**: VERIFIED
 - **Implementation**: Chained SHA256 hashes (prev → hash chain)
-- **File**: `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+- **File**: `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - **Sample Entry**: Each line includes `prev` hash, current `hash`, and `entry` payload
 - **Verification**: 9 entries logged indicating full event chain from 01:02:56 to 01:03:39 UTC
 
@@ -200,7 +200,7 @@ Port: 0.0.0.0:6379
 sudo systemctl status cloudrun.service redis-worker.service
 
 # View audit log
-tail -f /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -f BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # Restart services
 sudo systemctl restart cloudrun.service redis-worker.service

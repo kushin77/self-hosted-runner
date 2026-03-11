@@ -41,7 +41,7 @@ All code committed to `main`. Zero feature branches. All required credentials vi
     --secret-name runner/STAGING_KUBECONFIG \
     --vault-path secret/runner/staging_kubeconfig
   ```
-- **Committed:** `cf1543942c9085493cbd781c7d5856017bf5bc3b`
+- **Committed:** `BASE64_BLOB_REDACTED`
 
 ### 3. Branch Protection Automation
 - **File:** `scripts/apply-branch-protection.sh`
@@ -55,7 +55,7 @@ All code committed to `main`. Zero feature branches. All required credentials vi
     --token "$GITHUB_TOKEN" \
     --required-checks "validate-policies-and-keda"
   ```
-- **Committed:** `32dc1bbc8e25bc2a5365bb46cdf069d8d891e8b6`
+- **Committed:** `BASE64_BLOB_REDACTED`
 
 ### 4. Enforcement Guard Workflow
 - **File:** `.github/workflows/enforce-no-direct-push.yml`

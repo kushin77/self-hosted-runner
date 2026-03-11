@@ -238,7 +238,7 @@ GET  /api/v1/features
 ### 4. Portal UI Components
 
 ```
-frontend/src/components/SecretsManagementDashboard.tsx
+BASE64_BLOB_REDACTED.tsx
 ├─ ProviderHierarchyDisplay   - Visual hierarchy
 ├─ ProviderHealthCards        - Individual provider cards
 ├─ CredentialsTab             - Credential registry
