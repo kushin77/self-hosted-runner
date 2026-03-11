@@ -1,0 +1,8 @@
+{
+  "cloud_run_outputs": {
+    "value": {
+      "backend_service_url": "https://nexus-shield-portal-backend-2tqp6t4txq-uc.a.run.app",
+      "frontend_service_url": "https://nexus-shield-portal-frontend-2tqp6t4txq-uc.a.run.app"
+    }
+  }
+}

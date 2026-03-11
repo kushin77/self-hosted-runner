@@ -1,0 +1,37 @@
+{
+  "deploymentId": "EPIC5-PROD-1773198442",
+  "timestamp": "2026-03-11T03:07:22.438Z",
+  "environment": "production",
+  "status": "deployed",
+  "components": {
+    "providers": {
+      "aws": "✓ configured",
+      "gcp": "✓ configured",
+      "azure": "✓ configured"
+    },
+    "credentials": {
+      "gsm": "✓ verified",
+      "aws_sts": "✓ verified",
+      "azure_cli": "✓ verified",
+      "vault": "○ optional",
+      "sources_available": 2
+    },
+    "audit": {
+      "logging": "✓ immutable JSONL",
+      "location": ".sync_audit",
+      "entries": 9
+    }
+  },
+  "artifacts": {
+    "config": ".sync_deploy_config.json",
+    "audit_log": "/home/akushnir/self-hosted-runner/.sync_audit/deployment-EPIC5-PROD-1773198442.jsonl",
+    "manifest": "/home/akushnir/self-hosted-runner/.sync_manifest_EPIC5-PROD-1773198442.json"
+  },
+  "next_steps": [
+    "1. Verify portal deployment: gcloud run services list",
+    "2. Monitor audit logs: tail -f /home/akushnir/self-hosted-runner/.sync_audit/deployment-EPIC5-PROD-1773198442.jsonl",
+    "3. Check credentials: gcloud secrets list",
+    "4. Run smoke tests: npm test",
+    "5. Monitor health: curl http://localhost:3000/health"
+  ]
+}
