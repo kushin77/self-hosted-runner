@@ -6,6 +6,8 @@ Deployment artifact record
 -- SHA256 (truncated): 878fd9a4...7719
 - Created: 2026-03-11
 
+- Smoke test results: artifacts/smoke_tests_1773257257.jsonl (md5: a173db52a450bbbfec4c7adfe657cfb8)
+
 Manual upload & posting instructions
 
 1) Upload to S3 (replace S3_BUCKET and optionally set AWS_PROFILE or export AWS credentials):
