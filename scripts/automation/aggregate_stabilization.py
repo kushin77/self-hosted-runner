@@ -16,7 +16,24 @@ def load_events():
             try:
                 events.append(json.loads(line))
             except Exception:
-                continue
+                # Attempt to parse legacy stabilization summary lines (non-JSON)
+                # Format example contains paths and counts and a recent_failures key.
+                try:
+                    # extract recent_failures
+                    import re
+                    m = re.search(r'"recent_failures"\s*:\s*(\d+)', line)
+                    if m:
+                        events.append({'component': 'stabilization', 'status': 'legacy_summary', 'recent_failures': int(m.group(1))})
+                        continue
+                    # extract epic file counts like gcp-migration-...jsonl:2
+                    parts = re.findall(r'([\w\-]+-migration/[^:\s]+\.jsonl):(\d+)', line)
+                    for fp, cnt in parts:
+                        # derive component from folder name
+                        comp = fp.split('/')[0]
+                        events.append({'component': comp, 'status': 'legacy_counts', 'count': int(cnt)})
+                        # only a lightweight representation; continue parsing
+                except Exception:
+                    continue
     return events
 
 def summarize(events):

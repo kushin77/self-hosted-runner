@@ -1,0 +1,13 @@
+[Unit]
+Description=On-Demand Resource Activation (NexusShield)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/cost-management/on-demand-activation.sh
+Nice=5
+
+[Install]
+WantedBy=multi-user.target
