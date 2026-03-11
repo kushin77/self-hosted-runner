@@ -172,7 +172,7 @@ gh workflow run ensure-automation-files-committed.yml
 |---------|----------|--------|--------|
 | **GitHub Secrets** | Short-lived secrets (cache) | ✅ Ready | Built-in Actions feature |
 | **Google Secret Manager** | Primary secret storage | ✅ Ready | GCP project + gcloud CLI |
-| **HashiCorp Vault** | Multi-provider backend | ⏳ Optional | VAULT_ADDR + REDACTED_VAULT_TOKEN |
+| **HashiCorp Vault** | Multi-provider backend | ⏳ Optional | VAULT_ADDR + REDACTED_VAULT_TKN |
 | **AWS KMS** | Encryption at-rest (recommended) | ⏳ Recommended | AWS account + IAM role |
 
 ---
