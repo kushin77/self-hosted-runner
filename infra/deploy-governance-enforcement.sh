@@ -33,7 +33,7 @@ GITHUB_REPO="${GITHUB_REPO:-self-hosted-runner}"
 GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 ISSUE_NUM_AUDIT="2619"
 ISSUE_NUM_ACTION="2623"
-SCAN_LOG="/var/log/governance-scan.log"
+SCAN_LOG="${HOME}/.governance-scan.log"
 SCAN_SCHEDULE="0 3 * * *"  # Daily 3 AM UTC
 set -u
 
