@@ -62,7 +62,7 @@ Phase 4.2 delivers a complete observability infrastructure with direct GSM crede
 ```bash
 ✓ Backend: nexus-shield-portal-backend updated with UPTIME_CHECK_TOKEN
 ✓ Frontend: nexus-shield-portal-frontend updated with UPTIME_CHECK_TOKEN
-✓ Token injected: xebFeAi9AHi21HJzB3y3jEKJBc003SlAnJ6CVlQGbgYicS4da... (48 chars)
+✓ Token injected: BASE64_BLOB_REDACTED... (48 chars)
 ```
 
 ### Section 3: Health Module Terraform Validation
@@ -144,7 +144,7 @@ is in project: 151423364222
 - **infra/terraform/modules/cloud_run/main.tf**: Added uptime_token_secret_name + data source + env var injection
 - **infra/terraform/modules/cloud_run/variables.tf**: Added uptime_token_secret_name variable
 - **infra/terraform/modules/health/main.tf**: Updated to use monitored_resource + auth_headers support
-- **infra/terraform/modules/health/variables.tf**: Added uptime_token_secret_name variable
+- **BASE64_BLOB_REDACTED.tf**: Added uptime_token_secret_name variable
 
 ### Root / Environment Config
 - **infra/terraform/variables.tf**: Added uptime_token_secret_name variable (root)
