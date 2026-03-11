@@ -111,3 +111,13 @@ scripts/deployment/provision-operator-credentials.sh
 scripts/gcp/*.sh
 terraform/terraform.tfvars
 terraform/*.backup
+# Ignore virtualenvs and local env files
+**/.venv/
+**/venv/
+*.pyc
+__pycache__/
+# Ignore local secret files
+*.pem
+*.key
+*.env
+tools/image_pin_service/.venv/

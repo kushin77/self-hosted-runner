@@ -1,0 +1,7 @@
+project_id = "nexusshield-prod"
+region = "us-central1"
+image = "us-central1-docker.pkg.dev/nexusshield-prod/production-portal-docker/image-pin@sha256:5035306fbda2891c6eb289f2696b6024617aed0c2315b338fc586520f946965b"
+repository = "production-portal-docker"
+image_name = "image-pin"
+tag = "image-pin-fix"
+scheduler_sa = "151423364222-compute@developer.gserviceaccount.com"
