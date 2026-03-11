@@ -1,0 +1,244 @@
+{
+  "name": "nexus-shield-portal",
+  "displayName": "NexusShield Portal",
+  "description": "DevOps automation and migration orchestration platform integrated into VS Code",
+  "version": "1.0.0",
+  "publisher": "nexus-shield",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kushin77/self-hosted-runner.git",
+    "directory": "vscode-extension/nexus-shield-portal"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "Monitoring"
+  ],
+  "keywords": [
+    "devops",
+    "orchestration",
+    "migration",
+    "dashboard",
+    "automation",
+    "nexus-shield"
+  ],
+  "icon": "resources/icon.png",
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nexus-shield.openDashboard",
+        "title": "NexusShield: Open Dashboard",
+        "description": "Open NexusShield migration dashboard"
+      },
+      {
+        "command": "nexus-shield.viewMigrations",
+        "title": "NexusShield: View Migrations",
+        "description": "View active migration jobs"
+      },
+      {
+        "command": "nexus-shield.viewMetrics",
+        "title": "NexusShield: View Metrics",
+        "description": "View system metrics and health status"
+      },
+      {
+        "command": "nexus-shield.viewAuditLog",
+        "title": "NexusShield: View Audit Log",
+        "description": "View deployment audit trail"
+      },
+      {
+        "command": "nexus-shield.startMigration",
+        "title": "NexusShield: Start Migration",
+        "description": "Initiate a new migration job"
+      },
+      {
+        "command": "nexus-shield.authenticate",
+        "title": "NexusShield: Authenticate",
+        "description": "Authenticate with NexusShield backend"
+      },
+      {
+        "command": "nexus-shield.openSettings",
+        "title": "NexusShield: Open Settings",
+        "description": "Configure NexusShield extension"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "nexus-shield-sidebar",
+          "title": "NexusShield",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "nexus-shield-sidebar": [
+        {
+          "id": "nexus-shield.dashboard",
+          "name": "Dashboard",
+          "type": "webview"
+        },
+        {
+          "id": "nexus-shield.migrations",
+          "name": "Migrations",
+          "type": "tree"
+        },
+        {
+          "id": "nexus-shield.health",
+          "name": "Health Status",
+          "type": "tree"
+        },
+        {
+          "id": "nexus-shield.recent",
+          "name": "Recent Activity",
+          "type": "tree"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "nexus-shield.openSettings",
+          "when": "view == nexus-shield.dashboard",
+          "group": "navigation"
+        },
+        {
+          "command": "nexus-shield.startMigration",
+          "when": "view == nexus-shield.migrations",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "nexus-shield.openDashboard",
+          "when": "true"
+        },
+        {
+          "command": "nexus-shield.viewMigrations",
+          "when": "nexus-shield.authenticated"
+        },
+        {
+          "command": "nexus-shield.viewMetrics",
+          "when": "nexus-shield.authenticated"
+        },
+        {
+          "command": "nexus-shield.viewAuditLog",
+          "when": "nexus-shield.authenticated"
+        },
+        {
+          "command": "nexus-shield.startMigration",
+          "when": "nexus-shield.authenticated"
+        },
+        {
+          "command": "nexus-shield.authenticate",
+          "when": "true"
+        },
+        {
+          "command": "nexus-shield.openSettings",
+          "when": "true"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "nexus-shield.openDashboard",
+        "key": "alt+shift+n",
+        "mac": "cmd+shift+n",
+        "when": "editorFocus"
+      },
+      {
+        "command": "nexus-shield.viewMigrations",
+        "key": "alt+shift+m",
+        "mac": "cmd+shift+m",
+        "when": "editorFocus"
+      }
+    ],
+    "configuration": {
+      "title": "NexusShield Portal",
+      "properties": {
+        "nexus-shield.apiUrl": {
+          "type": "string",
+          "default": "http://localhost:8080",
+          "description": "NexusShield backend API URL"
+        },
+        "nexus-shield.dashboardUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "NexusShield dashboard URL"
+        },
+        "nexus-shield.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Authentication API key (stored securely)",
+          "markdownDescription": "API key for NexusShield backend (stored in VS Code secure storage)",
+          "scope": "application"
+        },
+        "nexus-shield.autoRefresh": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically refresh dashboard data"
+        },
+        "nexus-shield.refreshInterval": {
+          "type": "number",
+          "default": 5000,
+          "minimum": 1000,
+          "description": "Dashboard refresh interval (milliseconds)"
+        },
+        "nexus-shield.enableNotifications": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show notifications for migration events"
+        },
+        "nexus-shield.notificationLevel": {
+          "type": "string",
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "default": "warning",
+          "description": "Minimum notification level to show"
+        },
+        "nexus-shield.logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ],
+          "default": "info",
+          "description": "Extension logging level"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile",
+    "test": "node ./out/test/runTest.js",
+    "lint": "eslint src --ext ts",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@types/node": "^18.0.0",
+    "@types/mocha": "^10.0.0",
+    "typescript": "^4.9.0",
+    "eslint": "^8.40.0",
+    "@typescript-eslint/parser": "^5.59.0",
+    "@typescript-eslint/eslint-plugin": "^5.59.0",
+    "mocha": "^10.2.0",
+    "vsce": "^2.15.0"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "ws": "^8.13.0"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "deployment": {
+    "id": "EPIC5-PROD",
+    "timestamp": "2026-03-11T03:00:00Z",
+    "environment": "production",
+    "status": "active"
+  },
+  "providers": {
+    "aws": {
+      "enabled": true,
+      "regions": ["us-east-1", "us-west-2", "eu-west-1"],
+      "sync_strategy": "mirror",
+      "audit_enabled": true
+    },
+    "gcp": {
+      "enabled": true,
+      "regions": ["us-central1", "europe-west1", "asia-southeast1"],
+      "sync_strategy": "mirror",
+      "audit_enabled": true
+    },
+    "azure": {
+      "enabled": true,
+      "regions": ["eastus", "westus", "northeurope"],
+      "sync_strategy": "mirror",
+      "audit_enabled": true
+    }
+  },
+  "credential_management": {
+    "sources": ["gsm", "vault", "kms", "file"],
+    "fallback_sequence": ["gsm", "vault", "kms", "file"],
+    "cache_ttl_seconds": 3600,
+    "rotation_interval_hours": 24,
+    "tamper_detection": "sha256"
+  },
+  "audit": {
+    "logging": "immutable_jsonl",
+    "directory": ".sync_audit",
+    "retention_days": 90,
+    "encryption": "gcp_kms"
+  }
+}
