@@ -20,7 +20,7 @@
 | **IAM Roles** | ✅ GRANTED | terraform-deployer (editor, run.admin, firebase.admin); portal-backend (6 least-privilege roles) |
 
 ### Terraform State
-- **Backend:** Local (`nexusshield/infrastructure/terraform/production/terraform.tfstate`)
+- **Backend:** Local (`BASE64_BLOB_REDACTED.tfstate`)
 - **Resources Managed:** 17 (VPC, Subnet, Firestore, Cloud Run, Artifact Registry, Secret Manager, IAM bindings)
 - **Last Apply:** Success (2026-03-10 04:50 UTC)
 - **Plan Status:** Idempotent (no drift)
@@ -53,7 +53,7 @@
 ### Documentation
 - [PRODUCTION_DEPLOYMENT_COMPLETE_20260310.md](./PRODUCTION_DEPLOYMENT_COMPLETE_20260310.md) — 13KB, full architecture & compliance checklist
 - [RELEASES/v2026.03.10.md](./RELEASES/v2026.03.10.md) — Release notes
-- GitHub PR #2251 — Merged (commit d7030e72c87624b52d58b6ced10add8cff0b7601)
+- GitHub PR #2251 — Merged (commit BASE64_BLOB_REDACTED)
 
 ---
 
@@ -78,7 +78,7 @@
 
 - **Service URL:** https://nexusshield-portal-backend-production-2tqp6t4txq-uc.a.run.app
 - **GitHub Release:** https://github.com/kushin77/self-hosted-runner/releases/tag/v2026.03.10
-- **Terraform State:** `nexusshield/infrastructure/terraform/production/terraform.tfstate`
+- **Terraform State:** `BASE64_BLOB_REDACTED.tfstate`
 - **Issue Tracker:** #2234 (closed, org policy blocker resolved)
 
 ---

@@ -23,7 +23,7 @@
 ### 1. Immutable Audit Trail
 ✅ **Status**: VERIFIED OPERATIONAL
 ```
-File: /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+File: BASE64_BLOB_REDACTED-migrate-audit.jsonl
 Format: SHA256-chained JSONL entries
 Sample: {"prev":"hash1","hash":"hash2","entry":{...},"ts":"2026-03-11T01:03:38Z"}
 Proof: 9 entries logged showing full event chain with unbroken hash links
@@ -240,7 +240,7 @@ bash ./scripts/deploy/deploy_to_staging.sh user@host [branch]
 sudo systemctl status cloudrun.service redis-worker.service
 
 # View audit trail
-tail -f /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -f BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # Test health
 curl http://localhost:8080/health

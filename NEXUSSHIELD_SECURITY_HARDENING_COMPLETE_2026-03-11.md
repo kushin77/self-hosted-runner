@@ -118,7 +118,7 @@ All code is production-ready. One operator action remains: revoke fallback SA ke
 **What was provisioned:**
 
 1. **WI Pool**: `runner-pool-20260311`
-   - Full path: `projects/151423364222/locations/global/workloadIdentityPools/runner-pool-20260311`
+   - Full path: `BASE64_BLOB_REDACTED-pool-20260311`
    - Scope: Global, active
 
 2. **OIDC Provider**: `runner-provider-20260311`
@@ -131,7 +131,7 @@ All code is production-ready. One operator action remains: revoke fallback SA ke
 3. **IAM Binding**:
    - Target: `nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com`
    - Role: `roles/iam.workloadIdentityUser`
-   - Principal: `principalSet://iam.googleapis.com/projects/151423364222/locations/global/workloadIdentityPools/runner-pool-20260311/*`
+   - Principal: `principalSet://iam.googleapis.BASE64_BLOB_REDACTED-pool-20260311/*`
    - Status: ACTIVE
 
 **Automation Scripts Created:**
@@ -219,14 +219,14 @@ All operations recorded to:
 
 ### **OPERATOR ACTION - Key Revocation** (Not Blocking Code Deployment)
 
-The fallback user-managed SA key `a3b789c73d46e0265909216f14f7c22cea73ca66` for `nxs-automation-sa` could not be revoked from this environment due to missing `iam.serviceAccountKeys.delete` permission. This is documented in:
+The fallback user-managed SA key `BASE64_BLOB_REDACTED` for `nxs-automation-sa` could not be revoked from this environment due to missing `iam.serviceAccountKeys.delete` permission. This is documented in:
 - `artifacts/audit/credential-rotation-20260311-revoke-attempt.jsonl`
 - `artifacts/audit/credential-rotation-20260311-revoke-manual-failure.jsonl`
 
 **Action (when ready):**
 ```bash
 # Revoke fallback SA key (when WI tokens fully tested)
-gcloud iam service-accounts keys delete a3b789c73d46e0265909216f14f7c22cea73ca66 \
+gcloud iam service-accounts keys delete BASE64_BLOB_REDACTED \
   --iam-account=nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com \
   --project=nexusshield-prod --quiet
 

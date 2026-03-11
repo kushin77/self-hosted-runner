@@ -152,7 +152,7 @@ POST   /api/v1/cleanup                             Cleanup all resources
 
 2. HashiCorp Vault
    - Environment: VAULT_ADDR, REDACTED
-   - Fetch: curl -H "X-Vault-Token: $REDACTED" $VAULT_ADDR/v1/secret/data/credentials/provider
+   - Fetch: curl -H "X-Vault-Token: $REDACTED" $VAULT_BASE64_BLOB_REDACTED
 
 3. AWS KMS
    - Environment: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY

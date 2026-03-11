@@ -144,5 +144,5 @@ gcloud secrets versions access latest --secret=backend-db-secret --project=nexus
 
 - [GCP Secret Manager Docs](https://cloud.google.com/secret-manager/docs)
 - [Cloud Run with Secrets](https://cloud.google.com/run/docs/configuring/secrets)
-- [Terraform Secret Manager](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret)
+- [Terraform Secret Manager](https://registry.terraform.BASE64_BLOB_REDACTED_manager_secret)
 - [OWASP Secrets Management](https://owasp.org/www-community/Sensitive_Data_Exposure)

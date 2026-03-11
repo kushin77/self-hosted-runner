@@ -48,7 +48,7 @@ The direct-deployment automation infrastructure is **fully operational and produ
 ### Attempt #2: 2026-03-09 14:15:36 UTC
 - **Goal:** Live deployment with freed disk space
 - **Result:** ❌ FAILED (SSH authentication)
-- **Bundle Created:** ✅ SHA256: bb28f0f22cbfc3b970020c7d5f2aefeb8d06804abc533a6315d827fde9e54411
+- **Bundle Created:** ✅ SHA256: BASE64_BLOB_REDACTED
 - **GSM Fetch:** ✅ Successful (443-byte SSH key retrieved)
 - **SSH Auth:** ❌ Rejected — "Permission denied (publickey,password)"
 - **Issue Created:** #2083 with provisioning instructions
@@ -57,7 +57,7 @@ The direct-deployment automation infrastructure is **fully operational and produ
 ### Attempt #3: 2026-03-09 14:23:35 UTC
 - **Goal:** Verify deployment automation with new tooling
 - **Result:** ❌ FAILED (SSH authentication) — Expected given no key provisioned
-- **Bundle Created:** ✅ SHA256: 3e43de63843940261a63aacc8c28b8727ad00a974a14c96a142c72cc1183fbd3
+- **Bundle Created:** ✅ SHA256: BASE64_BLOB_REDACTED
 - **GSM Fetch:** ✅ Successful
 - **SSH Auth:** ❌ Blocked (same reason)
 - **New Tooling Added:** Provisioning orchestrator + readiness checker
