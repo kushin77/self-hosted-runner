@@ -12,6 +12,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { SecretManagerServiceClient } = require('@google-cloud/secret-manager');
 const { KeyManagementServiceClient } = require('@google-cloud/kms');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -60,16 +61,30 @@ function verifyToken(req, res, next) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
+  // Prefer an RSA public key if provided (for RS256), otherwise fall back to shared secret
+  const publicKey = process.env.JWT_PUBLIC_KEY || null;
+  const secret = process.env.JWT_SECRET || null;
+
   try {
-    const payload = JSON.parse(Buffer.from(token, 'base64').toString());
-    if (payload.exp < Math.floor(Date.now() / 1000)) {
+    let payload;
+    if (publicKey) {
+      payload = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+    } else if (secret) {
+      payload = jwt.verify(token, secret);
+    } else {
+      logAuditEntry('auth_error', 'api', 'no_verification_key', null, `No JWT_SECRET or JWT_PUBLIC_KEY configured`);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
       return res.status(401).json({ error: 'Token expired' });
     }
+
     req.userId = payload.userId;
     req.user = users.get(payload.userId);
     next();
   } catch (e) {
-    logAuditEntry('auth_error', 'api', 'invalid_token', null, `Token parse error: ${e.message}`);
+    logAuditEntry('auth_error', 'api', 'invalid_token', null, `Token verify error: ${e.message}`);
     return res.status(401).json({ error: 'Invalid token' });
   }
 }
@@ -399,17 +414,25 @@ app.get('/api/audit', verifyToken, (req, res) => {
 
 app.get('/api/audit/export', verifyToken, (req, res) => {
   let exported = 0;
-  const logDir = '/home/akushnir/self-hosted-runner/logs';
+  const logDir = process.env.LOG_DIR || '/tmp/logs';
   try {
     if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
+      try {
+        fs.mkdirSync(logDir, { recursive: true });
+      } catch (mkdirErr) {
+        console.error('Could not create log directory:', mkdirErr.message);
+      }
     }
     auditTrail.forEach(entry => {
-      fs.appendFileSync(
-        path.join(logDir, 'portal-api-audit-export.jsonl'),
-        JSON.stringify(entry) + '\n'
-      );
-      exported++;
+      try {
+        fs.appendFileSync(
+          path.join(logDir, 'portal-api-audit-export.jsonl'),
+          JSON.stringify(entry) + '\n'
+        );
+        exported++;
+      } catch (appendErr) {
+        console.error('Failed to append audit entry:', appendErr.message);
+      }
     });
   } catch (e) {
     return res.status(500).json({ error: 'Export failed', message: e.message });
