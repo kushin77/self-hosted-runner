@@ -209,6 +209,14 @@ async def get_provider_health(provider: Provider):
     return ProviderHealth(**health)
 
 
+@app.get("/api/v1/secrets/health", tags=["Secrets Health"])
+async def get_health_root():
+    """Compatibility root health endpoint expected by older test harnesses.
+    Returns the same payload as `/api/v1/secrets/health/all`.
+    """
+    return await get_all_provider_health()
+
+
 # ============================================================================
 # PROVIDER RESOLUTION ENDPOINTS
 # ============================================================================
