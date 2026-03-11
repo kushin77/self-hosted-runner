@@ -4,13 +4,24 @@ from pathlib import Path
 import subprocess
 
 patterns = [
-    (re.compile(r"export\s+REDACTED_AWS_SECRET_ACCESS_KEY\s*=\s*['\"]?[^\n'\"]*", re.I), 'export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'),
-    (re.compile(r"REDACTED_AWS_SECRET_ACCESS_KEY\s*:\s*[^\n]*", re.I), 'REDACTED_AWS_SECRET_ACCESS_KEY: REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
-    (re.compile(r"AWS_ACCESS_KEY_ID\s*=\s*['\"]?[^\n'\"]*", re.I), 'AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID'),
+    # export REDACTED_AWS_SECRET_ACCESS_KEY=...
+    (re.compile(r"export\s+REDACTED_AWS_SECRET_ACCESS_KEY\s*=\s*['\"]?[^\n'\"]*", re.I),
+     'export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'),
+    # YAML/JSON style: REDACTED_AWS_SECRET_ACCESS_KEY: ...
+    (re.compile(r"REDACTED_AWS_SECRET_ACCESS_KEY\s*:\s*[^\n]*", re.I),
+     'REDACTED_AWS_SECRET_ACCESS_KEY: REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'),
+    # AWS env var assignment
+    (re.compile(r"AWS_ACCESS_KEY_ID\s*=\s*['\"]?[^\n'\"]*", re.I),
+     'AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID'),
+    # Static AKIA keys
     (re.compile(r"AKIA[0-9A-Z]{16}"), 'REDACTED_AWS_ACCESS_KEY_ID'),
     (re.compile(r"REDACTED_AWS_ACCESS_KEY_ID[0-9A-Z]*"), 'REDACTED_AWS_ACCESS_KEY_ID'),
+    # Generic REDACTED markers
     (re.compile(r"REDACTED_AWS_SECRET_ACCESS_KEY", re.I), 'REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'),
     (re.compile(r"REDACTED_VAULT_TOKEN", re.I), 'REDACTED_REDACTED_VAULT_TOKEN'),
+    # Generic db password markers
+    (re.compile(r"DB_PASSWORD\s*=\s*['\"]?[^\n'\"]*", re.I), 'DB_PASSWORD=REDACTED_DB_PASSWORD'),
+$PLACEHOLDER
 ]
 
 exclude_dirs = ['.git', 'frontend/node_modules', '.vscode']

@@ -32,7 +32,7 @@
 ### Security & Encryption
 - ✅ google_kms_key_ring (production-portal-keyring)
 - ✅ google_kms_crypto_key x2 (database, secrets)
-- ✅ google_secret_manager_secret x2 (db_username, db_password)
+$PLACEHOLDER
 - ✅ google_secret_manager_secret_iam_member x2 (access control)
 - ✅ google_secret_manager_secret_version x2 (encrypted values)
 

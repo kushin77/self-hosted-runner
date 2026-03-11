@@ -122,7 +122,7 @@ if [ -n "${VAULT_ADDR:-}" ] && command -v vault &>/dev/null; then
             tenant_id="$AZURE_TENANT_ID" \
             subscription_id="$SUBSCRIPTION_ID" \
             client_id="$AZURE_CLIENT_ID" \
-            client_secret="$AZURE_CLIENT_SECRET" \
+$PLACEHOLDER
             created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" >/dev/null 2>&1
         success "Credentials stored in Vault"
         audit_write "vault_storage" "{\"path\": \"secret/azure/tenant-api\"}"

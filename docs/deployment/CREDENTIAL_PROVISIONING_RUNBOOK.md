@@ -161,14 +161,14 @@ echo "KMS_KEY_ID=$KMS_KEY_ID"
 
 ```bash
 # Read the SSH private key
-SSH_PRIVATE_KEY=$(cat ~/.ssh/runner_ed25519)
+$PLACEHOLDER
 
 # Store in AWS Secrets Manager
 aws secretsmanager create-secret \
   --name "runner/ssh-credentials" \
   --description "SSH private key for runner deployment" \
   --kms-key-id alias/runner-deploy-key \
-  --secret-string "{\"ssh_key\":\"$SSH_PRIVATE_KEY\",\"ssh_user\":\"akushnir\"}" \
+$PLACEHOLDER
   --region us-east-1
 
 # Verify
@@ -264,9 +264,9 @@ gcloud services enable secretmanager.googleapis.com --project=elevatediq-runner
 
 ```bash
 # Read SSH key and create secret
-SSH_PRIVATE_KEY=$(cat ~/.ssh/runner_ed25519)
+$PLACEHOLDER
 
-echo "{\"ssh_key\":\"$SSH_PRIVATE_KEY\",\"ssh_user\":\"akushnir\"}" | \
+$PLACEHOLDER
   gcloud secrets create runner-deploy \
   --data-file=- \
   --project=elevatediq-runner

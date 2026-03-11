@@ -63,7 +63,7 @@
 - **Status**: ✅ RESOLVED - Future rotations unblocked
 
 #### Credentials Redaction
-- **Inline Credentials**: 65 files redacted (AKIA, aws_secret_access_key, vault_token patterns)
+$PLACEHOLDER
 - **Git History**: `git filter-branch` purged historical credential patterns
 - **Force-push**: Completed to origin/main
 - **Verification**: 0 AKIA patterns, minimal aws_secret (only in commit messages)
