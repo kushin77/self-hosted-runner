@@ -20,7 +20,7 @@ How to use (operator/maintainer):
 ```bash
 export GCP_PROJECT_ID="your-project-id"
 export GCP_SERVICE_ACCOUNT_KEY="/path/to/sa-key.json"
-export GCP_WIP="projects/123/locations/global/workloadIdentityPools/.../providers/..."
+export GCP_WIP="BASE64_BLOB_REDACTED.../providers/..."
 export VAULT_ADDR="https://vault.example"
 export VAULT_AUTH_KEY="..."  # set in your shell at runtime; do NOT commit
 export AWS_KMS_KEY_ID="arn:aws:kms:..."

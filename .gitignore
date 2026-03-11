@@ -1,12 +1,79 @@
 # NexusShield Security Framework
 # ==============================
 
-# Sensitive data (never commit)
+# CRITICAL: Sensitive data (never commit)
 nexusshield/config/*.secret.yml
 nexusshield/config/*.key
 nexusshield/config/*.pem
 nexusshield/credentials/*
 !nexusshield/credentials/.gitkeep
+
+# Credential & secrets files (BLOCKING PATTERNS)
+*.env
+*.env-*
+*.env.*
+!.env.example
+!.env.template
+.secrets/
+secrets.json
+secrets.yaml
+credentials.json
+*service-account*.json
+*private*.key
+*.pem
+*.key
+.aws/credentials
+.aws/config
+.kube/config
+terraform.tfvars
+*.tfvars
+.vault-token
+.vault-addr
+vault-token
+
+# AWS & Cloud credentials
+aws_access_key*
+aws_secret*
+cloud-credentials*
+
+# GitHub tokens & credentials
+github_token
+.github-token
+gh_token
+
+# API keys & tokens (catch-all patterns)
+*api_key*
+*api_secret*
+*secret_key*
+*private_key*
+*access_token*
+*refresh_token*
+*bearer_token*
+*api_token*
+
+# Database & service credentials
+db_password
+database_password
+mysql_password
+postgres_password
+mongodb_password
+redis_password
+db_conn_string
+connection_string
+
+# SSL/TLS certificates & keys
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+cacert.pem
+
+# SSH keys
+ssh_key*
+id_rsa*
+id_ecdsa*
+id_ed25519*
 
 # Runtime artifacts
 nexusshield/logs/*.jsonl
@@ -15,15 +82,12 @@ nexusshield/tmp/*
 *.pyc
 __pycache__/
 
-# Sensitive outputs
+# Encrypted/sensitive outputs
 *.enc
 *.encrypted
-.env
-.env.local
+*.gpg
 docker-compose.override.yml
 docker-compose.secrets.yml
-.env.local
-.vault-token
 
 # IDE/Editor
 .vscode/
@@ -41,9 +105,8 @@ dist/
 build/
 *.egg-info/
 
-# NexusShield runtime & secrets (ignore generated runtime artifacts)
+# NexusShield runtime & secrets
 nexusshield/.credentials-config
-nexusshield/logs/*.jsonl
 deployment-execution-*.log
 logs/portal-mvp-phase*.jsonl
 fix-audit-logs.sh
