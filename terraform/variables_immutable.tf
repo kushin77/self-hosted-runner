@@ -144,9 +144,9 @@ variable "enable_custom_metrics" {
 }
 
 variable "alert_email" {
-  description = "Email for critical alerts"
+  description = "Email for critical alerts and operational notifications"
   type        = string
-  default     = ""
+  default     = "ops@nexusshield.local"
 }
 
 // Tags and labels
@@ -209,6 +209,29 @@ variable "enable_multi_cloud_vault" {
 
 variable "enable_zero_trust_security" {
   description = "Enable zero-trust security posture"
+  type        = bool
+  default     = true
+}
+
+variable "slack_webhook_url" {
+  description = "Slack webhook URL for alerts (optional)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "uptime_check_period_seconds" {
+  description = "Uptime check interval in seconds (60s default = 1 minute)"
+  type        = number
+  default     = 60
+  validation {
+    condition     = contains([60, 300, 900, 3600], var.uptime_check_period_seconds)
+    error_message = "Period must be 60, 300, 900, or 3600 seconds"
+  }
+}
+
+variable "enable_cloud_monitoring" {
+  description = "Enable Cloud Monitoring uptime checks and alerts"
   type        = bool
   default     = true
 }
