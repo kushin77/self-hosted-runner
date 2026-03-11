@@ -1,1 +1,0 @@
-scripts/automation/pmo/vault-integration.sh

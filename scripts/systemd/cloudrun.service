@@ -5,10 +5,10 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/akushnir/self-hosted-runner/scripts/cloudrun
+WorkingDirectory=/opt/nexusshield/scripts/cloudrun
 Environment=PORT=8080
 Environment=PORTAL_ADMIN_KEY=changeme
-ExecStart=/usr/bin/env bash -lc "exec gunicorn -w 3 -b 0.0.0.0:8080 scripts.cloudrun.app:app"
+ExecStart=/opt/nexusshield/venv/bin/gunicorn -w 3 -b 0.0.0.0:8080 scripts.cloudrun.app:app
 Restart=on-failure
 RestartSec=5s
 
