@@ -1,3 +1,12 @@
+variable "secret_id" {
+  type    = string
+  default = "uptime-check-token"
+}
+
+variable "notification_channels" {
+  type    = list(string)
+  default = []
+}
 /**
  * Cloud Monitoring Module - Dashboards, Alert Policies, Notification Channels
  * Provides comprehensive monitoring for GCP infrastructure

@@ -1,0 +1,13 @@
+[Unit]
+Description=Idle Resource Cleanup (NexusShield)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/cost-management/idle-resource-cleanup.sh --apply
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
