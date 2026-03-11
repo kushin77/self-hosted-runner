@@ -130,11 +130,15 @@ EOF
   if [ -n "$(git status --porcelain)" ]; then
     log_warning "Uncommitted changes detected"
     git status --short
-    read -p "Continue anyway? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      log_error "Deployment cancelled"
-      exit 1
+    if [ "${FORCE:-}" = "true" ] || [ "${CI:-}" = "true" ] || [ "${NONINTERACTIVE:-}" = "true" ]; then
+      log_info "FORCE/CI/NONINTERACTIVE set — proceeding despite uncommitted changes"
+    else
+      read -p "Continue anyway? (y/N) " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_error "Deployment cancelled"
+        exit 1
+      fi
     fi
   fi
   log_success "Git status verified"
@@ -194,9 +198,13 @@ build_backend() {
   log_info "Cleaning previous builds..."
   rm -rf dist/ node_modules/.cache
   
-  # Install dependencies
+  # Install dependencies (deterministic: use npm ci when lockfile exists)
   log_info "Installing dependencies..."
-  npm install
+  if [ -f package-lock.json ]; then
+    npm ci --no-audit --no-fund
+  else
+    npm install --no-audit --no-fund
+  fi
   
   # Build TypeScript
   log_info "Compiling TypeScript..."
