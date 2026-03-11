@@ -39,6 +39,12 @@ variable "labels" {
   default = {}
 }
 
+variable "notification_channels" {
+  description = "Optional list of notification channel resource IDs for alerting"
+  type        = list(string)
+  default     = []
+}
+
 module "monitoring" {
   source = "../modules/monitoring"
 
@@ -48,6 +54,8 @@ module "monitoring" {
   notification_email        = "ops@example.com"
   enable_slack_notification = false
   labels                    = var.labels
+  # Optional: pass notification channels (list of notification channel resource IDs)
+  notification_channels    = var.notification_channels
 }
 
 module "logging" {
@@ -92,7 +100,9 @@ module "health" {
   environment  = var.environment
   service_name = var.service_name
 
-  enable_checks = true
+  # NOTE: Terraform-created uptime checks may fail due to monitored resource
+  # validation and org policy. Create uptime checks via gcloud script instead.
+  enable_checks = false
 
   # Full service URLs (used by module inputs that expect URL)
   backend_url  = "https://nexus-shield-portal-backend-2tqp6t4txq-uc.a.run.app"

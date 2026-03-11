@@ -9,7 +9,7 @@ services:
   dashboard-lb:
     image: nginx:1.25-alpine
     container_name: nexusshield-dashboard-lb
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     ports:
       - "80:80"
       - "443:443"
@@ -30,6 +30,8 @@ services:
     labels:
       - "com.nexusshield.service=dashboard-loadbalancer"
       - "com.nexusshield.immutable=true"
+      - "com.nexusshield.cost-management=5-min-cleanup"
+      - "com.nexusshield.idle-cleanup=enabled"
     logging:
       driver: "json-file"
       options:
@@ -49,7 +51,7 @@ services:
       dockerfile: Dockerfile
     image: nexusshield-dashboard:latest
     container_name: nexusshield-dashboard-1
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     expose:
       - "3000"
     environment:
@@ -71,7 +73,7 @@ services:
       dockerfile: Dockerfile
     image: nexusshield-dashboard:latest
     container_name: nexusshield-dashboard-2
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     expose:
       - "3000"
     environment:
@@ -95,7 +97,7 @@ services:
       dockerfile: Dockerfile
     image: nexusshield-dashboard:latest
     container_name: nexusshield-dashboard-3
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     expose:
       - "3000"
     environment:
