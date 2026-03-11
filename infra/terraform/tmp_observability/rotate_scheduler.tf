@@ -8,3 +8,8 @@ module "rotate_scheduler" {
 output "rotate_topic" {
   value = module.rotate_scheduler.topic_name
 }
+
+module "monitoring_secret_rotation" {
+  source = "../../modules/monitoring"
+  project = var.project_id
+}
