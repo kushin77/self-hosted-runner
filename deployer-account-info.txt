@@ -1,0 +1,10 @@
+Account: deployer-run@nexusshield-prod.iam.gserviceaccount.com
+Project: nexusshield-prod
+Roles: roles/cloudscheduler.jobRunner
+roles/iam.serviceAccountKeyAdmin
+roles/iam.serviceAccountUser
+roles/monitoring.metricWriter
+roles/run.admin
+roles/run.serviceAgent
+roles/secretmanager.secretAccessor
+Timestamp: 2026-03-11T23:41:20Z
