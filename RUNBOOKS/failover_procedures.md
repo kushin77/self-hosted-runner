@@ -54,7 +54,7 @@ curl -X GET https://vault.example.com/v1/secret/data/portal-mfa-secret \
   -H "X-Vault-Token: $(cat /run/secrets/vault-token)"
 
 # Check recent audit trail for fallback evidence
-tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -20 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq 'select(.credential_source == "vault")'
 
 # Monitor error rate for elevation
@@ -104,7 +104,7 @@ aws secretsmanager get-secret-value \
   --region us-east-1
 
 # Check audit trail for AWS source entries
-tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -20 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq 'select(.credential_source == "aws")'
 
 # Monitor job processing via metrics
@@ -241,14 +241,14 @@ curl -X POST http://localhost:8080/api/v1/migrate \
   -d '{"source":"s3://bucket","destination":"gs://bucket","dry_run":true}'
 
 # Monitor audit trail for Vault source
-tail -f /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | jq '.credentials_source'
+tail -f BASE64_BLOB_REDACTED-migrate-audit.jsonl | jq '.credentials_source'
 
 # Remove iptables rule
 sudo iptables -D OUTPUT -p tcp --dport 8888 -j DROP
 
 # Verify recovery to GSM
 sleep 10
-tail -5 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | jq '.credential_source'
+tail -5 BASE64_BLOB_REDACTED-migrate-audit.jsonl | jq '.credential_source'
 # Should show "gsm" again
 ```
 
@@ -277,7 +277,7 @@ sudo iptables -A OUTPUT -p tcp --dport 8200 -j DROP  # Vault
 curl -X POST http://localhost:8080/api/v1/migrate ...
 
 # Verify AWS fallback engaged
-tail -5 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | jq '.credential_source'
+tail -5 BASE64_BLOB_REDACTED-migrate-audit.jsonl | jq '.credential_source'
 # Should show "aws"
 
 # Cleanup
@@ -302,7 +302,7 @@ sudo iptables -D OUTPUT -p tcp --dport 8200 -j DROP
 curl -s http://localhost:8080/metrics | grep credential_fetch_errors
 
 # Monitor audit trail growth (should be ~1 entry per job)
-tail -1 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -1 BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # Alert thresholds
 # - WARNING: credential_fetch_errors > 5 in 5 minutes

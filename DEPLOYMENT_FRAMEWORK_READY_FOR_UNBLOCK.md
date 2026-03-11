@@ -39,7 +39,7 @@
 ### Option 1: Authorize SSH Key on Worker (Recommended)
 **Run this command on worker 192.168.168.42 (as `akushnir` or `root`):**
 ```bash
-echo 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC3xIEnejlt8Yc8KMfpEisoG7lzxt179wjubD1f+fd8O akushnir@192.168.168.42' >> ~/.ssh/authorized_keys
+echo 'ssh-ed25519 BASE64_BLOB_REDACTED akushnir@192.168.168.42' >> ~/.ssh/authorized_keys
 chmod 600 ~/.ssh/authorized_keys
 ```
 **Time to complete:** < 1 minute
