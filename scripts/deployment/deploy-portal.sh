@@ -17,6 +17,8 @@ COMPONENT="backend"
 IMAGE_NAME="nexusshield-backend"
 IMAGE_TAG="$(date +%Y%m%d_%H%M%S)"
 BACKUP_SUFFIX="backup_$(date +%Y%m%d_%H%M%S)"
+GCP_REGION="${GCP_REGION:-us-central1}"
+CLOUD_RUN_SERVICE="${CLOUD_RUN_SERVICE:-}"  # Optional: run smoke tests if set
 
 # Colors for output
 RED='\033[0;31m'
@@ -276,22 +278,26 @@ EOF
   log_info "Transferring configuration files (using GSM for secrets)..."
   scp docker-compose.yml "$SSH_USER@$DEPLOYMENT_HOST:~/" || error "Failed to transfer docker-compose.yml"
 
-  # Build remote .env from GSM secrets
+  # Build remote .env from GSM secrets (documented in CREDENTIAL_MANAGEMENT_GSM.md)
   TMP_ENV=$(mktemp)
-  # Map of env KEY:nexus secret name
-  ./scripts/lib.sh >/dev/null 2>&1 || true
+  # Source lib.sh for helper functions
   if [ -f scripts/lib.sh ]; then
-    # Known secret mappings — update as your GSM inventory requires
+    source scripts/lib.sh
+    # Wired secret names from GSM inventory — immutable, versioned credentials
     build_env_from_gsm "$TMP_ENV" \
-      GCP_PROJECT_ID:nexusshield-gcp-project-id \
-      GCP_KMS_KEY:nexusshield-gcp-kms-key \
+      GCP_PROJECT_ID:nexusshield-prod \
+      GCP_KMS_KEY:projects/nexusshield-prod/locations/us-central1/keyRings/portal-kr/cryptoKeys/portal-key \
       DATABASE_URL:nexusshield-portal-db-connection-production \
       REDIS_PASSWORD:runner-redis-password \
-      PORTAL_MFA_SECRET:portal-mfa-secret \
-      JWT_PUBLIC_KEY:nexusshield-portal-jwt-public-key || true
+      PORTAL_MFA_SECRET:portal-mfa-secret || true
+    
+    # Sync each secret to Vault (no-op if Vault not configured)
+    sync_secret_to_vault "nexusshield-portal-db-connection-production" "secret/data/portal/db_connection" || true
+    sync_secret_to_vault "runner-redis-password" "secret/data/portal/redis_password" || true
+    sync_secret_to_vault "portal-mfa-secret" "secret/data/portal/mfa_secret" || true
   else
-    # Fallback: if no lib, attempt to pull a monolithic env secret
-    get_secret "nexusshield-portal-env-production" > "$TMP_ENV" 2>/dev/null || true
+    log_error "scripts/lib.sh not found; cannot load secrets"
+    exit 1
   fi
 
   # If TMP_ENV empty, fall back to existing file if present
@@ -385,6 +391,26 @@ EOF
 }
 
 ###############################################################################
+# POST-DEPLOY SMOKE TESTS (Cloud Run)
+###############################################################################
+
+run_cloud_run_smoke_tests() {
+  local service_name="${1:-nexus-shield-portal-backend}"
+  local region="${2:-us-central1}"
+  
+  if [ ! -f scripts/deploy/post-deploy-smoke-tests.sh ]; then
+    log_warn "Smoke test script not found; skipping Cloud Run smoke tests"
+    return 0
+  fi
+  
+  log_info "Running Cloud Run smoke tests for $service_name..."
+  bash scripts/deploy/post-deploy-smoke-tests.sh "$service_name" "$region" || {
+    log_error "Smoke tests failed"
+    return 1
+  }
+}
+
+###############################################################################
 # MAIN EXECUTION
 ###############################################################################
 
@@ -401,11 +427,15 @@ main() {
   echo "  Image Tag:       $IMAGE_TAG"
   echo
   
-  read -p "Proceed with deployment? (y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    log_error "Deployment cancelled by user"
-    exit 0
+  if [ "${FORCE:-}" = "true" ] || [ "${CI:-}" = "true" ] || [ "${NONINTERACTIVE:-}" = "true" ]; then
+    log_info "FORCE/CI/NONINTERACTIVE set — proceeding without user prompt"
+  else
+    read -p "Proceed with deployment? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      log_error "Deployment cancelled by user"
+      exit 0
+    fi
   fi
   
   validate_environment
@@ -414,6 +444,11 @@ main() {
   build_docker_image
   deploy_to_production
   verify_deployment
+  
+  # Run Cloud Run smoke tests if applicable
+  if [ -n "${CLOUD_RUN_SERVICE:-}" ]; then
+    run_cloud_run_smoke_tests "$CLOUD_RUN_SERVICE" "$GCP_REGION"
+  fi
   
   echo
   echo "╔════════════════════════════════════════════════════╗"
