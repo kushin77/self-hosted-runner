@@ -21,8 +21,23 @@ fi
 echo "2) Build and push container via Cloud Build"
 gcloud builds submit --project="$PROJECT" --tag "$IMAGE" .
 
-echo "3) Deploy to Cloud Run (private)"
-gcloud run deploy "$SERVICE" --project="$PROJECT" --region="$REGION" --image="$IMAGE" --platform=managed --service-account="$SA" --no-allow-unauthenticated --quiet
+echo "3) Deploy to Cloud Run (allow unauthenticated for webhook delivery)"
+# Ensure secrets exist: webhook secret and token placeholder
+for s in github-app-private-key github-app-id github-app-webhook-secret github-app-token; do
+  if ! gcloud secrets describe "$s" --project="$PROJECT" >/dev/null 2>&1; then
+    printf 'placeholder' | gcloud secrets create "$s" --data-file=- --project="$PROJECT"
+  fi
+  gcloud secrets add-iam-policy-binding "$s" --project="$PROJECT" --member="serviceAccount:$SA" --role="roles/secretmanager.secretAccessor" || true
+done
+
+# Deploy and inject secrets into Cloud Run environment (idempotent)
+gcloud run deploy "$SERVICE" \
+  --project="$PROJECT" --region="$REGION" --image="$IMAGE" --platform=managed \
+  --service-account="$SA" \
+  --allow-unauthenticated \
+  --set-secrets="GITHUB_WEBHOOK_SECRET=github-app-webhook-secret:latest" \
+  --set-secrets="GITHUB_TOKEN=github-app-token:latest" \
+  --quiet
 
 echo "4) Create GSM placeholders for GitHub App private key and app id (idempotent)"
 for s in github-app-private-key github-app-id github-app-webhook-secret; do

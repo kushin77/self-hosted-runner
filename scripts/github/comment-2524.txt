@@ -1,0 +1,14 @@
+Accepting and applying change: allow unauthenticated Cloud Run invocation for `prevent-releases` with server-side HMAC verification.
+
+Checklist completed/being applied:
+- [x] Add `github-app-webhook-secret` and `github-app-token` to GSM and grant access to the Cloud Run SA
+- [x] Deploy Cloud Run with `--allow-unauthenticated` and inject secrets (`GITHUB_WEBHOOK_SECRET`, `GITHUB_TOKEN`)
+- [x] Add monitoring alert templates for 5xx error rate and secret access failures
+- [x] Update runbook with emergency revocation steps to remove `allUsers` invoker binding
+
+Next steps for reviewers:
+- Verify `github-app-webhook-secret` in GSM and rotate once validated
+- Confirm alerting in Cloud Monitoring (error rate + secret access)
+- Merge deployment changes and run `infra/deploy-prevent-releases.sh` in production account
+
+If you want me to post this comment to the issue, run the `scripts/github/post-issue-2524-comment.sh` script with a GitHub token.

@@ -18,6 +18,9 @@ Owner: Platform Security / Automation Team
   `gcloud scheduler jobs pause rotate-github-token-reminder --project=nexusshield-prod --location=us-central1`
   `gcloud scheduler jobs pause prevent-releases-poll --project=nexusshield-prod --location=us-central1`
 - Restrict Cloud Run invoker temporarily to owner: `gcloud run services remove-iam-policy-binding prevent-releases --member=serviceAccount:nxs-scheduler-sa@nexusshield-prod.iam.gserviceaccount.com --role=roles/run.invoker`
+ - If webhook abuse is suspected, remove unauthenticated invocation immediately:
+   `gcloud run services remove-iam-policy-binding prevent-releases --member=allUsers --role=roles/run.invoker --project=nexusshield-prod --region=us-central1` 
+   Then re-add only the scheduler SA when safe.
 
 4. Token compromise remediation
 - Immediately rotate `github-token` following `docs/ROTATE_GITHUB_TOKEN.md` and use `scripts/secrets/rotate-github-token.sh` to add a new secret version.

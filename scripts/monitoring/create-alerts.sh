@@ -7,6 +7,7 @@ set -euo pipefail
 
 PROJECT=${PROJECT:-nexusshield-prod}
 SERVICE_NAME=${SERVICE_NAME:-prevent-releases}
+RUN_NOW=${RUN_NOW:-0}
 
 echo "Creating logs-based metric for secret access failures..."
 METRIC_NAME=secret_access_denied_metric
@@ -48,3 +49,24 @@ gcloud alpha monitoring policies create --project=PROJECT \
 
 If you want, I can attempt to create the alerting policies automatically; confirm and I will run the recommended commands with project "$PROJECT" and service "$SERVICE_NAME".
 EOF
+
+# Optionally run the alert creation commands now when RUN_NOW=1 and gcloud is available
+if [ "$RUN_NOW" -eq 1 ]; then
+  echo "RUN_NOW=1: Attempting to create alerting policies now..."
+  set -x
+  gcloud alpha monitoring policies create --project="$PROJECT" \
+    --condition-display-name="Secret Access Denied" \
+    --condition-filter='metric.type="logging.googleapis.com/user/secret_access_denied_metric"' \
+    --condition-compare-duration=300s \
+    --condition-threshold-value=1 \
+    --display-name="Secret Access Denied Alert" || true
+
+  gcloud alpha monitoring policies create --project="$PROJECT" \
+    --condition-display-name="Prevent-releases error rate" \
+    --condition-filter="resource.type=\"cloud_run_revision\" AND resource.label.\"service_name\"=\"$SERVICE_NAME\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.label.\"response_code\">=\"500\"" \
+    --condition-compare-duration=300s \
+    --condition-threshold-value=1 \
+    --display-name="prevent-releases 5xx error rate" || true
+  set +x
+  echo "Alert creation attempted; check Cloud Monitoring for results."
+fi
