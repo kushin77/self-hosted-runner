@@ -63,10 +63,10 @@ class AllProvidersHealth(BaseModel):
 class ProviderResolution(BaseModel):
     """Provider resolution result"""
     secret_name: str
-    resolved_provider: Provider
+    resolved_provider: str
     is_primary: bool
     fallback_level: int
-    fallback_chain: List[Provider]
+    fallback_chain: List[str]
     timestamp: str
 
 
@@ -162,12 +162,28 @@ async def get_all_provider_health():
     
     health = _provider.get_all_health()
     
+    # Normalize provider health entries to match ProviderHealth model
+    normalized = []
+    for p in health.get("providers", []):
+        provider = p.get("provider") or p.get("name") or "unknown"
+        healthy = bool(p.get("healthy", False))
+        # Determine status field
+        if "status" in p:
+            status = p.get("status")
+        else:
+            # Derive string status from healthy boolean
+            status = ProviderStatus.HEALTHY.value if healthy else ProviderStatus.UNHEALTHY.value
+
+        normalized.append({
+            "provider": provider,
+            "status": status,
+            "healthy": healthy,
+            "latency_ms": p.get("latency_ms")
+        })
+
     return AllProvidersHealth(
         timestamp=health["timestamp"],
-        providers=[
-            ProviderHealth(**p) 
-            for p in health["providers"]
-        ]
+        providers=[ProviderHealth(**p) for p in normalized]
     )
 
 
@@ -441,7 +457,7 @@ async def sync_secret_to_all_providers(request: SyncRequest):
 # AUDIT TRAIL ENDPOINTS
 # ============================================================================
 
-@app.get("/api/v1/secrets/audit", response_model=List[MigrationAudit], tags=["Audit"])
+@app.get("/api/v1/secrets/audit", tags=["Audit"])
 async def get_audit_trail(limit: int = 100):
     """
     Get immutable audit trail for secrets operations
@@ -454,11 +470,10 @@ async def get_audit_trail(limit: int = 100):
     from canonical_secrets_provider import _provider
     
     audit_log = _provider.audit_log
-    
-    return [
-        MigrationAudit(**entry)
-        for entry in audit_log[-limit:]
-    ]
+
+    # Return raw audit entries without Pydantic coercion to avoid 500s
+    # when legacy/partial entries exist in the append-only store.
+    return JSONResponse(content=audit_log[-limit:])
 
 
 @app.get("/api/v1/secrets/audit/verify", tags=["Audit"])
