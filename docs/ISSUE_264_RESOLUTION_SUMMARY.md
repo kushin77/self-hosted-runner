@@ -32,7 +32,7 @@ All code committed to `main`. Zero feature branches. All required credentials vi
 - **Features:**
   - Fetches kubeconfig from file
   - Creates/updates secret in Google Secret Manager (automatic replication)
-  - Optional Vault sync (if `VAULT_ADDR` and `REDACTED_VAULT_TOKEN` set)
+  - Optional Vault sync (if `VAULT_ADDR` and `REDACTED_VAULT_TKN` set)
 - **Usage:**
   ```bash
   ./scripts/provision-staging-kubeconfig-gsm.sh \
