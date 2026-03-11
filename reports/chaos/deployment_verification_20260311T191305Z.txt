@@ -1,0 +1,50 @@
+Deployment verification started at Wed Mar 11 07:13:05 PM UTC 2026
+
+=== Crontab (runner) ===
+sudo: a password is required
+(no crontab found)
+
+=== Orchestrator log (tail 200) ===
+No orchestrator logs found in /var/log/chaos
+
+=== Uploader log (tail 200) ===
+No uploader logs found in /var/log/chaos
+
+=== Local JSONL reports (sample) ===
+No reports/chaos directory found under /opt/runner/repo
+
+S3_BUCKET not provided; skipping S3 checks
+
+=== Summary ===
+Generated evidence file: /tmp/deployment_verification_20260311T191305Z.txt
+
+=== Remote verification on 192.168.168.42 ===
+Using SSH key at /tmp/verifier_ed25519 to connect to 192.168.168.42
+Running remote verifier...
+Deployment verification started at Wed Mar 11 07:13:05 PM UTC 2026
+
+=== Crontab (runner) ===
+crontab:  user `runner' unknown
+(no crontab found)
+
+=== Orchestrator log (tail 200) ===
+No orchestrator logs found in /var/log/chaos
+
+=== Uploader log (tail 200) ===
+No uploader logs found in /var/log/chaos
+
+=== Local JSONL reports (sample) ===
+total 16K
+drwxrwxr-x 2 root root 4.0K Mar 11 17:55 .
+drwxrwxr-x 4 root root 4.0K Mar 11 17:55 ..
+-rw-rw-r-- 1 root root  132 Mar 11 16:41 chaos-test-results-20260311-164142Z.txt
+-rw-rw-r-- 1 root root 2.5K Mar 11 17:55 security-test-report-20260311.md
+No .jsonl files found in /opt/runner/repo/reports/chaos
+
+S3_BUCKET not provided; skipping S3 checks
+
+=== Summary ===
+Generated evidence file: /tmp/deployment_verification_20260311T191305Z.txt
+
+Please paste the contents of /tmp/deployment_verification_20260311T191305Z.txt into the stakeholder sign-off issue (#2594) as verification evidence.
+Deployment verification complete at Wed Mar 11 07:13:05 PM UTC 2026
