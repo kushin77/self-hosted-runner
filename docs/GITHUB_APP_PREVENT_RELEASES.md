@@ -22,7 +22,22 @@ gcloud secrets add-iam-policy-binding github-app-private-key --project=${GCP_PRO
 gcloud secrets add-iam-policy-binding github-app-id --project=${GCP_PROJECT} --member="serviceAccount:nxs-automation-sa@${GCP_PROJECT}.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 ```
 
-3. Deploy to Cloud Run (or your platform of choice). The container reads secrets and verifies webhook signatures.
+3. Deploy to Cloud Run (or your platform of choice). Recommended production configuration:
+
+- Allow unauthenticated Cloud Run invocations to receive GitHub webhook POSTs — the service enforces HMAC verification server-side.
+- Inject secrets from Google Secret Manager into the Cloud Run revision (example using gcloud):
+
+```bash
+gcloud run deploy prevent-releases \
+   --project=nexusshield-prod --region=us-central1 --image=IMAGE_URL \
+   --service-account=nxs-prevent-releases-sa@nexusshield-prod.iam.gserviceaccount.com \
+   --allow-unauthenticated \
+   --set-secrets="GITHUB_WEBHOOK_SECRET=github-app-webhook-secret:latest" \
+   --set-secrets="GITHUB_TOKEN=github-app-token:latest" \
+   --quiet
+```
+
+The application will continue to verify the webhook HMAC and reject unauthorized calls. This pattern preserves an immutable audit trail while allowing GitHub to deliver webhooks reliably.
 
 4. Verify by attempting to create a release or push a tag — the App should remove it and create an audit issue.
 
