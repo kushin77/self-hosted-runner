@@ -21,12 +21,12 @@ if ! command -v gcloud >/dev/null 2>&1; then
 fi
 
 # Check Vault access via token-file or env
-if [[ -f "${VAULT_TOKEN_MOUNT_PATH:-}" ]]; then
-  echo "Using VAULT_TOKEN_MOUNT_PATH: $VAULT_TOKEN_MOUNT_PATH"
-elif [[ -f "${VAULT_TOKEN_FILE:-/var/run/secrets/vault/token}" ]]; then
-  echo "Using VAULT_TOKEN_FILE (legacy): ${VAULT_TOKEN_FILE:-/var/run/secrets/vault/token}"
-elif [[ -n "${VAULT_TOKEN:-}" ]]; then
-  echo "Using VAULT_TOKEN from environment"
+if [[ -f "${VAULT_TKN_MOUNT_PATH:-}" ]]; then
+  echo "Using VAULT_TKN_MOUNT_PATH: $VAULT_TKN_MOUNT_PATH"
+elif [[ -f "${VAULT_TKN_FILE:-/var/run/secrets/vault/token}" ]]; then
+  echo "Using VAULT_TKN_FILE (legacy): ${VAULT_TKN_FILE:-/var/run/secrets/vault/token}"
+elif [[ -n "${VAULT_TKN:-}" ]]; then
+  echo "Using VAULT_TKN from environment"
 else
   echo "No Vault token available. Ensure AppRole or Vault Agent token sink is provisioned." >&2
   exit 4

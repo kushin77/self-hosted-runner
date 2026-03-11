@@ -1,0 +1,8 @@
+[Unit]
+Description=Post periodic operator status to GitHub issue
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/self-hosted-runner
+ExecStart=%h/self-hosted-runner/scripts/verify/post_status.sh
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin

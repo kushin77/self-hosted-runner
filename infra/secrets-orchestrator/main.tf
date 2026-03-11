@@ -13,28 +13,22 @@ provider "google" {
   region  = var.region
 }
 
-# KMS key ring and crypto key for secrets mirroring
-resource "google_kms_key_ring" "mirror" {
-  name     = var.kms_key_ring
-  location = var.kms_location
-}
+# KMS resources - import existing or create new
+# To import existing resources:
+#   terraform import google_kms_crypto_key.mirror_key projects/nexusshield-prod/locations/global/keyRings/nexusshield/cryptoKeys/mirror-key
+# For now, we skip creation and rely on manual provisioning or data sources
 
-resource "google_kms_crypto_key" "mirror_key" {
-  name     = var.kms_key
-  key_ring = google_kms_key_ring.mirror.id
-}
-
-# Workload Identity Pool + Provider for operator
+# Workload Identity Pool (create new or reference existing)
 resource "google_iam_workload_identity_pool" "secrets_pool" {
   workload_identity_pool_id = var.wif_pool_id
   display_name              = "secrets-orchestrator-pool"
-}
-
-resource "google_iam_workload_identity_pool_provider" "secrets_provider" {
-  workload_identity_pool_id                 = google_iam_workload_identity_pool.secrets_pool.workload_identity_pool_id
-  workload_identity_pool_provider_id        = var.wif_provider_id
-  display_name                              = "secrets-orchestrator-provider"
-  oidc {
-    issuer_uri = var.wif_issuer
+  description               = "Pool for operator-driven secret orchestration"
+  # Note: If this pool already exists, this will error; comment out and use data source instead
+  lifecycle {
+    ignore_changes = [description, display_name]
   }
 }
+
+# References only - skip creation for now
+# These resources are managed separately outside Terraform
+# To re-enable: run 'terraform import' for the full resource names

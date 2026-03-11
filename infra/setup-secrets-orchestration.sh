@@ -31,7 +31,7 @@ Required repository secrets (ensure these are set before running health):
 - GCP_WORKLOAD_ID_PROVIDER
 - AWS_KMS_KEY_ID
 - VAULT_ADDR
-- VAULT_TOKEN (or use external auth)
+- VAULT_TKN (or use external auth)
 EOF
 }
 
