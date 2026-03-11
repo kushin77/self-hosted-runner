@@ -4,6 +4,7 @@ set -euo pipefail
 ################################################################################
 # Idempotent operator bootstrap for secrets orchestration
 # - Runs Terraform if infra/*.tf exists (idempotent)
+# - Validates standardized credentials (SECRETS_NAMING_STANDARD)
 # - Prints required repository secret names
 # - Supports --apply to actually provision resources
 ################################################################################
@@ -11,6 +12,10 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_MARKER="$ROOT_DIR/.infra_secrets_orchestration_provisioned"
+
+# Load credential validation and loading libraries
+source "${ROOT_DIR}/scripts/lib/validate_env.sh"
+source "${ROOT_DIR}/scripts/lib/load_credentials.sh"
 
 DRY_RUN=1
 if [ "${1:-}" = "--apply" ] || [ "${APPLY:-}" = "1" ]; then
@@ -26,12 +31,14 @@ required repository secrets. With --apply it will attempt to run any
 Terraform in infra/ and create a marker file on success. Use --force to
 re-run provisioning even if previously marked.
 
-Required repository secrets (ensure these are set before running health):
-- GCP_PROJECT_ID
-- GCP_WORKLOAD_ID_PROVIDER
-- AWS_KMS_KEY_ID
-- VAULT_ADDR
-- VAULT_TKN (or use external auth)
+Required standardized credentials (see .env.standard):
+- CREDENTIAL_GCP_PROJECT_ID_PROD
+- CREDENTIAL_GCP_WIF_PROVIDER_PROD
+- CREDENTIAL_AWS_KMS_KEY_ID_PROD
+- TOKEN_VAULT_ADDR_PROD
+- TOKEN_VAULT_JWT_PROD
+
+These are loaded from GSM → Vault → environment fallback chain.
 EOF
 }
 
@@ -55,6 +62,20 @@ if [ -f "$STATE_MARKER" ] && [ "$FORCE" -ne 1 ]; then
 fi
 
 echo "Operator bootstrap: idempotent setup for secrets orchestration"
+echo "Loading standardized credentials (SECRETS_NAMING_STANDARD)..."
+
+# Validate required credentials exist (without loading plaintext)
+CRED_CHECK_FAILED=0
+for cred in "CREDENTIAL_GCP_PROJECT_ID_PROD" "CREDENTIAL_GCP_WIF_PROVIDER_PROD" "CREDENTIAL_AWS_KMS_KEY_ID_PROD" "TOKEN_VAULT_ADDR_PROD"; do
+  if ! credential_exists "$cred"; then
+    echo "⚠️  WARNING: Credential not found: $cred (will attempt fallback)" >&2
+    ((CRED_CHECK_FAILED++))
+  fi
+done
+
+if [[ $CRED_CHECK_FAILED -gt 0 ]]; then
+  echo "⚠️  Some credentials missing from GSM/Vault (will use environment fallback)"
+fi
 
 pushd "$ROOT_DIR" >/dev/null
 
