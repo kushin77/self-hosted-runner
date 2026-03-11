@@ -7,12 +7,25 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import {
   CredentialResolution,
   CredentialAuditEntry,
-} from '../src/credentials';
+} from '../../../src/credentials';
 import {
   CredentialNotFoundError,
   CredentialResolutionError,
   ApplicationError,
-} from '../src/errors';
+} from '../../../src/errors';
+import { createMockPrisma, createMockSecretManager, createMockVault, createMockKMS, testFixtures } from '../../mocks';
+
+// Mock external services
+jest.mock('../../../src/prisma-wrapper', () => ({
+  getPrisma: () => createMockPrisma(),
+}));
+jest.mock('@google-cloud/secret-manager', () => ({
+  SecretManagerServiceClient: jest.fn().mockImplementation(() => createMockSecretManager()),
+}));
+jest.mock('node-vault', () => jest.fn().mockImplementation(() => createMockVault()));
+jest.mock('@google-cloud/kms', () => ({
+  KeyManagementServiceClient: jest.fn().mockImplementation(() => createMockKMS()),
+}));
 
 /**
  * Mock credential service for isolated unit testing

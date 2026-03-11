@@ -51,12 +51,13 @@ audit_write() {
 }
 
 ############
-# PROGRAM STATE MANAGEMENT
+# PROGRAM STATE MANAGEMENT (SIMPLE JSON)
 ############
 get_phase_state() {
     local phase="$1"
     if [ -f "$STATE_FILE" ]; then
-        jq -r ".phases[\"$phase\"].state // \"not-started\"" "$STATE_FILE" 2>/dev/null || echo "not-started"
+        # Simple grep-based extraction to avoid jq issues
+        grep "\"$phase\"" "$STATE_FILE" | grep -o '"state":"[^"]*"' | cut -d'"' -f4 || echo "not-started"
     else
         echo "not-started"
     fi
@@ -69,13 +70,13 @@ set_phase_state() {
     mkdir -p "$(dirname "$STATE_FILE")"
     
     if [ ! -f "$STATE_FILE" ]; then
-        echo '{"phases": {}}' > "$STATE_FILE"
+        echo '{}' > "$STATE_FILE"
     fi
     
-    jq --arg phase "$phase" --arg state "$state" '.phases[$phase].state = $state | .phases[$phase].updated_at = now' "$STATE_FILE" > "$STATE_FILE.tmp"
-    mv "$STATE_FILE.tmp" "$STATE_FILE"
+    # Simple JSON update (append entry at end)
+    printf '{"phase":"%s","state":"%s","updated_at":"%s"}\n' "$phase" "$state" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$STATE_FILE"
     
-    audit_write "phase_state_updated" "{\"phase\": \"$phase\", \"state\": \"$state\"}"
+    audit_write "phase_state_updated" "{\"phase\":\"$phase\",\"state\":\"$state\"}"
 }
 
 ############

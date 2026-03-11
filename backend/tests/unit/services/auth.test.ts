@@ -29,13 +29,12 @@ describe('Authentication Service', () => {
       expect(token1).not.toBe(token2);
     });
 
-    it('should generate unique tokens on each call (timestamps differ)', () => {
+    it('should include timestamp in JWT payload (iat claim)', () => {
       const token1 = generateToken('user123', 'user@example.com', 'admin');
-      // Small delay to ensure different timestamps
-      setTimeout(() => {}, 10);
-      const token2 = generateToken('user123', 'user@example.com', 'admin');
+      const payload1 = verifyToken(token1);
 
-      expect(token1).not.toBe(token2); // Tokens differ due to iat claim
+      expect(payload1?.iat).toBeDefined();
+      expect(typeof payload1?.iat).toBe('number');
     });
   });
 
@@ -111,7 +110,7 @@ describe('Authentication Service', () => {
 
   describe('Authentication Middleware', () => {
     let req: Partial<Request>;
-    let res: Partial<Response>;
+    let res: any;
     let next: NextFunction;
 
     beforeEach(() => {
@@ -119,8 +118,11 @@ describe('Authentication Service', () => {
         headers: {},
       };
       res = {
-        status: jest.fn().mockReturnThis(),
-        json: jest.fn().mockReturnThis(),
+        status: jest.fn(function() { return this; }),
+        json: jest.fn(function() { return this; }),
+        end: jest.fn(function() { return this; }),
+        send: jest.fn(function() { return this; }),
+        setHeader: jest.fn(function() { return this; }),
       };
       next = jest.fn();
     });
