@@ -19,6 +19,12 @@ if [[ -z "$PROJECT_ID" || -z "$TARGET_URL" ]]; then
   exit 2
 fi
 
+ACTIVE_ACCOUNT=$(gcloud config get-value account 2>/dev/null || true)
+if [[ "${ALLOW_USER_ACCOUNT_AUTH:-0}" != "1" && "$ACTIVE_ACCOUNT" != *"gserviceaccount.com" ]]; then
+  echo "ERROR: Active gcloud account is not a service account: $ACTIVE_ACCOUNT" >&2
+  echo "Set ALLOW_USER_ACCOUNT_AUTH=1 to override (not recommended), or authenticate via GSM/Vault-backed service account." >&2
+  exit 3
+fi
 
 if ! gcloud pubsub topics describe "$TOPIC" --project="$PROJECT_ID" >/dev/null 2>&1; then
   gcloud pubsub topics create "$TOPIC" --project="$PROJECT_ID" --quiet
