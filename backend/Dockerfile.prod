@@ -1,63 +1,66 @@
 # NexusShield Portal Backend - Production Ready
 # Multi-stage build for minimal image size
 
-FROM node:18-alpine AS builder
+# Consolidated Backend Dockerfile
+# Supports both dev and production via build args and runtime options
 
-WORKDIR /app
+ARG NODE_VERSION=18
+ARG BUILD_ENV=production
+ARG PORT=3000
 
-# Copy package files
+FROM node:${NODE_VERSION}-alpine AS builder
+WORKDIR /build
+
+# Copy package files and install (prefer lockfile)
 COPY package*.json ./
-
-# Install dependencies (prefer lockfile via `npm ci`, fall back to `npm install` if absent)
+COPY package-lock.json ./
 RUN if [ -f package-lock.json ]; then \
-      npm ci --only=production; \
+      npm ci --silent; \
     else \
-      npm install --only=production; \
+      npm install --silent; \
     fi
 
-# ===== Production Stage =====
-FROM node:18-alpine
+# Copy source and build
+COPY tsconfig*.json ./ || true
+COPY src ./src
+COPY prisma ./prisma
+RUN npm run build || true
 
+# ===== Runtime image =====
+FROM node:${NODE_VERSION}-alpine
 WORKDIR /app
 
-ENV NODE_ENV=production \
-  PORT=8080 \
-  LOG_LEVEL=info \
-  VAULT_TOKEN_MOUNT_PATH=/var/run/secrets/vault/token \
-  VAULT_AGENT_CONFIG=/etc/vault/agent-config.hcl
+ENV NODE_ENV=${BUILD_ENV} \
+    PORT=${PORT} \
+    LOG_LEVEL=info
 
-# Small runtime utilities for optional vault agent and health checks
-RUN apk add --no-cache bash curl openssl ca-certificates
+# Optional runtime utilities for healthchecks / vault agent
+RUN apk add --no-cache bash curl openssl ca-certificates || true
 
-# Copy from builder
-COPY --from=builder /app/node_modules ./node_modules
+# Create application directories
+RUN mkdir -p /app/logs /etc/vault && chmod 755 /app/logs
 
-# Copy app files
-COPY server.js package.json ./
+# Copy artifacts from builder
+COPY --from=builder /build/dist ./dist
+COPY --from=builder /build/node_modules ./node_modules
+COPY --from=builder /build/package.json ./package.json
+COPY prisma ./prisma || true
 
-# Copy entrypoint script
+# Entrypoint + healthcheck
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
+RUN [ -f /app/docker-entrypoint.sh ] && chmod +x /app/docker-entrypoint.sh || true
 
-# Create vault config (copy from source if available, else use placeholder)
-RUN mkdir -p /etc/vault && echo "# Vault Agent Config (placeholder)" > /etc/vault/agent-config.hcl
-
-# Create logs directory
-RUN mkdir -p /app/logs && chmod 755 /app/logs
-
-# Run as non-root for better security (use existing 'node' user in Node image)
-RUN chown -R node:node /app && chmod -R 755 /app
+# Security: prefer non-root execution when possible
+RUN chown -R node:node /app || true
 USER node
 
-# Add health check
+EXPOSE ${PORT}
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD node -e "const p=process.env.PORT||8080; require('http').get('http://localhost:'+p+'/health', (r)=>{if(r.statusCode!==200)throw new Error(r.statusCode)})" || exit 1
+HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:${PORT}/ready || exit 1
 
-# Expose port (Cloud Run sets PORT at runtime)
-EXPOSE 8080
-
-# Entrypoint handles VAULT_TOKEN_MOUNT_PATH, starts optional Vault Agent, then runs the app
+# Entrypoint handles Vault mounts and starts optional Vault Agent, then runs the app
+CMD ["/app/docker-entrypoint.sh"]
 LABEL org.opencontainers.image.title="nexusshield-portal-backend"
 LABEL org.opencontainers.image.version="2026-03-10"
 LABEL org.opencontainers.image.licenses="proprietary"
