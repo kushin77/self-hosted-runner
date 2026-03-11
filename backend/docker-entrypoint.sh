@@ -17,4 +17,14 @@ if command -v vault >/dev/null 2>&1 && [ -f "$VAULT_CFG" ]; then
 fi
 
 # Run the application (exec to receive signals)
-exec node server.js
+# Prefer compiled distribution entrypoint if present
+if [ -f "/app/dist/index.js" ]; then
+  exec node /app/dist/index.js
+elif [ -f "/app/dist/server.js" ]; then
+  exec node /app/dist/server.js
+elif [ -f "/app/server.js" ]; then
+  exec node /app/server.js
+else
+  echo "ERROR: no entrypoint found (/app/dist/server.js or /app/server.js)" >&2
+  exit 1
+fi
