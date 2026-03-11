@@ -8,7 +8,7 @@ User=root
 WorkingDirectory=/opt/nexusshield/scripts/cloudrun
 Environment=PORT=8080
 Environment=PORTAL_ADMIN_KEY=changeme
-ExecStart=/opt/nexusshield/venv/bin/gunicorn -w 3 -b 0.0.0.0:8080 scripts.cloudrun.app:app
+ExecStart=/opt/nexusshield/venv/bin/gunicorn -w 3 -b 0.0.0.0:8080 app:app
 Restart=on-failure
 RestartSec=5s
 
