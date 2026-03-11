@@ -100,11 +100,23 @@ build_and_push_images() {
         error "Failed to push frontend image $frontend_image"
     fi
 
-    # Save image names for deployment in a single artifact
-    echo "backend=${backend_image}" > /tmp/images_${IMAGE_TAG}.txt
-    echo "frontend=${frontend_image}" >> /tmp/images_${IMAGE_TAG}.txt
-    
-    success "Images built and pushed"
+        # Save image names for deployment in a single artifact
+        IMAGES_ARTIFACT="/tmp/images_${IMAGE_TAG}.txt"
+        echo "backend=${backend_image}" > "$IMAGES_ARTIFACT"
+        echo "frontend=${frontend_image}" >> "$IMAGES_ARTIFACT"
+
+        # Capture current deployed images for rollback (if services exist)
+        info "Capturing current service images for rollback..."
+        CURRENT_BACKEND_IMAGE=$(gcloud run services describe nexus-shield-portal-backend --project "$GCP_PROJECT" --region "$GCP_REGION" --platform managed --format='value(status.template.spec.containers[0].image)' 2>/dev/null || true)
+        CURRENT_FRONTEND_IMAGE=$(gcloud run services describe nexus-shield-portal-frontend --project "$GCP_PROJECT" --region "$GCP_REGION" --platform managed --format='value(status.template.spec.containers[0].image)' 2>/dev/null || true)
+        if [[ -n "$CURRENT_BACKEND_IMAGE" ]]; then
+            echo "prev_backend=${CURRENT_BACKEND_IMAGE}" >> "$IMAGES_ARTIFACT"
+        fi
+        if [[ -n "$CURRENT_FRONTEND_IMAGE" ]]; then
+            echo "prev_frontend=${CURRENT_FRONTEND_IMAGE}" >> "$IMAGES_ARTIFACT"
+        fi
+
+        success "Images built and pushed"
 }
 
 # ============================================================================
@@ -202,12 +214,40 @@ validate_deployment() {
 # CLOUD RUN DEPLOYMENT (IDEMPOTENT)
 # ============================================================================
 
+rollback_deploy() {
+    info "Attempting rollback to previous images"
+    local art="${IMAGES_ARTIFACT:-/tmp/images_${IMAGE_TAG}.txt}"
+    if [[ ! -f "$art" ]]; then
+        error "No images artifact found for rollback: $art"
+    fi
+    # shellcheck disable=SC1090
+    source <(grep -E '^(prev_backend|prev_frontend)=' "$art" | sed 's/^/export /') || true
+    if [[ -n "${prev_backend:-}" ]]; then
+        info "Rolling back backend to ${prev_backend}"
+        gcloud run deploy nexus-shield-portal-backend --image="${prev_backend}" --region="$GCP_REGION" --project="$GCP_PROJECT" --platform=managed --quiet || warn "Rollback backend deploy may have issues"
+    fi
+    if [[ -n "${prev_frontend:-}" ]]; then
+        info "Rolling back frontend to ${prev_frontend}"
+        gcloud run deploy nexus-shield-portal-frontend --image="${prev_frontend}" --region="$GCP_REGION" --project="$GCP_PROJECT" --platform=managed --quiet || warn "Rollback frontend deploy may have issues"
+    fi
+    info "Rollback completed"
+}
+
 deploy_to_cloud_run() {
     info "Deploying to Cloud Run (idempotent)..."
     
-    local backend_image=$(cat /tmp/backend_image.txt 2>/dev/null || echo "")
-    local frontend_image=$(cat /tmp/frontend_image.txt 2>/dev/null || echo "")
-    
+    local art="${IMAGES_ARTIFACT:-/tmp/images_${IMAGE_TAG}.txt}"
+    local backend_image="" frontend_image=""
+    if [[ -f "$art" ]]; then
+        # shellcheck disable=SC1090
+        source <(grep -E '^(backend|frontend)=' "$art" | sed 's/^/export /') || true
+        backend_image="${backend:-}"
+        frontend_image="${frontend:-}"
+    else
+        backend_image=$(cat /tmp/backend_image.txt 2>/dev/null || echo "")
+        frontend_image=$(cat /tmp/frontend_image.txt 2>/dev/null || echo "")
+    fi
+
     [[ -z "$backend_image" ]] && error "Backend image not determined"
     [[ -z "$frontend_image" ]] && error "Frontend image not determined"
     
@@ -247,18 +287,22 @@ deploy_to_cloud_run() {
 # ============================================================================
 
 run_smoke_tests() {
-    info "Running smoke tests..."
-    
-    # Test backend endpoints
-    local backend_url=$(gcloud run services describe nexus-shield-portal-backend \
-        --region="$GCP_REGION" \
-        --project="$GCP_PROJECT" \
-        --format='value(status.url)')
-    
-    info "Testing backend: $backend_url"
-    curl -sf "${backend_url}/health" || warn "Health check endpoint failed"
-    curl -sf "${backend_url}/api/v1/status" || warn "Status endpoint failed"
-    
+    info "Running smoke tests via scripts/deploy/smoke_test.sh..."
+    local backend_url frontend_url
+    backend_url=$(gcloud run services describe nexus-shield-portal-backend --region="$GCP_REGION" --project="$GCP_PROJECT" --format='value(status.url)' 2>/dev/null || true)
+    frontend_url=$(gcloud run services describe nexus-shield-portal-frontend --region="$GCP_REGION" --project="$GCP_PROJECT" --format='value(status.url)' 2>/dev/null || true)
+
+    if [[ -x "${SCRIPT_DIR}/smoke_test.sh" ]]; then
+        "${SCRIPT_DIR}/smoke_test.sh" --backend-url "$backend_url" --frontend-url "$frontend_url" --retries 6 --sleep 5
+    else
+        # Fallback simple checks
+        if [[ -n "$backend_url" ]] && ! curl -sf "${backend_url}/health" >/dev/null 2>&1; then
+            error "Backend health check failed"
+        fi
+        if [[ -n "$frontend_url" ]] && ! curl -sf "${frontend_url}" >/dev/null 2>&1; then
+            error "Frontend check failed"
+        fi
+    fi
     success "Smoke tests passed"
 }
 
@@ -295,7 +339,17 @@ main() {
     run_migrations
     deploy_to_cloud_run
     validate_deployment
-    run_smoke_tests
+    # Run smoke tests; if they fail, attempt rollback
+    if ! run_smoke_tests; then
+        warn "Smoke tests failed; attempting rollback"
+        rollback_deploy
+        # Re-run smoke tests after rollback; if still failing, abort
+        if ! run_smoke_tests; then
+            error "Rollback failed to restore healthy state"
+        else
+            success "Rollback succeeded and services are healthy"
+        fi
+    fi
     
     local end_time=$(date +%s)
     local duration=$((end_time - start_time))
