@@ -1,0 +1,19 @@
+#!/bin/sh
+# Prevent pushing tags unless explicitly allowed by env var
+STAGED_REF=${GIT_PUSH_REF:-}
+if [ -n "${GIT_ALLOW_TAG_PUSH:-}" ]; then
+  exit 0
+fi
+
+# Git provides pushed refs as args to pre-push hook. We scan for tag refs.
+while read local_ref local_sha remote_ref remote_sha; do
+  case "$local_ref" in
+    refs/tags/*)
+      echo "ERROR: Pushing tags is disallowed by repository policy."
+      echo "If you are an admin and need to push a tag, set GIT_ALLOW_TAG_PUSH=1 in your environment." >&2
+      exit 1
+      ;;
+  esac
+done
+
+exit 0
