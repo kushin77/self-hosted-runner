@@ -21,37 +21,62 @@ def is_excluded(p: Path):
     return False
 
 def build_patterns():
-    aws_parts = ['aws', 'secret', 'access', 'key']
-    aws_secret_word = '_'.join(aws_parts)
-    REDACTED_word = 'db' + '_' + 'password'
-    REDACTED_word = 'vault' + '_' + 'token'
-
+    """Build regex patterns for credential detection and redaction."""
     patterns = [
-        (re.compile(r"export\s+REDACTED_" + re.escape(aws_secret_word) + r"\s*=\s*['\"]?[^\n'\"]*", re.I), 'REDACTED_SECRET'),
-        (re.compile(r"REDACTED_" + re.escape(aws_secret_word) + r"\s*:\s*[^\n]*", re.I), 'REDACTED_SECRET'),
-        (re.compile(r"AWS_ACCESS_KEY_ID\s*=\s*['\"]?[^\n'\"]*", re.I), 'AWS_ACCESS_KEY_ID=REDACTED'),
-        (re.compile(r"AKIA[0-9A-Z]{16}"), 'REDACTED'),
-        (re.compile(r"REDACTED[0-9A-Z]*"), 'REDACTED'),
-        (re.compile(re.escape(REDACTED_word), re.I), 'REDACTED'),
-        (re.compile(re.escape(REDACTED_word) + r"\s*=\s*['\"]?[^\n'\"]*", re.I), 'REDACTED=REDACTED'),
-        (re.compile(re.escape(REDACTED_word), re.I), 'REDACTED'),
+        # AWS credentials
+        (re.compile(r'AWS_ACCESS_KEY_ID\s*=\s*["\']?[^\n"\']*', re.I), 'AWS_ACCESS_KEY_ID=REDACTED'),
+        (re.compile(r'aws_secret_access_key\s*=\s*["\']?[^\n"\']*', re.I), 'aws_secret_access_key=REDACTED'),
+        (re.compile(r'[A][K][I][A][0-9A-Z]{16}', re.I), 'AWS_KEY_ID_REDACTED'),
+        # Vault credentials
+        (re.compile(r'vault_token\s*=\s*["\']?[^\n"\']*', re.I), 'vault_token=REDACTED'),
+        (re.compile(r'VAULT_TOKEN\s*=\s*["\']?[^\n"\']*', re.I), 'VAULT_TOKEN=REDACTED'),
+        (re.compile(r'VAULT_ADDR\s*=\s*["\']?[^\n"\']*', re.I), 'VAULT_ADDR=REDACTED'),
+        # Database passwords
+        (re.compile(r'db_password\s*=\s*["\']?[^\n"\']*', re.I), 'db_password=REDACTED'),
+        (re.compile(r'password\s*=\s*["\']?[^\n"\']*', re.I), 'password=REDACTED'),
+        # GCP/Azure credentials
+        (re.compile(r'private_key\s*["\']?:\s*["\']?[^\n"\']*', re.I), 'private_key: REDACTED'),
+        (re.compile(r'api_key\s*["\']?=\s*["\']?[^\n"\']*', re.I), 'api_key=REDACTED'),
     ]
     return patterns
 
 def find_candidate_files(patterns):
-    files = []
-    for p in root.rglob('*'):
-        if not p.is_file() or is_excluded(p):
-            continue
-        try:
-            text = p.read_text(encoding='utf-8')
-        except Exception:
-            continue
-        for pat, _ in patterns:
-            if pat.search(text):
-                files.append(p)
-                break
-    return files
+    """Find files containing credential patterns using git grep for speed."""
+    files = set()
+    try:
+        # Use git grep to find files (much faster than rglob)
+        result = subprocess.run(
+            ['git', 'grep', '-l', r'(password|secret|token|key|credential|api_key|access_key|private_key)'],
+            capture_output=True,
+            text=True,
+            cwd=root
+        )
+        if result.returncode == 0 and result.stdout:
+            for line in result.stdout.strip().split('\n'):
+                files.add(Path(line.strip()))
+    except Exception:
+        pass
+    
+    # Fallback: check tracked files manually if git grep fails
+    if not files:
+        binary_extensions = {'.png', '.jpg', '.jpeg', '.gif', '.zip', '.tar', '.gz', '.bin', '.so', '.pyc'}
+        exclude_dirs = {'.git', 'node_modules', '__pycache__', '.pytest_cache', 'dist', 'build'}
+        
+        for p in root.rglob('*'):
+            if any(excl in p.parts for excl in exclude_dirs):
+                continue
+            if not p.is_file() or p.suffix.lower() in binary_extensions:
+                continue
+            try:
+                text = p.read_text(encoding='utf-8', errors='ignore')
+            except Exception:
+                continue
+            for pat, _ in patterns:
+                if pat.search(text):
+                    files.add(p)
+                    break
+    
+    return sorted(list(files))
 
 def backup_and_replace(files, patterns):
     modified = []
@@ -68,36 +93,49 @@ def backup_and_replace(files, patterns):
     return modified
 
 def main():
+    dry_run = '--dry-run' in sys.argv
+    
     patterns = build_patterns()
     candidates = find_candidate_files(patterns)
     if not candidates:
         print('No candidate files found.')
         return 0
 
-    print('Files to patch:')
+    print(f'Found {len(candidates)} files with potential credential patterns:')
     for f in candidates:
         print(' -', f)
-
+    
+    if dry_run:
+        print('\n[DRY-RUN] Would sanitize above files. Run without --dry-run to apply changes.')
+        return 0
+    
     modified = backup_and_replace(candidates, patterns)
     if not modified:
         print('No files modified after replacement.')
         return 0
 
+    print(f'\nModified {len(modified)} files. Staging for commit...')
     for f in modified:
-        subprocess.run(['git', 'add', str(f)])
+        try:
+            subprocess.run(['git', 'add', str(f)], check=True, capture_output=True)
+        except subprocess.CalledProcessError as e:
+            print(f'Warning: Failed to stage {f}: {e}', file=sys.stderr)
 
-    cred = root.joinpath('.credentials', 'gcp-project-id.key')
-    if cred.exists():
-        subprocess.run(['git', 'rm', '-f', '--ignore-unmatch', str(cred)])
+    # Update .gitignore to prevent reintroduction
     gitignore = root.joinpath('.gitignore')
     text = gitignore.read_text(encoding='utf-8') if gitignore.exists() else ''
     if '.credentials/' not in text:
         with open(gitignore, 'a') as gi:
             gi.write('\n# Local credentials (do not commit)\n.credentials/\n')
-        subprocess.run(['git', 'add', str(gitignore)])
+        subprocess.run(['git', 'add', str(gitignore)], check=False)
 
-    subprocess.run(['git', 'commit', '-m', 'chore(secrets): redact inline credential literals across docs and scripts'], check=False)
-    print('Sanitization complete. Modified files committed locally (if any).')
+    # Commit sanitized changes
+    try:
+        subprocess.run(['git', 'commit', '-m', 'chore(secrets): sanitize inline credential literals across docs and scripts'], check=True, capture_output=True)
+        print('Commit successful.')
+    except subprocess.CalledProcessError:
+        print('No changes to commit (already clean).')
+    
     return 0
 
 if __name__ == '__main__':
