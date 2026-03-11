@@ -50,7 +50,7 @@ sudo journalctl -u rotate_audit.timer -f  # Audit rotation logs
 
 **Key Paths:**
 - Code: `/opt/nexusshield/scripts/cloudrun/`
-- Audit log: `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+- Audit log: `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - Logs: `journalctl -u cloudrun.service`
 
 **Restart Procedure:**
@@ -143,7 +143,7 @@ sudo systemctl restart rotate_audit.timer
 
 ### Understanding the Audit Log
 
-**Location:** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+**Location:** `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 
 **Format:** JSONL (one JSON object per line) with SHA256 chaining
 ```json
@@ -169,7 +169,7 @@ python3 << 'EOF'
 import json
 import hashlib
 
-with open('/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl') as f:
+with open('BASE64_BLOB_REDACTED-migrate-audit.jsonl') as f:
     prev_hash = None
     for i, line in enumerate(f, 1):
         entry = json.loads(line)
@@ -194,8 +194,8 @@ EOF
 4. **Archival:** GCS bucket preserves all rotated logs (immutable, versioned)
 
 **Log Locations:**
-- **Active:** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
-- **Rotated (local):** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.YYYY-MM-DD.jsonl`
+- **Active:** `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
+- **Rotated (local):** `BASE64_BLOB_REDACTED-migrate-audit.YYYY-MM-DD.jsonl`
 - **Archived (GCS):** `gs://nexusshield-audit-archive/portal-migrate-audit.YYYY-MM-DD.jsonl`
 
 **Manual Archive Operations:**
@@ -429,7 +429,7 @@ gcloud config get-value project
 **Investigation:**
 ```bash
 # 1. Check recent audit entries for errors
-tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -20 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq 'select(.entry.event | contains("error") or .entry.status == "failed")'
 
 # 2. Check Prometheus for error patterns
@@ -440,7 +440,7 @@ curl http://prometheus:9090/api/v1/query?query=\
 sudo journalctl -u cloudrun.service -n 100 | grep -i error
 
 # 4. Verify client requests (if auth errors)
-tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -20 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq 'select(.entry.event == "auth_failed")'
 ```
 
@@ -459,12 +459,12 @@ tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
 sudo systemctl stop cloudrun.service redis-worker.service
 
 # 2. Preserve corrupted audit file for forensics
-cp /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl \
+cp BASE64_BLOB_REDACTED-migrate-audit.jsonl \
    /var/backup/portal-migrate-audit.CORRUPTION.$(date +%s).jsonl
 
 # 3. Retrieve last known-good archive from GCS
 gsutil cp gs://nexusshield-audit-archive/portal-migrate-audit.2026-03-10.jsonl \
-  /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+  BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # 4. Restart services
 sudo systemctl start redis-worker.service cloudrun.service
@@ -579,7 +579,7 @@ echo "new_secret_value" | gcloud secrets versions add portal-mfa-secret \
 sudo systemctl restart cloudrun.service redis-worker.service
 
 # 4. Verify in audit trail
-tail -10 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -10 BASE64_BLOB_REDACTED-migrate-audit.jsonl
 ```
 
 ### Security Audit
@@ -604,7 +604,7 @@ stat /opt/nexusshield/scripts/cloudrun/
 grep -r "SECRET\|PASSWORD\|KEY" /var/log/ | grep -v "GSM\|VAULT" || echo "✓ Clean"
 
 # 6. Review recent audit entries
-tail -100 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -100 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq '.entry.event' | sort | uniq -c
 ```
 
@@ -668,8 +668,8 @@ curl http://localhost:8080/metrics | head -30          # Prometheus metrics
 curl http://localhost:8080/api/v1/migrate -X OPTIONS   # CORS check
 
 # Audit operations
-tail -20 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl  # Recent entries
-grep '"event": "auth_failed"' /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | wc -l  # Auth failures
+tail -20 BASE64_BLOB_REDACTED-migrate-audit.jsonl  # Recent entries
+grep '"event": "auth_failed"' BASE64_BLOB_REDACTED-migrate-audit.jsonl | wc -l  # Auth failures
 bash /opt/nexusshield/scripts/ops/verify_audit_archival.sh                   # Verify chain
 
 # Redis queue

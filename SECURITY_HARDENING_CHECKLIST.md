@@ -256,7 +256,7 @@ systemctl show cloudrun.service -p User,Group,PrivateTmp,NoNewPrivileges
 
 # 5. Audit API access logs
 echo "=== Auth events summary ==="
-tail -10000 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -10000 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq -r 'select(.entry.event == "auth_failed") | .entry.ts' | wc -l
 
 # 6. GCS bucket versioning check
@@ -288,7 +288,7 @@ done
 sudo systemctl restart cloudrun.service redis-worker.service
 
 # 4. Review audit trail for access patterns
-tail -1000 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+tail -1000 BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   jq 'select(.entry.event == "secret_accessed")'
 
 # 5. File security incident report
@@ -331,9 +331,9 @@ rm ~/.ssh/akushnir_deploy
 
 ## References
 
-- NIST SP 800-171 (Protecting CUI in Nonfederal Systems and Organizations): https://csrc.nist.gov/publications/detail/sp/800/171/rev/2
+- NIST SP 800-171 (Protecting CUI in Nonfederal Systems and Organizations): https://csrc.nist.BASE64_BLOB_REDACTED
 - FedRAMP Security Controls: https://www.fedramp.gov/documents-reports/
-- SOC 2: https://us.aicpa.org/interestareas/informationmanagement/sodp
+- SOC 2: https://us.aicpa.BASE64_BLOB_REDACTED
 - OWASP Top 10: https://owasp.org/Top10/
 
 ---

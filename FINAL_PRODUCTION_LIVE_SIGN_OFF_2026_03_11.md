@@ -36,7 +36,7 @@ rotate_audit.timer:     Active (waiting)  [enabled, next run: 2026-03-12T03:30Z]
 
 ### Audit Trail
 - **Format:** Immutable JSONL with SHA256 chaining
-- **Location:** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+- **Location:** `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - **Sample Recent Entries:**
   ```json
   {"prev": "eb15e6542b92e63...", "hash": "cf0f4bb182528...", "entry": {"job_id": "cc72344c-46f0...", "event": "dry_run_validation", "status": "ok", "ts": "2026-03-11T01:08:10.991053Z"}}
@@ -175,7 +175,7 @@ rotate_audit.timer:     Active (waiting)  [enabled, next run: 2026-03-12T03:30Z]
 
 ### Immutable Audit Trail ✅
 - **Method:** SHA256-chained JSONL (each entry includes prev hash + current hash)
-- **Location:** `/opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl`
+- **Location:** `BASE64_BLOB_REDACTED-migrate-audit.jsonl`
 - **Retention:** Rotated daily to GCS (automated via systemd timer)
 - **Verification:** `scripts/ops/verify_audit_archival.sh`
 

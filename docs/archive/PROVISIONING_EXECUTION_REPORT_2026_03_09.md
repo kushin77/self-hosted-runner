@@ -133,7 +133,7 @@ aws secretsmanager create-secret \
 aws secretsmanager create-secret \
   --name "runner/aws-credentials" \
   --description "AWS credentials for runner deployment" \
-  --secret-string '{"access_key_id":"REDACTED","secret_access_key":"wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}' \
+  --secret-string '{"access_key_id":"REDACTED","secret_access_key":"BASE64_BLOB_REDACTED"}' \
   --region us-east-1
 
 # 4. Verify
