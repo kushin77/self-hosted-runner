@@ -14,7 +14,7 @@ services:
         - nexusshield-dashboard:latest
     image: nexusshield-dashboard:latest
     container_name: nexusshield-dashboard-prod
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     ports:
       - "3000:3000"
     environment:
@@ -34,6 +34,8 @@ services:
       - "com.nexusshield.service=dashboard"
       - "com.nexusshield.instance=primary"
       - "com.nexusshield.immutable=true"
+      - "com.nexusshield.cost-management=5-min-cleanup"
+      - "com.nexusshield.idle-cleanup=enabled"
     volumes:
       - ./logs:/app/logs
       - ./.deployment_logs:/app/.deployment_logs
@@ -57,7 +59,7 @@ services:
         - nexusshield-dashboard:latest
     image: nexusshield-dashboard:latest
     container_name: nexusshield-dashboard-secondary
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     ports:
       - "3001:3000"
     environment:
@@ -85,7 +87,7 @@ services:
   dashboard-health-check:
     image: curlimages/curl:latest
     container_name: dashboard-health-monitor
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     command: |
       sh -c '
       while true; do
@@ -105,7 +107,7 @@ services:
   dashboard-proxy:
     image: nginx:alpine
     container_name: dashboard-proxy
-    restart: unless-stopped
+    restart: "no"  # Cost-saving: no auto-restart, starts on-demand
     ports:
       - "80:80"
       - "443:443"
