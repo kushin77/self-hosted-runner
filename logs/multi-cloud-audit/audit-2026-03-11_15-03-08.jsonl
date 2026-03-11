@@ -1,0 +1,10 @@
+{"timestamp":"2026-03-11T15:03:08Z","event":"audit_started","provider":"system","secret":"all","status":"STARTED","detail":"Scanning all providers"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"secret_discovered","provider":"Azure","secret":"azure-client-id","status":"FOUND","detail":"hash=a1068068... updated=2026-03-11T14:12:56+00:00 size=36"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"secret_discovered","provider":"Azure","secret":"azure-client-secret","status":"FOUND","detail":"hash=b5711969... updated=2026-03-11T05:11:47+00:00 size=40"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"secret_discovered","provider":"Azure","secret":"azure-subscription-id","status":"FOUND","detail":"hash=cf83031c... updated=2026-03-11T05:11:51+00:00 size=36"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"secret_discovered","provider":"Azure","secret":"azure-tenant-id","status":"FOUND","detail":"hash=7459da55... updated=2026-03-11T05:11:50+00:00 size=36"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"secret_discovered","provider":"Azure","secret":"gcp-epic6-operator-sa-key","status":"FOUND","detail":"hash=0536c310... updated=2026-03-11T05:11:53+00:00 size=2375"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"scan_complete","provider":"Azure","secret":"all","status":"SUCCESS","detail":"Total=5"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"scan_skipped","provider":"KMS","secret":"all","status":"SKIPPED","detail":"kms_key_not_found"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"scan_skipped","provider":"Vault","secret":"all","status":"SKIPPED","detail":"vault_addr_not_set"}
+{"timestamp":"2026-03-11T15:03:08Z","event":"scan_complete","provider":"GSM","secret":"none","status":"EMPTY","detail":"No secrets discovered"}
