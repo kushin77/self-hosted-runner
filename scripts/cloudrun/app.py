@@ -3,7 +3,7 @@ Migration Portal API - Flask web service
 Handles migration job submission, status tracking, and audit logging
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 import os
 import uuid
 import threading
@@ -11,6 +11,7 @@ import time
 import json
 from datetime import datetime
 from functools import wraps
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 import persistent_jobs as pj
 import secret_providers as secrets
@@ -20,6 +21,11 @@ app = Flask(__name__)
 
 # Configuration
 AUDIT_LOG = os.environ.get('PORTAL_AUDIT_LOG', 'logs/portal-migrate-audit.jsonl')
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('nexusshield_http_requests_total', 'Total HTTP requests', ['method', 'endpoint', 'http_status'])
+JOB_EVENTS = Counter('nexusshield_jobs_total', 'Job events', ['event'])
+JOB_DURATION = Histogram('nexusshield_job_duration_seconds', 'Job duration seconds')
 
 
 def audit_write(entry: dict):
@@ -50,6 +56,10 @@ def require_admin(f):
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint - no auth required."""
+    try:
+        REQUEST_COUNT.labels(method='GET', endpoint='/health', http_status='200').inc()
+    except Exception:
+        pass
     return 'OK', 200
 
 
@@ -59,7 +69,15 @@ def api_migrate_status(job_id):
     """Get migration job status."""
     job = pj.load_job(job_id)
     if not job:
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/migrate/<job_id>', http_status='404').inc()
+        except Exception:
+            pass
         return jsonify({'error': 'not found'}), 404
+    try:
+        REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/migrate/<job_id>', http_status='200').inc()
+    except Exception:
+        pass
     return jsonify(job)
 
 
@@ -91,13 +109,25 @@ def api_migrate():
     }
     pj.save_job(job)
     audit_write({'job_id': job_id, 'event': 'job_queued', 'payload': job})
+    try:
+        JOB_EVENTS.labels(event='job_queued').inc()
+    except Exception:
+        pass
 
     if mode == 'dry-run':
         # Synchronous dry-run
         audit_write({'job_id': job_id, 'event': 'dry_run_simulation_start'})
         audit_write({'job_id': job_id, 'event': 'dry_run_validation', 'status': 'ok'})
         audit_write({'job_id': job_id, 'event': 'dry_run_completed'})
+        try:
+            JOB_EVENTS.labels(event='dry_run_completed').inc()
+        except Exception:
+            pass
         pj.set_status(job_id, 'completed')
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/migrate', http_status='200').inc()
+        except Exception:
+            pass
         return jsonify({'job_id': job_id, 'status': 'dry-run-completed'})
 
     # Live mode: background execution
@@ -105,17 +135,43 @@ def api_migrate():
         """Background job runner for live migrations."""
         steps = ['validate_source', 'provision_tunnel', 'sync_data', 'verify_checksums', 'cutover_dns', 'post_check']
         audit_write({'job_id': jid, 'event': 'job_started', 'payload': payload})
+        JOB_EVENTS.labels(event='job_started').inc()
+        start = time.time()
         for step in steps:
             audit_write({'job_id': jid, 'event': 'step_start', 'step': step})
+            try:
+                JOB_EVENTS.labels(event=step).inc()
+            except Exception:
+                pass
             time.sleep(1)
             audit_write({'job_id': jid, 'event': 'step_end', 'step': step, 'status': 'ok'})
+        duration = time.time() - start
+        try:
+            JOB_DURATION.observe(duration)
+        except Exception:
+            pass
         audit_write({'job_id': jid, 'event': 'job_completed', 'status': 'success'})
+        JOB_EVENTS.labels(event='job_completed').inc()
         pj.set_status(jid, 'completed')
 
     t = threading.Thread(target=migrator_job, args=(job_id, job), daemon=True)
     t.start()
     pj.set_status(job_id, 'running')
+    try:
+        REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/migrate', http_status='202').inc()
+    except Exception:
+        pass
     return jsonify({'job_id': job_id, 'status': 'running'})
+
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    """Prometheus metrics endpoint."""
+    try:
+        data = generate_latest()
+        return Response(data, mimetype=CONTENT_TYPE_LATEST)
+    except Exception:
+        return Response(b"", mimetype=CONTENT_TYPE_LATEST)
 
 
 @app.errorhandler(404)
