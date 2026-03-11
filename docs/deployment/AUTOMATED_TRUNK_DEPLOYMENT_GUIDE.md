@@ -129,7 +129,7 @@ Parallel Track:
 
 **Trigger:** Manual dispatch (`workflow_dispatch`) with inputs:
 - `issue_number` — GitHub issue tracking change
-- `change_type` — Type of deployment (policy/secret/automation/config/remediation)
+- `change_type` — Type of deployment (BASE64_BLOB_REDACTED)
 - `description` — Human-readable change description
 - `files` — Comma-separated list of files to commit
 

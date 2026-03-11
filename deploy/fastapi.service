@@ -1,0 +1,15 @@
+[Unit]
+Description=Canonical Secrets FastAPI Service
+After=network.target
+
+[Service]
+User=secretsd
+Group=secretsd
+WorkingDirectory=/opt/canonical-secrets
+EnvironmentFile=/etc/canonical_secrets.env
+ExecStart=/usr/local/bin/uvicorn canonical_secrets_api:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
