@@ -9,6 +9,7 @@ set -euo pipefail
 OWNER="kushin77"
 REPO="self-hosted-runner"
 ISSUE_NUMBER=1615
+HELPER_SCRIPT="scripts/secrets/fetch-secret-oidc-gsm-vault.sh"
 
 # Attempt to discover GITHUB_TOKEN from multiple sources, or use gh CLI if authenticated
 get_github_token() {
@@ -34,6 +35,18 @@ get_github_token() {
   if [ -f "$HOME/.github_token" ]; then
     echo "$(cat $HOME/.github_token)"
     return 0
+  fi
+
+  # 5. Try helper script to fetch token from GSM/Vault/KMS if configured
+  if [ -x "$HELPER_SCRIPT" ]; then
+    # Prefer explicit GITHUB_TOKEN_SECRET_NAME, fall back to GSM_SECRET_NAME
+    SECRET_NAME="${GITHUB_TOKEN_SECRET_NAME:-${GSM_SECRET_NAME:-}}"
+    if [ -n "$SECRET_NAME" ]; then
+      if TOKEN=$(GSM_PROJECT="${GSM_PROJECT:-}" GSM_SECRET_NAME="$SECRET_NAME" "$HELPER_SCRIPT" 2>/dev/null); then
+        echo "$TOKEN"
+        return 0
+      fi
+    fi
   fi
   
   # 5. Check if gh CLI is available and authenticated
