@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 import time
 import json
+import os
+import sys
 from datetime import datetime
-from . import persistent_jobs as pj
-from . import audit_store
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+import persistent_jobs as pj
+import audit_store
 
 AUDIT_LOG = 'logs/portal-migrate-audit.jsonl'
 
