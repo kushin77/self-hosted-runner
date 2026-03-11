@@ -444,6 +444,38 @@ async def start_migration(request: MigrationRequest, background_tasks: Backgroun
     return status
 
 
+# Compatibility endpoint for legacy migration payloads used by smoke tests.
+@app.post("/api/v1/secrets/migrations", tags=["Migrations"])
+async def create_migration_compat(payload: Dict, background_tasks: BackgroundTasks):
+    """Accept legacy migration payloads like {name, source, target} and return {id: ...}."""
+    from uuid import uuid4
+
+    src = (payload.get("source") or payload.get("source_provider") or "aws").upper()
+    tgt = (payload.get("target") or payload.get("target_provider") or "vault").upper()
+
+    try:
+        src_provider = Provider[src]
+        tgt_provider = Provider[tgt]
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid provider in payload")
+
+    migration_id = str(uuid4())
+    status = MigrationStatus(
+        migration_id=migration_id,
+        source_provider=src_provider,
+        target_provider=tgt_provider,
+        status="in_progress",
+        started_at=datetime.utcnow().isoformat() + "Z"
+    )
+
+    migrations_db[migration_id] = status.dict()
+
+    # Start background migration task using the same run_migration helper
+    background_tasks.add_task(run_migration, migration_id, src_provider.value, False)
+
+    return {"id": migration_id}
+
+
 @app.get("/api/v1/secrets/migrations/{migration_id}", response_model=MigrationStatus, tags=["Migrations"])
 async def get_migration_status(migration_id: str):
     """
