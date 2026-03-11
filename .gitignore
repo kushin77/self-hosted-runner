@@ -146,6 +146,8 @@ scripts/**/*secret*.sh
 scripts/**/*credential*.sh
 scripts/**/*provision*.sh
 !scripts/deployment/hands-off-final-provisioning.sh
+!scripts/automation/watch-operator-provision.sh
+!scripts/automation/deploy-watch-automation.sh
 scripts/**/deploy-with-secrets.sh
 scripts/**/apply-*.sh
 scripts/**/fetch-*.sh
