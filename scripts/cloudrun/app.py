@@ -2,6 +2,10 @@ from flask import Flask, request, jsonify
 import subprocess
 import os
 import uuid
+import uuid
+import threading
+import time
+import json
 import threading
 import time
 import json
@@ -31,7 +35,7 @@ def audit_write(entry: dict):
         # best-effort fallback: write plain JSONL
         os.makedirs(os.path.dirname(AUDIT_LOG) or '.', exist_ok=True)
         entry.setdefault('ts', datetime.utcnow().isoformat() + 'Z')
-        with open(AUDIT_LOG, 'a', encoding='utf-8') as f:
+def require_admin(func):
             f.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
 def require_auth(f):
@@ -86,7 +90,8 @@ def run_script(path, args=None):
     cmd = [path]
     if args:
         cmd.extend(args)
-    proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+@app.route('/api/v1/migrate', methods=['POST'])
+@require_admin
     return proc.returncode, proc.stdout
 
 def migrator_job(job_id, payload):
@@ -117,6 +122,13 @@ def handler():
     action = payload.get('action') or payload.get('message', {}).get('data')
 
     if isinstance(action, str) and action.startswith('ey'):  # base64 encoded maybe
+@app.route('/api/v1/migrate/<job_id>', methods=['GET'])
+@require_admin
+def api_migrate_status(job_id):
+    job = pj.load_job(job_id)
+    if not job:
+        return jsonify({'error': 'not found'}), 404
+    return jsonify(job)
         try:
             import base64
             decoded = base64.b64decode(action).decode('utf-8')
