@@ -248,6 +248,33 @@ async def resolve_provider(secret_name: str):
     ).dict() | {"primary_provider": provider.value}
 
 
+# Backwards-compatible GET for legacy smoke tests that call resolve without a body.
+@app.get("/api/v1/secrets/resolve", tags=["Secrets Resolution"])
+async def resolve_provider_get(secret_name: Optional[str] = None):
+    """Compatibility GET: resolve provider when called without POST body.
+    If `secret_name` is omitted, a harmless default name is used for resolution.
+    """
+    from canonical_secrets_provider import _provider
+
+    name = secret_name or "__default__"
+    provider, fallback_chain = _provider.resolve_provider(name)
+
+    if not provider:
+        raise HTTPException(
+            status_code=503,
+            detail="No healthy provider available"
+        )
+
+    return ProviderResolution(
+        secret_name=name,
+        resolved_provider=provider.value,
+        is_primary=(provider == Provider.VAULT),
+        fallback_level=0 if provider == Provider.VAULT else len(fallback_chain) - 1,
+        fallback_chain=[f for f in fallback_chain[:-1]],
+        timestamp=datetime.utcnow().isoformat() + "Z"
+    ).dict() | {"primary_provider": provider.value}
+
+
 # ============================================================================
 # CREDENTIAL MANAGEMENT ENDPOINTS
 # ============================================================================
