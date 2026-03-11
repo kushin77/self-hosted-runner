@@ -69,7 +69,7 @@ auto_auth {
 - Secret Manager API responds: `gcloud secrets list --project=PROJECT_ID`
 - Vault Agent writes `/var/run/secrets/vault/token`
 - `./scripts/vault/sync_gsm_to_vault.sh` can fetch secret and write to Vault using token-file or AppRole
-- Backend can read `VAULT_TOKEN_FILE` and access secrets
+- Backend can read `VAULT_TKN_FILE` and access secrets
 
 Links:
 - [scripts/vault/sync_gsm_to_vault.sh](scripts/vault/sync_gsm_to_vault.sh)

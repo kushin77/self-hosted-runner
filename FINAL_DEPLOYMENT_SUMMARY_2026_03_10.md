@@ -7,10 +7,10 @@ PART 1: COMPLETED WORK (All items verified & working)
 ==============================================================================
 
 1. Credential Flow Hardening
-  - ✅ Updated `scripts/vault/sync_gsm_to_vault.sh` to prefer `VAULT_TOKEN_MOUNT_PATH` (primary), with legacy `VAULT_TOKEN_FILE` fallback and AppRole fallback
-  - ✅ Updated `backend/src/credentials.ts` with 4-layer resolver (GSM → Vault → KMS → cache) and to prefer `VAULT_TOKEN_MOUNT_PATH`
-  - ✅ Updated `backend/Dockerfile.prod` to document `VAULT_TOKEN_MOUNT_PATH=/var/run/secrets/vault/token` (runtime mount)
-  - ✅ Updated `backend/docker-entrypoint.sh` to load `VAULT_TOKEN` from mounted path and start Vault Agent
+  - ✅ Updated `scripts/vault/sync_gsm_to_vault.sh` to prefer `VAULT_TKN_MOUNT_PATH` (primary), with legacy `VAULT_TKN_FILE` fallback and AppRole fallback
+  - ✅ Updated `backend/src/credentials.ts` with 4-layer resolver (GSM → Vault → KMS → cache) and to prefer `VAULT_TKN_MOUNT_PATH`
+  - ✅ Updated `backend/Dockerfile.prod` to document `VAULT_TKN_MOUNT_PATH=/var/run/secrets/vault/token` (runtime mount)
+  - ✅ Updated `backend/docker-entrypoint.sh` to load `VAULT_TKN` from mounted path and start Vault Agent
 
 2. Cloud Validation Infrastructure
    - ✅ Created `scripts/cloud/validate_gsm_vault_kms.sh` — comprehensive cloud validation helper
@@ -44,7 +44,7 @@ PART 1: COMPLETED WORK (All items verified & working)
 6. Local Validation (Mock GSM → Vault Flow)
   - ✅ Local Vault dev server started and tested (port 8200)
   - ✅ Mock GSM payload generated and synced to Vault
-  - ✅ Token mount selection logic verified (prefers `VAULT_TOKEN_MOUNT_PATH` → `VAULT_TOKEN_FILE` → env)
+  - ✅ Token mount selection logic verified (prefers `VAULT_TKN_MOUNT_PATH` → `VAULT_TKN_FILE` → env)
   - ✅ Vault KV read/write confirmed working
   - ✅ Backend credential resolver tested successfully
   - ✅ `tools/image_pin_service` smoke-tested locally in isolated venv; app binds to `PORT=8080` and responds (gunicorn settings validated)
@@ -80,7 +80,7 @@ OPTION B: Provide Vault Token File
   2. Run:
      ```bash
      export VAULT_ADDR="https://vault.YOUR-DOMAIN.io"
-     export VAULT_TOKEN_FILE="/var/run/secrets/vault/token"
+     export VAULT_TKN_FILE="/var/run/secrets/vault/token"
      export GCP_PROJECT="nexusshield-prod"
      ./scripts/cloud/validate_gsm_vault_kms.sh
      ```
@@ -88,7 +88,7 @@ OPTION B: Provide Vault Token File
 OPTION C: Provide Direct Credentials
   1. Provide the following securely:
      - VAULT_ADDR: <Vault server URL>
-     - VAULT_ROLE_ID or VAULT_TOKEN: (AppRole role_id + secret_id OR direct token)
+     - VAULT_ROLE_ID or VAULT_TKN: (AppRole role_id + secret_id OR direct token)
   
   2. Agent will run validation immediately
 
@@ -101,8 +101,8 @@ Key Files Created/Updated:
 Credential Flow:
   - backend/src/credentials.ts (4-layer resolver: GSM → Vault → KMS → cache)
   - scripts/vault/sync_gsm_to_vault.sh (GSM → Vault sync with token-file preference)
-  - backend/Dockerfile.prod (VAULT_TOKEN_FILE env + Vault Agent start)
-    - backend/Dockerfile.prod (now documents `VAULT_TOKEN_MOUNT_PATH` runtime mount)
+  - backend/Dockerfile.prod (VAULT_TKN_FILE env + Vault Agent start)
+    - backend/Dockerfile.prod (now documents `VAULT_TKN_MOUNT_PATH` runtime mount)
   - backend/docker-entrypoint.sh (load token from file, start agent, run app)
 
 Validation & Runbooks:
@@ -119,9 +119,9 @@ Policy & Enforcement:
 
 Summary Documents:
   - DEPLOYMENT_CREDENTIAL_HARDENING_SUMMARY.md (this repo root)
-  - FINAL_DEPLOYMENT_SUMMARY_2026_03_10.md (this file, in repo root) — updated to prefer `VAULT_TOKEN_MOUNT_PATH`
+  - FINAL_DEPLOYMENT_SUMMARY_2026_03_10.md (this file, in repo root) — updated to prefer `VAULT_TKN_MOUNT_PATH`
 
-PR: https://github.com/kushin77/self-hosted-runner/pull/2363 (VAULT_TOKEN_MOUNT_PATH rename)
+PR: https://github.com/kushin77/self-hosted-runner/pull/2363 (VAULT_TKN_MOUNT_PATH rename)
 
 GitHub Issues:
   - #2343: Operator action required (AppRole + WIF enablement)

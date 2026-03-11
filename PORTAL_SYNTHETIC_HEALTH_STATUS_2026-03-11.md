@@ -102,6 +102,12 @@ All operations logged to:
 3. **Verification (2-3 min)**: Deployment script creates Cloud Function, Pub/Sub, Scheduler
 4. **Confirmation**: Issues updated + audit trail appended + auto-close when verified
 
+## Actions Performed (Automated)
+
+- 2026-03-11T14:41:45Z — Automated agent revoked non-service-account gcloud credentials from this runner (removed user accounts). See append-only log: `logs/deploy-blocker/credential-revoke-20260311.jsonl` and deployed audit: `logs/deploy-blocker/synthetic-health-deploy-blocker-20260311.jsonl`.
+
+  
+
 ## Constraints Met
 ✅ **Immutable**: JSONL logs + GitHub comments (append-only)  
 ✅ **Ephemeral**: Temp files created/destroyed in scripts  

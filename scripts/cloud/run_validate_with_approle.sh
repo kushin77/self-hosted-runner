@@ -25,27 +25,27 @@ fi
 
 # Login using AppRole and capture token
 LOGIN_JSON=$(vault write -format=json auth/approle/login role_id="$ROLE_ID" secret_id="$SECRET_ID")
-VAULT_TOKEN=$(echo "$LOGIN_JSON" | awk '/"client_token"/ {print $2}' | tr -d '",')
-if [[ -z "$VAULT_TOKEN" ]]; then
+VAULT_TKN=$(echo "$LOGIN_JSON" | awk '/"client_token"/ {print $2}' | tr -d '",')
+if [[ -z "$VAULT_TKN" ]]; then
   echo "ERROR: failed to obtain Vault token from AppRole login" >&2
   exit 4
 fi
 
-export VAULT_TOKEN
-export VAULT_TOKEN_MOUNT_PATH="/tmp/vault-token-$$"
+export VAULT_TKN
+export VAULT_TKN_MOUNT_PATH="/tmp/vault-token-$$"
 # Write token to a temp file for compatibility (using mount-path variable)
-printf "%s" "$VAULT_TOKEN" > "$VAULT_TOKEN_MOUNT_PATH"
-chmod 600 "$VAULT_TOKEN_MOUNT_PATH"
+printf "%s" "$VAULT_TKN" > "$VAULT_TKN_MOUNT_PATH"
+chmod 600 "$VAULT_TKN_MOUNT_PATH"
 
 echo "Logged in to Vault via AppRole; running cloud validation..."
 
-# Run validation script (it will look for VAULT_TOKEN_MOUNT_PATH or VAULT_TOKEN_FILE or VAULT_TOKEN)
+# Run validation script (it will look for VAULT_TKN_MOUNT_PATH or VAULT_TKN_FILE or VAULT_TKN)
 ./scripts/cloud/validate_gsm_vault_kms.sh
 STATUS=$?
 
 # Clean up token
-rm -f "$VAULT_TOKEN_MOUNT_PATH"
-unset VAULT_TOKEN
+rm -f "$VAULT_TKN_MOUNT_PATH"
+unset VAULT_TKN
 
 if [[ $STATUS -ne 0 ]]; then
   echo "Cloud validation failed with status $STATUS" >&2

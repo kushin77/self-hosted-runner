@@ -1,15 +1,59 @@
 [Unit]
-Description=Redis Worker for Migration Jobs
+Description=Redis Worker with Prometheus Metrics for Migration Jobs
 After=network.target redis.service
+Documentation=https://github.com/kushin77/self-hosted-runner/issues/2384
 
 [Service]
-Type=simple
-User=root
+Type=notify
+User=nexusshield
+Group=nexusshield
 WorkingDirectory=/opt/nexusshield
+
+# Environment Configuration
 Environment=REDIS_URL=redis://127.0.0.1:6379/0
-ExecStart=/opt/nexusshield/venv/bin/python -m scripts.cloudrun.redis_worker
+Environment=REDIS_METRICS_PORT=9900
+Environment=REDIS_METRICS_ADDR=0.0.0.0
+Environment=REDIS_HEALTH_CHECK_PORT=9901
+Environment=PYTHONUNBUFFERED=1
+
+# Process Management
+ExecStartPre=/usr/bin/python3 -c "import redis; redis.from_url('redis://127.0.0.1:6379/0').ping()"
+ExecStart=/opt/nexusshield/venv/bin/python3 -m scripts.cloudrun.redis_worker
+ExecStartPost=/bin/bash -c "sleep 1 && curl --silent --fail --max-time 5 http://localhost:9901/ready || exit 1"
+ExecStopPost=/bin/bash -c "echo 'Worker stopped; final metrics:' && curl --silent http://localhost:9900/metrics | grep redis_worker || true"
+
+# Restart Policy
+Type=simple
 Restart=on-failure
-RestartSec=5s
+RestartSec=10s
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Health Monitoring
+WatchdogSec=30s
+WatchdogSignal=SIGTERM
+
+# Resource Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+MemoryMax=1G
+MemoryAccounting=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=redis-worker
+
+# Security
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/nexusshield /var/log
+
+# Performance
+Nice=-5
+OOMScoreAdjust=-999
 
 [Install]
 WantedBy=multi-user.target
