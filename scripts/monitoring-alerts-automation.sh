@@ -25,7 +25,9 @@ create_monitoring_dashboard() {
     echo "[MONITORING] Creating dashboards..."
 
     # Cloud Run Service Dashboard
-    gcloud monitoring dashboards create --config=- <<EOF
+    local tmpd=$(mktemp -d)
+    local dashfile="$tmpd/cloudrun_dashboard.json"
+    cat > "$dashfile" <<'JSON'
 {
   "displayName": "NexusShield Portal - Cloud Run",
   "mosaicLayout": {
@@ -102,9 +104,47 @@ create_monitoring_dashboard() {
     ]
   }
 }
-EOF
+JSON
 
-    audit_entry "monitoring_dashboard_created" "Cloud Run service dashboard deployed"
+    # Validate JSON (fail safe)
+    if command -v python3 >/dev/null 2>&1; then
+      python3 -m json.tool "$dashfile" >/dev/null 2>&1 || { echo "[MONITORING] Invalid dashboard JSON: $dashfile" >&2; audit_entry "monitoring_dashboard" "failure: invalid json"; rm -rf "$tmpd"; return 1; }
+    elif command -v jq >/dev/null 2>&1; then
+      jq empty "$dashfile" >/dev/null 2>&1 || { echo "[MONITORING] Invalid dashboard JSON: $dashfile" >&2; audit_entry "monitoring_dashboard" "failure: invalid json"; rm -rf "$tmpd"; return 1; }
+    fi
+
+    # Create dashboard via stdin (gcloud requires stdin, not file path)
+    if cat "$dashfile" | gcloud monitoring dashboards create --config=- 2>/tmp/gcloud_dashboard_create.err >/tmp/gcloud_dashboard_create.out; then
+      audit_entry "monitoring_dashboard_created" "Cloud Run service dashboard deployed"
+    else
+      echo "[MONITORING] gcloud dashboard create failed; attempting REST API fallback" >&2
+      audit_entry "monitoring_dashboard" "failure: gcloud create failed; attempting rest fallback"
+      cat /tmp/gcloud_dashboard_create.err >&2 || true
+
+      # REST API fallback using authenticated access token
+      if command -v gcloud >/dev/null 2>&1 && command -v curl >/dev/null 2>&1; then
+        local token
+        token=$(gcloud auth print-access-token 2>/dev/null) || token=""
+        if [ -n "$token" ]; then
+          local project="$GCP_PROJECT_ID"
+          local api_url="https://monitoring.googleapis.com/v1/projects/${project}/dashboards"
+          if retry_cmd ${TRAFFIC_RETRY_ATTEMPTS:-3} 1 curl -sS -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" --data-binary @"$dashfile" "$api_url" >/tmp/gcloud_dashboard_rest.out 2>/tmp/gcloud_dashboard_rest.err; then
+            audit_entry "monitoring_dashboard_created" "Cloud Run service dashboard deployed (rest-fallback)"
+          else
+            echo "[MONITORING] REST API fallback failed; see /tmp/gcloud_dashboard_rest.err" >&2
+            audit_entry "monitoring_dashboard" "failure: rest fallback failed"
+            cat /tmp/gcloud_dashboard_rest.err >&2 || true
+          fi
+        else
+          echo "[MONITORING] Could not obtain gcloud access token for REST fallback" >&2
+          audit_entry "monitoring_dashboard" "failure: no access token"
+        fi
+      else
+        echo "[MONITORING] gcloud or curl not available for REST fallback" >&2
+        audit_entry "monitoring_dashboard" "failure: missing gcloud/curl for rest fallback"
+      fi
+    fi
+    rm -rf "$tmpd"
 }
 
 # ============================================================================
