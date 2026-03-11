@@ -14,6 +14,13 @@ DEPLOY_SCRIPT="${DEPLOY_SCRIPT:-infra/terraform/tmp_observability/deploy_with_gs
 VAULT_SECRET_PATH="${VAULT_SECRET_PATH:-secret/data/nexus/deploy-sa-key}"
 VAULT_FIELD="${VAULT_FIELD:-sa_key}"
 ALLOW_LOCAL_KEY="${ALLOW_LOCAL_KEY:-0}"
+USE_WI="${USE_WI:-0}"
+# Workload Identity config (set when USE_WI=1)
+PROJECT_NUMBER="${PROJECT_NUMBER:-}"    # numeric project number
+WI_POOL="${WI_POOL:-runner-pool-20260311}"
+WI_PROVIDER="${WI_PROVIDER:-runner-provider-20260311}"
+SA_EMAIL="${SA_EMAIL:-nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com}"
+WI_SCOPES="${WI_SCOPES:-https://www.googleapis.com/auth/cloud-platform}"
 
 mkdir -p "$LOG_DIR"
 
@@ -48,7 +55,7 @@ check_local_key() {
 
 # Check Vault (HashiCorp Vault KV v2 recommended)
 check_vault_secret() {
-    if [ -n "${VAULT_ADDR:-}" ] && [ -n "${VAULT_TOKEN:-}" ]; then
+    if [ -n "${VAULT_ADDR:-}" ] && [ -n "${VAULT_TKN:-}" ]; then
         log_event "INFO" "VAULT_ADDR detected; attempting to read Vault path $VAULT_SECRET_PATH"
         if command -v vault >/dev/null 2>&1; then
             if vault kv get -field="$VAULT_FIELD" "$VAULT_SECRET_PATH" >/dev/null 2>&1; then
@@ -64,6 +71,33 @@ check_vault_secret() {
         fi
     fi
     return 1
+}
+
+# If USE_WI=1 attempt to exchange an OIDC subject token (provided via SUBJECT_TOKEN env)
+# for a short-lived service account access token and export it for gcloud via
+# CLOUDSDK_AUTH_ACCESS_TOKEN.
+exchange_wi_and_export() {
+    if [ "${USE_WI}" != "1" ]; then
+        return 1
+    fi
+    if [ -z "${SUBJECT_TOKEN:-}" ]; then
+        log_event "WARN" "USE_WI=1 but SUBJECT_TOKEN not set; skipping WI exchange"
+        return 1
+    fi
+    log_event "INFO" "Attempting Workload Identity token exchange via scripts/auth/exchange-wi-token.sh"
+    if ! token_json=$(PROJECT_NUMBER="$PROJECT_NUMBER" WI_POOL="$WI_POOL" WI_PROVIDER="$WI_PROVIDER" SA_EMAIL="$SA_EMAIL" SCOPES="$WI_SCOPES" SUBJECT_TOKEN="$SUBJECT_TOKEN" scripts/auth/exchange-wi-token.sh 2>>"$LOG_FILE"); then
+        log_event "ERROR" "WI token exchange failed"
+        return 1
+    fi
+    access_token=$(echo "$token_json" | jq -r .access_token // empty)
+    if [ -z "$access_token" ]; then
+        log_event "ERROR" "WI helper returned no access_token: $token_json"
+        return 1
+    fi
+    export CLOUDSDK_AUTH_ACCESS_TOKEN="$access_token"
+    unset GOOGLE_APPLICATION_CREDENTIALS || true
+    log_event "INFO" "Exported CLOUDSDK_AUTH_ACCESS_TOKEN for ephemeral gcloud auth"
+    return 0
 }
 
 # Attempt deploy
@@ -97,7 +131,12 @@ main() {
     log_event "INFO" "Credential detector started (project=$PROJECT, secret=$SECRET_NAME)"
     
     if check_gsm_secret; then
-        attempt_deploy
+        # Prefer Workload Identity token flow if enabled
+        if exchange_wi_and_export; then
+            attempt_deploy
+        else
+            attempt_deploy
+        fi
     elif check_local_key; then
         log_event "INFO" "Using local SA key at /etc/nexusshield/gcp-sa.json"
         export GOOGLE_APPLICATION_CREDENTIALS=/etc/nexusshield/gcp-sa.json
@@ -119,7 +158,7 @@ main() {
         log_event "ERROR" "Deployment via Vault failed"
     else
         log_event "WARN" "No credentials found (GSM secret or Vault) [local key disabled by default]"
-        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Set VAULT_ADDR & VAULT_TOKEN and store SA key at $VAULT_SECRET_PATH with field $VAULT_FIELD. Optional: set ALLOW_LOCAL_KEY=1 to use /etc/nexusshield/gcp-sa.json"
+        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Set VAULT_ADDR & VAULT_TKN and store SA key at $VAULT_SECRET_PATH with field $VAULT_FIELD. Optional: set ALLOW_LOCAL_KEY=1 to use /etc/nexusshield/gcp-sa.json"
         echo "Credentials not yet available. See $LOG_FILE for details."
         return 1
     fi
