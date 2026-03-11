@@ -5,9 +5,9 @@ After=network.target redis.service
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/akushnir/self-hosted-runner/scripts/cloudrun
+WorkingDirectory=/opt/nexusshield/scripts/cloudrun
 Environment=REDIS_URL=redis://127.0.0.1:6379/0
-ExecStart=/usr/bin/env bash -lc "exec python3 redis_worker.py"
+ExecStart=/opt/nexusshield/venv/bin/python /opt/nexusshield/scripts/cloudrun/redis_worker.py
 Restart=on-failure
 RestartSec=5s
 
