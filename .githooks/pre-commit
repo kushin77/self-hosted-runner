@@ -26,14 +26,10 @@ CREDENTIAL_PATTERNS=(
     "-----BEGIN RSA"                # RSA keys
     "ssh-rsa\|ssh-ed25519"         # SSH public keys (should not be in private repos)
     "AKIA[0-9A-Z]\{16\}"           # AWS access key ID
-$PLACEHOLDER
     "private_key.:..*-----BEGIN"   # GCP service account
-$PLACEHOLDER
     "app_password"                  # Application password
-$PLACEHOLDER
     "api_key.:..*[a-zA-Z0-9]{32}" # Generic API key
     "token.:..*[a-zA-Z0-9]{32}"    # Generic token
-$PLACEHOLDER
 )
 
 # Get staged files
