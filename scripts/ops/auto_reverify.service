@@ -7,7 +7,7 @@ After=network-online.target
 Type=simple
 # ExecStart should point to the installed location of the script on the management host
 ExecStart=/usr/local/bin/auto_reverify.sh --host 192.168.168.42 --s3-bucket YOUR_BUCKET --github-token YOUR_TOKEN --issue 2594
-User=runner
+User=akushnir
 Restart=on-failure
 
 [Install]
