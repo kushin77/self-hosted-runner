@@ -17,7 +17,7 @@ fi
 
 : ${VAULT_ADDR:=${VAULT_ADDR:-https://127.0.0.1:8200}}
 : ${VAULT_NAMESPACE:=${VAULT_NAMESPACE:-}}
-VAULT_TOKEN_FILE=${VAULT_TOKEN_FILE:-/var/run/secrets/vault/token}
+VAULT_TKN_FILE=${VAULT_TKN_FILE:-/var/run/secrets/vault/token}
 VAULT_KV_MOUNT=${VAULT_KV_MOUNT:-secret}
 
 if [ -z "$SECRET_NAME" ]; then
@@ -43,10 +43,10 @@ if [ -z "$secret_payload" ]; then
 fi
 
 # Write to Vault KV (v2) at provided path. Prefer ephemeral auth:
-# - If VAULT_TOKEN_MOUNT_PATH is present, read token from that file (vault-agent sink).
-# - Else if VAULT_TOKEN_FILE is present (legacy), read token from that file.
+# - If VAULT_TKN_MOUNT_PATH is present, read token from that file (vault-agent sink).
+# - Else if VAULT_TKN_FILE is present (legacy), read token from that file.
 # - Else if VAULT_ROLE_ID and VAULT_SECRET_ID are provided, perform AppRole login for this run.
-# - Falling back to VAULT_TOKEN env is discouraged but supported for operators.
+# - Falling back to VAULT_TKN env is discouraged but supported for operators.
 # If VAULT_PATH is a kv v2 path like 'secret/data/my-path', use `vault kv put secret/my-path value=...`
 # Allow operator-supplied VAULT_KV_MOUNT to override (default 'secret')
 VAULT_KV_MOUNT=${VAULT_KV_MOUNT:-secret}
@@ -64,27 +64,27 @@ echo "Writing secret to Vault at ${VAULT_KV_MOUNT}/${kv_path}"
 
 # Obtain a transient Vault token for this operation
 vault_tok=""
-if [[ -n "${VAULT_TOKEN_MOUNT_PATH:-}" && -f "${VAULT_TOKEN_MOUNT_PATH}" ]]; then
-  vault_tok=$(cat "$VAULT_TOKEN_MOUNT_PATH" | tr -d '\n' || true)
-elif [[ -n "${VAULT_TOKEN_FILE:-}" && -f "${VAULT_TOKEN_FILE}" ]]; then
-  vault_tok=$(cat "$VAULT_TOKEN_FILE" | tr -d '\n' || true)
+if [[ -n "${VAULT_TKN_MOUNT_PATH:-}" && -f "${VAULT_TKN_MOUNT_PATH}" ]]; then
+  vault_tok=$(cat "$VAULT_TKN_MOUNT_PATH" | tr -d '\n' || true)
+elif [[ -n "${VAULT_TKN_FILE:-}" && -f "${VAULT_TKN_FILE}" ]]; then
+  vault_tok=$(cat "$VAULT_TKN_FILE" | tr -d '\n' || true)
 elif [[ -n "${VAULT_ROLE_ID:-}" && -n "${VAULT_SECRET_ID:-}" ]]; then
   # Use AppRole login to get a one-time token (non-persistent)
   vault_tok=$(vault write -field=token auth/approle/login role_id="$VAULT_ROLE_ID" secret_id="$VAULT_SECRET_ID" 2>/dev/null || true)
 fi
 
-# Fallback to VAULT_TOKEN env (discouraged)
-if [[ -z "$vault_tok" && -n "${VAULT_TOKEN:-}" ]]; then
-  vault_tok="${VAULT_TOKEN}"
+# Fallback to VAULT_TKN env (discouraged)
+if [[ -z "$vault_tok" && -n "${VAULT_TKN:-}" ]]; then
+  vault_tok="${VAULT_TKN}"
 fi
 
 if [[ -z "$vault_tok" ]]; then
-  echo "ERROR: no Vault authentication available (set VAULT_TOKEN_MOUNT_PATH, VAULT_TOKEN_FILE, VAULT_ROLE_ID+VAULT_SECRET_ID, or VAULT_TOKEN)"
+  echo "ERROR: no Vault authentication available (set VAULT_TKN_MOUNT_PATH, VAULT_TKN_FILE, VAULT_ROLE_ID+VAULT_SECRET_ID, or VAULT_TKN)"
   exit 6
 fi
 
 # Perform kv write with transient token
-VAULT_TOKEN="$vault_tok" vault kv put "${VAULT_KV_MOUNT}/${kv_path}" value="$(echo "$secret_payload" | base64 -w0)" >/dev/null 2>&1
+VAULT_TKN="$vault_tok" vault kv put "${VAULT_KV_MOUNT}/${kv_path}" value="$(echo "$secret_payload" | base64 -w0)" >/dev/null 2>&1
 rc=$?
 
 if [ $rc -eq 0 ]; then

@@ -1,0 +1,8 @@
+[Unit]
+Description=Secrets Orchestrator Smoke Check (user)
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/self-hosted-runner
+ExecStart=%h/self-hosted-runner/scripts/verify/smoke_check.sh
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin

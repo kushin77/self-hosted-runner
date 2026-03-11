@@ -337,7 +337,7 @@ bash scripts/deploy/deploy_sync_providers.sh production prepare,build,deploy,val
 
 **1. Credentials Not Found**
 - Check GSM: `gcloud secrets list --project=YOUR_PROJECT`
-- Check Vault: `curl -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/list/credentials/`
+- Check Vault: `curl -H "X-Vault-Token: $VAULT_TKN" $VAULT_ADDR/v1/secret/list/credentials/`
 - Check KMS: `aws kms list-keys --profile YOUR_PROFILE`
 - Check files: `ls -la .credentials/`
 
