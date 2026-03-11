@@ -111,7 +111,7 @@ resource "google_monitoring_dashboard" "infrastructure" {
                 {
                   timeSeriesQuery = {
                     timeSeriesFilter = {
-                      filter = "resource.type=\"redis.googleapis.com/Instance\" metric.type=\"redis.googleapis.com/stats/cpu_utilization\""
+                      filter = "metric.type=\"redis.googleapis.com/stats/cpu_utilization\""
                     }
                   }
                   plotType = "LINE"
@@ -133,7 +133,7 @@ resource "google_monitoring_dashboard" "infrastructure" {
                 {
                   timeSeriesQuery = {
                     timeSeriesFilter = {
-                      filter = "resource.type=\"redis.googleapis.com/Instance\" metric.type=\"redis.googleapis.com/stats/memory_usage_percentage\""
+                      filter = "metric.type=\"redis.googleapis.com/stats/memory_usage_percentage\""
                     }
                   }
                   plotType = "LINE"
