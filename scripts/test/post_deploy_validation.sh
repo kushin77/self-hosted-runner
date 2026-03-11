@@ -33,10 +33,11 @@ echo "Endpoint: $ENDPOINT"
 echo "Report: $REPORT_FILE"
 echo ""
 
-# Fetch SSH key from GSM/Vault/KMS for remote execution
+# Fetch SSH key from GSM/Vault/KMS for remote execution if no SSH key provided
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 CRED_SCRIPT="${REPO_ROOT}/scripts/ops/fetch_credentials.sh"
-if [ -f "$CRED_SCRIPT" ]; then
+# Only source credential fetcher if an SSH key is not already supplied
+if [ -z "${SSH_KEY_PATH:-}" ] && [ -f "$CRED_SCRIPT" ]; then
   set +e
   # shellcheck source=/dev/null
   source "$CRED_SCRIPT" 2>/dev/null || true

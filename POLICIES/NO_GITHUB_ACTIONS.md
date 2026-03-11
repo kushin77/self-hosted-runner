@@ -17,6 +17,13 @@ Enforcement
 2. Review pull requests or branches that attempt to reintroduce workflows.
 3. Repo owners must not enable GitHub Actions in repository settings.
 
+Enforcement Status (automated)
+-------------------------------
+- As of 2026-03-11T17:53:10Z UTC the repository has no active `.github/workflows/` files. The enforcement helper `scripts/enforce/no_github_actions_check.sh` reports compliance.
+- An archival sweep was run and archived workflow artifacts were moved to `archived_workflows/2026-03-11_175310Z/` (commit pending). Use `git add -A && git commit -m 'chore(policy): archive GitHub workflows'` to finalize the archive.
+- A pre-commit hook `.githooks/prevent-workflows` and the enforcement script prevent accidental re-addition.
+- Automation note: the repository now uses scheduled systemd timers and hardened self-hosted runners for automation; see `DEPLOYMENT/AUTOREVERIFY_README.md` for the new re-verification automation.
+
 Exceptions
 ----------
 Any exception requires explicit sign-off from the repository owner and governance committee.
