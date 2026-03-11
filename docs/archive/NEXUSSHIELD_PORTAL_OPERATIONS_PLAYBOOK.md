@@ -116,7 +116,7 @@ GitHub Secrets Required:
   - GCP_PROJECT_ID: your-gcp-project
   - TERRAFORM_SA_KEY: service account JSON key
   - VAULT_ADDR: HashiCorp Vault server address
-  - REDACTED_VAULT_TOKEN: Vault authentication token
+  - REDACTED_VAULT_TKN: Vault authentication token
 ```
 
 **Trigger Automated Deployment:**

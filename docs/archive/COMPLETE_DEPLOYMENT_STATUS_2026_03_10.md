@@ -81,7 +81,7 @@ export GSM_SECRET_NAME=phase6-credentials
 
 # Option B: HashiCorp Vault
 export VAULT_ADDR=https://vault.example.com
-export REDACTED_VAULT_TOKEN=$(cat ~/.vault-token)
+export REDACTED_VAULT_TKN=$(cat ~/.vault-token)
 
 # Option C: Environment variables
 export PHASE6_CREDS="..."
