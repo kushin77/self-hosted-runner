@@ -11,6 +11,8 @@ TARGET_URL="${TARGET_URL:-https://nexus-shield-portal-backend-2tqp6t4txq-uc.a.ru
 LOG_DIR="${LOG_DIR:-logs/deploy-blocker}"
 LOG_FILE="${LOG_DIR}/credential-detector-$(date +%Y%m%d).log"
 DEPLOY_SCRIPT="${DEPLOY_SCRIPT:-infra/terraform/tmp_observability/deploy_with_gsm.sh}"
+VAULT_SECRET_PATH="${VAULT_SECRET_PATH:-secret/data/nexus/deploy-sa-key}"
+VAULT_FIELD="${VAULT_FIELD:-sa_key}"
 
 mkdir -p "$LOG_DIR"
 
@@ -36,6 +38,26 @@ check_local_key() {
     if [ -f /etc/nexusshield/gcp-sa.json ]; then
         log_event "INFO" "Local SA key found at /etc/nexusshield/gcp-sa.json"
         return 0
+    fi
+    return 1
+}
+
+# Check Vault (HashiCorp Vault KV v2 recommended)
+check_vault_secret() {
+    if [ -n "${VAULT_ADDR:-}" ] && [ -n "${VAULT_TOKEN:-}" ]; then
+        log_event "INFO" "VAULT_ADDR detected; attempting to read Vault path $VAULT_SECRET_PATH"
+        if command -v vault >/dev/null 2>&1; then
+            if vault kv get -field="$VAULT_FIELD" "$VAULT_SECRET_PATH" >/dev/null 2>&1; then
+                log_event "INFO" "Vault secret $VAULT_SECRET_PATH:$VAULT_FIELD available"
+                return 0
+            fi
+            if vault read -field="$VAULT_FIELD" "$VAULT_SECRET_PATH" >/dev/null 2>&1; then
+                log_event "INFO" "Vault secret (read) available at $VAULT_SECRET_PATH:$VAULT_FIELD"
+                return 0
+            fi
+        else
+            log_event "WARN" "vault CLI not installed; skipping Vault check"
+        fi
     fi
     return 1
 }
@@ -76,9 +98,24 @@ main() {
         log_event "INFO" "Using local SA key at /etc/nexusshield/gcp-sa.json"
         export GOOGLE_APPLICATION_CREDENTIALS=/etc/nexusshield/gcp-sa.json
         attempt_deploy
+    elif check_vault_secret; then
+        log_event "INFO" "Using service account from Vault ($VAULT_SECRET_PATH:$VAULT_FIELD)"
+        tmpfile=$(mktemp)
+        if vault kv get -field="$VAULT_FIELD" "$VAULT_SECRET_PATH" > "$tmpfile" 2>/dev/null || vault read -field="$VAULT_FIELD" "$VAULT_SECRET_PATH" > "$tmpfile" 2>/dev/null; then
+            chmod 600 "$tmpfile"
+            export GOOGLE_APPLICATION_CREDENTIALS="$tmpfile"
+            if attempt_deploy; then
+                rm -f "$tmpfile"
+                return 0
+            fi
+            rm -f "$tmpfile"
+        else
+            log_event "ERROR" "Failed to extract SA key from Vault path $VAULT_SECRET_PATH"
+        fi
+        log_event "ERROR" "Deployment via Vault failed"
     else
-        log_event "WARN" "No credentials found (GSM secret or local key)"
-        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Place SA key at /etc/nexusshield/gcp-sa.json"
+        log_event "WARN" "No credentials found (GSM secret, Vault, or local key)"
+        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Place SA key at /etc/nexusshield/gcp-sa.json, OR (C) Set VAULT_ADDR & VAULT_TOKEN and store SA key at $VAULT_SECRET_PATH with field $VAULT_FIELD"
         echo "Credentials not yet available. See $LOG_FILE for details."
         return 1
     fi
