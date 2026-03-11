@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly verify uptime token rotation
+Requires=verify-rotation.service
+After=network-online.target
+
+[Timer]
+OnCalendar=*-*-* 04:00:00 UTC
+Persistent=true
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target
