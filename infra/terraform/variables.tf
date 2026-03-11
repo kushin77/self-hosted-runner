@@ -1,90 +1,226 @@
 /**
- * Terraform Variables
- * Configuration for NexusShield Portal infrastructure
+ * Root Configuration Variables
+ * Passes through to all modules with environment-specific customization
  */
 
-variable "gcp_project" {
+# ============================================================================
+# PROJECT & REGION
+# ============================================================================
+
+variable "project_id" {
+  description = "GCP Project ID"
   type        = string
-  description = "GCP project ID"
 }
 
-variable "gcp_region" {
+variable "region" {
+  description = "Primary GCP region"
   type        = string
-  description = "GCP region"
   default     = "us-central1"
 }
 
-variable "environment" {
+variable "secondary_region" {
+  description = "Secondary region for multi-region resources"
   type        = string
-  description = "Deployment environment (development, staging, production)"
+  default     = "us-east1"
+}
+
+variable "environment" {
+  description = "Environment (dev/staging/prod)"
+  type        = string
   validation {
-    condition     = contains(["development", "staging", "production"], var.environment)
-    error_message = "Environment must be development, staging, or production."
+    condition     = contains(["dev", "staging", "prod"], var.environment)
+    error_message = "Environment must be dev, staging, or prod."
   }
 }
 
-variable "app_name" {
+# ============================================================================
+# PRODUCT & SERVICE
+# ============================================================================
+
+variable "service_name" {
+  description = "Service name"
   type        = string
-  description = "Application name"
-  default     = "nexusshield-portal"
+  default     = "nexus-shield"
 }
 
-variable "database_version" {
+variable "product_name" {
+  description = "Product name"
   type        = string
-  description = "PostgreSQL version"
-  default     = "15"
+  default     = "NexusShield"
 }
 
-variable "database_tier" {
+# ============================================================================
+# CONTAINER IMAGES
+# ============================================================================
+
+variable "backend_image" {
+  description = "Backend container image URL"
   type        = string
-  description = "CloudSQL machine type"
-  default     = "db-custom-4-16384"  # 4 vCPU, 16GB RAM
 }
 
-variable "redis_tier" {
+variable "frontend_image" {
+  description = "Frontend container image URL"
   type        = string
-  description = "Redis (Memorystore) tier size"
-  default     = "basic"
 }
 
-variable "redis_memory_size_gb" {
-  type        = number
-  description = "Redis memory allocation in GB"
-  default     = 5
-}
+# ============================================================================
+# COMPUTE RESOURCES
+# ============================================================================
 
-variable "cloudrun_memory" {
+variable "backend_memory" {
+  description = "Backend container memory (e.g., '1Gi')"
   type        = string
-  description = "Cloud Run memory allocation"
   default     = "1Gi"
 }
 
-variable "cloudrun_cpu" {
+variable "backend_cpu" {
+  description = "Backend CPU cores"
   type        = string
-  description = "Cloud Run CPU allocation"
-  default     = "2"
+  default     = "1"
 }
 
-variable "cloudrun_max_instances" {
+variable "frontend_memory" {
+  description = "Frontend container memory (e.g., '512Mi')"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "frontend_cpu" {
+  description = "Frontend CPU cores"
+  type        = string
+  default     = "1"
+}
+
+variable "cloud_run_min_instances" {
+  description = "Minimum Cloud Run instances"
   type        = number
-  description = "Cloud Run max instances for auto-scaling"
+  default     = 1
+}
+
+variable "cloud_run_max_instances" {
+  description = "Maximum Cloud Run instances"
+  type        = number
   default     = 10
 }
 
-variable "enable_monitoring" {
+# ============================================================================
+# DATABASE
+# ============================================================================
+
+variable "database_machine_type" {
+  description = "Cloud SQL machine type"
+  type        = string
+  default     = "db-custom-1-4096"
+}
+
+variable "database_version" {
+  description = "PostgreSQL version"
+  type        = string
+  default     = "15"
+}
+
+variable "enable_database_ha" {
+  description = "Enable Cloud SQL High Availability"
   type        = bool
-  description = "Enable GCP Monitoring and alerting"
   default     = true
 }
 
-variable "enable_backup" {
-  type        = bool
-  description = "Enable automated database backups"
-  default     = true
+variable "backup_location" {
+  description = "Backup location for Cloud SQL"
+  type        = string
+  default     = "us"
 }
 
-variable "backup_retention_days" {
+# ============================================================================
+# CACHE
+# ============================================================================
+
+variable "redis_tier" {
+  description = "Redis tier (basic/standard)"
+  type        = string
+  default     = "standard"
+  validation {
+    condition     = contains(["basic", "standard"], var.redis_tier)
+    error_message = "Redis tier must be basic or standard."
+  }
+}
+
+variable "redis_memory_size_gb" {
+  description = "Redis memory size in GB"
   type        = number
-  description = "Database backup retention in days"
-  default     = 30
+  default     = 4
+}
+
+variable "redis_version" {
+  description = "Redis version"
+  type        = string
+  default     = "7.x"
+}
+
+# ============================================================================
+# SECURITY
+# ============================================================================
+
+variable "enable_encryption" {
+  description = "Enable KMS encryption for storage"
+  type        = bool
+  default     = true
+}
+
+variable "enable_wif" {
+  description = "Enable Workload Identity Federation"
+  type        = bool
+  default     = true
+}
+
+# ============================================================================
+# NETWORKING
+# ============================================================================
+
+variable "enable_nat_gateway" {
+  description = "Enable Cloud NAT for outbound traffic"
+  type        = bool
+  default     = true
+}
+
+variable "enable_cdn" {
+  description = "Enable Cloud CDN for frontend"
+  type        = bool
+  default     = true
+}
+
+# ============================================================================
+# LABELS
+# ============================================================================
+
+variable "labels" {
+  description = "Labels applied to all resources"
+  type        = map(string)
+  default = {
+    managed_by = "terraform"
+    project    = "nexus-shield"
+  }
+}
+
+# ============================================================================
+# SECRETS
+# ============================================================================
+
+variable "redis_auth_password" {
+  description = "Redis AUTH password"
+  type        = string
+  sensitive   = true
+}
+
+variable "database_root_password" {
+  description = "Database root password"
+  type        = string
+  sensitive   = true
+}
+
+variable "backend_env_vars" {
+  description = "Backend environment variables"
+  type        = map(string)
+  sensitive   = true
+  default     = {}
 }
