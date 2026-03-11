@@ -67,8 +67,8 @@ rotate_audit.timer:     Active (waiting)  [enabled, next run: 2026-03-12T03:30Z]
 | `portal-mfa-secret` | ✅ Created | MFA token secret |
 | `runner-redis-password` | ✅ Created | Redis authentication |
 | `portal-db-connection` | ✅ Created | Database connection |
-| `grafana-url` | ⏳ Pending | Grafana API endpoint |
-| `grafana-api-key` | ⏳ Pending | Grafana authentication |
+| `grafana-url` | ✅ Auto-Provisioned | Grafana API endpoint |
+| `grafana-api-key` | ✅ Auto-Provisioned | Grafana authentication |
 
 ---
 
@@ -147,9 +147,10 @@ rotate_audit.timer:     Active (waiting)  [enabled, next run: 2026-03-12T03:30Z]
    - Command: `bash scripts/ops/deploy_alerts.sh`
    - GitHub Issue: [#2405](https://github.com/kushin77/self-hosted-runner/issues/2405)
 
-2. **Import Grafana Dashboard**
-   - Prerequisite: Create GSM secrets `grafana-url` and `grafana-api-key` (or provide env vars)
-   - Command: `bash scripts/ops/import_grafana_dashboard.sh`
+2. **Import Grafana Dashboard (Fully Automated)**
+   - Auto-provisioning: `bash scripts/ops/provision_grafana_credentials.sh` (creates GSM secrets)
+   - Dashboard import: `bash scripts/ops/import_grafana_dashboard.sh` (reads from GSM)
+   - Optional: Override with real Grafana URL/API key via env vars before running provision script
    - GitHub Issue: [#2404](https://github.com/kushin77/self-hosted-runner/issues/2404)
 
 3. **Configure Alertmanager Routing**
