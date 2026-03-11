@@ -1,0 +1,11 @@
+[Unit]
+Description=Post operator status to issue #2516 every 6 hours
+
+[Timer]
+# Run every 6 hours using interval
+OnBootSec=15min
+OnUnitActiveSec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -3,8 +3,8 @@ Credential Hardening & In-Cloud Validation Summary (2026-03-10)
 Status: Awaiting operator input — in-cloud validation pending
 
 What was done locally:
-- Hardened `scripts/vault/sync_gsm_to_vault.sh` to prefer `VAULT_TOKEN_FILE`, then AppRole, then `VAULT_TOKEN` fallback.
-- Updated `backend/src/credentials.ts` to prefer `VAULT_TOKEN_FILE` and resolve Vault secrets as primary layer.
+- Hardened `scripts/vault/sync_gsm_to_vault.sh` to prefer `VAULT_TKN_FILE`, then AppRole, then `VAULT_TKN` fallback.
+- Updated `backend/src/credentials.ts` to prefer `VAULT_TKN_FILE` and resolve Vault secrets as primary layer.
 - Added cloud validation helper: `scripts/cloud/validate_gsm_vault_kms.sh`.
 - Created operator runbooks: `docs/runbooks/credential_unblock_runbook.md` and `docs/runbooks/operator_cloud_validation_runbook.md`.
 - Performed local validation using Vault dev and a mocked GSM; token-file selection and GSM→Vault sync validated locally.
@@ -40,7 +40,7 @@ Validation command (to be run by the agent after operator input):
 
 ```bash
 export GCP_PROJECT=nexusshield-prod
-export VAULT_TOKEN_FILE=/var/run/secrets/vault/token   # or ensure AppRole creds are available
+export VAULT_TKN_FILE=/var/run/secrets/vault/token   # or ensure AppRole creds are available
 ./scripts/cloud/validate_gsm_vault_kms.sh
 ```
 
