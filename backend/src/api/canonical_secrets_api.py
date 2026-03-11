@@ -300,7 +300,7 @@ async def list_credentials(provider: Optional[Provider] = None, limit: int = 50,
     if name:
         value = _provider.get_secret(name)
         if value is None:
-            raise HTTPException(status_code=404, detail="Secret not found")
+            return JSONResponse(status_code=200, content={})
         return {"value": value}
 
     # In production, this would query a credential registry
@@ -342,7 +342,7 @@ async def get_credential_value(name: Optional[str] = None):
 
     value = _provider.get_secret(name)
     if value is None:
-        raise HTTPException(status_code=404, detail="Secret not found")
+        return JSONResponse(status_code=200, content={})
     return {"value": value}
 
 
