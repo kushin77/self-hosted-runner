@@ -113,7 +113,7 @@ export class CredentialService {
  * @throws CredentialNotFound if all layers fail
  * @throws AuthenticationError if credentials invalid in all layers
  * @example
- * const cred = await credentialService.getCredential('DB_PASSWORD');
+ * const cred = await credentialService.getCredential('REDACTED');
  * console.log(cred.value, cred.layer); // value from GSM/Vault/KMS
  */
 async getCredential(name: string): Promise<CredentialResolution> {

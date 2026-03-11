@@ -436,7 +436,7 @@ docker-compose up -d
 docker ps | grep postgres
 
 # Check credentials in .env
-grep DB_PASSWORD .env.production
+grep REDACTED .env.production
 
 # Verify network connectivity
 docker exec nexusshield-backend \
