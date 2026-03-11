@@ -13,6 +13,7 @@ PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 export GCP_PROJECT="${GCP_PROJECT:?GCP_PROJECT not set}"
 export GCP_REGION="${GCP_REGION:-us-central1}"
 export ENVIRONMENT="${ENVIRONMENT:-staging}"
+export IMAGE_TAG="${CI_COMMIT_SHA:0:8}"
 
 # Logging setup
 log() { echo "[$(date +'%Y-%m-%d %H:%M:%S')] $*" >&2; }
@@ -52,8 +53,8 @@ get_secret() {
 build_and_push_images() {
     info "Building and pushing container images..."
     
-    local backend_image="us-central1-docker.pkg.dev/${GCP_PROJECT}/production-portal-docker/nexus-shield-portal-backend:${CI_COMMIT_SHA:0:8}"
-    local frontend_image="us-central1-docker.pkg.dev/${GCP_PROJECT}/production-portal-docker/nexus-shield-portal-frontend:${CI_COMMIT_SHA:0:8}"
+    local backend_image="us-central1-docker.pkg.dev/${GCP_PROJECT}/production-portal-docker/nexus-shield-portal-backend:${IMAGE_TAG}"
+    local frontend_image="us-central1-docker.pkg.dev/${GCP_PROJECT}/production-portal-docker/nexus-shield-portal-frontend:${IMAGE_TAG}"
     
     # Build backend (idempotent - will use cache)
     info "Building backend image..."
@@ -61,25 +62,47 @@ build_and_push_images() {
         -f backend/Dockerfile.prod \
         -t "$backend_image" \
         --cache-from "$backend_image" \
-        backend/ || true
+        backend/
     
     # Build frontend (idempotent - will use cache)
     info "Building frontend image..."
-    cd frontend && npm install --prefer-offline --no-audit && npm run build && cd ..
+    cd frontend
+    if [ -f package-lock.json ]; then
+        npm ci --prefer-offline --no-audit
+    else
+        npm install --no-audit
+    fi
+    npm run build
+    cd ..
     docker build \
         -f frontend/Dockerfile \
         -t "$frontend_image" \
         --cache-from "$frontend_image" \
-        frontend/ || true
+        frontend/
     
     # Push images (idempotent - will overwrite if already exists)
     info "Pushing images to Artifact Registry..."
-    docker push "$backend_image" || warn "Backend push already exists"
-    docker push "$frontend_image" || warn "Frontend push already exists"
-    
-    # Save image digests for deployment
-    echo "$backend_image" > /tmp/backend_image.txt
-    echo "$frontend_image" > /tmp/frontend_image.txt
+    # retry push up to 3 times to handle transient registry issues
+    for i in 1 2 3; do
+        if docker push "$backend_image"; then break; fi
+        warn "Backend push attempt $i failed; retrying..."
+        sleep 2
+    done
+    if ! docker push "$backend_image"; then
+        error "Failed to push backend image $backend_image"
+    fi
+    for i in 1 2 3; do
+        if docker push "$frontend_image"; then break; fi
+        warn "Frontend push attempt $i failed; retrying..."
+        sleep 2
+    done
+    if ! docker push "$frontend_image"; then
+        error "Failed to push frontend image $frontend_image"
+    fi
+
+    # Save image names for deployment in a single artifact
+    echo "backend=${backend_image}" > /tmp/images_${IMAGE_TAG}.txt
+    echo "frontend=${frontend_image}" >> /tmp/images_${IMAGE_TAG}.txt
     
     success "Images built and pushed"
 }
@@ -91,6 +114,34 @@ build_and_push_images() {
 run_migrations() {
     info "Running database migrations (idempotent)..."
     
+    # Attempt to ensure DB_HOST/DB_NAME are available. Prefer .env, then GSM secrets.
+    if [[ -z "${DB_HOST:-}" || -z "${DB_NAME:-}" ]]; then
+        warn "DB_HOST or DB_NAME not set; attempting to derive from GSM connection secret"
+        # try common connection secret name used in provisioning
+        local conn_secret
+        conn_secret=$(get_secret "database_secret") || conn_secret=""
+        if [[ -z "${conn_secret}" ]]; then
+            conn_secret=$(get_secret "nexusshield-portal-db-connection-production") || conn_secret=""
+        fi
+        if [[ -n "${conn_secret}" ]]; then
+            # parse host and db name from a typical postgres DSN
+            DB_HOST=$(echo "${conn_secret}" | sed -E 's#.*@([^:]+):[0-9]+/([^?]+).*#\1#')
+            DB_NAME=$(echo "${conn_secret}" | sed -E 's#.*@[^:]+:[0-9]+/([^?]+).*#\1#')
+            export DB_HOST DB_NAME
+            info "Derived DB_HOST=${DB_HOST} DB_NAME=${DB_NAME} from GSM secret"
+        fi
+    fi
+
+    # Quick connectivity check - if DB is not reachable from this runner, skip migrations.
+    if [[ -z "${DB_HOST:-}" ]]; then
+        warn "DB_HOST is not set; skipping migrations"
+        return 0
+    fi
+    if ! timeout 3 bash -c "</dev/tcp/${DB_HOST}/5432" >/dev/null 2>&1; then
+        warn "Cannot reach database server at ${DB_HOST}:5432 from this runner; skipping migrations"
+        return 0
+    fi
+
     local db_pass=$(get_secret "${ENVIRONMENT}-db-password")
     local db_username=$(get_secret "${ENVIRONMENT}-db-username")
     local database_url="postgresql://${db_username}:${db_pass}@${DB_HOST}:5432/${DB_NAME}"
@@ -126,17 +177,21 @@ validate_deployment() {
     
     for service in "${services[@]}"; do
         retry_count=0
+        # For Cloud Run services, resolve the service URL and check health endpoint
         while [[ $retry_count -lt $max_retries ]]; do
-            if curl -sf "http://${service}:8000/health" >/dev/null 2>&1; then
-                success "Service $service is healthy"
+            local svc_url
+            svc_url=$(gcloud run services describe nexus-shield-portal-${service} \
+                --region="$GCP_REGION" --project="$GCP_PROJECT" --format='value(status.url)') || svc_url=""
+            if [[ -n "$svc_url" ]] && curl -sf "${svc_url}/health" >/dev/null 2>&1; then
+                success "Service $service is healthy at ${svc_url}/health"
                 break
             fi
-            
+
             retry_count=$((retry_count + 1))
             if [[ $retry_count -ge $max_retries ]]; then
                 error "Service $service failed health checks"
             fi
-            
+
             warn "Health check attempt $retry_count/$max_retries for $service... retrying"
             sleep 5
         done
@@ -167,7 +222,7 @@ deploy_to_cloud_run() {
         --cpu=1 \
         --timeout=300 \
         --set-env-vars="ENVIRONMENT=${ENVIRONMENT},GCP_PROJECT=${GCP_PROJECT}" \
-        --service-account="cloud-run-sa@${GCP_PROJECT}.iam.gserviceaccount.com" \
+        --service-account="nexusshield-run-sa@${GCP_PROJECT}.iam.gserviceaccount.com" \
         --allow-unauthenticated \
         --quiet || warn "Backend deployment update may have had issues"
     
