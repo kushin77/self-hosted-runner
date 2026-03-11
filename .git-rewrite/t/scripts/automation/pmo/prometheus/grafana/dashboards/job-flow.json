@@ -1,9 +1,0 @@
-{
-  "dashboard": {
-    "uid": "job-flow",
-    "title": "Provisioner Worker - Job Flow",
-    "panels": [],
-    "schemaVersion": 36
-  },
-  "overwrite": true
-}
