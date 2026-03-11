@@ -6,8 +6,8 @@ PROJECT="${1:-nexusshield-prod}"
 REGION="${2:-us-central1}"
 METRIC="custom.googleapis.com/synthetic/uptime_check"
 FUNCTION_NAME="synthetic-health-check"
-TOPIC_NAME="synthetic-health-check-topic"
-SCHEDULER_NAME="synthetic-health-check-scheduler"
+TOPIC_NAME="synthetic-health-topic"
+SCHEDULER_NAME="synthetic-health-schedule"
 
 echo "Verifying deployment in project=$PROJECT region=$REGION"
 
