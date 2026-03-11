@@ -16,7 +16,7 @@ Steps (high-level):
 
 ```bash
 GCP_PROJECT=nexusshield-prod
-printf '%s' "<PRIVATE_KEY_PEM>" | gcloud secrets versions add github-app-private-key --data-file=- --project=${GCP_PROJECT}
+$PLACEHOLDER
 printf '%s' "<APP_ID>" | gcloud secrets versions add github-app-id --data-file=- --project=${GCP_PROJECT}
 gcloud secrets add-iam-policy-binding github-app-private-key --project=${GCP_PROJECT} --member="serviceAccount:nxs-automation-sa@${GCP_PROJECT}.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"
 gcloud secrets add-iam-policy-binding github-app-id --project=${GCP_PROJECT} --member="serviceAccount:nxs-automation-sa@${GCP_PROJECT}.iam.gserviceaccount.com" --role="roles/secretmanager.secretAccessor"

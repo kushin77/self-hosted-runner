@@ -60,7 +60,7 @@ Remote Execution: ✅ Successful
 **Grafana Dashboards**: http://192.168.168.42:13001 (admin/changeme_grafana)  
 **Jaeger Tracing UI**: http://192.168.168.42:26686  
 **Database Admin (Adminer)**: http://192.168.168.42:18081  
-**Database Direct**: 192.168.168.42:15432 (portal_user/changeme_db_password)  
+$PLACEHOLDER
 **Cache (Redis)**: 192.168.168.42:16379 (requirepass)
 
 ---

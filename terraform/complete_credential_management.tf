@@ -23,7 +23,7 @@ terraform {
 // ============================================================================
 
 // Database credentials
-resource "google_secret_manager_secret" "db_password" {
+$PLACEHOLDER
   secret_id = "${local.env_prefix}-db-password"
   project   = var.gcp_project
 
@@ -95,7 +95,7 @@ resource "google_secret_manager_secret" "api_key_jwt" {
   }
 }
 
-resource "google_secret_manager_secret" "oauth2_client_secret" {
+$PLACEHOLDER
   secret_id = "${local.env_prefix}-oauth2-client-secret"
   project   = var.gcp_project
 
@@ -177,7 +177,7 @@ data "google_service_account" "cloud_run_sa" {
 
 // Grant Cloud Run access to all database and API secrets
 resource "google_secret_manager_secret_iam_member" "cloud_run_db_access" {
-  secret_id = google_secret_manager_secret.db_password.id
+$PLACEHOLDER
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${data.google_service_account.cloud_run_sa.email}"
 }
@@ -455,10 +455,10 @@ resource "google_organization_policy" "require_secret_rotation" {
 
 output "gsm_secrets_created" {
   value = [
-    google_secret_manager_secret.db_password.name,
+$PLACEHOLDER
     google_secret_manager_secret.redis_password.name,
     google_secret_manager_secret.api_key_jwt.name,
-    google_secret_manager_secret.oauth2_client_secret.name,
+$PLACEHOLDER
   ]
   description = "All GSM secrets created and ready for rotation"
 }
