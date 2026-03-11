@@ -18,26 +18,50 @@ def fetch_id_token(audience: str) -> str:
     return token
 
 def write_metric(project_id: str, metric_type: str, value: int):
-    try:
-        client = monitoring_v3.MetricServiceClient()
-        project_name = f"projects/{project_id}"
-        now = time.time()
-        seconds = int(now)
-        nanos = int((now - seconds) * 10 ** 9)
-        point = {
-            "interval": {"end_time": {"seconds": seconds, "nanos": nanos}},
-            "value": {"int64_value": value},
-        }
-        series = {
-            "metric": {"type": metric_type},
-            "resource": {"type": "global"},
-            "points": [point],
-        }
-        logging.info("Writing metric %s with value %s", metric_type, value)
-        client.create_time_series(name=project_name, time_series=[series])
-        logging.info("Metric written successfully")
-    except Exception as e:
-        logging.exception("Failed to write metric: %s", e)
+    client = monitoring_v3.MetricServiceClient()
+    project_name = f"projects/{project_id}"
+    now = time.time()
+    end_seconds = int(now)
+    end_nanos = int((now - end_seconds) * 10 ** 9)
+    # For gauge metrics the start_time must equal end_time; set both equal
+    start_seconds = end_seconds
+    start_nanos = end_nanos
+    point = {
+        "interval": {
+            "start_time": {"seconds": start_seconds, "nanos": start_nanos},
+            "end_time": {"seconds": end_seconds, "nanos": end_nanos},
+        },
+        "value": {"int64_value": value},
+    }
+    series = {
+        "metric": {"type": metric_type},
+        "resource": {"type": "global"},
+        "points": [point],
+    }
+
+    max_attempts = 3
+    backoff = 1
+    for attempt in range(1, max_attempts + 1):
+        try:
+            logging.info("Attempt %d: writing metric %s value=%s", attempt, metric_type, value)
+            client.create_time_series(name=project_name, time_series=[series])
+            logging.info("Metric written successfully on attempt %d", attempt)
+            return True
+        except Exception as e:
+            logging.exception("Attempt %d failed to write metric: %s", attempt, e)
+            if attempt < max_attempts:
+                time.sleep(backoff)
+                backoff *= 2
+            else:
+                logging.error("All %d attempts failed to write metric %s", max_attempts, metric_type)
+                # Emit a structured fallback log so a logging-based metric can be created
+                logging.info({
+                    "fallback_metric": metric_type,
+                    "value": value,
+                    "note": "metric_write_failed; create logging-based metric from this log",
+                    "project": project_id,
+                })
+                return False
 
 def check_target(url: str) -> int:
     try:
