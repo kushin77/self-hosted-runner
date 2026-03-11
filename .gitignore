@@ -213,3 +213,4 @@ secrets.env
 secrets.env
 *.key
 /secrets.env.template
+terraform/*.tfstate
