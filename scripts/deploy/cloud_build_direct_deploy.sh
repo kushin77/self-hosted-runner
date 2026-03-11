@@ -247,17 +247,28 @@ deploy_to_cloud_run() {
 # ============================================================================
 
 run_smoke_tests() {
-    info "Running smoke tests..."
+    info "Running comprehensive smoke tests with rollback capability..."
     
-    # Test backend endpoints
-    local backend_url=$(gcloud run services describe nexus-shield-portal-backend \
-        --region="$GCP_REGION" \
-        --project="$GCP_PROJECT" \
-        --format='value(status.url)')
-    
-    info "Testing backend: $backend_url"
-    curl -sf "${backend_url}/health" || warn "Health check endpoint failed"
-    curl -sf "${backend_url}/api/v1/status" || warn "Status endpoint failed"
+    # Call the centralized smoke test script (supports automatic rollback)
+    if [ -f scripts/deploy/post-deploy-smoke-tests.sh ]; then
+        bash scripts/deploy/post-deploy-smoke-tests.sh "nexus-shield-portal-backend" "$GCP_REGION" 30 && true
+        local rc=$?
+        if [ $rc -eq 2 ] || [ $rc -eq 3 ]; then
+            # Rollback was attempted; exit with error
+            error "Smoke tests failed; rollback initiated"
+            return 1
+        fi
+    else
+        # Fallback: basic inline tests
+        local backend_url=$(gcloud run services describe nexus-shield-portal-backend \
+            --region="$GCP_REGION" \
+            --project="$GCP_PROJECT" \
+            --format='value(status.url)')
+        
+        info "Testing backend: $backend_url"
+        curl -sf "${backend_url}/health" || warn "Health check endpoint failed"
+        curl -sf "${backend_url}/api/v1/status" || warn "Status endpoint failed"
+    fi
     
     success "Smoke tests passed"
 }
