@@ -1,0 +1,2 @@
+{"timestamp":"2026-03-11T15:36:23Z","action":"remediation_started","gap_type":"system","secret":"all","status":"STARTED","detail":"mode=live","dry_run":0}
+{"timestamp":"2026-03-11T15:36:23Z","action":"remediation_complete","gap_type":"system","secret":"all","status":"SUCCESS","detail":"total_gaps=0 remediated=0","dry_run":0}
