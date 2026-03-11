@@ -4,8 +4,11 @@ import os
 import json
 import time
 import redis
-from . import persistent_jobs as pj
-from .run_migrator import run_migrator
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
+import persistent_jobs as pj
+from run_migrator import run_migrator
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 
