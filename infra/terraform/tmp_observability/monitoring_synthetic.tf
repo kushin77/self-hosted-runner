@@ -1,22 +1,34 @@
 // Synthetic health-check alerting for custom metric written by synthetic function
-// Assumes provider and project are configured in the parent module/root
+// Fetches notification channel IDs from GSM (created via gcloud)
 
-variable "project" {
-  type = string
+data "google_secret_manager_secret_version" "alert_email_channel" {
+  secret      = "synthetic-health-alert-email-channel"
+  project     = var.project_id
+  version     = "latest"
 }
 
-variable "notification_channels" {
-  type    = list(string)
-  default = []
+data "google_secret_manager_secret_version" "alert_critical_channel" {
+  secret      = "synthetic-health-alert-critical-channel"
+  project     = var.project_id
+  version     = "latest"
+}
+
+locals {
+  // Build notification channels list from GSM + variable overrides
+  notification_channels = concat(
+    [data.google_secret_manager_secret_version.alert_email_channel.secret_data],
+    [data.google_secret_manager_secret_version.alert_critical_channel.secret_data],
+    var.notification_channels
+  )
 }
 
 resource "google_monitoring_alert_policy" "synthetic_uptime_alert" {
   display_name = "Synthetic Uptime Check - Failure Alert"
   combiner     = "OR"
-  project      = var.project
+  project      = var.project_id
 
   dynamic "notification_channels" {
-    for_each = var.notification_channels
+    for_each = local.notification_channels
     content {
       notification_channel = notification_channels.value
     }
