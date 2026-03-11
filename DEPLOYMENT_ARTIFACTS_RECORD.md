@@ -35,3 +35,5 @@ curl -s -X PATCH -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application
 Notes:
 - This runner currently has `aws` CLI installed but no configured credentials; set the AWS environment or IAM role before running the upload.
 - The repository branch for deployment changes is `canonical-secrets-impl-1773247600`.
+Repository Path: canonical_secrets_artifacts_1773253164.tar.gz
+Committed repository copy of artifact for immutability and traceability.
