@@ -1,0 +1,13 @@
+[Unit]
+Description=Verify uptime token rotation
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/akushnir/self-hosted-runner/ops/internal_runner/run-verify-rotation.sh
+StandardOutput=journal
+StandardError=journal
+User=akushnir
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin:/home/akushnir/.local/bin"
+Environment="PROJECT=nexusshield-prod"
