@@ -74,8 +74,8 @@ if gcloud run deploy "$SERVICE_NAME" \
   --memory=512Mi \
   --cpu=1 \
   --timeout=300 \
-  --concurrency=100 \
-  --max-instances=1000 \
+  --concurrency=50 \
+  --max-instances=100 \
   --set-env-vars="GITHUB_APP_ID=$(gcloud secrets versions access latest --secret=github-app-id --project=$PROJECT | tr -d '\n'),GITHUB_APP_WEBHOOK_SECRET=$(gcloud secrets versions access latest --secret=github-app-webhook-secret --project=$PROJECT | tr -d '\n')" \
   --service-account="nxs-prevent-releases-sa@${PROJECT}.iam.gserviceaccount.com" \
   --quiet; then
