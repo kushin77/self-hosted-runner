@@ -126,7 +126,7 @@ azure-subscription-id
 #### HashiCorp Vault (Optional)
 ```
 Path: secret/azure/tenant-api
-Fields: tenant_id, subscription_id, client_id, client_secret
+$PLACEHOLDER
 ```
 
 **Fetch one:** `vault kv get -field="client_id" secret/azure/tenant-api`
@@ -308,7 +308,7 @@ az resource list --query "[].name"
 
 1. ✅ **Service Principal Created**
    - App ID (client_id)
-   - Password (client_secret)
+$PLACEHOLDER
    - Tenant ID
    - Full subscription access
 
