@@ -1,0 +1,131 @@
+steps:
+  # Step 1: Verify project access
+  - name: gcr.io/cloud-builders/gcloud
+    id: verify-project
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud projects describe ${PROJECT_ID} --format='value(name)'
+        echo "✅ Project verified"
+
+  # Step 2: Create deployer service account (or continue if exists)
+  - name: gcr.io/cloud-builders/gcloud
+    id: create-deployer-sa
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud iam service-accounts create deployer-run \
+          --project=${PROJECT_ID} \
+          --display-name="Deployer Run (Cloud Run deployment automation)" 2>/dev/null || echo "SA already exists"
+
+  # Step 3: Grant roles/run.admin
+  - name: gcr.io/cloud-builders/gcloud
+    id: grant-run-admin
+    args:
+      - projects
+      - add-iam-policy-binding
+      - ${PROJECT_ID}
+      - --member=serviceAccount:deployer-run@${PROJECT_ID}.iam.gserviceaccount.com
+      - --role=roles/run.admin
+      - --condition=None
+      - --quiet
+
+  # Step 4: Grant roles/iam.serviceAccountUser
+  - name: gcr.io/cloud-builders/gcloud
+    id: grant-sa-user
+    args:
+      - projects
+      - add-iam-policy-binding
+      - ${PROJECT_ID}
+      - --member=serviceAccount:deployer-run@${PROJECT_ID}.iam.gserviceaccount.com
+      - --role=roles/iam.serviceAccountUser
+      - --condition=None
+      - --quiet
+
+  # Step 5: Create service account key
+  - name: gcr.io/cloud-builders/gcloud
+    id: create-sa-key
+    args:
+      - iam
+      - service-accounts
+      - keys
+      - create
+      - /workspace/deployer-sa-key.json
+      - --iam-account=deployer-run@${PROJECT_ID}.iam.gserviceaccount.com
+      - --quiet
+
+  # Step 6: Create or update Secret Manager secret
+  - name: gcr.io/cloud-builders/gcloud
+    id: create-secret
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if gcloud secrets describe deployer-sa-key --project=${PROJECT_ID} >/dev/null 2>&1; then
+          gcloud secrets versions add deployer-sa-key \
+            --data-file=/workspace/deployer-sa-key.json \
+            --project=${PROJECT_ID}
+        else
+          gcloud secrets create deployer-sa-key \
+            --data-file=/workspace/deployer-sa-key.json \
+            --project=${PROJECT_ID} \
+            --replication-policy=automatic
+        fi
+
+  # Step 7: Grant secret access to orchestrator SA
+  - name: gcr.io/cloud-builders/gcloud
+    id: grant-secret-access
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud secrets add-iam-policy-binding deployer-sa-key \
+          --project=${PROJECT_ID} \
+          --member=serviceAccount:secrets-orch-sa@${PROJECT_ID}.iam.gserviceaccount.com \
+          --role=roles/secretmanager.secretAccessor \
+          --condition=None \
+          --quiet 2>/dev/null || echo "Binding may already exist"
+
+  # Step 8: Activate deployer SA and run full orchestrator (Cloud Build SA runs with owner-equivalent permissions)
+  - name: gcr.io/cloud-builders/gcloud
+    id: activate-deployer
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud auth activate-service-account --key-file=/workspace/deployer-sa-key.json
+        gcloud config set account deployer-run@${PROJECT_ID}.iam.gserviceaccount.com
+        cd /workspace
+        bash infra/complete-deploy-prevent-releases.sh
+
+  # Step 9: Run verification
+  - name: gcr.io/cloud-builders/gcloud
+    id: verify-deployment
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        gcloud auth activate-service-account --key-file=/workspace/deployer-sa-key.json
+        gcloud config set account deployer-run@${PROJECT_ID}.iam.gserviceaccount.com
+        cd /workspace
+        if gcloud run services describe prevent-releases --project=${PROJECT_ID} --region=us-central1 >/dev/null 2>&1; then
+          echo "✅ Cloud Run service deployed successfully"
+          gcloud run services describe prevent-releases \
+            --project=${PROJECT_ID} \
+            --region=us-central1 \
+            --format='value(status.url)'
+        else
+          echo "❌ Deployment verification failed"
+          exit 1
+        fi
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  
+substitutions:
+  _PROJECT_ID: nexusshield-prod
+
+images: []
+timeout: 3600s
