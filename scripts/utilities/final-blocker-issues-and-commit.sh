@@ -99,7 +99,7 @@ Active environment has no AWS credentials loaded (`$AWS_ACCESS_KEY_ID`, `$REDACT
 ```bash
 # Place credentials in .credentials/ folder:
 mkdir -p .credentials
-echo "REDACTED_AWS_ACCESS_KEY_ID" > .credentials/aws_access_key_id
+echo "REDACTED" > .credentials/aws_access_key_id
 echo "REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY" > .credentials/REDACTED_AWS_SECRET_ACCESS_KEY
 export AWS_REGION=us-east-1
 bash scripts/phase3b-credentials-aws-vault.sh
@@ -152,7 +152,7 @@ VAULT_ADDR points to unconfigured/unreachable endpoint or Vault is sealed.
 **Option A: Use Configured Vault**
 ```bash
 export VAULT_ADDR=https://your-vault-server:8200
-export REDACTED_VAULT_TOKEN=<your-vault-token>
+export REDACTED_REDACTED=<your-vault-token>
 bash scripts/phase3b-credentials-aws-vault.sh
 ```
 
@@ -273,7 +273,7 @@ This document summarizes the complete state of the **Multi-Layer Credentials & A
 
 ### Blocker #3: Vault Connectivity
 **What:** Provide reachable, unsealed Vault instance
-**Info:** Set `VAULT_ADDR` and `REDACTED_VAULT_TOKEN` env vars
+**Info:** Set `VAULT_ADDR` and `REDACTED_REDACTED` env vars
 **Status:** PENDING Vault access or optional skip
 **Impact:** Vault JWT auth unavailable; system uses KMS/GSM fallback (functional)
 
