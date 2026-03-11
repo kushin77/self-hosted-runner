@@ -10,3 +10,5 @@ redis
 flask
 gunicorn
 requests
+
+flask-cors
