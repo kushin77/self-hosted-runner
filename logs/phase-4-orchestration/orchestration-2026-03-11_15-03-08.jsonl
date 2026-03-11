@@ -1,0 +1,4 @@
+{"timestamp":"2026-03-11T15:03:08Z","phase":"orchestration_started","status":"STARTED","detail":"execution_mode=live"}
+{"timestamp":"2026-03-11T15:03:08Z","phase":"audit_started","status":"IN_PROGRESS","detail":""}
+{"timestamp":"2026-03-11T15:03:08Z","phase":"audit_completed","status":"FAILED","detail":"scanner_error"}
+{"timestamp":"2026-03-11T15:03:08Z","phase":"orchestration_completed","status":"FAILED","detail":"phase_error"}
