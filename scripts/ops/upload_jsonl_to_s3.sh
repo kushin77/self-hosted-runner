@@ -14,7 +14,7 @@ if [ -z "${AWS_ACCESS_KEY_ID:-}" ] || [ -z "${AWS_SECRET_ACCESS_KEY:-}" ]; then
 fi
 
 echo "Uploading JSONL logs from $LOG_DIR to s3://$BUCKET/$PREFIX/"
-for f in "$LOG_DIR"/*.jsonl "$LOG_DIR"/*.txt 2>/dev/null; do
+for f in "$LOG_DIR"/*.jsonl "$LOG_DIR"/*.txt; do
   [ -e "$f" ] || continue
   key="$PREFIX/$(basename "$f")"
   aws s3 cp "$f" "s3://$BUCKET/$key" --acl bucket-owner-full-control
