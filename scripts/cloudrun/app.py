@@ -164,6 +164,202 @@ def api_migrate():
     return jsonify({'job_id': job_id, 'status': 'running'})
 
 
+@app.route('/api/v1/jobs', methods=['GET'])
+@require_admin
+def api_list_jobs():
+    """List all migration jobs with pagination support."""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 50))
+        if page < 1 or limit < 1 or limit > 200:
+            return jsonify({'error': 'invalid pagination params'}), 400
+        
+        offset = (page - 1) * limit
+        jobs = pj.list_jobs(limit=limit, offset=offset)
+        total = pj.count_jobs()
+        
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs', http_status='200').inc()
+        except Exception:
+            pass
+        
+        return jsonify({
+            'jobs': jobs,
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'pages': (total + limit - 1) // limit
+        })
+    except Exception as e:
+        audit_write({'event': 'api_error', 'endpoint': '/api/v1/jobs', 'error': str(e)})
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs', http_status='500').inc()
+        except Exception:
+            pass
+        return jsonify({'error': 'internal server error'}), 500
+
+
+@app.route('/api/v1/jobs/<job_id>/details', methods=['GET'])
+@require_admin
+def api_job_details(job_id):
+    """Get job details with complete audit trail."""
+    try:
+        job = pj.load_job(job_id)
+        if not job:
+            try:
+                REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/details', http_status='404').inc()
+            except Exception:
+                pass
+            return jsonify({'error': 'job not found'}), 404
+        
+        # Retrieve audit entries for this job
+        audit_entries = []
+        try:
+            with open(AUDIT_LOG, 'r', encoding='utf-8') as f:
+                for line in f:
+                    try:
+                        entry = json.loads(line)
+                        if entry.get('job_id') == job_id:
+                            audit_entries.append(entry)
+                    except json.JSONDecodeError:
+                        continue
+        except FileNotFoundError:
+            pass
+        
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/details', http_status='200').inc()
+        except Exception:
+            pass
+        
+        return jsonify({
+            'job': job,
+            'audit_entries': audit_entries,
+            'audit_count': len(audit_entries)
+        })
+    except Exception as e:
+        audit_write({'event': 'api_error', 'endpoint': '/api/v1/jobs/{job_id}/details', 'error': str(e)})
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/details', http_status='500').inc()
+        except Exception:
+            pass
+        return jsonify({'error': 'internal server error'}), 500
+
+
+@app.route('/api/v1/jobs/<job_id>', methods=['DELETE'])
+@require_admin
+def api_cancel_job(job_id):
+    """Cancel in-progress migration job."""
+    try:
+        job = pj.load_job(job_id)
+        if not job:
+            try:
+                REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>', http_status='404').inc()
+            except Exception:
+                pass
+            return jsonify({'error': 'job not found'}), 404
+        
+        if job.get('status') not in ('queued', 'running'):
+            try:
+                REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>', http_status='400').inc()
+            except Exception:
+                pass
+            return jsonify({'error': f"cannot cancel job in {job.get('status')} status"}), 400
+        
+        pj.set_status(job_id, 'cancelled')
+        audit_write({'job_id': job_id, 'event': 'job_cancelled', 'previous_status': job.get('status')})
+        try:
+            JOB_EVENTS.labels(event='job_cancelled').inc()
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>', http_status='200').inc()
+        except Exception:
+            pass
+        
+        return jsonify({'job_id': job_id, 'status': 'cancelled'})
+    except Exception as e:
+        audit_write({'event': 'api_error', 'endpoint': '/api/v1/jobs/{job_id}', 'error': str(e)})
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>', http_status='500').inc()
+        except Exception:
+            pass
+        return jsonify({'error': 'internal server error'}), 500
+
+
+@app.route('/api/v1/jobs/<job_id>/replay', methods=['POST'])
+@require_admin
+def api_replay_job(job_id):
+    """Retry failed job from dead-letter queue."""
+    try:
+        job = pj.load_job(job_id)
+        if not job:
+            try:
+                REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/replay', http_status='404').inc()
+            except Exception:
+                pass
+            return jsonify({'error': 'job not found'}), 404
+        
+        if job.get('status') != 'failed':
+            try:
+                REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/replay', http_status='400').inc()
+            except Exception:
+                pass
+            return jsonify({'error': f"cannot replay job in {job.get('status')} status"}), 400
+        
+        # Create new job with same payload but new ID
+        new_job_id = str(uuid.uuid4())
+        new_job = job.copy()
+        new_job['id'] = new_job_id
+        new_job['status'] = 'queued'
+        new_job['created_at'] = datetime.utcnow().isoformat() + 'Z'
+        new_job['replay_of'] = job_id
+        
+        pj.save_job(new_job)
+        audit_write({'previous_job_id': job_id, 'new_job_id': new_job_id, 'event': 'job_replayed', 'payload': new_job})
+        try:
+            JOB_EVENTS.labels(event='job_replayed').inc()
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/replay', http_status='200').inc()
+        except Exception:
+            pass
+        
+        return jsonify({'new_job_id': new_job_id, 'original_job_id': job_id, 'status': 'queued'}), 201
+    except Exception as e:
+        audit_write({'event': 'api_error', 'endpoint': '/api/v1/jobs/{job_id}/replay', 'error': str(e)})
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/jobs/<job_id>/replay', http_status='500').inc()
+        except Exception:
+            pass
+        return jsonify({'error': 'internal server error'}), 500
+
+
+@app.route('/api/v1/metrics/summary', methods=['GET'])
+@require_admin
+def api_metrics_summary():
+    """Get system metrics summary for dashboard."""
+    try:
+        stats = pj.get_stats()
+        
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/metrics/summary', http_status='200').inc()
+        except Exception:
+            pass
+        
+        return jsonify({
+            'jobs_queued': stats.get('queued', 0),
+            'jobs_running': stats.get('running', 0),
+            'jobs_completed': stats.get('completed', 0),
+            'jobs_failed': stats.get('failed', 0),
+            'jobs_cancelled': stats.get('cancelled', 0),
+            'total_jobs': stats.get('total', 0),
+            'avg_duration_s': stats.get('avg_duration', 0),
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        })
+    except Exception as e:
+        audit_write({'event': 'api_error', 'endpoint': '/api/v1/metrics/summary', 'error': str(e)})
+        try:
+            REQUEST_COUNT.labels(method=request.method, endpoint='/api/v1/metrics/summary', http_status='500').inc()
+        except Exception:
+            pass
+        return jsonify({'error': 'internal server error'}), 500
+
+
 @app.route('/metrics', methods=['GET'])
 def metrics():
     """Prometheus metrics endpoint."""
