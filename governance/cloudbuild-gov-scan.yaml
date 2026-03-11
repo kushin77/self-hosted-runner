@@ -1,0 +1,19 @@
+steps:
+- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    echo "Fetching GITHUB_TOKEN from Secret Manager: ${_GITHUB_TOKEN_SECRET}"
+    GITHUB_TOKEN=$(gcloud secrets versions access latest --secret="${_GITHUB_TOKEN_SECRET}" --project="$PROJECT_ID")
+    export GITHUB_TOKEN
+    chmod +x tools/governance-scan.sh
+    ./tools/governance-scan.sh
+
+substitutions:
+  _GITHUB_TOKEN_SECRET: 'github-token'
+
+options:
+  substitution_option: ALLOW_LOOSE
+timeout: '600s'
