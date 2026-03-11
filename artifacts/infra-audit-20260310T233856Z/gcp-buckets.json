@@ -1,0 +1,84 @@
+[
+  {
+    "creation_time": "2026-03-10T19:36:23+0000",
+    "default_storage_class": "STANDARD",
+    "generation": 1773171383444760122,
+    "location": "US",
+    "location_type": "multi-region",
+    "metageneration": 1,
+    "name": "nexusshield-prod_cloudbuild",
+    "public_access_prevention": "inherited",
+    "rpo": "DEFAULT",
+    "soft_delete_policy": {
+      "effectiveTime": "2026-03-10T19:36:23.690000+00:00",
+      "retentionDurationSeconds": "604800"
+    },
+    "storage_url": "gs://nexusshield-prod_cloudbuild/",
+    "uniform_bucket_level_access": true,
+    "update_time": "2026-03-10T19:36:23+0000"
+  },
+  {
+    "creation_time": "2026-03-10T01:41:17+0000",
+    "default_storage_class": "STANDARD",
+    "generation": 1773106877274179237,
+    "location": "US-CENTRAL1",
+    "location_type": "region",
+    "metageneration": 1,
+    "name": "nexusshield-terraform-state",
+    "public_access_prevention": "inherited",
+    "soft_delete_policy": {
+      "effectiveTime": "2026-03-10T01:41:17.363000+00:00",
+      "retentionDurationSeconds": "604800"
+    },
+    "storage_url": "gs://nexusshield-terraform-state/",
+    "uniform_bucket_level_access": true,
+    "update_time": "2026-03-10T01:41:17+0000"
+  },
+  {
+    "creation_time": "2026-03-10T04:14:34+0000",
+    "default_storage_class": "STANDARD",
+    "generation": 1773116073967149914,
+    "labels": {
+      "application": "nexusshield-portal",
+      "deployment": "emergency-firestore-workaround-mar-10-2026",
+      "environment": "production",
+      "managed_by": "terraform",
+      "org-policy-compliant": "true",
+      "purpose": "tfstate-backup"
+    },
+    "lifecycle_config": {
+      "rule": [
+        {
+          "action": {
+            "storageClass": "NEARLINE",
+            "type": "SetStorageClass"
+          },
+          "condition": {
+            "age": 90
+          }
+        },
+        {
+          "action": {
+            "type": "Delete"
+          },
+          "condition": {
+            "age": 365
+          }
+        }
+      ]
+    },
+    "location": "US-CENTRAL1",
+    "location_type": "region",
+    "metageneration": 4,
+    "name": "nexusshield-terraform-state-backups",
+    "public_access_prevention": "inherited",
+    "soft_delete_policy": {
+      "effectiveTime": "2026-03-10T04:14:34.060000+00:00",
+      "retentionDurationSeconds": "604800"
+    },
+    "storage_url": "gs://nexusshield-terraform-state-backups/",
+    "uniform_bucket_level_access": true,
+    "update_time": "2026-03-10T21:12:06+0000",
+    "versioning_enabled": true
+  }
+]
