@@ -291,76 +291,84 @@ resource "google_monitoring_alert_policy" "cloudsql_memory" {
   }
 }
 
-# Redis CPU Alert - DEFERRED (Phase 4.2: resource type validation)
-# resource "google_monitoring_alert_policy" "redis_cpu" {
-#   project      = var.project_id
-#   display_name = "${var.service_name}-${var.environment}: Redis High CPU"
-#   combiner     = "OR"
-#
-#   conditions {
-#     display_name = "Redis CPU Utilization"
-#     condition_threshold {
-#       filter          = "resource.type=\"redis.googleapis.com/Instance\" AND metric.type=\"redis.googleapis.com/stats/cpu_utilization\""
-#       duration        = "300s"
-#       comparison      = "COMPARISON_GT"
-#       threshold_value = var.alert_cpu_threshold / 100
-#     }
-#   }
-#
-#   notification_channels = [google_monitoring_notification_channel.email.id]
-#   alert_strategy {
-#     auto_close = "1800s"
-#   }
-# }
+# Redis CPU Alert - ACTIVE (Phase 4.2: resource types validated - PLURAL form)
+resource "google_monitoring_alert_policy" "redis_cpu" {
+  project      = var.project_id
+  display_name = "${var.service_name}-${var.environment}: Redis High CPU"
+  combiner     = "OR"
 
-# Redis Memory Alert - DEFERRED (Phase 4.2: resource type validation)
-# resource "google_monitoring_alert_policy" "redis_memory" {
-#   project      = var.project_id
-#   display_name = "${var.service_name}-${var.environment}: Redis High Memory"
-#   combiner     = "OR"
-#
-#   conditions {
-#     display_name = "Redis Memory Utilization"
-#     condition_threshold {
-#       filter          = "resource.type=\"redis.googleapis.com/Instance\" AND metric.type=\"redis.googleapis.com/stats/memory_usage_percentage\""
-#       duration        = "300s"
-#       comparison      = "COMPARISON_GT"
-#       threshold_value = var.alert_memory_threshold / 100
-#     }
-#   }
-#
-#   notification_channels = [google_monitoring_notification_channel.email.id]
-#   alert_strategy {
-#     auto_close = "1800s"
-#   }
-# }
+  conditions {
+    display_name = "Redis CPU Utilization"
+    condition_threshold {
+      filter          = "resource.type=\"redis.googleapis.com/Instances\" AND metric.type=\"redis.googleapis.com/stats/cpu_utilization\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.alert_cpu_threshold / 100
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
 
-# Cloud Run Error Rate Alert - DEFERRED (Phase 4.2: metric.response_code_class filter syntax)
-# resource "google_monitoring_alert_policy" "cloudrun_errors" {
-#   project      = var.project_id
-#   display_name = "${var.service_name}-${var.environment}: Cloud Run High Error Rate"
-#   combiner     = "OR"
-#
-#   conditions {
-#     display_name = "Cloud Run Error Rate"
-#     condition_threshold {
-#       filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_count\" AND metric.response_code_class=\"5xx\""
-#       duration        = "60s"
-#       comparison      = "COMPARISON_GT"
-#       threshold_value = var.alert_error_rate_threshold / 100
-#       aggregations {
-#         alignment_period    = "60s"
-#         per_series_aligner  = "ALIGN_RATE"
-#         cross_series_reducer = "REDUCE_NONE"
-#       }
-#     }
-#   }
-#
-#   notification_channels = [google_monitoring_notification_channel.email.id]
-#   alert_strategy {
-#     auto_close = "1800s"
-#   }
-# }
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+# Redis Memory Alert - ACTIVE (Phase 4.2: resource types validated - PLURAL form)
+resource "google_monitoring_alert_policy" "redis_memory" {
+  project      = var.project_id
+  display_name = "${var.service_name}-${var.environment}: Redis High Memory"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Redis Memory Utilization"
+    condition_threshold {
+      filter          = "resource.type=\"redis.googleapis.com/Instances\" AND metric.type=\"redis.googleapis.com/stats/memory_usage_percentage\""
+      duration        = "300s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.alert_memory_threshold / 100
+      aggregations {
+        alignment_period   = "60s"
+        per_series_aligner = "ALIGN_MEAN"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
+
+# Cloud Run Error Rate Alert - ACTIVE (Phase 4.2: metric.response_code_class filter syntax corrected)
+resource "google_monitoring_alert_policy" "cloudrun_errors" {
+  project      = var.project_id
+  display_name = "${var.service_name}-${var.environment}: Cloud Run High Error Rate"
+  combiner     = "OR"
+
+  conditions {
+    display_name = "Cloud Run Error Rate"
+    condition_threshold {
+      filter          = "resource.type=\"cloud_run_revision\" AND metric.type=\"run.googleapis.com/request_count\""
+      duration        = "60s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = var.alert_error_rate_threshold / 100
+      aggregations {
+        alignment_period    = "60s"
+        per_series_aligner  = "ALIGN_RATE"
+        cross_series_reducer = "REDUCE_NONE"
+      }
+    }
+  }
+
+  notification_channels = [google_monitoring_notification_channel.email.id]
+  alert_strategy {
+    auto_close = "1800s"
+  }
+}
 
 # Cloud Run Latency Alert
 resource "google_monitoring_alert_policy" "cloudrun_latency" {
