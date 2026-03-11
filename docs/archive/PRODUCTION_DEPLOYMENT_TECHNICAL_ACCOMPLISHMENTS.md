@@ -5,7 +5,7 @@
 ### 1. Infrastructure-as-Code Framework ✅
 **Status**: Production-ready, fully committed to git
 
-- **File**: [nexusshield/infrastructure/terraform/production/main.tf](nexusshield/infrastructure/terraform/production/main.tf)
+- **File**: [BASE64_BLOB_REDACTED.tf](BASE64_BLOB_REDACTED.tf)
 - **Features**:
   - 400+ lines of Terraform HCL
   - Idempotent: safe to re-apply without conflicts
@@ -69,7 +69,7 @@
 
 #### Initialization
 ```bash
-cd nexusshield/infrastructure/terraform/production
+cd BASE64_BLOB_REDACTED
 terraform init -upgrade
 # Result: ✅ Backend initialized (local state)
 # Providers: ✅ google v5.45.2, google-beta v5.45.2, random v3.8.1
@@ -258,8 +258,8 @@ terraform apply tfplan.production
 
 | File | Status | Purpose |
 |------|--------|---------|
-| `nexusshield/infrastructure/terraform/production/main.tf` | ✅ Active | IaC - all infrastructure |
-| `nexusshield/infrastructure/terraform/production/terraform.tfstate` | ✅ Active | Local Terraform state |
+| `BASE64_BLOB_REDACTED.tf` | ✅ Active | IaC - all infrastructure |
+| `BASE64_BLOB_REDACTED.tfstate` | ✅ Active | Local Terraform state |
 | `scripts/complete-production-deployment.sh` | ✅ Active | Deployment orchestrator |
 | `/tmp/terraform-sa.json` | ✅ Active | Service account key |
 | `INFRASTRUCTURE_DEPLOYMENT_STATUS_20260310.md` | ✅ New | Blocker documentation |
@@ -276,7 +276,7 @@ terraform apply tfplan.production
 
 ### Phase 2: Infrastructure Deployment (10 minutes)
 ```bash
-cd nexusshield/infrastructure/terraform/production
+cd BASE64_BLOB_REDACTED
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/terraform-sa.json
 terraform apply tfplan.production.public
 ```

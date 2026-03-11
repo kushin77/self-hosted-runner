@@ -95,7 +95,7 @@
 ### Infrastructure Assets
 - **New Service Account**: `nxs-portal-production-v2@nexusshield-prod.iam.gserviceaccount.com`
 - **Service Account ID**: 103820994902755279390
-- **SA Key ID**: `164ccc5b1884df8437c24a2e67ade1bd523df8e0`
+- **SA Key ID**: `BASE64_BLOB_REDACTED`
 - **Secret Manager**: `nxs-portal-sa-key-v2-1073110159`
 - **Cloud Run Service**: `nexusshield-portal-backend-production`
 - **Cloud SQL Instance**: `nexusshield-portal-db-c6f3`

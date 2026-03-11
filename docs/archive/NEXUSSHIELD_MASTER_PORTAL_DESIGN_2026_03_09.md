@@ -154,7 +154,7 @@ GET    /api/v1/audit/github-integration    # GitHub commit + comment audit
 
 **Current State Dashboard:**
 - **OIDC Pool (GCP Workload Identity)**
-  - Status: Active | Pool ID: `projects/123/locations/global/workloadIdentityPools/github-actions`
+  - Status: Active | Pool ID: `BASE64_BLOB_REDACTED-actions`
   - Service Account: `github-actions@project.iam.gserviceaccount.com`
   - Workflows using: 47 | Last used: 2h ago
   - TTL: 1 hour (ephemeral) | Expiry: 2026-04-09

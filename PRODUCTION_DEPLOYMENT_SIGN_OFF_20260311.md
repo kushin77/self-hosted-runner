@@ -115,7 +115,7 @@ Status: HTTP 202
 
 ### Immutable Audit Trail
 ```bash
-$ tail -5 /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+$ tail -5 BASE64_BLOB_REDACTED-migrate-audit.jsonl
 ```
 - Entry 13: "job_queued" (cc72344c-46f0-4afe-bcb5-f6a01a9b226b)
 - Entry 14: "dry_run_simulation_start"
@@ -260,7 +260,7 @@ This production deployment meets all architectural requirements:
 sudo systemctl status cloudrun.service redis-worker.service
 
 # Tail recent audit entries
-tail -f /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -f BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # Monitor job queue
 redis-cli LLEN migration_jobs

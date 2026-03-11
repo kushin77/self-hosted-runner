@@ -71,7 +71,7 @@ gcloud iam workload-identity-pools providers describe $PROVIDER_ID --workload-id
 gcloud iam service-accounts add-iam-policy-binding nxs-automation-sa@nexusshield-prod.iam.gserviceaccount.com \
   --project=nexusshield-prod \
   --role=roles/iam.workloadIdentityUser \
-  --member="principalSet://iam.googleapis.com/projects/151423364222/locations/global/workloadIdentityPools/$POOL_ID/attribute.repository/<org>/<repo>"
+  --member="principalSet://iam.googleapis.BASE64_BLOB_REDACTED$POOL_ID/attribute.repository/<org>/<repo>"
 ```
 
 4) Update Runner / Automation to use the provider (example: use `gcloud` with token exchange)
