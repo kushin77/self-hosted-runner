@@ -6,7 +6,22 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
-echo "Scanning tracked files for 'VAULT_TKN'..."
+# Parse options
+DRY_RUN=false
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --dry-run)
+      DRY_RUN=true
+      shift
+      ;;
+    *)
+      echo "Usage: $0 [--dry-run]"
+      exit 1
+      ;;
+  esac
+done
+
+echo "Scanning tracked files for 'VAULT_TKN' patterns..."
 # Use git grep to find occurrences only in tracked files (avoid build/coverage/logs)
 mapfile -t files < <(git grep -Il "VAULT_TKN" || true)
 if [[ ${#files[@]} -eq 0 ]]; then
@@ -14,13 +29,24 @@ if [[ ${#files[@]} -eq 0 ]]; then
   exit 0
 fi
 
-echo "Found ${#files[@]} files. Making backups and applying replacements..."
+echo "Found ${#files[@]} files."
+if [[ "$DRY_RUN" == "true" ]]; then
+  echo "[DRY-RUN] Would sanitize:"
+  printf '%s\n' "${files[@]}"
+  exit 0
+fi
+
+echo "Making backups and applying replacements..."
 for f in "${files[@]}"; do
   echo " - $f"
   cp -- "$f" "$f.bak"
-  perl -0777 -pe \
-    's/VAULT_TKN_MOUNT_PATH/VAULT_TKN_MOUNT_PATH/g; s/VAULT_TKN_FILE/VAULT_TKN_FILE/g; s/VAULT_TKN/VAULT_TKN/g;' \
-    "$f.bak" > "$f"
+  # Sanitize with proper redaction replacements
+  sed -i.tmp \
+    -e 's/vault_token\s*=\s*[^\n]*/vault_token=REDACTED/gi' \
+    -e 's/VAULT_TOKEN\s*=\s*[^\n]*/VAULT_TOKEN=REDACTED/gi' \
+    -e 's/\bVAULT_TKN\b/VAULT_TKN_REDACTED/g' \
+    "$f"
+  rm -f "$f.tmp"
 done
 
 echo "Re-checking for remaining tracked matches..."
