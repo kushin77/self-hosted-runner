@@ -214,11 +214,16 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/audit/export' && method === 'GET') {
       let exported = 0;
-      auditTrail.forEach(entry => {
-        const logDir = '/home/akushnir/self-hosted-runner/logs';
+      const logDir = process.env.LOG_DIR || '/tmp/logs';
+      try {
         if (!fs.existsSync(logDir)) {
           fs.mkdirSync(logDir, { recursive: true });
         }
+      } catch (e) {
+        console.error('Failed to prepare log directory:', e.message);
+      }
+
+      auditTrail.forEach(entry => {
         try {
           fs.appendFileSync(
             path.join(logDir, 'portal-api-audit-export.jsonl'),
