@@ -462,7 +462,7 @@ Multiple critical GCP infrastructure requirements are blocking full automation d
 
 **Actions Required:**
 - [ ] Grant runner SA \`roles/secretmanager.secretAdmin\`
-- [ ] Install SSH public key for runner@192.168.168.42
+- [ ] Install SSH public key for akushnir@192.168.168.42
 - [ ] Run bootstrap worker script
 
 **Effort:** 10 minutes
