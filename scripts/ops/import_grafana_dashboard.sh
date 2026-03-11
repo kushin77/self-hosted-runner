@@ -37,7 +37,10 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 echo "Importing dashboard to Grafana: $GRAFANA_URL"
-body=$(jq -c -n --argfile d "$DASH_FILE" '{dashboard: $d, overwrite: true}')
+dashcontent=$(cat "$DASH_FILE")
+body=$(jq -c -n --arg dash "$dashcontent" '{dashboard: ($dash | fromjson), overwrite: true}')
 
-curl -sS -H "Content-Type: application/json" -H "Authorization: Bearer $GRAFANA_API_KEY" \
-  -X POST "$GRAFANA_URL/api/dashboards/db" -d "$body" | jq .
+result=$(curl -sS -H "Content-Type: application/json" -H "Authorization: Bearer $GRAFANA_API_KEY" \
+  -X POST "$GRAFANA_URL/api/dashboards/db" -d "$body" 2>&1)
+
+echo "$result" | jq . 2>/dev/null || echo "$result"
