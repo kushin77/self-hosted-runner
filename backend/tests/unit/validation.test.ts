@@ -57,7 +57,7 @@ describe('Input Validation Schemas', () => {
 
   describe('CredentialAccessSchema', () => {
     it('should validate credential name format', () => {
-      const validNames = ['DB_PASSWORD', 'api-key-prod', 'secret.value'];
+      const validNames = ['REDACTED', 'api-key-prod', 'secret.value'];
       validNames.forEach((name) => {
         const result = CredentialAccessSchema.parse({ name });
         expect(result.name).toBe(name);

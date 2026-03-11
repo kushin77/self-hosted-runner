@@ -151,8 +151,8 @@ POST   /api/v1/cleanup                             Cleanup all resources
    - Fetch: gcloud secrets versions access latest --secret="provider-credentials"
 
 2. HashiCorp Vault
-   - Environment: VAULT_ADDR, VAULT_TOKEN
-   - Fetch: curl -H "X-Vault-Token: $VAULT_TOKEN" $VAULT_ADDR/v1/secret/data/credentials/provider
+   - Environment: VAULT_ADDR, REDACTED
+   - Fetch: curl -H "X-Vault-Token: $REDACTED" $VAULT_ADDR/v1/secret/data/credentials/provider
 
 3. AWS KMS
    - Environment: AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
@@ -172,11 +172,11 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/service-account-key.json"
 
 # For Vault
 export VAULT_ADDR="https://vault.example.com:8200"
-export VAULT_TOKEN="your-vault-token"
+export REDACTED="your-vault-token"
 
 # For AWS KMS
 export AWS_REGION="us-west-2"
-export AWS_ACCESS_KEY_ID="your-access-key"
+export AWS_ACCESS_KEY_ID=REDACTED"
 export AWS_SECRET_ACCESS_KEY="your-secret-key"
 
 # For All

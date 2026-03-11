@@ -111,8 +111,8 @@ bd7edba6d automation: Phase 2 vault appRole + KMS
 **Status:** ⏳ Awaiting AWS credentials  
 **Unblock Path:**
 ```bash
-export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
+export AWS_ACCESS_KEY_ID=REDACTED
+REDACTED_SECRET
 bash scripts/phase3b-credentials-aws-vault.sh  # Re-run (idempotent)
 ```
 
