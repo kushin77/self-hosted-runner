@@ -1,0 +1,11 @@
+{"timestamp":"2026-03-11T16:02:07Z","status":"IN_PROGRESS","action":"audit_started","result":""}
+{"timestamp":"2026-03-11T16:02:07Z","status":"SUCCESS","action":"audit_gsm","result":"count=40"}
+{"timestamp":"2026-03-11T16:02:07Z","status":"SUCCESS","action":"audit_azure","result":"count=5"}
+{"timestamp":"2026-03-11T16:02:07Z","status":"SUCCESS","action":"audit_complete","result":"gsm=40,azure=5"}
+{"timestamp":"2026-03-11T16:02:07Z","status":"IN_PROGRESS","action":"remediation_started","result":""}
+{"timestamp":"2026-03-11T16:02:07Z","status":"COMPLETED_WITH_WARNINGS","action":"remediation_mirror","result":"partial"}
+{"timestamp":"2026-03-11T16:02:07Z","status":"SUCCESS","action":"remediation_complete","result":""}
+{"timestamp":"2026-03-11T16:02:07Z","status":"IN_PROGRESS","action":"verification_started","result":""}
+{"timestamp":"2026-03-11T16:02:07Z","status":"COMPLETED_WITH_WARNINGS","action":"verification_parity","result":"gap=35"}
+{"timestamp":"2026-03-11T16:02:07Z","status":"SUCCESS","action":"verification_complete","result":""}
+{"timestamp":"2026-03-11T16:02:07Z","status":"IN_PROGRESS","action":"commit_started","result":""}
