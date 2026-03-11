@@ -468,8 +468,8 @@ unblock_docs_sanitization() {
   PATTERNS=(
     "AKIA[0-9A-Z]{16}"  # AWS access keys
     "ghp_[A-Za-z0-9_]{36,255}"  # GitHub PATs
-    "-----BEGIN PRIVATE KEY-----"  # Private keys
-    "-----BEGIN RSA PRIVATE KEY-----"  # RSA keys
+$PLACEHOLDER
+$PLACEHOLDER
     "[a-f0-9]{32,}"  # Long hex strings (potential tokens)
   )
   

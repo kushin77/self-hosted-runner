@@ -10,7 +10,7 @@ import Dashboard from '../../../src/components/Dashboard';
 
 describe('Dashboard Component', () => {
   const mockCredentials = [
-    { id: '1', name: 'db_password', type: 'password', lastRotated: '2026-03-10', status: 'active' },
+$PLACEHOLDER
     { id: '2', name: 'api_key', type: 'api_key', lastRotated: '2026-03-08', status: 'active' },
   ];
 
@@ -56,7 +56,7 @@ describe('Dashboard Component', () => {
     it('should render credentials list', () => {
       render(<Dashboard user={mockUser} credentials={mockCredentials} />);
 
-      expect(screen.getByText('db_password')).toBeInTheDocument();
+$PLACEHOLDER
       expect(screen.getByText('api_key')).toBeInTheDocument();
     });
   });
@@ -65,7 +65,7 @@ describe('Dashboard Component', () => {
     it('should display credential name', () => {
       render(<Dashboard user={mockUser} credentials={mockCredentials} />);
 
-      expect(screen.getByText('db_password')).toBeInTheDocument();
+$PLACEHOLDER
     });
 
     it('should display credential type', () => {
@@ -166,7 +166,7 @@ describe('Dashboard Component', () => {
       fireEvent.click(passwordOption);
 
       await waitFor(() => {
-        expect(screen.getByText('db_password')).toBeInTheDocument();
+$PLACEHOLDER
         expect(screen.queryByText('api_key')).not.toBeInTheDocument();
       });
     });
@@ -178,7 +178,7 @@ describe('Dashboard Component', () => {
       await userEvent.type(searchInput, 'db_');
 
       await waitFor(() => {
-        expect(screen.getByText('db_password')).toBeInTheDocument();
+$PLACEHOLDER
         expect(screen.queryByText('api_key')).not.toBeInTheDocument();
       });
     });
