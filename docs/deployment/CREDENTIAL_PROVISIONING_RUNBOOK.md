@@ -73,7 +73,7 @@ vault server -dev -dev-root-token-id=dev-token-$(date +%s) -dev-listen-address=1
 
 # In another terminal, export credentials
 export VAULT_ADDR='http://127.0.0.1:8200'
-export REDACTED_VAULT_TOKEN='dev-token-...'  # From server output
+export REDACTED_REDACTED='dev-token-...'  # From server output
 
 # Enable KV v2 (if not already enabled)
 vault secrets enable -version=2 kv
@@ -107,7 +107,7 @@ ssh akushnir@192.168.168.42
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
 Environment="VAULT_ADDR=http://127.0.0.1:8200"
-Environment="REDACTED_VAULT_TOKEN=dev-token-<your-token>"
+Environment="REDACTED_REDACTED=dev-token-<your-token>"
 Environment="CRED_SOURCE=vault"
 ExecStart=
 ExecStart=/usr/local/bin/wait-and-deploy.sh
@@ -216,8 +216,8 @@ aws iam attach-user-policy \
   --policy-arn arn:aws:iam::$(aws sts get-caller-identity --query Account --output text):policy/runner-watcher-policy
 
 # Store credentials in Vault or environment
-echo "export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID'"
-echo "export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY'"
+echo "export AWS_ACCESS_KEY_ID=REDACTED'"
+echo "REDACTED_SECRET'"
 echo "export AWS_REGION='us-east-1'"
 ```
 
@@ -230,7 +230,7 @@ ssh akushnir@192.168.168.42
 # Update systemd drop-in to use AWS
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
-Environment="AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID"
+Environment="AWS_ACCESS_KEY_ID=REDACTED"
 Environment="REDACTED_AWS_SECRET_ACCESS_KEY=<your-secret-key>"
 Environment="AWS_REGION=us-east-1"
 Environment="CRED_SOURCE=aws"
@@ -422,7 +422,7 @@ sudo systemctl enable --now vault-agent.service
 sudo tee /etc/systemd/system/wait-and-deploy.service.d/override.conf <<EOF
 [Service]
 Environment="VAULT_ADDR=https://vault.production.example.com:8200"
-Environment="REDACTED_VAULT_TOKEN_FILE=/var/run/vault/.vault-token"
+Environment="REDACTED_REDACTED_FILE=/var/run/vault/.vault-token"
 Environment="CRED_SOURCE=vault"
 ExecStart=
 ExecStart=/usr/local/bin/wait-and-deploy.sh
