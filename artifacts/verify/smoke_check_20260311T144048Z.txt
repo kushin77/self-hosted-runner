@@ -1,0 +1,12 @@
+Local secrets health check starting at Wed Mar 11 02:40:48 PM UTC 2026
+DRY-RUN mode: running mirror script without writes
+
+╔════════════════════════════════════════════════════╗
+║   Unified Secrets Mirror (GSM → Vault/KMS/KeyVault)║
+║         Canonical Source: GSM (nexusshield-prod)      ║
+╚════════════════════════════════════════════════════╝
+
+[0;34m[2026-03-11 14:40:49][0m 
+[0;34m[2026-03-11 14:40:49][0m Processing secret: azure-client-id
+[0;34m[2026-03-11 14:40:50][0m Mirroring azure-client-id to Key Vault nsv298610...
+[1;33m⚠[0m DRY-RUN: would set secret azure-client-id in Key Vault nsv298610

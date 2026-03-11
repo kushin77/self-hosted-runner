@@ -1,0 +1,18 @@
+{
+  "name": "prevent-releases",
+  "url": "https://prevent-releases-2tqp6t4txq-uc.a.run.app",
+  "hook_attributes": {
+    "url": "https://prevent-releases-2tqp6t4txq-uc.a.run.app/api/webhooks"
+  },
+  "callback_url": "https://prevent-releases-2tqp6t4txq-uc.a.run.app",
+  "public": false,
+  "default_permissions": {
+    "contents": "read",
+    "issues": "write",
+    "metadata": "read"
+  },
+  "default_events": [
+    "create",
+    "release"
+  ]
+}

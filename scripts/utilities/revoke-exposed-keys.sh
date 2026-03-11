@@ -7,7 +7,7 @@
 # 
 # Prerequisites:
 #   - gcloud CLI configured with GSM access
-#   - Vault CLI configured (VAULT_ADDR, REDACTED_VAULT_TOKEN or auth method)
+#   - Vault CLI configured (VAULT_ADDR, REDACTED_VAULT_TKN or auth method)
 #   - aws CLI configured with KMS access
 #   - logs/deployment-provisioning-audit.jsonl existing (audit trail)
 
