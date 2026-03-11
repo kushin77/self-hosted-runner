@@ -534,8 +534,8 @@ async def run_migration(migration_id: str, source_provider: str, dry_run: bool):
 # CANONICAL SYNC ENDPOINTS
 # ============================================================================
 
-@app.post("/api/v1/secrets/sync-all", response_model=SyncResult, tags=["Canonical Sync"])
-async def sync_secret_to_all_providers(request: SyncRequest):
+@app.post("/api/v1/secrets/sync-all", tags=["Canonical Sync"])
+async def sync_secret_to_all_providers(request: Dict):
     """
     Sync a secret from Vault (primary) to all fallback providers
     
@@ -553,16 +553,23 @@ async def sync_secret_to_all_providers(request: SyncRequest):
     """
     from canonical_secrets_provider import _provider
     
-    results = _provider.sync_to_all_providers(request.secret_name, request.secret_value)
-    
-    return SyncResult(
-        secret_name=request.secret_name,
-        vault=results.get("vault", False),
-        gsm=results.get("gsm"),
-        aws=results.get("aws"),
-        azure=results.get("azure"),
-        timestamp=datetime.utcnow().isoformat() + "Z"
-    )
+    # Support legacy payloads that may use "value" instead of "secret_value".
+    name = request.get("secret_name") or request.get("name")
+    value = request.get("secret_value") or request.get("value")
+
+    if not name or not value:
+        raise HTTPException(status_code=422, detail="Missing secret_name or secret_value/value")
+
+    results = _provider.sync_to_all_providers(name, value)
+
+    return {
+        "secret_name": name,
+        "vault": results.get("vault", False),
+        "gsm": results.get("gsm"),
+        "aws": results.get("aws"),
+        "azure": results.get("azure"),
+        "timestamp": datetime.utcnow().isoformat() + "Z"
+    }
 
 
 # ============================================================================
