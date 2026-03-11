@@ -1,0 +1,21 @@
+[Unit]
+Description=Portal Audit Log Rotation, Verification & Upload
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/akushnir/self-hosted-runner
+Environment="REPO_ROOT=/home/akushnir/self-hosted-runner"
+Environment="GCS_AUDIT_BUCKET=nexusshield-audit-logs"
+
+ExecStart=/bin/bash -c 'scripts/audit/rotate-and-upload-audit.sh'
+
+SyslogIdentifier=audit-rotate
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
