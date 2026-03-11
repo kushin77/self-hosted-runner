@@ -1,10 +1,8 @@
-variable "project" { type = string }
-
 resource "google_logging_metric" "secret_rotation_metric" {
-  name   = "secret_rotation_events"
-  project = var.project
-  description = "Counts Secret Manager secret version creations for uptime-check-token"
-  filter = "resource.type=\"secret\" AND protoPayload.methodName=\"google.cloud.secretmanager.v1.SecretManagerService.AddSecretVersion\" AND resource.labels.secret_id=\"uptime-check-token\""
+  name        = "secret_rotation_events_${var.secret_id}"
+  project     = var.project_id
+  description = "Counts Secret Manager secret version creations for ${var.secret_id}"
+  filter      = "resource.type=\"secret\" AND protoPayload.methodName=\"google.cloud.secretmanager.v1.SecretManagerService.AddSecretVersion\" AND resource.labels.secret_id=\"${var.secret_id}\""
   metric_descriptor {
     metric_kind = "DELTA"
     value_type  = "INT64"
@@ -12,23 +10,24 @@ resource "google_logging_metric" "secret_rotation_metric" {
 }
 
 resource "google_monitoring_alert_policy" "secret_rotation_alert" {
-  display_name = "Secret rotation missing for uptime-check-token"
-  combiner = "AND"
+  count        = length(var.notification_channels) > 0 ? 1 : 0
+  display_name = "Secret rotation missing for ${var.secret_id}"
+  combiner     = "AND"
 
-  notification_channels = [] # configure as needed
+  notification_channels = var.notification_channels
 
   conditions {
     display_name = "No secret rotation in 24h"
     condition_threshold {
-      filter = "metric.type=\"logging.googleapis.com/user/secret_rotation_events\""
+      filter = "metric.type=\"logging.googleapis.com/user/secret_rotation_events_${var.secret_id}\""
       aggregations {
-        alignment_period = "86400s"
-        per_series_aligner = "ALIGN_SUM"
+        alignment_period    = "86400s"
+        per_series_aligner  = "ALIGN_SUM"
       }
-      comparison = "COMPARISON_LT"
+      comparison     = "COMPARISON_LT"
       threshold_value = 1
-      duration = "0s"
+      duration       = "0s"
     }
   }
-  project = var.project
+  project = var.project_id
 }
