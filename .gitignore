@@ -142,3 +142,6 @@ secrets.env
 secrets.env
 *.key
 /secrets.env.template
+secrets.env
+*.key
+/secrets.env.template
