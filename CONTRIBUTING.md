@@ -202,30 +202,39 @@ new feature
 WIP
 ```
 
-### 6. Pull Request Process
+### 6. Direct-Deploy Workflow (NO PRs / NO GitHub Actions)
 
-1. **Push your branch**
-   ```bash
-   git push origin feature/my-feature-name
-   ```
+This repository follows a direct-development, direct-deploy model. There are no GitHub Actions or PR-based release gates. Follow these rules when making changes and pushing directly to `main`:
 
-2. **Create PR with description**
-   - Link related issues: `Fixes #1234`
-   - Describe what changed and why
-   - Include testing instructions
+1. Update your local `main` and run full local tests:
 
-3. **Address review feedback**
-   ```bash
-   git add .
-   git commit -m "address PR review comments"
-   git push origin feature/my-feature-name
-   ```
+```bash
+git checkout main
+git pull origin main
+# make your changes on a short-lived branch
+git checkout -b work/brief-description
+# run tests and linters locally
+cd backend && npm test && npm run lint
+```
 
-4. **Merge when approved**
-   - [ ] All tests passing
-   - [ ] TypeScript compilation clean
-   - [ ] Code review approved
-   - [ ] No merge conflicts
+2. Commit with a clear conventional commit message (see "Commit Message Format").
+
+3. Push directly to `main` only when:
+  - All tests pass locally (`npm test` / `pytest` / type-checks). 
+  - Linting and formatting are clean.
+  - Changes are documented in `REFactor_CHANGES_*.md` when they affect architecture or workflow.
+
+```bash
+git add .
+git commit -m "fix: brief description (affects: backend, telemetry)"
+git checkout main
+git merge --no-ff work/brief-description
+git push origin main
+```
+
+4. After push, the repository's deployment automation (Cloud Build / in-repo deployment scripts) will perform the hands-off deployment. Do not rely on GitHub Actions or PR merges for releases.
+
+5. If a change requires review, open a short-lived issue and request a reviewer; include a clear summary and testing notes. Reviewers will validate and respond; merge when agreed.
 
 ---
 
