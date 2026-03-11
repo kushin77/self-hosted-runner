@@ -1,6 +1,6 @@
 #!/bin/bash
 # Automated credential detector + deploy trigger
-# Handles auto-deployment when GSM secret or local SA key becomes available
+# Handles auto-deployment when GSM/Vault credentials become available
 # Idempotent, safe for cron/systemd timer; logs all attempts
 
 set -euo pipefail
@@ -13,6 +13,7 @@ LOG_FILE="${LOG_DIR}/credential-detector-$(date +%Y%m%d).log"
 DEPLOY_SCRIPT="${DEPLOY_SCRIPT:-infra/terraform/tmp_observability/deploy_with_gsm.sh}"
 VAULT_SECRET_PATH="${VAULT_SECRET_PATH:-secret/data/nexus/deploy-sa-key}"
 VAULT_FIELD="${VAULT_FIELD:-sa_key}"
+ALLOW_LOCAL_KEY="${ALLOW_LOCAL_KEY:-0}"
 
 mkdir -p "$LOG_DIR"
 
@@ -33,8 +34,11 @@ check_gsm_secret() {
     return 1
 }
 
-# Check for local SA key
+# Check for local SA key (disabled by default; set ALLOW_LOCAL_KEY=1 to enable)
 check_local_key() {
+    if [ "${ALLOW_LOCAL_KEY}" != "1" ]; then
+        return 1
+    fi
     if [ -f /etc/nexusshield/gcp-sa.json ]; then
         log_event "INFO" "Local SA key found at /etc/nexusshield/gcp-sa.json"
         return 0
@@ -114,8 +118,8 @@ main() {
         fi
         log_event "ERROR" "Deployment via Vault failed"
     else
-        log_event "WARN" "No credentials found (GSM secret, Vault, or local key)"
-        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Place SA key at /etc/nexusshield/gcp-sa.json, OR (C) Set VAULT_ADDR & VAULT_TOKEN and store SA key at $VAULT_SECRET_PATH with field $VAULT_FIELD"
+        log_event "WARN" "No credentials found (GSM secret or Vault) [local key disabled by default]"
+        log_event "WARN" "REMEDIATION: (A) Create GSM secret $SECRET_NAME with SA key, OR (B) Set VAULT_ADDR & VAULT_TOKEN and store SA key at $VAULT_SECRET_PATH with field $VAULT_FIELD. Optional: set ALLOW_LOCAL_KEY=1 to use /etc/nexusshield/gcp-sa.json"
         echo "Credentials not yet available. See $LOG_FILE for details."
         return 1
     fi
