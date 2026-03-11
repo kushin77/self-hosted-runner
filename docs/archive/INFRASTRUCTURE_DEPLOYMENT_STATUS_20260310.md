@@ -87,7 +87,7 @@ enforced at the 151423364222 project
 ## Deployment Artifacts
 
 ### Terraform Configuration
-**File**: `/nexusshield/infrastructure/terraform/production/main.tf`
+**File**: `BASE64_BLOB_REDACTED.tf`
 
 **Key resources**:
 ```hcl
@@ -110,7 +110,7 @@ resource "google_project_iam_member" "*" { ... }                 # ✅ 5 members
 
 ### Deployment State
 - **Backend**: Local (`terraform.tfstate`)
-- **Location**: `/nexusshield/infrastructure/terraform/production/`
+- **Location**: `BASE64_BLOB_REDACTED`
 - **Service Account**: `terraform-deployer@nexusshield-prod.iam.gserviceaccount.com`
 - **Project**: `nexusshield-prod` (151423364222)
 
@@ -119,10 +119,10 @@ resource "google_project_iam_member" "*" { ... }                 # ✅ 5 members
 2. Previously: Infrastructure setup, service account creation
 
 ### Logs
-- Plan: `/nexusshield/infrastructure/terraform/production/tfplan.production.public`
+- Plan: `BASE64_BLOB_REDACTED.production.public`
 - Apply logs:
-  - `/nexusshield/infrastructure/terraform/production/terraform-apply-production-20260310-031213.log` (first attempt, PSC failed)
-  - `/nexusshield/infrastructure/terraform/production/terraform-apply-public-20260310-031530.log` (public IP attempt, blocked)
+  - `BASE64_BLOB_REDACTED-apply-production-20260310-031213.log` (first attempt, PSC failed)
+  - `BASE64_BLOB_REDACTED-apply-public-20260310-031530.log` (public IP attempt, blocked)
 
 ---
 
@@ -142,7 +142,7 @@ resource "google_project_iam_member" "*" { ... }                 # ✅ 5 members
 
 ### Re-deployment Steps (After Policy Resolution)
 ```bash
-cd /nexusshield/infrastructure/terraform/production
+cd BASE64_BLOB_REDACTED
 export GOOGLE_APPLICATION_CREDENTIALS=/tmp/terraform-sa.json
 terraform plan -out=tfplan.final
 terraform apply tfplan.final

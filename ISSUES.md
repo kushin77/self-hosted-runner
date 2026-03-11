@@ -5,7 +5,7 @@ This file lists suggested issues to create/track in your GitHub repository. I cr
 ## Suggested issues
 
 1. chore: Review and approve Vault-primary canonical secrets implementation
-   - Description: Review `scripts/secrets/*`, `scripts/cloudrun/canonical_secrets_provider.py`, `backend/src/api/canonical_secrets_api.py`, `frontend/src/components/SecretsManagementDashboard.tsx`, and `scripts/nexusshield-secrets-cli.sh` for security and operational readiness.
+   - Description: Review `scripts/secrets/*`, `scripts/cloudrun/canonical_secrets_provider.py`, `backend/src/api/canonical_secrets_api.py`, `BASE64_BLOB_REDACTED.tsx`, and `scripts/nexusshield-secrets-cli.sh` for security and operational readiness.
    - Labels: enhancement, security-review
 
 2. test: Add integration smoke tests for secrets provider resolution

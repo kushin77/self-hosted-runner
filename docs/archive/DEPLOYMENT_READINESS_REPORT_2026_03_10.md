@@ -116,7 +116,7 @@ docker build -t us-central1-docker.pkg.dev/nexusshield-prod/portal-backend-repo/
 docker push us-central1-docker.pkg.dev/nexusshield-prod/portal-backend-repo/portal:latest
 
 # 3. Update Terraform to use custom image
-cd nexusshield/infrastructure/terraform/production
+cd BASE64_BLOB_REDACTED
 TF_VAR_portal_image="us-central1-docker.pkg.dev/nexusshield-prod/portal-backend-repo/portal:latest" \
   terraform apply -input=false -auto-approve -lock=false
 ```

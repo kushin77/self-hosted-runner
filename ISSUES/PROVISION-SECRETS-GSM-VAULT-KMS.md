@@ -26,5 +26,5 @@ Verification steps
 - Confirm Cloud Run revision can mount `portal-db-password` and start.
 
 Notes
-- If you need the exact deployer SA name, see `nexusshield/infrastructure/terraform/production/outputs.tf` or open an audit request.
+- If you need the exact deployer SA name, see `BASE64_BLOB_REDACTED.tf` or open an audit request.
 - Contact: infra-team (cc:network-security)

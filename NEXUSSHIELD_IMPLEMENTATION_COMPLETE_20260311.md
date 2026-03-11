@@ -185,7 +185,7 @@ redis.service          - Active (listening 0.0.0.0:6379)
 
 5. **Immutable Audit Trail**
    ```
-   Location: /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+   Location: BASE64_BLOB_REDACTED-migrate-audit.jsonl
    Entries: 10+ chained SHA256 entries
    Verification: prev → hash chain intact
    ```
@@ -345,10 +345,10 @@ curl http://localhost:8080/health
 ### Check Audit Trail
 ```bash
 # View live audit log
-tail -f /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl
+tail -f BASE64_BLOB_REDACTED-migrate-audit.jsonl
 
 # Parse JSON entries
-cat /opt/nexusshield/scripts/cloudrun/logs/portal-migrate-audit.jsonl | \
+cat BASE64_BLOB_REDACTED-migrate-audit.jsonl | \
   python3 -c "import sys,json; [print(json.dumps(json.loads(l)['entry'],indent=2)) for l in sys.stdin]"
 
 # Verify SHA256 chain (basic)

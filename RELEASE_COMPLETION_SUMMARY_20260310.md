@@ -5,7 +5,7 @@
 **Date:** March 10, 2026  
 **Branch:** `release/go-live-2026-03-10`  
 **Tag:** `v2026.03.10`  
-**Audit SHA:** `25103610f804fc822e99e7709a8231de449543bad442f6ab0305e0c1f291ab99`
+**Audit SHA:** `BASE64_BLOB_REDACTED`
 
 ---
 
@@ -39,14 +39,14 @@
     "actor": "auto-verifier",
     "action": "cloud-finalize-verified",
     "path": "artifacts-archive/system-install/go-live-finalize-20260310T192403Z.log",
-    "sha256": "25103610f804fc822e99e7709a8231de449543bad442f6ab0305e0c1f291ab99"
+    "sha256": "BASE64_BLOB_REDACTED"
   }
   ```
 
 ### 5. Archive & Verification
 - **Cloud Finalization Log:** `artifacts-archive/system-install/go-live-finalize-20260310T192403Z.log` (128 lines)
 - **Log Contents Verified:** Contains "Terraform apply complete!" and "deployment complete" (heuristics matched ✅)
-- **SHA256 Match:** `25103610f804fc822e99e7709a8231de449543bad442f6ab0305e0c1f291ab99` (verified)
+- **SHA256 Match:** `BASE64_BLOB_REDACTED` (verified)
 
 ---
 
