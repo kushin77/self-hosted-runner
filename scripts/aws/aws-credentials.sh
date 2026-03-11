@@ -16,16 +16,16 @@ fetch_from_vault(){
   vault kv get -field=access_key_id "$path" 2>/dev/null || true
 }
 
-AWS_ACCESS_KEY_ID=""
+AWS_ACCESS_KEY_ID=REDACTED"
 AWS_SECRET_ACCESS_KEY=""
 
-AWS_ACCESS_KEY_ID=$(fetch_from_gsm aws-access-key-id || true)
+AWS_ACCESS_KEY_ID=REDACTED
 AWS_SECRET_ACCESS_KEY=$(fetch_from_gsm aws-secret-access-key || true)
 
 if [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
   # try Vault
   if command -v vault >/dev/null 2>&1; then
-    AWS_ACCESS_KEY_ID=$(vault kv get -field=access_key_id secret/aws/epic6 2>/dev/null || true)
+    AWS_ACCESS_KEY_ID=REDACTED
     AWS_SECRET_ACCESS_KEY=$(vault kv get -field=secret_access_key secret/aws/epic6 2>/dev/null || true)
   fi
 fi

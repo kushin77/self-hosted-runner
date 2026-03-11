@@ -12,7 +12,7 @@
 
 ```bash
 # 1. Set AWS credentials
-./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxxxxxxxxxx
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED --secret xxxxxxxxxxxxxxx
 
 # 2. Set Vault credentials (optional Layer 2A)
 ./scripts/phase3b-credential-manager.sh set-vault \
@@ -33,10 +33,10 @@
 ### Option 2: Direct Environment Variables
 
 ```bash
-export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
+export AWS_ACCESS_KEY_ID=REDACTED
+REDACTED_SECRET
 export VAULT_ADDR=https://vault.example.com:8200
-export REDACTED_VAULT_TOKEN=<REDACTED>
+export REDACTED_REDACTED=<REDACTED>
 
 bash scripts/phase3b-credentials-inject-activate.sh
 ```
@@ -57,10 +57,10 @@ bash scripts/phase3b-credentials-inject-activate.sh
 **Via GitHub CLI:**
 ```bash
 gh workflow run phase3b-credential-injection.yml \
-  -f AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
+  -f AWS_ACCESS_KEY_ID=REDACTED
   -f REDACTED_AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxx \
   -f vault_addr=https://vault.example.com:8200 \
-  -f REDACTED_VAULT_TOKEN=<REDACTED>
+  -f REDACTED_REDACTED=<REDACTED>
 ```
 
 **Result:** GitHub Actions auto-runs Phase 3B, creates workflow job comment on issues
@@ -98,7 +98,7 @@ gh workflow run phase3b-credential-injection.yml \
 ### Set AWS Credentials
 ```bash
 ./scripts/phase3b-credential-manager.sh set-aws \
-  --key REDACTED_AWS_ACCESS_KEY_ID \
+  --key REDACTED \
   --secret xxxxxxxxxxxxxxx
 ```
 
@@ -204,7 +204,7 @@ vault status
 # If fails:
 # 1. Vault may be sealed - use unsealing keys
 # 2. Check VAULT_ADDR is correct (with :8200)
-# 3. Check REDACTED_VAULT_TOKEN is valid
+# 3. Check REDACTED_REDACTED is valid
 # 4. Check network connectivity to Vault endpoint
 ```
 
@@ -330,14 +330,14 @@ All changes are idempotent and reversible.
 
 ```bash
 # 1. Single-liner with environment variables
-export AWS_ACCESS_KEY_ID=REDACTED_AWS_ACCESS_KEY_ID
-export REDACTED_AWS_SECRET_ACCESS_KEY=REDACTED_REDACTED_AWS_SECRET_ACCESS_KEY
+export AWS_ACCESS_KEY_ID=REDACTED
+REDACTED_SECRET
 export VAULT_ADDR=https://vault.example.com:8200 && \
-export REDACTED_VAULT_TOKEN=<REDACTED> && \
+export REDACTED_REDACTED=<REDACTED> && \
 bash scripts/phase3b-credentials-inject-activate.sh
 
 # 2. Or via CLI tool
-./scripts/phase3b-credential-manager.sh set-aws --key REDACTED_AWS_ACCESS_KEY_ID --secret xxxxxxxxxxxxxxx && \
+./scripts/phase3b-credential-manager.sh set-aws --key REDACTED --secret xxxxxxxxxxxxxxx && \
 ./scripts/phase3b-credential-manager.sh set-vault --addr https://vault.example.com:8200 --token <REDACTED> && \
 ./scripts/phase3b-credential-manager.sh activate
 ```

@@ -52,7 +52,7 @@ aws iam put-user-policy --user-name "$USERNAME" --policy-name "$POL_NAME" --poli
 # Create access key (create new version; keep previous for rotation)
 OLD_KEYS=$(aws iam list-access-keys --user-name "$USERNAME" --query 'AccessKeyMetadata[].AccessKeyId' -o text)
 ACCESS_KEY_JSON=$(aws iam create-access-key --user-name "$USERNAME" -o json)
-AWS_ACCESS_KEY_ID=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.AccessKeyId')
+AWS_ACCESS_KEY_ID=REDACTED"$ACCESS_KEY_JSON" | jq -r '.AccessKey.AccessKeyId')
 AWS_SECRET_ACCESS_KEY=$(echo "$ACCESS_KEY_JSON" | jq -r '.AccessKey.SecretAccessKey')
 
 # Store to GCP Secret Manager
