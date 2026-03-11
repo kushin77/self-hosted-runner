@@ -36,9 +36,9 @@
 **Scope if executed:**
 - Scan: All `.md`, `.txt`, `.log`, `.json` files for token-like patterns
 - Target patterns:
-  - AWS: `aws_secret_access_key`, `AWS_SECRET_ACCESS_KEY`, `AKIA...`
-  - GCP: `service_account_key`, `private_key`, `client_secret`
-  - Vault: `vault_token`, `VAULT_TOKEN`
+$PLACEHOLDER
+$PLACEHOLDER
+$PLACEHOLDER
   - GitHub: `github_token`, `GH_TOKEN`, `ghp_...`
 - Action: Redact matches to `[REDACTED-<type>]` format
 - Commit: Create immutable git commit recording all redactions

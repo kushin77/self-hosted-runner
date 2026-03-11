@@ -20,7 +20,7 @@ describe('Audit Service', () => {
         timestamp: new Date(),
         event: 'credential_rotated',
         resourceType: 'credential',
-        resourceId: 'db_password',
+$PLACEHOLDER
         actor: 'user123',
         action: 'rotation',
         status: 'success',
@@ -39,7 +39,7 @@ describe('Audit Service', () => {
         timestamp: new Date(),
         event: 'credential_rotated',
         resourceType: 'credential',
-        resourceId: 'db_password',
+$PLACEHOLDER
         actor: 'user123',
         action: 'rotation',
         status: 'success',
@@ -250,14 +250,14 @@ describe('Audit Service', () => {
         timestamp: new Date(),
         event: 'credential_accessed',
         resourceType: 'credential',
-        resourceId: 'db_password',
+$PLACEHOLDER
         actor: 'app_service',
         action: 'access',
         status: 'success',
       });
 
       expect(entry.resourceType).toBe('credential');
-      expect(entry.resourceId).toBe('db_password');
+$PLACEHOLDER
     });
 
     it('should support user resources', async () => {

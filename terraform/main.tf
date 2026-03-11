@@ -218,12 +218,12 @@ resource "google_kms_crypto_key" "secrets" {
 # GOOGLE SECRET MANAGER
 # ===========================================================================
 
-resource "random_password" "db_password" {
+$PLACEHOLDER
   length  = 32
   special = true
 }
 
-resource "google_secret_manager_secret" "db_password" {
+$PLACEHOLDER
   secret_id = "${local.env_prefix}-db-password"
   
   replication {
@@ -235,9 +235,9 @@ resource "google_secret_manager_secret" "db_password" {
   }
 }
 
-resource "google_secret_manager_secret_version" "db_password" {
-  secret      = google_secret_manager_secret.db_password.id
-  secret_data = random_password.db_password.result
+$PLACEHOLDER
+$PLACEHOLDER
+$PLACEHOLDER
 }
 
 resource "google_secret_manager_secret" "db_username" {
@@ -259,7 +259,7 @@ resource "google_secret_manager_secret_version" "db_username" {
 
 # Grant backend access to secrets
 resource "google_secret_manager_secret_iam_member" "backend_password" {
-  secret_id = google_secret_manager_secret.db_password.id
+$PLACEHOLDER
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.backend.email}"
 }
@@ -339,7 +339,7 @@ resource "google_secret_manager_secret_iam_member" "backend_username" {
 # resource "google_sql_user" "portal" {
 #   name     = "portal_admin"
 #   instance = google_sql_database_instance.primary.name
-#   password = random_password.db_password.result
+$PLACEHOLDER
 # }
 
 # ===========================================================================

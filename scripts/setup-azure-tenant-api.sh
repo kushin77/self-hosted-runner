@@ -410,7 +410,7 @@ store_in_vault() {
         tenant_id="$AZURE_TENANT_ID" \
         subscription_id="$SUBSCRIPTION_ID" \
         client_id="$AZURE_CLIENT_ID" \
-        client_secret="$AZURE_CLIENT_SECRET" \
+$PLACEHOLDER
         display_name="NexusShield Automation - Tenant Wide API" \
         created_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || {
         error "Failed to store credentials in Vault"
@@ -444,7 +444,7 @@ generate_config_file() {
     "subscription_id": "$SUBSCRIPTION_ID",
     "tenant_name": "$TENANT_NAME",
     "client_id": "$AZURE_CLIENT_ID",
-    "client_secret_stored": true
+$PLACEHOLDER
   },
   "secrets_management": {
     "gsm_enabled": true,
@@ -588,7 +588,7 @@ import os
 subscription_id = os.getenv("AZURE_SUBSCRIPTION_ID")
 credential = DefaultAzureClientSecret(
     client_id=os.getenv("AZURE_CLIENT_ID"),
-    client_secret=os.getenv("AZURE_CLIENT_SECRET"),
+$PLACEHOLDER
     tenant_id=os.getenv("AZURE_TENANT_ID")
 )
 
@@ -654,7 +654,7 @@ echo -n "$NEW_SECRET" | gcloud secrets versions add azure-client-secret --data-f
 
 # Update in Vault
 vault kv put secret/azure/tenant-api \
-  client_secret="$NEW_SECRET" \
+$PLACEHOLDER
   rotated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 ```
 EOF
@@ -704,7 +704,7 @@ generate_summary_report() {
 
 #### HashiCorp Vault
 - Path: \`secret/azure/tenant-api\`
-- Contains: tenant_id, subscription_id, client_id, client_secret
+$PLACEHOLDER
 
 ### Configuration Files
 - Config: \`config/azure-tenant-api.json\`
@@ -741,7 +741,7 @@ vault kv get -format=json secret/azure/tenant-api | jq -r '.data.data | "export 
 
 # Or manually
 export AZURE_CLIENT_ID=\$(vault kv get -field=client_id secret/azure/tenant-api)
-export AZURE_CLIENT_SECRET=\$(vault kv get -field=client_secret secret/azure/tenant-api)
+$PLACEHOLDER
 export AZURE_TENANT_ID=\$(vault kv get -field=tenant_id secret/azure/tenant-api)
 \`\`\`
 
