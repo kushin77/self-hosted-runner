@@ -1,0 +1,23 @@
+[
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/functions/synthetic-health-check",
+    "serviceConfig": {
+      "serviceAccountEmail": "151423364222-compute@developer.gserviceaccount.com"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/functions/rotate-uptime-token",
+    "serviceConfig": {
+      "serviceAccountEmail": "uptime-rotate-sa@nexusshield-prod.iam.gserviceaccount.com"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/functions/uptime-check-proxy",
+    "serviceConfig": {
+      "serviceAccountEmail": "151423364222-compute@developer.gserviceaccount.com"
+    }
+  },
+  {
+    "name": "projects/nexusshield-prod/locations/us-central1/functions/daily_summary"
+  }
+]
