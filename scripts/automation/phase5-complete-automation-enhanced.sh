@@ -6,7 +6,7 @@ set -euo pipefail
 # Features:
 # - Supports multiple project targets (primary + fallback)
 # - Automatic permission detection & fallback
-# - Enhanced credentials handling
+# - Enhanced credentials handling (GSM → Vault → standard env vars)
 # - Comprehensive error recovery
 # - Full immutable audit trail
 #
@@ -16,10 +16,15 @@ set -euo pipefail
 #   scripts/phase5-complete-automation-enhanced.sh p4-platform     # Target p4-platform
 #   scripts/phase5-complete-automation-enhanced.sh p4-platform /path/creds.json
 
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+source "${REPO_ROOT}/scripts/lib/validate_env.sh"
+source "${REPO_ROOT}/scripts/lib/load_credentials.sh"
+
 PROJECT="${1:-p4-platform}"
 CREDS_FILE="${2:-${GOOGLE_APPLICATION_CREDENTIALS:-}}"
 FALLBACK_PROJECT="nexusshield-prod"
 AUDIT_LOG="logs/complete-finalization-audit.jsonl"
+
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -32,22 +37,36 @@ echo "Target Project: $PROJECT"
 echo "Fallback Project: $FALLBACK_PROJECT"
 echo "Audit Log: $AUDIT_LOG"
 
-# Prepare credentials
-if [[ -n "$CREDS_FILE" ]]; then
-  export GOOGLE_APPLICATION_CREDENTIALS="$CREDS_FILE"
-  echo "Using credentials file: $CREDS_FILE"
-elif [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
-  # Auto-detect ADC file location
-  ADC_PATH="$HOME/.config/gcloud/legacy_credentials/akushnir@bioenergystrategies.com/adc.json"
-  if [[ -f "$ADC_PATH" ]]; then
-    export GOOGLE_APPLICATION_CREDENTIALS="$ADC_PATH"
-    echo "Using auto-detected ADC: $ADC_PATH"
+# Prepare credentials (try GSM/Vault first, fall back to file/ADC)
+log_audit "credentials" "loading" "Starting credential load (GSM→Vault→ADC fallback)"
+
+# Try to load GCP service account email from GSM/Vault
+GCP_SA_EMAIL=$(load_credentials "CREDENTIAL_GCP_SA_EMAIL_PROD" || echo "")
+
+if [[ -z "$GCP_SA_EMAIL" ]]; then
+  # Fall back to file-based credentials
+  if [[ -n "$CREDS_FILE" ]]; then
+    export GOOGLE_APPLICATION_CREDENTIALS="$CREDS_FILE"
+    echo "Using credentials file: $CREDS_FILE"
+  elif [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]; then
+    # Auto-detect ADC file location
+    ADC_PATH="$HOME/.config/gcloud/legacy_credentials/akushnir@bioenergystrategies.com/adc.json"
+    if [[ -f "$ADC_PATH" ]]; then
+      export GOOGLE_APPLICATION_CREDENTIALS="$ADC_PATH"
+      echo "Using auto-detected ADC: $ADC_PATH"
+    else
+      echo "Using default Application Default Credentials"
+    fi
   else
-    echo "Using default Application Default Credentials"
+    echo "Using GOOGLE_APPLICATION_CREDENTIALS env var: ${GOOGLE_APPLICATION_CREDENTIALS}"
   fi
+  log_audit "credentials" "loaded" "Using file/ADC fallback (GSM/Vault not available)"
 else
-  echo "Using GOOGLE_APPLICATION_CREDENTIALS env var: ${GOOGLE_APPLICATION_CREDENTIALS}"
+  echo "Successfully loaded GCP service account email from GSM/Vault"
+  audit_env_access "CREDENTIAL_GCP_SA_EMAIL_PROD" "phase5_credential_load"
+  log_audit "credentials" "loaded" "Using standardized credential (GSM/Vault)"
 fi
+
 
 mkdir -p "$(dirname "$AUDIT_LOG")"
 TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
