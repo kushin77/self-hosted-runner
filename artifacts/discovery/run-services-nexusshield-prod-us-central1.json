@@ -1,0 +1,47 @@
+[
+  {
+    "metadata": {
+      "name": "automation-runner"
+    }
+  },
+  {
+    "metadata": {
+      "name": "image-pin-service"
+    }
+  },
+  {
+    "metadata": {
+      "name": "nexus-shield-portal-backend"
+    }
+  },
+  {
+    "metadata": {
+      "name": "nexus-shield-portal-frontend"
+    }
+  },
+  {
+    "metadata": {
+      "name": "nexusshield-portal-backend-production"
+    }
+  },
+  {
+    "metadata": {
+      "name": "prevent-releases"
+    }
+  },
+  {
+    "metadata": {
+      "name": "rotate-uptime-token"
+    }
+  },
+  {
+    "metadata": {
+      "name": "synthetic-health-check"
+    }
+  },
+  {
+    "metadata": {
+      "name": "uptime-check-proxy"
+    }
+  }
+]
