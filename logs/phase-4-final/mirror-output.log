@@ -1,0 +1,10 @@
+
+╔════════════════════════════════════════════════════╗
+║   Unified Secrets Mirror (GSM → Vault/KMS/KeyVault)║
+║         Canonical Source: GSM (nexusshield-prod)      ║
+╚════════════════════════════════════════════════════╝
+
+[0;34m[2026-03-11 16:02:09][0m 
+[0;34m[2026-03-11 16:02:09][0m Processing secret: azure-client-id
+[0;34m[2026-03-11 16:02:10][0m Mirroring azure-client-id to Key Vault nsv298610...
+[1;33m⚠[0m DRY-RUN: Key Vault nsv298610 already has azure-client-id (no change)
