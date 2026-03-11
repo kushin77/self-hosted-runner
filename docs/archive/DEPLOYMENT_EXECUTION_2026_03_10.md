@@ -77,7 +77,7 @@ Billing: ✅ Linked to account 0119B0-6AF18C-A12474
 - ⏳ KMS encryption key (waiting for API)
 
 **Security**:
-- ✅ Secret Manager secrets (db_password, db_username)
+$PLACEHOLDER
 - ✅ Secret version bindings
 - ✅ Secret IAM access policies
 - ⏳ KMS key ring (waiting for API)

@@ -33,7 +33,7 @@
 - ✅ GCP Project: nexusshield-prod (151423364222)
 - ✅ VPC Network: staging-portal-vpc
 - ✅ KMS Key Ring: staging-portal-keyring (encryption keys)
-- ✅ Secret Manager: db_password, db_username (credentials)
+$PLACEHOLDER
 - ✅ Artifact Registry: staging-portal-docker (containers)
 - ✅ Service Accounts: backend, frontend (permissions)
 - ✅ IAM Bindings: All required roles configured
