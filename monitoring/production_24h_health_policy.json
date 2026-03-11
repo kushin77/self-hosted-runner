@@ -1,0 +1,77 @@
+{
+  "displayName": "Production System Health - 24h Monitor",
+  "combiner": "OR",
+  "notificationChannels": [
+    "projects/nexusshield-prod/notificationChannels/8115562493953505013"
+  ],
+  "conditions": [
+    {
+      "displayName": "Cloud Run image-pin-service availability - 24h",
+      "conditionThreshold": {
+        "filter": "metric.type=\"run.googleapis.com/request_count\" AND resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"image-pin-service\" AND metric.response_code_class=\"5xx\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": { "count": 1 },
+        "aggregations": [
+          { "alignmentPeriod": "85400s", "perSeriesAligner": "ALIGN_PERCENT_CHANGE" }
+        ]
+      }
+    },
+    {
+      "displayName": "Cloud Run backend service availability - 24h",
+      "conditionThreshold": {
+        "filter": "metric.type=\"run.googleapis.com/request_count\" AND resource.type=\"cloud_run_revision\" AND resource.labels.service_name=\"nexusshield-backend\" AND metric.response_code_class=\"5xx\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": { "count": 3 },
+        "aggregations": [
+          { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_DELTA" }
+        ]
+      }
+    },
+    {
+      "displayName": "Cloud Scheduler job execution failure - 24h",
+      "conditionThreshold": {
+        "filter": "metric.type=\"cloudscheduler.googleapis.com/job_execution_attempt_count\" AND resource.type=\"cloud_scheduler_job\" AND metadata.system_labels.state=\"FAILURE\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": { "count": 1 },
+        "aggregations": [
+          { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" }
+        ]
+      }
+    },
+    {
+      "displayName": "Artifact Registry image push latency spike - 24h",
+      "conditionThreshold": {
+        "filter": "metric.type=\"artifactregistry.googleapis.com/docker/push_latencies\" AND resource.type=\"artifactregistry.Repository\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 30000,
+        "duration": "600s",
+        "trigger": { "count": 1 },
+        "aggregations": [
+          { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_PERCENTILE_95" }
+        ]
+      }
+    },
+    {
+      "displayName": "Secret Manager access errors - 24h",
+      "conditionThreshold": {
+        "filter": "metric.type=\"secretmanager.googleapis.com/secret_access_count\" AND resource.type=\"secretmanager.googleapis.com/Secret\" AND metric.status=\"ERROR\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 0,
+        "duration": "300s",
+        "trigger": { "count": 2 },
+        "aggregations": [
+          { "alignmentPeriod": "60s", "perSeriesAligner": "ALIGN_RATE" }
+        ]
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "1800s"
+  }
+}
