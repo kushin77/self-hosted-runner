@@ -310,7 +310,7 @@ export DB_PORT=$(fetch_credential "prod-db-port")
 export DB_USER=$(fetch_credential "prod-db-user")
 export DB_PASSWORD=$(fetch_credential "prod-db-password")
 export API_KEY=$(fetch_credential "prod-api-key")
-export PRIVATE_KEY=$(fetch_credential "prod-private-key")
+$PLACEHOLDER
 
 # Deploy with injected secrets
 docker run -d \
@@ -319,7 +319,7 @@ docker run -d \
   -e DB_USER="$DB_USER" \
   -e DB_PASSWORD="$DB_PASSWORD" \
   -e API_KEY="$API_KEY" \
-  -e PRIVATE_KEY="$PRIVATE_KEY" \
+$PLACEHOLDER
   app:latest
 ```
 
@@ -528,7 +528,7 @@ echo "✅ Credential revocation complete (SLA: 15 min)"
 
 **Private Keys (PEM):**
 ```
------BEGIN PRIVATE KEY-----
+$PLACEHOLDER
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7...
 ...
 -----END PRIVATE KEY-----

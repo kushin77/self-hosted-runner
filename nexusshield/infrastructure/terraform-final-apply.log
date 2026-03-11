@@ -1,6 +1,6 @@
 nohup: ignoring input
 [0m[1mrandom_id.database_suffix: Refreshing state... [id=5nw][0m
-[0m[1mrandom_password.db_password: Refreshing state... [id=none][0m
+$PLACEHOLDER
 [0m[1mgoogle_service_account.portal_backend: Refreshing state... [id=projects/nexusshield-prod/serviceAccounts/nxs-portal-production@nexusshield-prod.iam.gserviceaccount.com][0m
 [0m[1mgoogle_compute_network.portal_vpc: Refreshing state... [id=projects/nexusshield-prod/global/networks/nexusshield-vpc][0m
 [0m[1mgoogle_secret_manager_secret.db_connection_string: Refreshing state... [id=projects/nexusshield-prod/secrets/nexusshield-portal-db-connection-production][0m
