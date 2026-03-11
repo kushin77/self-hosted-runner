@@ -1,0 +1,3 @@
+release_name,release_sha,removal_timestamp,author,is_github_actions_bot,is_pull_release,is_policy_compliant,compliance_notes,escalation_issued,escalation_issue_number
+gov-final-1773240829,unknown,2026-03-11T20:09:16Z,system,false,false,true,Governance-tagged removal; compliant auto-removal,false,
+gov-test-1773240783,unknown,2026-03-11T19:00:00Z,system,false,false,true,Test release; compliant auto-removal,false,

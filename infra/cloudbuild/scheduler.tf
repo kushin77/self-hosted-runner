@@ -1,7 +1,7 @@
 resource "google_cloud_scheduler_job" "gov_bootstrap_daily" {
   name     = "gov-bootstrap-daily"
   project  = var.project
-  location = var.location
+  region   = var.location
 
   http_target {
     uri        = google_cloud_run_service.gov_bootstrap.status[0].url

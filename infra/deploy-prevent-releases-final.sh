@@ -20,6 +20,27 @@ echo "PREVENT-RELEASES FINAL DEPLOYMENT"
 echo "Project: $PROJECT | Region: $REGION | Service: $SERVICE"
 echo "=========================================="
 
+# ==================== BOOTSTRAP: Auto-activate deployer SA from GSM (if present)
+echo ""
+echo "[0/6] Checking for deployer SA key in GSM (deployer-sa-key)..."
+if gcloud secrets describe deployer-sa-key --project="$PROJECT" >/dev/null 2>&1; then
+  echo "  ✓ deployer-sa-key secret found; retrieving key to /tmp/deployer-sa-key.json"
+  gcloud secrets versions access latest --secret=deployer-sa-key --project="$PROJECT" > /tmp/deployer-sa-key.json || true
+  if [ -s /tmp/deployer-sa-key.json ]; then
+    if gcloud auth activate-service-account --key-file=/tmp/deployer-sa-key.json >/dev/null 2>&1; then
+      NEW_ACC=$(gcloud auth list --filter=status:ACTIVE --format='value(account)') || true
+      echo "  ✓ Activated deployer service account: $NEW_ACC"
+      gcloud config set account "$NEW_ACC" >/dev/null 2>&1 || true
+    else
+      echo "  ⚠ Failed to activate deployer SA from GSM; proceeding with current active account"
+    fi
+  else
+    echo "  ⚠ Retrieved secret is empty; proceeding with current active account"
+  fi
+else
+  echo "  - No deployer-sa-key secret found; proceeding with current active account"
+fi
+
 # ==================== STEP 1: Verify Secrets ====================
 echo ""
 echo "[1/6] Verifying GSM secrets exist..."

@@ -11,6 +11,9 @@ SERVICE=${SERVICE:-prevent-releases}
 IMAGE=${IMAGE:-us-central1-docker.pkg.dev/${PROJECT}/production-portal-docker/${SERVICE}:latest}
 SA_NAME=${SA_NAME:-nxs-prevent-releases-sa}
 SA_EMAIL=${SA_EMAIL:-${SA_NAME}@${PROJECT}.iam.gserviceaccount.com}
+ROLE_ID=${ROLE_ID:-deployerMinimal}
+DEPLOYER_SA_NAME=${DEPLOYER_SA_NAME:-deployer-sa}
+DEPLOYER_SA_EMAIL=${DEPLOYER_SA_EMAIL:-${DEPLOYER_SA_NAME}@${PROJECT}.iam.gserviceaccount.com}
 
 echo "Orchestrated deploy: project=$PROJECT region=$REGION service=$SERVICE image=$IMAGE sa=$SA_EMAIL"
 
@@ -30,6 +33,62 @@ ensure_sa() {
   echo "Granting minimal roles to $SA_EMAIL"
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA_EMAIL" --role="roles/run.admin" || true
   gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$SA_EMAIL" --role="roles/secretmanager.secretAccessor" || true
+}
+
+ensure_deployer_role_and_sa() {
+  # Create a minimal custom role and deployer service account on first run (idempotent).
+  if gcloud iam roles describe "$ROLE_ID" --project="$PROJECT" >/dev/null 2>&1; then
+    echo "Custom role $ROLE_ID exists"
+  else
+    echo "Creating custom role $ROLE_ID (minimal deployer)"
+    cat > /tmp/deployer-role.json <<'EOF'
+{
+  "title": "Deployer Minimal",
+  "description": "Minimal permissions for prevent-releases deploy",
+  "includedPermissions": [
+    "iam.serviceAccounts.create",
+    "iam.serviceAccounts.get",
+    "iam.serviceAccounts.list",
+    "iam.serviceAccounts.actAs",
+    "run.services.create",
+    "run.services.update",
+    "run.services.get",
+    "run.services.list",
+    "secretmanager.secrets.create",
+    "secretmanager.versions.add",
+    "secretmanager.secrets.get",
+    "secretmanager.secrets.update",
+    "cloudbuild.builds.create",
+    "cloudscheduler.jobs.create",
+    "monitoring.alertPolicies.create",
+    "logging.configWriter"
+  ]
+}
+EOF
+    if ! gcloud iam roles create "$ROLE_ID" --project="$PROJECT" --file=/tmp/deployer-role.json >/dev/null 2>&1; then
+      echo "Unable to create custom role $ROLE_ID (missing permissions)." >&2
+      echo "Please create role manually or grant project owner the ability to create it. See docs/DEployer_ROLE_INSTRUCTIONS.md" >&2
+    else
+      echo "Created custom role $ROLE_ID"
+    fi
+  fi
+
+  if gcloud iam service-accounts describe "$DEPLOYER_SA_EMAIL" --project="$PROJECT" >/dev/null 2>&1; then
+    echo "Deployer service account $DEPLOYER_SA_EMAIL exists"
+  else
+    echo "Creating deployer service account $DEPLOYER_SA_EMAIL"
+    if ! gcloud iam service-accounts create "$DEPLOYER_SA_NAME" --project="$PROJECT" --display-name="Deployer SA" >/dev/null 2>&1; then
+      echo "Unable to create deployer service account (missing iam.serviceAccounts.create)." >&2
+      echo "You can create it manually and bind role projects/$PROJECT/roles/$ROLE_ID to it." >&2
+    else
+      echo "Created deployer service account $DEPLOYER_SA_EMAIL"
+      # Bind custom role if it exists
+      if gcloud iam roles describe "$ROLE_ID" --project="$PROJECT" >/dev/null 2>&1; then
+        gcloud projects add-iam-policy-binding "$PROJECT" --member="serviceAccount:$DEPLOYER_SA_EMAIL" --role="projects/${PROJECT}/roles/${ROLE_ID}" || true
+        echo "Bound custom role $ROLE_ID to $DEPLOYER_SA_EMAIL"
+      fi
+    fi
+  fi
 }
 
 ensure_secret() {
@@ -97,6 +156,9 @@ main() {
     echo "gcloud not configured or not authenticated. Please run 'gcloud auth login' and 'gcloud config set project $PROJECT'" >&2
     exit 1
   fi
+
+  # Attempt to create minimal deployer role and deployer SA on first-run (best-effort).
+  ensure_deployer_role_and_sa || true
 
   ensure_sa || echo "Warning: failed to create service account; proceeding if it already exists"
 

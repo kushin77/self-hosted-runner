@@ -17,7 +17,7 @@ resource "google_cloud_run_service" "gov_bootstrap" {
         args = [
           "bash",
           "-c",
-          "set -euo pipefail; gcloud --quiet config set project ${PROJECT} ; gcloud --quiet beta builds triggers create github --name=\"${TRIGGER_NAME}\" --repo-name=\"self-hosted-runner\" --repo-owner=\"kushin77\" --branch-pattern=\"^main$\" --build-config=\"governance/cloudbuild-gov-scan.yaml\" || true ; gcloud --quiet beta builds triggers run ${TRIGGER_NAME} --branch=main || true ; echo BOOTSTRAP_DONE"
+          "set -euo pipefail; gcloud --quiet config set project $${PROJECT} ; gcloud --quiet beta builds triggers create github --name=$${TRIGGER_NAME} --repo-name=self-hosted-runner --repo-owner=kushin77 --branch-pattern='^main$' --build-config=governance/cloudbuild-gov-scan.yaml || true ; gcloud --quiet beta builds triggers run $${TRIGGER_NAME} --branch=main || true ; echo BOOTSTRAP_DONE"
         ]
       }
     }

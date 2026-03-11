@@ -9,5 +9,6 @@ terraform {
 }
 
 provider "google" {
-  project = var.project
+  project      = var.project
+  access_token = var.access_token
 }

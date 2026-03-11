@@ -16,7 +16,7 @@ resource "google_cloudbuild_trigger" "gov_scan" {
 resource "google_cloud_scheduler_job" "gov_scan_daily" {
   name     = "gov-scan-daily"
   project  = var.project
-  location = var.location
+  region   = var.location
 
   http_target {
     uri        = "https://cloudbuild.googleapis.com/v1/projects/${var.project}/triggers/${google_cloudbuild_trigger.gov_scan.id}:run"

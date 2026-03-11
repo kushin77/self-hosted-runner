@@ -3,6 +3,13 @@ variable "project" {
   type        = string
 }
 
+variable "access_token" {
+  description = "GCP access token for authentication"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "location" {
   description = "Location for scheduler (region)"
   type        = string
