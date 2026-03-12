@@ -8,6 +8,9 @@ set -euo pipefail
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "kushin77/self-hosted-runner")"
 DRY_RUN=1
 ISSUE_STATE=open
+MIN_SCORE=${MIN_SCORE:-2}
+REASSIGN=${REASSIGN:-0}
+FAILURE_THRESHOLD=${FAILURE_THRESHOLD:-10}
 for arg in "$@"; do
   case "$arg" in
     --apply) DRY_RUN=0 ;;
@@ -60,8 +63,9 @@ gh issue list --state "$ISSUE_STATE" --limit 1000 --json number,title,body,label
 
 echo "\nBuilding heuristic mapping and assignment plan..."
 python3 - <<PY
-import json,sys
+import json,sys,os
 issues=json.load(open("$TMP"))
+MIN_SCORE=int(os.getenv('MIN_SCORE', '2'))
 groups={
  'Observability & Provisioning':['observab','provision','agent','filebeat','node_exporter','vault-agent','provisioning'],
  'Secrets & Credential Management':['secret','secrets','aws','secretsmanager','gsm','vault','kms','credential','gitleaks','secrets found','rotate'],
@@ -70,34 +74,55 @@ groups={
  'Documentation & Runbooks':['doc','docs','runbook','guide','readme','documentation'],
  'Monitoring, Alerts & Post-Deploy Validation':['monitor','alert','prometheus','ingest','log','logging','alerting','metric']
 }
+label_map={
+  'area:observability':'Observability & Provisioning',
+  'area:secrets':'Secrets & Credential Management',
+  'area:deployment':'Deployment Automation & Migration',
+  'area:governance':'Governance & CI Enforcement',
+  'area:docs':'Documentation & Runbooks',
+  'area:monitoring':'Monitoring, Alerts & Post-Deploy Validation'
+}
+
+def pick(text, labels):
+  t=(text or '').lower()
+  # label-first mapping
+  for L in labels:
+    if L.lower() in label_map:
+      return label_map[L.lower()], 999
+  scores={}
+  for g,keys in groups.items():
+    scores[g]=sum(1 for k in keys if k in t)
+  bestscore=max(scores.values()) if scores else 0
+  if bestscore<MIN_SCORE:
+    return None, bestscore
+  candidates=[g for g,s in scores.items() if s==bestscore]
+  return (candidates[0], bestscore) if candidates else (None,0)
+
 plan={g:[] for g in groups}
 unassigned=[]
+confidence_counts={}
 for i in issues:
-    if i.get('milestone'):
-        continue
-    text=(i.get('title') or '')+"\n"+(i.get('body') or '')
-    t=text.lower()
-    best=None
-    bestscore=0
-    for g,keys in groups.items():
-        score=0
-        for k in keys:
-            if k in t:
-                score+=1
-        if score>bestscore:
-            best=g; bestscore=score
-    if best:
-        plan[best].append(i['number'])
-    else:
-        unassigned.append(i['number'])
+  if i.get('milestone'):
+    continue
+  text=(i.get('title') or '')+'\n'+(i.get('body') or '')
+  labels=[l['name'] for l in i.get('labels',[])]
+  g,score=pick(text, labels)
+  if g:
+    plan[g].append((i['number'],score))
+    confidence_counts.setdefault(score,0); confidence_counts[score]+=1
+  else:
+    unassigned.append(i['number'])
 
 print('Planned assignments:')
 for g,ids in plan.items():
-    print(f'- {g}: {len(ids)}')
+  print(f'- {g}: {len(ids)}')
 print(f'- All Untriaged (fallback): {len(unassigned)}')
+print('\nConfidence distribution:')
+for s,c in sorted(confidence_counts.items(), reverse=True):
+  print(f'- score {s}: {c}')
 print('\nSample per group (top 10):')
 for g,ids in plan.items():
-    print(f'-- {g}:', ids[:10])
+  print(f'-- {g}:', [i for i,s in ids[:10]])
 print('-- All Untriaged sample:', unassigned[:20])
 print('\nTo apply these changes, re-run the wrapper with --apply')
 PY
@@ -109,10 +134,12 @@ if [ $DRY_RUN -eq 1 ]; then
 fi
 
 echo "Applying assignments in batches..."
-# Assign by repeating the same heuristic in shell to call gh
+# Assign by repeating the heuristic in Python; track failures and abort if too many
 python3 - <<PY
-import json,subprocess
+import json,subprocess,os
 issues=json.load(open("$TMP"))
+MIN_SCORE=int(os.getenv('MIN_SCORE','2'))
+FAILURE_THRESHOLD=int(os.getenv('FAILURE_THRESHOLD','10'))
 groups={
  'Observability & Provisioning':['observab','provision','agent','filebeat','node_exporter','vault-agent','provisioning'],
  'Secrets & Credential Management':['secret','secrets','aws','secretsmanager','gsm','vault','kms','credential','gitleaks','secrets found','rotate'],
@@ -121,21 +148,36 @@ groups={
  'Documentation & Runbooks':['doc','docs','runbook','guide','readme','documentation'],
  'Monitoring, Alerts & Post-Deploy Validation':['monitor','alert','prometheus','ingest','log','logging','alerting','metric']
 }
-def pick(text):
-    t=text.lower()
-    best=None; bestscore=0
+label_map={
+  'area:observability':'Observability & Provisioning',
+  'area:secrets':'Secrets & Credential Management',
+  'area:deployment':'Deployment Automation & Migration',
+  'area:governance':'Governance & CI Enforcement',
+  'area:docs':'Documentation & Runbooks',
+  'area:monitoring':'Monitoring, Alerts & Post-Deploy Validation'
+}
+
+def pick(text, labels):
+    t=(text or '').lower()
+    for L in labels:
+        if L.lower() in label_map:
+            return label_map[L.lower()], 999
+    scores={}
     for g,keys in groups.items():
-        score=sum(1 for k in keys if k in t)
-        if score>bestscore:
-            best=g; bestscore=score
-    return best
+        scores[g]=sum(1 for k in keys if k in t)
+    bestscore=max(scores.values()) if scores else 0
+    if bestscore<MIN_SCORE:
+        return None, bestscore
+    candidates=[g for g,s in scores.items() if s==bestscore]
+    return (candidates[0], bestscore) if candidates else (None,0)
 
 assigned=0; failed=[]
 for i in issues:
-    if i.get('milestone'):
+    if i.get('milestone') and os.getenv('REASSIGN','0')!='1':
         continue
     num=i['number']; text=(i.get('title') or '')+'\n'+(i.get('body') or '')
-    g=pick(text)
+    labels=[l['name'] for l in i.get('labels',[])]
+    g,score=pick(text, labels)
     target=g if g else 'All Untriaged'
     # attempt assign
     r=subprocess.run(['gh','issue','edit',str(num),'--milestone',target], capture_output=True, text=True)
@@ -143,9 +185,20 @@ for i in issues:
         assigned+=1
     else:
         failed.append({'issue':num,'err':r.stderr})
+        print('FAILED assign', num, '->', target, 'err:', r.stderr)
+    if len(failed)>=FAILURE_THRESHOLD:
+        print('Too many failures; aborting')
+        break
+
 print('Assigned',assigned,'failed',len(failed))
 if failed:
   print('Sample failures:', failed[:10])
+  try:
+    body='Milestone organizer encountered failures for %d issues. See artifact logs for details.' % len(failed)
+    subprocess.run(['gh','issue','create','--title','milestone-organizer: assignment failures','--body',body], check=False)
+  except Exception as e:
+    print('Failed to create alert issue:', e)
+  raise SystemExit(2)
 PY
 
 echo "Done. Cleaning up."
