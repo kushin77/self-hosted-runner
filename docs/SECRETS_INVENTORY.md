@@ -1,3 +1,40 @@
+# Secrets Inventory & Handling Guidance
+
+This document maps where credentials and secrets are stored, and prescribes handling, rotation and audit procedures.
+
+Principles
+- Immutable: Secrets are stored in managed secret stores (GSM/Vault) and never committed to Git.
+- Ephemeral: Where possible, short-lived credentials are used (STS, ephemeral tokens).
+- Idempotent: Provisioners re-apply state without creating duplicates.
+- Hands-off: All runtime services read secrets from GSM/Vault/KMS; no manual plaintext insertion.
+
+Primary secret stores
+- Google Secret Manager (GSM): production secrets and rotation automation.
+- HashiCorp Vault: dynamic secrets for databases, SSH, and rotation workflows.
+- KMS: key-encryption and signing keys stored in KMS-backed keyrings.
+
+Repository references
+- `scripts/ops/` and `docs/` contain runbooks that show *how* to provision secrets — they must reference GSM/Vault, not hard-coded values.
+- `.gitignore` includes patterns to prevent archived artifacts and binaries that may contain secrets from being committed.
+
+Rotation & remediation
+1. If a secret is found in the repository (committed at any point), rotate it immediately and purge history:
+   - Create replacement secret in GSM/Vault.
+   - Update consuming services to reference the new secret (via env or mount).
+   - Purge the old secret from git history using `git-filter-repo` or BFG and force-push the cleaned branches.
+2. Open an incident ticket documenting the exposure and rotation steps (example: `ISSUES/SECRET_ROTATION.md`).
+
+Audit
+- Ensure secret-access logs are enabled for GSM/Vault and retained according to the governance policy.
+- Periodically run secret-scanning tools (truffleHog, git-secrets, internal scanners) on branches and PRs.
+
+Operational checklist
+- [ ] Confirm all environment variables in `docs/` and `scripts/` use placeholders and reference GSM/Vault.
+- [ ] Ensure `secrets.*` patterns are enforced in pre-commit hooks and CI pipelines.
+- [ ] Rotate any exposed credential and record rotation event in the audit log.
+
+Contact
+- Security / On-call: @admin-team
 Secrets Inventory — NexusShield (consolidated)
 
 Purpose
