@@ -12,6 +12,9 @@ jobs:
     permissions:
       pull-requests: write
       issues: write
+    concurrency:
+      group: pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     steps:
       - name: Extract linked issues from PR
@@ -92,6 +95,9 @@ jobs:
     permissions:
       pull-requests: read
       issues: write
+    concurrency:
+      group: pr-merge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
 
     steps:
       - name: Close linked issues on PR merge
