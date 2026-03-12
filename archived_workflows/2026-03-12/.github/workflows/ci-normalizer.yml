@@ -1,0 +1,70 @@
+# Optional: a push job can be added to tag/push image
+when registry secrets are available
+ name: CI - Normalizer
+
+on:
+  push:
+    branches: [ main, 'feature/*' ]
+ 
+pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run tests
+    runs-on:
+ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up
+Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+  
+   - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+      
+   path: | 
+            ~/.cache/go-build
+            ~/go/pkg/mod
+         
+key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - name: Install deps
+
+       run: go mod download
+      - name: Run unit tests
+        run: go test
+./... -v
+
+  build:
+    name: Build binary
+...
+...    runs-on: ubuntu-latest
+    needs:
+test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+       
+uses: actions/setup-go@v4
+        with:
+          go-version: '1.24'
+      -
+name: Build normalizer
+        run: |
+          cd nexus-engine
+         
+CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -buildvcs=false -v -o ./bin/normalizer
+./cmd/ingestion
+      - name: Upload binary artifact
+        uses:
+actions/upload-artifact@v4
+        with:
+          name: normalizer-binary
+          path:
+nexus-engine/bin/normalizer
+
+# Optional: a push job can be added to tag/push image
+...
