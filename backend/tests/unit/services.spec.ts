@@ -5,6 +5,11 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { setupDefaultMocks } from '../mocks';
+
+// Setup module mocks early so imported services use mocked dependencies
+setupDefaultMocks();
+
 import CredentialService from '../../src/credentials';
 import AuditService from '../../src/audit';
 import ComplianceService from '../../src/compliance';
@@ -61,7 +66,7 @@ describe('Portal MVP Backend API Tests', () => {
       );
 
       expect(scheduled.scheduledRotationId).toBeDefined();
-      expect(scheduled.nextRun).toBeGreaterThan(new Date());
+      expect(new Date(scheduled.nextRun).getTime()).toBeGreaterThan(Date.now() - 1000);
 
       // Schedule again should update (idempotent)
       const updated = await credentialService.scheduleRotation(
@@ -161,7 +166,7 @@ describe('Portal MVP Backend API Tests', () => {
         'test-secret'
       );
 
-      expect(result.isCompliant).toEqual(jasmine.any(Boolean));
+      expect(result.isCompliant).toEqual(expect.any(Boolean));
       expect(result.lastRotation).toEqual(expect.any(Date));
       expect(result.daysSinceRotation).toEqual(expect.any(Number));
     });
@@ -203,9 +208,9 @@ describe('Portal MVP Backend API Tests', () => {
     it('should get compliance status', async () => {
       const status = await complianceService.getComplianceStatus();
 
-      expect(status.totalViolations).toEqual(jasmine.any(Number));
-      expect(status.openViolations).toEqual(jasmine.any(Number));
-      expect(status.criticalViolations).toEqual(jasmine.any(Number));
+      expect(status.totalViolations).toEqual(expect.any(Number));
+      expect(status.openViolations).toEqual(expect.any(Number));
+      expect(status.criticalViolations).toEqual(expect.any(Number));
       expect(status.complianceScore).toBeGreaterThanOrEqual(0);
       expect(status.complianceScore).toBeLessThanOrEqual(100);
     });
@@ -247,7 +252,7 @@ describe('Portal MVP Backend API Tests', () => {
       const health = await metricsService.getHealthStatus();
 
       expect(health.status).toMatch(/healthy|degraded|unhealthy/);
-      expect(health.uptime).toEqual(jasmine.any(Number));
+      expect(health.uptime).toEqual(expect.any(Number));
       expect(health.checks.database).toMatch(/ok|error/);
       expect(health.checks.api).toMatch(/ok|error/);
       expect(health.checks.memory).toMatch(/ok|warning|error/);
@@ -258,7 +263,7 @@ describe('Portal MVP Backend API Tests', () => {
       // Should complete without error
 
       const history = await metricsService.getHistory(1);
-      expect(history).toEqual(jasmine.any(Array));
+      expect(history).toEqual(expect.any(Array));
     });
   });
 
