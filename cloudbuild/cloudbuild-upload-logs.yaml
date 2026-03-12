@@ -1,0 +1,62 @@
+# Cloud Build post-step example to copy build logs to a centralized bucket.
+# Use substitutions: _LOG_BUCKET (gs://...), _BUILD_ID (cloud build id)
+# Add this step as a final step in your cloudbuild.yaml and set substitutions in the build trigger or via gcloud.
+
+steps:
+  - id: "upload-cloudbuild-logs"
+    name: "gcr.io/cloud-builders/gsutil"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        set -euo pipefail
+        if [ -z "${_LOG_BUCKET:-}" ]; then
+          echo "Substitution _LOG_BUCKET must be set (e.g. gs://projects/_/logs/your-cloudbuild-bucket)" >&2
+          exit 2
+        fi
+        if [ -z "${_BUILD_ID:-}" ]; then
+          echo "Substitution _BUILD_ID must be set to the Cloud Build id" >&2
+          exit 2
+        fi
+
+        SRC_BUCKET=${_LOG_BUCKET}
+        BUILD_ID=${_BUILD_ID}
+        DEST_DIR="/workspace/cloudbuild-logs"
+
+        mkdir -p "$DEST_DIR"
+        echo "Searching for logs in $SRC_BUCKET matching $BUILD_ID"
+
+        # Try wildcard copy then fallback to listing
+        set +e
+        gsutil -m cp "${SRC_BUCKET}/**${BUILD_ID}*" "$DEST_DIR/"
+        CP_EXIT=$?
+        set -e
+
+        if [ $CP_EXIT -ne 0 ]; then
+          echo "Wildcard copy failed or no matching objects. Attempting list+filter..."
+          OBJ_LIST=$(gsutil ls "$SRC_BUCKET/" 2>/dev/null | grep "$BUILD_ID" || true)
+          if [ -z "$OBJ_LIST" ]; then
+            echo "No logs found for $BUILD_ID in $SRC_BUCKET" >&2
+            exit 0
+          fi
+          for obj in $OBJ_LIST; do
+            echo "Copying $obj"
+            gsutil cp "$obj" "$DEST_DIR/" || echo "copy failed for $obj"
+          done
+        fi
+
+        if ls "$DEST_DIR"/* >/dev/null 2>&1; then
+          # Upload into a per-build prefix in a destination archive bucket (optional)
+          ARCHIVE_BUCKET="gs://nexusshield-dev-sbom-archive/build-logs/$BUILD_ID"
+          echo "Uploading found logs to $ARCHIVE_BUCKET"
+          gsutil -m cp "$DEST_DIR"/* "$ARCHIVE_BUCKET/" || echo "upload to archive failed"
+        else
+          echo "No logs copied"
+        fi
+
+substitutions:
+  # Set these in the Cloud Build trigger or via gcloud builds submit \--substitutions
+  _LOG_BUCKET: "gs://projects/_/logs/your-cloudbuild-logs-bucket"
+  _BUILD_ID: ""
+
+timeout: "120s"
