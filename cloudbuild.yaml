@@ -33,8 +33,8 @@ steps:
   args:
   - '-c'
   - |
-    gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet
-    gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --quiet
+    gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
+    gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
     
 # Post-deploy verification: run the post-deploy hook which will run the verify script.
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
