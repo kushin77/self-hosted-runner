@@ -1,3 +1,11 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: milestone-organizer-sa
+  namespace: ops
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::830916170067:role/milestone-organizer-irsa
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -59,3 +67,4 @@ spec:
             - name: workspace
               emptyDir: {}
           # Placeholders: configure secret injection via projected volumes (GSM/Vault)
+
