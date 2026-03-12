@@ -5,7 +5,7 @@ ARG NODE_VERSION=20
 ARG BUILD_ENV=production
 ARG PORT=8080
 
-FROM node:${NODE_VERSION}-alpine AS builder
+FROM node@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS builder
 WORKDIR /build
 
 # Copy package files and install
