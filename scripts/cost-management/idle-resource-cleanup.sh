@@ -15,6 +15,13 @@ TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 IDLE_THRESHOLD_MINS=5
 IDLE_THRESHOLD_SECS=$((IDLE_THRESHOLD_MINS * 60))
 
+# Safety: destructive cleanup is disabled by default.
+# Require explicit opt-in via ENABLE_IDLE_CLEANUP=true (or FORCE_CLEANUP=true).
+if [[ "${ENABLE_IDLE_CLEANUP:-}" != "true" && "${FORCE_CLEANUP:-}" != "true" ]]; then
+    log "Idle resource cleanup is disabled by default. To enable set ENABLE_IDLE_CLEANUP=true or pass FORCE_CLEANUP=true"
+    exit 0
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

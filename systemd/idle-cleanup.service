@@ -7,6 +7,9 @@ After=network-online.target
 Type=oneshot
 User=root
 ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/cost-management/idle-resource-cleanup.sh --apply
+# Explicitly keep cleanup disabled by default when units are installed from the repo.
+# Operators should set ENABLE_IDLE_CLEANUP=true in unit drop-ins if they intend destructive cleanup.
+Environment=ENABLE_IDLE_CLEANUP=false
 Nice=10
 
 [Install]
