@@ -1,0 +1,69 @@
+substitutions:
+  _SERVICE_NAME: "nexus-normalizer"
+  _REGION: "us-central1"
+  _TAG: "$SHORT_SHA"
+
+steps:
+- id: 'build'
+  name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/$REPO_NAME:$_TAG', '.' ]
+
+- id: 'push'
+  name: 'gcr.io/cloud-builders/docker'
+  args: [ 'push', 'gcr.io/$PROJECT_ID/$REPO_NAME:$_TAG' ]
+
+- id: 'deploy-canary'
+  name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    # Deploy new revision without changing traffic (so we can control traffic split)
+    gcloud run deploy $_SERVICE_NAME \
+      --image=gcr.io/$PROJECT_ID/$REPO_NAME:$_TAG \
+      --region=$_REGION \
+      --platform=managed \
+      --no-allow-unauthenticated \
+      --quiet
+    # Give 10% traffic to latest revision for canary
+    REVISION=$(gcloud run revisions list --service=$_SERVICE_NAME --region=$_REGION --format="value(NAME)" --sort-by=~GENERATION | head -n1)
+    echo "Canary revision: $REVISION"
+    gcloud run services update-traffic $_SERVICE_NAME --to-revisions $REVISION=10 --region=$_REGION --platform=managed --quiet
+
+- id: 'smoke-tests'
+  name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    ./scripts/smoke_test.sh
+
+- id: 'promote-or-rollback'
+  name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    if ./scripts/smoke_test.sh; then
+      # Promote to 100%
+      REVISION=$(gcloud run revisions list --service=$_SERVICE_NAME --region=$_REGION --format="value(NAME)" --sort-by=~GENERATION | head -n1)
+      gcloud run services update-traffic $_SERVICE_NAME --to-revisions $REVISION=100 --region=$_REGION --platform=managed --quiet
+      echo "Promoted $REVISION to 100% traffic"
+    else
+      # Rollback to previous stable (assign 0 to latest revision)
+      PREV_REVISION=$(gcloud run revisions list --service=$_SERVICE_NAME --region=$_REGION --format="value(NAME)" --sort-by=~GENERATION | sed -n '2p')
+      if [ -n "$PREV_REVISION" ]; then
+        gcloud run services update-traffic $_SERVICE_NAME --to-revisions $PREV_REVISION=100 --region=$_REGION --platform=managed --quiet
+        echo "Rolled back to $PREV_REVISION"
+      else
+        echo "No previous revision found; alerting ops"
+        exit 1
+      fi
+    fi
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
