@@ -1,0 +1,30 @@
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "milestone-organizer-irsa",
+        "RoleId": "AROA4C5TWSFJRBIIPMEKV",
+        "Arn": "arn:aws:iam::830916170067:role/milestone-organizer-irsa",
+        "CreateDate": "2026-03-12T02:00:00+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::830916170067:oidc-provider/token.actions.githubusercontent.com"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringEquals": {
+                            "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                            "token.actions.githubusercontent.com:sub": "system:serviceaccount:ops:milestone-organizer-sa"
+                        }
+                    }
+                }
+            ]
+        },
+        "Description": "IRSA role for milestone-organizer service account (ops/milestone-organizer-sa)",
+        "MaxSessionDuration": 3600,
+        "RoleLastUsed": {}
+    }
+}
