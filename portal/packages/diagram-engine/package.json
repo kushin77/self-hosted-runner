@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/diagram-engine",
+  "version": "1.0.0",
+  "description": "Draw.io integration for architecture and troubleshooting diagrams",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:prod": "tsc --declaration",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6",
+    "vitest": "^1.1.0"
+  }
+}

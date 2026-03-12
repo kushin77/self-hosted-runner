@@ -83,24 +83,53 @@ echo "${BLUE}━━━━━━━━━━━━━━━━━━━━━━�
 # Check Cloud Run services
 if command -v gcloud &>/dev/null; then
     # Backend service
-    if gcloud run services describe nexus-shield-portal-backend --region=us-central1 --project="$GCP_PROJECT" &>/dev/null; then
-        status=$(gcloud run services describe nexus-shield-portal-backend --region=us-central1 --project="$GCP_PROJECT" --format='value(status.conditions[0].status)')
-        if [ "$status" = "True" ]; then
-            log_check "Cloud Run: Backend Service" "pass" "Ready"
+    if desc=$(gcloud run services describe nexus-shield-portal-backend --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
+        # Find the Ready condition explicitly (order may vary)
+        ready=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .status' 2>/dev/null || echo "Unknown")
+        if [ "$ready" = "True" ]; then
+            # Authenticated invocation check (preferred) to verify runtime
+            url=$(echo "$desc" | jq -r '.status.url' 2>/dev/null || true)
+            id_token=$(gcloud auth print-identity-token 2>/dev/null || true)
+            if [ -n "$id_token" ] && [ -n "$url" ]; then
+                http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $id_token" "$url" || echo "000")
+                if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then
+                    log_check "Cloud Run: Backend Service" "pass" "Ready and responding ($http_code)"
+                else
+                    log_check "Cloud Run: Backend Service" "fail" "Ready but invocation returned $http_code"
+                fi
+            else
+                log_check "Cloud Run: Backend Service" "pass" "Ready (invocation skipped)"
+            fi
         else
-            log_check "Cloud Run: Backend Service" "fail" "Not ready"
+            # capture reason if present
+            reason=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .reason' 2>/dev/null || true)
+            msg=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .message' 2>/dev/null || true)
+            log_check "Cloud Run: Backend Service" "fail" "Not ready: ${reason:-unknown} ${msg:-}" 
         fi
     else
         log_check "Cloud Run: Backend Service" "fail" "Service not found"
     fi
     
     # Frontend service
-    if gcloud run services describe nexus-shield-portal-frontend --region=us-central1 --project="$GCP_PROJECT" &>/dev/null; then
-        status=$(gcloud run services describe nexus-shield-portal-frontend --region=us-central1 --project="$GCP_PROJECT" --format='value(status.conditions[0].status)')
-        if [ "$status" = "True" ]; then
-            log_check "Cloud Run: Frontend Service" "pass" "Ready"
+    if desc=$(gcloud run services describe nexus-shield-portal-frontend --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
+        ready=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .status' 2>/dev/null || echo "Unknown")
+        if [ "$ready" = "True" ]; then
+            url=$(echo "$desc" | jq -r '.status.url' 2>/dev/null || true)
+            id_token=$(gcloud auth print-identity-token 2>/dev/null || true)
+            if [ -n "$id_token" ] && [ -n "$url" ]; then
+                http_code=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $id_token" "$url" || echo "000")
+                if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 400 ]; then
+                    log_check "Cloud Run: Frontend Service" "pass" "Ready and responding ($http_code)"
+                else
+                    log_check "Cloud Run: Frontend Service" "fail" "Ready but invocation returned $http_code"
+                fi
+            else
+                log_check "Cloud Run: Frontend Service" "pass" "Ready (invocation skipped)"
+            fi
         else
-            log_check "Cloud Run: Frontend Service" "fail" "Not ready"
+            reason=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .reason' 2>/dev/null || true)
+            msg=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .message' 2>/dev/null || true)
+            log_check "Cloud Run: Frontend Service" "fail" "Not ready: ${reason:-unknown} ${msg:-}"
         fi
     else
         log_check "Cloud Run: Frontend Service" "fail" "Service not found"
