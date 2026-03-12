@@ -1,0 +1,41 @@
+---
+# Enable strict mTLS for entire namespace
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: credential-system
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Certificate issuer for service mesh
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: vault-issuer
+spec:
+  vault:
+    server: https://vault.credential-system:8200
+    path: pki/sign/istio
+    auth:
+      kubernetes:
+        mountPath: /v1/auth/kubernetes
+        role: istio-certs
+
+---
+# Destination rule for mTLS between services
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: vault
+  namespace: credential-system
+spec:
+  host: vault
+  trafficPolicy:
+    tls:
+      mode: MUTUAL
+      clientCertificate: /etc/certs/client/cert.pem
+      privateKey: /etc/certs/client/key.pem
+      caCertificates: /etc/certs/ca/cert.pem
