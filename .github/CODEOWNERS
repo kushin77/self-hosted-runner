@@ -1,0 +1,4 @@
+# Repository code owners: require reviews from ops and platform leads for infra/ops changes
+# Pattern -> owners
+# Require review from these users for all changes to the repository
+* @kushin77 @BestGaaS220
