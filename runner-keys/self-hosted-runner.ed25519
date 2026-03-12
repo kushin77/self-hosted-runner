@@ -1,0 +1,1 @@
+REDACTED — private key removed from repository for security. This file previously contained a private key. DO NOT store private keys in the repository. Rotate and reprovision the runner key immediately and store new private key material in GSM or Vault. See docs/SECURITY_REMOVE_EXPOSED_KEYS.md for the remediation runbook.
