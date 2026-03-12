@@ -1,0 +1,50 @@
+# Multi-stage build: React frontend + Go API server
+
+# Stage 1: Build React frontend
+FROM node:18-alpine AS react-builder
+WORKDIR /app/portal
+COPY portal/package*.json ./
+RUN npm ci
+COPY portal . .
+RUN npm run build
+
+# Stage 2: Go API (if building API server; otherwise just serve dist/)
+FROM golang:1.21-alpine AS go-builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# Build portal API stub (currently just serves static files + proxies to NEXUS backend)
+# For now, we'll use a simple HTTP server; in production, add internal/api/portal.go
+
+# Stage 3: Runtime
+FROM alpine:latest
+RUN apk add --no-cache ca-certificates
+WORKDIR /app
+
+# Copy built React app
+COPY --from=react-builder /app/portal/dist ./public
+
+# For now, use a simple HTTP server (e.g., caddy or builtin Go server)
+# In production, replace with the Go API server binary
+RUN apk add --no-cache caddy
+
+# Create simple Caddyfile to serve static files and proxy /api/* to NEXUS backend
+RUN cat > /etc/caddy/Caddyfile <<EOF
+:8080 {
+  # Serve static React app
+  root * /app/public
+  file_server
+
+  # Proxy /api/* to NEXUS backend (env var NEXUS_API_URL)
+  reverse_proxy /api/* {ENV_NEXUS_API_URL} {
+    uri strip_prefix /api
+  }
+
+  # SPA fallback: serve index.html for all routes
+  try_files {path} /index.html
+}
+EOF
+
+EXPOSE 8080
+CMD ["caddy", "run", "--config", "/etc/caddy/Caddyfile"]

@@ -253,3 +253,7 @@ credentials/
 # Build output - never commit compiled artifacts
 backend/dist/
 frontend/dist/
+
+# Ignore canonical secret artifact archives and runtime binaries that must not be committed
+canonical_secrets_artifacts_*.tar.gz
+nexus-engine/bin/ingestion

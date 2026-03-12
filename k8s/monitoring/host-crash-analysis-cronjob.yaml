@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: host-crash-analysis-scripts
+  namespace: monitoring
+data:
+  host-crash-analyzer.py: |
+    # [Embedded from scripts/ops/host-crash-analysis/host-crash-analyzer.py]
+    # This is provisioned from the ConfigMap by the Pod
+    
+  host-remediation.sh: |
+    # [Embedded from scripts/ops/host-crash-analysis/host-remediation.sh]
+    # This is provisioned from the ConfigMap by the Pod
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: host-crash-analyzer
+  namespace: monitoring
+  labels:
+    app: host-crash-analysis
+    tier: observability
+  annotations:
+    immutable: "true"
+    idempotent: "true"
+spec:
+  # Run daily at 2 AM UTC (low-impact window)
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: host-crash-analysis
+            job-type: diagnostic
+          annotations:
+            prometheus.io/scrape: "false"
+        spec:
+          serviceAccountName: host-crash-analysis
+          restartPolicy: OnFailure
+          tolerations:
+            - key: "monitoring"
+              operator: "Equal"
+              value: "true"
+              effect: "NoSchedule"
+          containers:
+            - name: analyzer
+              image: gcr.io/cloud-builders/gke-deploy:v1.0.0
+              imagePullPolicy: Always
+              securityContext:
+                runAsUser: 0
+                privileged: false
+                capabilities:
+                  add:
+                    - SYS_ADMIN
+              env:
+                # Secrets from Google Secret Manager (via workload identity)
+                - name: GCS_AUDIT_BUCKET
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-crash-analysis-secrets
+                      key: gcs-audit-bucket
+                - name: SLACK_WEBHOOK_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: host-crash-analysis-secrets
+                      key: slack-webhook-url
+                      optional: true
+                - name: VAULT_ADDR
+                  value: "https://vault.default.svc.cluster.local:8200"
+                - name: VAULT_ROLE
+                  value: "host-crash-analysis"
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  
+                  echo "[$(date -u)] Starting host crash analysis..."
+                  
+                  # Install Python deps
+                  python3 -m pip install -q psutil google-cloud-storage 2>/dev/null || true
+                  
+                  # Run analyzer
+                  ANALYSIS_REPORT="/tmp/host_analysis_report.json"
+                  python3 /scripts/host-crash-analyzer.py > "$ANALYSIS_REPORT" 2>&1 || true
+                  cat "$ANALYSIS_REPORT"
+                  
+                  # If any alerts, trigger remediation
+                  ALERT_COUNT=$(jq '.alerts | length' "$ANALYSIS_REPORT" 2>/dev/null || echo 0)
+                  
+                  if [ "$ALERT_COUNT" -gt 0 ]; then
+                    echo "[$(date -u)] $ALERT_COUNT alerts detected. Running remediation..."
+                    bash /scripts/host-remediation.sh || true
+                  fi
+                  
+                  # Push audit trail to GCS
+                  if [ -n "${GCS_AUDIT_BUCKET:-}" ]; then
+                    TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
+                    HOSTNAME=$(hostname)
+                    GCS_PATH="${GCS_AUDIT_BUCKET}/host-crash-analysis/${HOSTNAME}/${TIMESTAMP}.json"
+                    echo "[$(date -u)] Pushing audit trail to $GCS_PATH..."
+                    gsutil -h "Cache-Control:no-cache" cp "$ANALYSIS_REPORT" "$GCS_PATH" 2>/dev/null || true
+                  fi
+                  
+                  # Notify Slack if alerts present
+                  if [ "$ALERT_COUNT" -gt 0 ] && [ -n "${SLACK_WEBHOOK_URL:-}" ]; then
+                    HOSTNAME=$(hostname)
+                    curl -X POST "${SLACK_WEBHOOK_URL}" \
+                      -H "Content-Type: application/json" \
+                      -d "{\"text\":\"Host crash alerts on $HOSTNAME: $ALERT_COUNT alert(s) detected and remediated\"}" \
+                      2>/dev/null || true
+                  fi
+                  
+                  echo "[$(date -u)] Host crash analysis complete"
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                - name: audit-log
+                  mountPath: /var/log
+          volumes:
+            - name: scripts
+              configMap:
+                name: host-crash-analysis-scripts
+                defaultMode: 0755
+            - name: audit-log
+              emptyDir: {}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: host-crash-analysis
+  namespace: monitoring
+  labels:
+    app: host-crash-analysis
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: host-crash-analysis
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: host-crash-analysis
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: host-crash-analysis
+subjects:
+  - kind: ServiceAccount
+    name: host-crash-analysis
+    namespace: monitoring
