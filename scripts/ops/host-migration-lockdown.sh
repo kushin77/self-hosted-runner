@@ -6,7 +6,7 @@
 set -euo pipefail
 
 TIMESTAMP=$(date -u +%Y%m%d%H%M%S)
-LOG_FILE="/var/log/host-migration-${TIMESTAMP}.log"
+LOG_FILE="/tmp/host-migration-${TIMESTAMP}.log"
 
 log_action() {
     local msg="$1"
@@ -20,7 +20,7 @@ log_action() {
 deploy_to_worker_node() {
     log_action "PHASE 1: Deploying all systems to worker node 192.168.168.42"
     
-    local WORKER_USER="${WORKER_USER:-ubuntu}"
+  local WORKER_USER="${WORKER_USER:-akushnir}"
     local WORKER_IP="192.168.168.42"
     local WORKER_HOME="/home/${WORKER_USER}"
     
