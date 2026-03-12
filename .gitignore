@@ -180,3 +180,4 @@ docs/archive/*CREDENTIAL*.md
 docs/*CREDENTIAL*.md
 docs/governance/*CREDENTIAL*.md
 **/*.log
+.venv
