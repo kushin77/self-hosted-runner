@@ -1,5 +1,90 @@
 # GitHub Organization Admin — FINAL HANDOFF (March 12, 2026)
 
+Status: COMPLETE
+Date: 2026-03-12
+Owner (handoff): Infrastructure/Platform Team → GitHub Org Admin
+
+## Purpose
+This document transfers operational responsibility for the `kushin77/self-hosted-runner` GitHub organization and related automation to the GitHub Org Administrator. It lists access, responsibilities, critical repos, policies, runbook links, and next actions for steady-state operations.
+
+## Admin Responsibilities
+- Manage organization access: teams, members, and SSO groups.
+- Enforce branch protection, required status checks, and PR review policies.
+- Approve and merge governance PRs (see `GIT_GOVERNANCE_STANDARDS.md`).
+- Monitor automation pipelines and respond to alerts from CI/CD systems.
+- Maintain secrets, key rotations and integrations with GSM/Vault/KMS.
+- Ensure SBOM and Trivy reports are archived and reviewed.
+
+## Critical Repositories
+- `self-hosted-runner` (this repository): CI provisioning, runner registration scripts, deployment runbooks.
+- `nexus-shield-portal` repos: backend & frontend application code and Docker image build config.
+- `infra` / `terraform` repos: cloud resource definitions and IAM policies.
+
+## Required Access & Teams
+- Organization Owner or `org-admins` team membership (minimum).
+- `ci-ops` team: permission to manage Actions/workflows and runners.
+- `security` team: read access to SBOM/trivy archives and issue triage rights.
+- Service accounts and secrets:
+  - `deployer-run@nexusshield-prod.iam.gserviceaccount.com` — Cloud Build runner (grant `storage.objectViewer` on logs bucket)
+  - GSM/Vault service accounts with least-privilege roles for secrets access
+
+## Policies to Enforce (Immediate)
+- Branch protection: `main` must have required checks (lint/test/build), code owners, and at least 1 approval.
+- Dependabot: enabled for `npm` and `Docker` (already configured; maintain PR cadence).
+- Image pinning: require pinned digests for production manifests.
+- SBOM retention: append-only archive in `gs://nexusshield-dev-sbom-archive`.
+
+## Automations & CI/CD
+- Cloud Build pipeline: lint/test → image build → SBOM (syft) → Trivy scan → push → Cloud Run deploy.
+- SBOM & Trivy archiving: run on allowed host `192.168.168.42` and push to `gs://nexusshield-dev-sbom-archive`.
+- Scheduled jobs: triage every 6h, SLA monitor every 4h (configured in GitLab schedules).
+
+## Runbooks & Docs (essential)
+- [OPS_PROVISIONING_CHECKLIST_20260312.md](OPS_PROVISIONING_CHECKLIST_20260312.md) — provisioning steps & best-practices
+- `docs/HANDS_OFF_AUTOMATION_RUNBOOK.md` — full runbook for scheduled automation
+- `docs/GSM_VAULT_KMS_INTEGRATION.md` — secret rotation and vault integration
+- `DEPLOYMENT_BEST_PRACTICES.md` — CI/CD best practices and gating
+
+## Incidents & Recovery
+- For CI/CD failures: capture Cloud Build ID, fetch logs (`gcloud builds log <BUILD_ID> --project=nexusshield-prod`) and attach to issue.
+- If logs access denied: ensure `deployer-run` SA has `storage.objectViewer` on `151423364222.cloudbuild-logs.googleusercontent.com` bucket.
+- For Cloud Run rollback: use previous image digest or `gcloud run services update --image ... --region ...` and run health checks.
+
+## Evidence & Compliance
+- All SBOMs and Trivy JSONs are archived in `gs://nexusshield-dev-sbom-archive` (backends/sources).
+- Audit trail: append-only JSONL logs and Git history; use signed commits where possible.
+
+## Emergency Contacts
+- Primary: Infrastructure On-Call — pager `#infra-oncall` (Slack) / ops@company.example
+- Secondary: Security Team — security@company.example
+- Repo owner (initial): `kushin77`
+
+## Handoff Checklist (actions the new admin should complete)
+- [ ] Verify org admin membership and SSO access.
+- [ ] Confirm `deployer-run` SA IAM binding for build logs.
+- [ ] Review branch protection rules on `main` across critical repos.
+- [ ] Verify scheduled automation runs and pipeline health.
+- [ ] Confirm SBOM archive retention and append-only policy.
+- [ ] Validate Dependabot PR handling and base-image pinning flows.
+
+## Next Steps (recommended)
+1. Run the SBOM + Trivy helper on the allowed host and validate uploads:
+
+```bash
+ssh ops@192.168.168.42
+bash /home/akushnir/self-hosted-runner/scripts/ops/run_sbom_trivy_and_upload.sh \
+  --bucket gs://nexusshield-dev-sbom-archive --prefix backends \
+  --image us-docker.pkg.dev/nexusshield-prod/artifacts/nexus-shield-portal-backend:15b3dd8ed
+```
+
+2. Request operator to grant logs IAM (if not already done): use `gsutil iam ch ...` command in `OPS_PROVISIONING_CHECKLIST_20260312.md`.
+3. After logs access is granted, fetch build logs and triage any failures.
+
+## Sign-off
+Handed off by: Infrastructure/Platform Team
+Date: 2026-03-12
+# GitHub Organization Admin — FINAL HANDOFF (March 12, 2026)
+
 **Status:** ✅ **ALL GITHUB-SIDE CONFIGURATION COMPLETE & VERIFIED**
 
 ---
