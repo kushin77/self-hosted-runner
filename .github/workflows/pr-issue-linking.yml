@@ -1,0 +1,130 @@
+name: PR Linked to Issue Automation
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  pull_request_target:
+    types: [opened]
+
+jobs:
+  link-to-issue:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Extract linked issues from PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import subprocess
+          import json
+          import re
+
+          pr_number = ${{ github.event.pull_request.number }}
+          pr_title = "${{ github.event.pull_request.title }}"
+          pr_body = "${{ github.event.pull_request.body }}"
+
+          # Find issue references: closes #123, refs #456, fixes #789
+          patterns = [
+              r"(?:closes|closes\s+|Closes|CLOSES)[:\s]+#(\d+)",
+              r"(?:fixes|Fixes|FIXES)[:\s]+#(\d+)",
+              r"(?:resolves|Resolves|RESOLVES)[:\s]+#(\d+)",
+              r"(?:ref|refs|Ref|Refs|REF|REFS)[:\s]+#(\d+)",
+          ]
+
+          linked_issues = set()
+          for pattern in patterns:
+              matches = re.findall(pattern, pr_body + " " + pr_title)
+              linked_issues.update(matches)
+
+          print(f"PR #{pr_number} links to issues: {linked_issues}")
+
+          for issue_num in linked_issues:
+              # Get current issue state
+              result = subprocess.run(
+                  ["gh", "issue", "view", str(issue_num),
+                   "--json", "state,labels",
+                   "--repo", "${{ github.repository }}"],
+                  capture_output=True,
+                  text=True
+              )
+
+              if result.returncode == 0:
+                  issue = json.loads(result.stdout)
+                  
+                  # Mark issue as in review if it has a PR
+                  labels = [l["name"] for l in issue.get("labels", [])]
+                  
+                  # Remove old state label
+                  old_state = [l for l in labels if l.startswith("state:")]
+                  if old_state:
+                      subprocess.run(
+                          ["gh", "issue", "edit", str(issue_num),
+                           "--repo", "${{ github.repository }}",
+                           "--remove-label", old_state[0]],
+                          check=False
+                      )
+                  
+                  # Add state:review label
+                  subprocess.run(
+                      ["gh", "issue", "edit", str(issue_num),
+                       "--repo", "${{ github.repository }}",
+                       "--add-label", "state:review"],
+                      check=False
+                  )
+
+                  # Add comment linking to PR
+                  subprocess.run(
+                      ["gh", "issue", "comment", str(issue_num),
+                       "--repo", "${{ github.repository }}",
+                       "--body", f"🔗 Linked in PR #{pr_number}: {pr_title}"],
+                      check=False
+                  )
+
+                  print(f"✓ Updated issue #{issue_num} - linked to PR #{pr_number}")
+          EOF
+
+  auto-close-on-merge:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      issues: write
+
+    steps:
+      - name: Close linked issues on PR merge
+        if: github.event.pull_request.merged == true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import subprocess
+          import json
+          import re
+
+          pr_number = ${{ github.event.pull_request.number }}
+          pr_body = "${{ github.event.pull_request.body }}"
+
+          # Find issues marked as "closes"
+          pattern = r"(?:closes|closes\s+|Closes|CLOSES)[:\s]+#(\d+)"
+          matches = re.findall(pattern, pr_body)
+
+          for issue_num in matches:
+              print(f"Closing issue #{issue_num} because PR #{pr_number} was merged")
+              
+              subprocess.run(
+                  ["gh", "issue", "close", str(issue_num),
+                   "--repo", "${{ github.repository }}",
+                   "--reason", "completed"],
+                  check=False
+              )
+
+              subprocess.run(
+                  ["gh", "issue", "comment", str(issue_num),
+                   "--repo", "${{ github.repository }}",
+                   "--body", f"✅ Closed by PR #{pr_number}"],
+                  check=False
+              )
+          EOF
