@@ -163,8 +163,8 @@ if [ -f "$AUDIT_FILE" ]; then
     # Append as the original file owner when possible (handles NFS root_squash).
     OWNER_USER=$(stat -c %U "$AUDIT_FILE" 2>/dev/null || true)
     if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ] && [ "$OWNER_USER" = "${SUDO_USER}" ]; then
-        # Append as the non-root user who created the file
-        sudo -u "${SUDO_USER}" bash -c "printf '%s\n' \"$ENTRY\" >> \"$AUDIT_FILE\""
+        # Append as the non-root user who created the file (use tee to avoid complex quoting)
+        printf '%s\n' "$ENTRY" | sudo -u "${SUDO_USER}" tee -a "$AUDIT_FILE" >/dev/null
     else
         # Fallback: try tee as current effective user (may fail on NFS with root_squash)
         printf '%s\n' "$ENTRY" | tee -a "$AUDIT_FILE" >/dev/null || log_msg "WARNING: append to $AUDIT_FILE failed"
