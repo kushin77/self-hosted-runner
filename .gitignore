@@ -181,3 +181,9 @@ docs/*CREDENTIAL*.md
 docs/governance/*CREDENTIAL*.md
 **/*.log
 .venv
+
+# Security scan reports (contains sensitive vulnerability/credential findings)
+gitleaks-report.json
+*-scan-report.json
+*-security-report.json
+*.scan.json
