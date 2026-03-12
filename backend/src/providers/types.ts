@@ -42,6 +42,7 @@ export interface ProviderCredentials {
   mfaSerial?: string;       // AWS MFA
   mfaToken?: string;        // AWS MFA token
   sessionToken?: string;    // AWS temporary session
+  expiresAt?: Date;         // AWS temporary credential expiry
   tags?: Record<string, string>; // Resource tags
   metadata?: Record<string, any>; // Provider-specific metadata
 }
