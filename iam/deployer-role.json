@@ -1,0 +1,22 @@
+{
+  "title": "Deployer Minimal",
+  "description": "Custom role containing minimal permissions required to deploy the prevent-releases Cloud Run service and create necessary secrets/alerts.",
+  "includedPermissions": [
+    "iam.serviceAccounts.create",
+    "iam.serviceAccounts.get",
+    "iam.serviceAccounts.list",
+    "iam.serviceAccounts.actAs",
+    "run.services.create",
+    "run.services.update",
+    "run.services.get",
+    "run.services.list",
+    "secretmanager.secrets.create",
+    "secretmanager.versions.add",
+    "secretmanager.secrets.get",
+    "secretmanager.secrets.update",
+    "cloudbuild.builds.create",
+    "cloudscheduler.jobs.create",
+    "monitoring.alertPolicies.create",
+    "logging.configWriter"
+  ]
+}
