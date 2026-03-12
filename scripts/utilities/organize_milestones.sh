@@ -7,12 +7,17 @@ set -euo pipefail
 
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "kushin77/self-hosted-runner")"
 DRY_RUN=1
-if [ "${1:-}" = "--apply" ]; then
-  DRY_RUN=0
-fi
+ISSUE_STATE=open
+for arg in "$@"; do
+  case "$arg" in
+    --apply) DRY_RUN=0 ;;
+    --closed) ISSUE_STATE=closed ;;
+  esac
+done
 
 echo "Repo: $REPO"
 echo "Mode: $([ $DRY_RUN -eq 1 ] && echo preview || echo apply)"
+echo "Issue state: $ISSUE_STATE"
 
 MILESTONES=(
   "Observability & Provisioning|Provision agents, configure log/metric pipelines, validate observability."
@@ -26,7 +31,7 @@ MILESTONES=(
 echo "\nProposed milestones:"
 for m in "${MILESTONES[@]}"; do
   IFS='|' read -r title desc <<< "$m"
-  printf "- %s: %s\n" "$title" "$desc"
+  printf '%s\n' "- $title: $desc"
 done
 
 if [ $DRY_RUN -eq 1 ]; then
@@ -36,6 +41,11 @@ fi
 # create missing milestones
 for m in "${MILESTONES[@]}"; do
   IFS='|' read -r title desc <<< "$m"
+  exists=$(gh api repos/$REPO/milestones --jq ".[] | select(.title==\"$title\") | .number" 2>/dev/null || true)
+  if [ -n "$exists" ]; then
+    echo "Milestone exists: $title"
+    continue
+  fi
   if [ $DRY_RUN -eq 1 ]; then
     echo "Would create milestone: $title"
   else
@@ -45,13 +55,13 @@ for m in "${MILESTONES[@]}"; do
 done
 
 # dump open issues
-TMP=/tmp/organize_milestones_$$.json
-gh issue list --state open --limit 1000 --json number,title,body,labels,milestone > "$TMP"
+TMP=$(mktemp /tmp/organize_milestones_XXXX.json)
+gh issue list --state "$ISSUE_STATE" --limit 1000 --json number,title,body,labels,milestone > "$TMP"
 
 echo "\nBuilding heuristic mapping and assignment plan..."
-python3 - <<'PY'
+python3 - <<PY
 import json,sys
-issues=json.load(open('$TMP'))
+issues=json.load(open("$TMP"))
 groups={
  'Observability & Provisioning':['observab','provision','agent','filebeat','node_exporter','vault-agent','provisioning'],
  'Secrets & Credential Management':['secret','secrets','aws','secretsmanager','gsm','vault','kms','credential','gitleaks','secrets found','rotate'],
@@ -100,9 +110,9 @@ fi
 
 echo "Applying assignments in batches..."
 # Assign by repeating the same heuristic in shell to call gh
-python3 - <<'PY'
+python3 - <<PY
 import json,subprocess
-issues=json.load(open('$TMP'))
+issues=json.load(open("$TMP"))
 groups={
  'Observability & Provisioning':['observab','provision','agent','filebeat','node_exporter','vault-agent','provisioning'],
  'Secrets & Credential Management':['secret','secrets','aws','secretsmanager','gsm','vault','kms','credential','gitleaks','secrets found','rotate'],
@@ -135,7 +145,7 @@ for i in issues:
         failed.append({'issue':num,'err':r.stderr})
 print('Assigned',assigned,'failed',len(failed))
 if failed:
-    print('Sample failures:', failed[:10])
+  print('Sample failures:', failed[:10])
 PY
 
 echo "Done. Cleaning up."
