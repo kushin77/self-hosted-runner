@@ -35,7 +35,7 @@
     "@azure/storage-blob": "^12.20.0",
     "@google-cloud/compute": "^4.0.0",
     "@google-cloud/kms": "^4.0.0",
-    "@google-cloud/monitoring": "^3.0.0",
+    "@google-cloud/monitoring": "^3.0.5",
     "@google-cloud/secret-manager": "^5.0.0",
     "@google-cloud/storage": "^7.0.0",
     "@prisma/client": "^5.8.0",
