@@ -1,0 +1,185 @@
+steps:
+  # Step 1: Build backend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-backend'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:latest'
+      - '--cache-from'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:latest'
+      - '.'
+      - '-f'
+      - 'Dockerfile.backend'
+    waitFor:
+      - '-'
+
+  # Step 2: Build frontend Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-frontend'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:${SHORT_SHA}'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:latest'
+      - '--cache-from'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:latest'
+      - '.'
+      - '-f'
+      - 'Dockerfile.frontend'
+    waitFor:
+      - '-'
+
+  # Step 3: Push images to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-backend'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}'
+    waitFor:
+      - 'build-backend'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-frontend'
+    args:
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:${SHORT_SHA}'
+    waitFor:
+      - 'build-frontend'
+
+  # Step 4: Run security scans (Trivy)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'scan-backend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image \
+          --exit-code 0 \
+          --severity HIGH,CRITICAL \
+          us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}
+    waitFor:
+      - 'push-backend'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'scan-frontend'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          aquasec/trivy:latest image \
+          --exit-code 0 \
+          --severity HIGH,CRITICAL \
+          us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:${SHORT_SHA}
+    waitFor:
+      - 'push-frontend'
+
+  # Step 5: Deploy to Cloud Run (canary: 10% traffic)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-canary-backend'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'backend-canary'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=cloud-run-deployer@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=ENVIRONMENT=canary,BUILD_SHA=${SHORT_SHA}'
+      - '--tag=canary'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+    waitFor:
+      - 'scan-backend'
+
+  # Step 6: Run smoke tests against canary
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'smoke-tests-canary'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        export CANARY_URL=$(gcloud run services describe backend-canary \
+          --region=us-central1 --platform=managed --format='value(status.url)')
+        
+        echo "Running smoke tests against canary: $CANARY_URL"
+        bash ./scripts/smoke_test.sh "$CANARY_URL" 2>&1 || {
+          echo "❌ Canary smoke tests failed; rolling back..."
+          gcloud run services update-traffic backend-canary --to-revisions LATEST=0 --region=us-central1
+          exit 1
+        }
+        echo "✅ Canary smoke tests passed"
+    waitFor:
+      - 'deploy-canary-backend'
+
+  # Step 7: Promote canary to production (100% traffic)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'promote-to-production'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'backend'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--service-account=cloud-run-deployer@$PROJECT_ID.iam.gserviceaccount.com'
+      - '--set-env-vars=ENVIRONMENT=production,BUILD_SHA=${SHORT_SHA}'
+      - '--tag=prod'
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=us-central1'
+    waitFor:
+      - 'smoke-tests-canary'
+
+  # Step 8: Audit & logging
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'audit-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        gcloud logging write direct-deploy-audit \
+          "Direct deployment succeeded: backend=${SHORT_SHA}, frontend=latest, canary→prod" \
+          --severity=INFO \
+          --project=$PROJECT_ID \
+          --labels=environment=production,build_sha=${SHORT_SHA:0:8},branch=${BRANCH_NAME}
+    waitFor:
+      - 'promote-to-production'
+
+onFailure:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        gcloud logging write direct-deploy-audit \
+          "Direct deployment FAILED: ${BUILD_STATUS} at step (check build logs)" \
+          --severity=ERROR \
+          --project=$PROJECT_ID \
+          --labels=environment=production,build_sha=${SHORT_SHA:0:8},branch=${BRANCH_NAME}
+
+images:
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/backend:${SHORT_SHA}'
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/frontend:${SHORT_SHA}'
+  
+timeout: '1800s'
+tags:
+  - 'direct-deploy'
+  - 'production'
+  - 'canary'
+  - 'immutable'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
