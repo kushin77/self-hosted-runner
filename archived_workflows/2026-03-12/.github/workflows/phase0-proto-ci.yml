@@ -1,0 +1,58 @@
+name: Phase0 Proto & Build CI
+
+on:
+  pull_request:
+    branches: ["main",
+"phase0/*"]
+  push:
+    branches: ["main"]
+
+jobs:
+  proto-build:
+    name: Compile
+protos & Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+       
+uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses:
+actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Install protoc
+ 
+      run: |
+          sudo apt-get update
+          sudo apt-get install -y
+protobuf-compiler
+
+      - name: Install protoc-gen-go
+        run: |
+          go
+install google.golang.org/protobuf/cmd/protoc-gen-go@v1.30.0
+          echo
+"$GOPATH/bin" >> $GITHUB_PATH
+
+      - name: Compile protos (validate)
+        run:
+        ...
+...
+|
+          chmod +x ./scripts/compile_protos.sh || true
+         
+./scripts/compile_protos.sh
+
+      - name: Go mod tidy
+        run: go mod tidy
+
+      -
+name: Build
+        run: go build -v ./...
+
+      - name: Run tests
+        run: go
+test ./... -v
