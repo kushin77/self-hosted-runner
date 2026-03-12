@@ -467,6 +467,108 @@ components:
           type: string
           format: date-time
 
+    # ========================================
+    # Unified API Response Schemas (Day 1)
+    # ========================================
+
+    APIResponseMetadata:
+      type: object
+      required:
+        - requestId
+        - timestamp
+        - version
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Unique request identifier for tracing
+        timestamp:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when response was generated
+        version:
+          type: string
+          example: v1
+          description: API version
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Non-critical warnings (e.g., deprecated fields)
+
+    ErrorPayload:
+      type: object
+      required:
+        - code
+        - message
+        - retryable
+      properties:
+        code:
+          type: string
+          description: Standard error code (e.g., auth/invalid-token, credential/rotation-failed)
+        message:
+          type: string
+          description: Human-readable error message
+        retryable:
+          type: boolean
+          description: Whether client should retry this request
+        retryAfter:
+          type: integer
+          description: If retryable, milliseconds to wait before retry
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional context for debugging
+
+    APIResponse:
+      type: object
+      required:
+        - status
+        - data
+        - error
+        - metadata
+      properties:
+        status:
+          type: string
+          enum:
+            - success
+            - error
+            - partial
+          description: Response status (success, error, or partial with warnings)
+        data:
+          type: object
+          nullable: true
+          description: Response payload (specific type depends on endpoint)
+        error:
+          $ref: '#/components/schemas/ErrorPayload'
+          nullable: true
+          description: Error details (only present if status is error)
+        metadata:
+          $ref: '#/components/schemas/APIResponseMetadata'
+          description: Response metadata (always present)
+
+    APIResponseSuccess:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            status:
+              enum: [success]
+            error:
+              nullable: true
+              enum: [null]
+
+    APIResponseError:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            status:
+              enum: [error]
+            data:
+              nullable: true
+              enum: [null]
+
   securitySchemes:
     BearerAuth:
       type: http

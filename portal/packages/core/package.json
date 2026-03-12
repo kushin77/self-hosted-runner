@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/core",
+  "version": "1.0.0",
+  "description": "Core shared services and types for NexusShield Portal",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "build:prod": "tsc --declaration",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "uuid": "^9.0.1",
+    "pino": "^8.17.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6"
+  }
+}
