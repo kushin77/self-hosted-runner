@@ -57,6 +57,19 @@ steps:
     fi
     chmod +x tools/post-deploy-verify.sh
     ./tools/post-deploy-verify.sh
+    # If Grafana secret is provided, import the compliance dashboard (idempotent)
+    if [ -n "${_GRAFANA_API_KEY_SECRET:-}" ]; then
+      echo "Fetching Grafana API key from Secret Manager: ${_GRAFANA_API_KEY_SECRET}"
+      GRAFANA_API_KEY=$(gcloud secrets versions access latest --secret="${_GRAFANA_API_KEY_SECRET}" --project="$PROJECT_ID")
+      export GRAFANA_API_KEY
+      # GRAFANA_URL can be provided as a substitution or env var; default to internal Grafana if set
+      GRAFANA_URL="${GRAFANA_URL:-http://grafana:3000}"
+      export GRAFANA_URL
+      chmod +x scripts/monitoring/ensure_grafana_dashboard.sh
+      ./scripts/monitoring/ensure_grafana_dashboard.sh
+    else
+      echo "No Grafana secret substitution provided; skipping dashboard import"
+    fi
 images:
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA'
 - 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA'
@@ -65,4 +78,5 @@ options:
 substitutions:
   _TAG: 'latest'
   _GITHUB_TOKEN_SECRET: ''
+  _GRAFANA_API_KEY_SECRET: ''
 timeout: '1200s'
