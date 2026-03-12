@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import CredentialService from '../src/credentials';
-import AuditService from '../src/audit';
-import ComplianceService from '../src/compliance';
-import MetricsService from '../src/metrics';
+import CredentialService from '../../src/credentials';
+import AuditService from '../../src/audit';
+import ComplianceService from '../../src/compliance';
+import MetricsService from '../../src/metrics';
 
 describe('Portal MVP Backend API Tests', () => {
   // =========================================================================
