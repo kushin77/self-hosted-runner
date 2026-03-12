@@ -1,0 +1,18 @@
+[Unit]
+Description=Daily deployer SA key rotation timer
+Documentation=man:systemd.timer(5)
+Requires=deployer-key-rotate.service
+
+[Timer]
+# Run daily at 2 AM (02:00)
+OnCalendar=daily
+OnCalendar=*-*-* 02:00:00
+# Run on boot if missed (within 15 minutes grace)
+Persistent=true
+# Randomize start by up to 5 minutes to avoid thundering herd
+RandomizedDelaySec=5min
+# Timeout: abort if timer hasn't started after 10 minutes
+TimeoutStartSec=600s
+
+[Install]
+WantedBy=timers.target
