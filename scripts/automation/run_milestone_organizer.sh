@@ -15,6 +15,9 @@ AUDIT_LOG="$ARTIFACT_DIR/assignments_$TS.jsonl"
 
 echo "Repo: $REPO"
 echo "Artifact dir: $ARTIFACT_DIR"
+PRE_OPEN_JSON="$ARTIFACT_DIR/open_pre_$TS.json"
+PRE_CLOSED_JSON="$ARTIFACT_DIR/closed_pre_$TS.json"
+PATCH_FILE="$ARTIFACT_DIR/assignment_patch_$TS.jsonl"
 LOCKFILE=${LOCKFILE:-/tmp/milestone_organizer.lock}
 
 # Acquire non-blocking flock to avoid concurrent runs
@@ -39,6 +42,11 @@ else
 fi
 
 echo "Running organizer (apply) — idempotent"
+# Snapshot pre-run state so we can rollback if needed
+echo "Exporting pre-run issue state to $PRE_OPEN_JSON and $PRE_CLOSED_JSON"
+gh issue list --state open --limit 1000 --json number,title,milestone > "$PRE_OPEN_JSON" || true
+gh issue list --state closed --limit 1000 --json number,title,milestone > "$PRE_CLOSED_JSON" || true
+
 if ! scripts/utilities/organize_milestones.sh --apply; then
   echo "organizer exited with non-zero status"; rc=$?; \
   gh issue create --title "milestone-organizer: run failure" --body "Organizer exited with status $rc. See artifacts in $ARTIFACT_DIR" || true; \
@@ -52,6 +60,28 @@ gh issue list --state closed --limit 1000 --json number,title,milestone > "$CLOS
 # Build append-only JSONL audit: one JSON object per line
 jq -c '.[] | {state: "open", number: .number, title: .title, milestone: (.milestone|.title // null)}' "$OPEN_JSON" > "$AUDIT_LOG" || true
 jq -c '.[] | {state: "closed", number: .number, title: .title, milestone: (.milestone|.title // null)}' "$CLOSED_JSON" >> "$AUDIT_LOG" || true
+
+# Build patch file mapping old -> new milestones for rollback
+echo "Building assignment patch file: $PATCH_FILE"
+python3 - <<PY
+import json
+pre_open=json.load(open('$PRE_OPEN_JSON')) if True else []
+post_open=json.load(open('$OPEN_JSON')) if True else []
+pre_map={i['number']:(i.get('milestone') or {}).get('title') for i in pre_open}
+post_map={i['number']:(i.get('milestone') or {}).get('title') for i in post_open}
+with open('$PATCH_FILE','w') as out:
+  import time
+  ts=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
+  for num, new in post_map.items():
+    old = pre_map.get(num)
+    if old != new:
+      rec={'number':num,'old_milestone':old,'new_milestone':new,'timestamp':ts}
+      out.write(json.dumps(rec)+"\n")
+print('Wrote patch file:', '$PATCH_FILE')
+PY
+
+# Symlink last patch for easy rollback reference
+ln -f "$PATCH_FILE" "$ARTIFACT_DIR/last_assignment_patch.jsonl" || true
 
 echo "Wrote audit log: $AUDIT_LOG"
 echo "Done"
