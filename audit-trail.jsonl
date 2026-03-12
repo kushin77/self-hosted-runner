@@ -1,3 +1,5 @@
+{"timestamp":"2026-03-12T23:40:00Z","action":"gitleaks_scan","details":{"findings":371,"report":"reports/secret-scan-report-redacted.json"}}
+
 { "timestamp": "2026-03-12T17:43:33Z", "action": "governance-enforcement", "event": "archived-github-actions-workflows", "workflows_archived": 2, "reason": "Policy NO_GITHUB_ACTIONS enforced", "replacement": "Cloud Build CI/CD" }
 2026-03-12T18:12:36Z | remove | removed repo paths: logs/, artifacts/ | actor: automation-agent
 2026-03-12T18:17:41Z | remove | removed sensitive scripts and raw reports: scripts/nexusshield-secrets-cli.sh, scripts/azure-credentials.sh, gitleaks-report.json, reports/gitleaks-targeted.json, docs/*.bak | actor: automation-agent
