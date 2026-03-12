@@ -1,0 +1,21 @@
+{
+  "name": "@nexus/products/ops",
+  "version": "1.0.0",
+  "description": "NexusShield OPS Product - Core operations management",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "build:prod": "tsc --declaration",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "@types/node": "^20.10.6"
+  }
+}
