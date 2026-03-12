@@ -352,6 +352,33 @@ const x = credentialKey;
 
 ---
 
+## Governance Enforcement
+
+This repository enforces mandatory governance controls required for production readiness. All contributors and maintainers must follow these enforced rules. Violations (pushing secrets, re-adding GitHub Actions, or enabling PR-release flows) will be reverted and flagged to the security/ops team.
+
+### Required Properties
+- **Immutable**: All audit exports and critical logs must be exported as JSONL and stored in COMPLIANCE buckets with Object Lock (365-day retention). See issue #2700 for Day 2 immutability tasks.
+- **Ephemeral**: All credentials must be ephemeral where possible; TTLs must be enforced via GSM or Vault (see issue #2774).
+- **Idempotent**: Infrastructure changes must be idempotent. Use Terraform with plan gating and drift detection (see issue #2775).
+- **No-Ops (Hands-Off)**: Deployments must be fully automated with canary/smoke tests and auto-rollback. Human operator interventions are limited and documented (see issue #2776).
+- **Credentials Management**: All secrets and signing keys MUST be stored and accessed via Google Secret Manager, HashiCorp Vault, or KMS. No credentials in repo (see issue #2772).
+- **Direct Development & Direct Deploy**: Developers may push to `main` following the direct-deploy policy in this doc. PR-based release gates and GitHub Actions are NOT allowed.
+
+### Enforcement Actions
+- Any `.github/workflows` files found on `main` will be archived and removed automatically by automation. A recent archive PR: #2782.
+- Repository admins MUST configure branch protection on `main` to require Cloud Build checks (not GitHub Actions) and block pushes that include `.github/workflows` files.
+- CI/CD must use Cloud Build / Cloud Run / Cloud Deploy; do not add or re-enable GitHub Actions.
+- Security scans (secret scanning, vulnerability scans) are required daily and must pass for production deploys.
+
+### Owner & Contacts
+- **Owner:** @kushin77 (Backend + DevOps)
+- **Security contact:** security@nexusshield.example.com
+- **Relevant issues:** #2700 (immutability), #2684 (ops blocker), #2772 (GSM/Vault/KMS), #2773 (no-actions policy), #2774 (ephemeral creds), #2775 (idempotent infra), #2776 (no-ops automation)
+
+If you need an exception for a specific workflow, open an issue referencing the policy and get explicit approval from the owner.
+
+---
+
 ## 🚀 Deployment Integration
 
 ### Before Final Commit
@@ -365,8 +392,8 @@ const x = credentialKey;
 2. **Test Local Build**
    ```bash
    npm run build
-   docker build -t test-backend .
-   docker run -it test-backend npm run build
+docker build -t test-backend .
+docker run -it test-backend npm run build
    ```
 
 3. **Update Version**
@@ -396,29 +423,6 @@ docker exec nexusshield-postgres psql -U nexusshield -d nexusshield -c "SELECT 1
 # Reset database
 docker-compose down -v
 docker-compose up -d postgres
-```
-
-### Port conflicts
-
-```bash
-# Find what's using port 3000
-lsof -i :3000
-
-# Kill the process
-kill -9 <PID>
-
-# Or use docker-compose
-docker-compose down
-```
-
-### Redis cache issues
-
-```bash
-# Check Redis
-docker exec nexusshield-redis redis-cli ping
-
-# Flush cache (development only!)
-docker exec nexusshield-redis redis-cli FLUSHALL
 ```
 
 ---
@@ -453,22 +457,6 @@ Commencement can merge after:
 4. **Document** in `backend/README.md`
 5. **Test locally** and verify
 6. **Create PR** with description
-
-### Adding a Database Model
-
-1. **Update** `prisma/schema.prisma`
-2. **Create migration**: `npx prisma migrate dev --name add_model_name`
-3. **Update types** in `src/types.ts`
-4. **Create service** to handle CRUD operations
-5. **Test** with `npx prisma studio`
-
-### Adding a Dependency
-
-1. **Install**: `npm install package-name`
-2. **Add types** if available: `npm install --save-dev @types/package-name`
-3. **Test** build: `npm run build`
-4. **Document** in PR why dependency is needed
-5. **Check** npm audit for vulnerabilities
 
 ---
 
