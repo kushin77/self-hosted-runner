@@ -1,0 +1,184 @@
+name: Issue Dependency Tracking
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created, edited]
+
+jobs:
+  track-dependencies:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse and track dependencies
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import subprocess
+          import json
+          import re
+          from typing import Set, List
+
+          issue_number = ${{ github.event.issue.number }}
+          body = """${{ github.event.issue.body }}""".replace('"', '\\"')
+
+          # Parse dependency patterns:
+          # Depends on: #123
+          # Blocks: #456, #789
+          # Related: #111
+
+          depends_on_pattern = r"(?:depends\s+on|depends\s*on|requires|waiting\s+for)[:\s]+#(\d+)"
+          blocks_pattern = r"(?:blocks|unblocks)[:\s]+#(\d+)"
+          related_pattern = r"(?:related|see\s+also)[:\s]+#(\d+)"
+
+          depends_on_matches = re.findall(depends_on_pattern, body, re.IGNORECASE)
+          blocks_matches = re.findall(blocks_pattern, body, re.IGNORECASE)
+          related_matches = re.findall(related_pattern, body, re.IGNORECASE)
+
+          dependencies = {
+              "depends_on": depends_on_matches,
+              "blocks": blocks_matches,
+              "related": related_matches,
+          }
+
+          print(f"Issue #{issue_number} dependencies:")
+          print(json.dumps(dependencies, indent=2))
+
+          # Add labels for blocking status
+          if dependencies["depends_on"]:
+              print(f"⛓️ This issue depends on: {', '.join(f'#{d}' for d in dependencies['depends_on'])}")
+              subprocess.run(
+                  ["gh", "issue", "edit", str(issue_number),
+                   "--repo", "${{ github.repository }}",
+                   "--add-label", "blocked-by-issues"],
+                  check=False
+              )
+
+              # Mark dependency issues as blocking
+              for dep_num in dependencies["depends_on"]:
+                  subprocess.run(
+                      ["gh", "issue", "edit", str(dep_num),
+                       "--repo", "${{ github.repository }}",
+                       "--add-label", "blocks-other-issues"],
+                      check=False
+                  )
+
+          if dependencies["blocks"]:
+              print(f"🚧 This issue blocks: {', '.join(f'#{b}' for b in dependencies['blocks'])}")
+              subprocess.run(
+                  ["gh", "issue", "edit", str(issue_number),
+                   "--repo", "${{ github.repository }}",
+                   "--add-label", "blocks-other-issues"],
+                  check=False
+              )
+
+          # Store dependency graph
+          with open(f"/tmp/issue_{issue_number}_deps.json", "w") as f:
+              json.dump(dependencies, f)
+          EOF
+
+      - name: Check if dependencies are resolved
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import subprocess
+          import json
+
+          issue_number = ${{ github.event.issue.number }}
+
+          try:
+              with open(f"/tmp/issue_{issue_number}_deps.json") as f:
+                  dependencies = json.load(f)
+          except:
+              exit(0)
+
+          depends_on = dependencies["depends_on"]
+          all_resolved = True
+          unresolved = []
+
+          for dep_num in depends_on:
+              result = subprocess.run(
+                  ["gh", "issue", "view", str(dep_num),
+                   "--json", "state,labels",
+                   "--repo", "${{ github.repository }}"],
+                  capture_output=True,
+                  text=True
+              )
+
+              if result.returncode == 0:
+                  dep_issue = json.loads(result.stdout)
+                  
+                  # Check if dependency is closed or has state:done
+                  is_done = (dep_issue["state"] == "CLOSED" or 
+                           any(l["name"] == "state:done" for l in dep_issue.get("labels", [])))
+                  
+                  if not is_done:
+                      all_resolved = False
+                      unresolved.append(f"#{dep_num}")
+
+          if unresolved:
+              message = f"⛓️ **Blocked** by {len(unresolved)} issue(s): {', '.join(unresolved)}"
+              print(message)
+          else:
+              if depends_on:
+                  message = "✅ All blocking issues are resolved!"
+                  subprocess.run(
+                      ["gh", "issue", "edit", str(issue_number),
+                       "--repo", "${{ github.repository }}",
+                       "--remove-label", "blocked-by-issues"],
+                      check=False
+                  )
+                  print(message)
+          EOF
+
+  link-pr-to-issue:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, 'closes #')
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Extract and link PR to issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import subprocess
+          import json
+          import re
+
+          pr_number = ${{ github.event.issue.number }}
+          comment_body = """${{ github.event.comment.body }}"""
+
+          # Find issue references
+          pattern = r"(?:closes|resolves|fixes|ref)[:\s]+#(\d+)"
+          matches = re.findall(pattern, comment_body, re.IGNORECASE)
+
+          for issue_num in matches:
+              print(f"Linking PR #{pr_number} to issue #{issue_num}")
+              
+              # Add state:review label to linked issue
+              subprocess.run(
+                  ["gh", "issue", "edit", str(issue_num),
+                   "--repo", "${{ github.repository }}",
+                   "--add-label", "state:review"],
+                  check=False
+              )
+
+              # Add comment linking back
+              subprocess.run(
+                  ["gh", "issue", "comment", str(issue_num),
+                   "--repo", "${{ github.repository }}",
+                   "--body", f"linked in PR #{pr_number}"],
+                  check=False
+              )
+          EOF
