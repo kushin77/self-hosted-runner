@@ -18,6 +18,25 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}','backend/']
 
+# Generate SBOM for backend image and scan for vulnerabilities (fail on HIGH/CRITICAL)
+- name: 'anchore/syft:0.69.0'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    echo "Generating SBOM for backend image"
+    syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} -o json > sbom-backend-${_SHORT_SHA}.json || true
+
+- name: 'aquasec/trivy:0.43.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    echo "Updating Trivy DB"
+    trivy --download-db-only || true
+    echo "Scanning backend image for HIGH/CRITICAL vulnerabilities"
+    trivy image --severity CRITICAL,HIGH --exit-code 1 us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} || (echo "Vulnerabilities found in backend image" && exit 1)
+
 # Build frontend assets first (install then build)
 - name: 'node:18-alpine'
   entrypoint: 'sh'
@@ -39,6 +58,25 @@ steps:
 # Then build frontend Docker image with built assets
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','frontend/Dockerfile','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}','frontend/']
+
+# Generate SBOM for frontend image and scan for vulnerabilities (fail on HIGH/CRITICAL)
+- name: 'anchore/syft:0.69.0'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    echo "Generating SBOM for frontend image"
+    syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} -o json > sbom-frontend-${_SHORT_SHA}.json || true
+
+- name: 'aquasec/trivy:0.43.2'
+  entrypoint: 'sh'
+  args:
+  - '-c'
+  - |
+    echo "Updating Trivy DB"
+    trivy --download-db-only || true
+    echo "Scanning frontend image for HIGH/CRITICAL vulnerabilities"
+    trivy image --severity CRITICAL,HIGH --exit-code 1 us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} || (echo "Vulnerabilities found in frontend image" && exit 1)
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}']
