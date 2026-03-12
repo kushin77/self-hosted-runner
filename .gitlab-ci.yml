@@ -1,0 +1,38 @@
+stages:
+  - validate
+  - triage
+  - sla
+
+variables:
+  GITLAB_API_URL: "https://gitlab.com/api/v4"
+
+validate:ci:
+  stage: validate
+  image: python:3.11
+  script:
+    - apt-get update && apt-get install -y curl jq || true
+    - chmod +x scripts/gitlab-automation/validate-automation-gitlab.sh
+    - SKIP_ISSUE_TEST=true PROJECT_ID=${CI_PROJECT_ID} GITLAB_API_URL=${GITLAB_API_URL} GITLAB_TOKEN=${GITLAB_TOKEN} bash scripts/gitlab-automation/validate-automation-gitlab.sh
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
+
+triage:manual:
+  stage: triage
+  image: python:3.11
+  script:
+    - apt-get update && apt-get install -y curl jq || true
+    - chmod +x scripts/gitlab-automation/triage-issues-gitlab.sh || true
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH
+
+sla-monitor:
+  stage: sla
+  image: python:3.11
+  script:
+    - apt-get update && apt-get install -y curl jq || true
+    - chmod +x scripts/gitlab-automation/sla-monitor-gitlab.sh || true
+    - PROJECT_ID=${CI_PROJECT_ID} GITLAB_API_URL=${GITLAB_API_URL} GITLAB_TOKEN=${GITLAB_TOKEN} bash scripts/gitlab-automation/sla-monitor-gitlab.sh || true
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
