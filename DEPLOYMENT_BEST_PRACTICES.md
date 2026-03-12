@@ -40,3 +40,28 @@ This concise checklist gathers recommended practices for CI/CD pipelines, Docker
 
 ---
 For actionable follow-ups: I can (a) add gated CI checks to `cloudbuild.yaml`, (b) create a PR that pins base images, or (c) open issues to fix the TypeScript errors. Which do you prefer? 
+
+## Image Signing (Cosign)
+
+Recommendation: sign production images with `cosign` and verify signatures at deploy-time.
+
+Cloud Build example (optional step after image push):
+
+```yaml
+# Add substitution: _COSIGN_KMS_URI: ''
+- name: 'gcr.io/sigstore/cosign/cosign:2.1.0'
+	entrypoint: 'bash'
+	args:
+	- '-c'
+	- |
+		if [ -n "${_COSIGN_KMS_URI:-}" ]; then
+			cosign sign --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}
+			cosign sign --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}
+		else
+			echo "Skipping cosign: no _COSIGN_KMS_URI provided"
+		fi
+```
+
+Operational notes:
+- Use KMS-backed keys (Google Cloud KMS) for cosign keys and grant the Cloud Build service account `roles/cloudkms.signerVerifier` on the key.
+- Verify image signatures at deploy-time (for managed deploys or k8s admissions).
