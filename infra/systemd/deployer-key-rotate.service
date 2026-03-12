@@ -1,0 +1,26 @@
+[Unit]
+Description=Rotate deployer-run service account key
+Documentation=man:owner-rotate-deployer-key-bootstrap.sh(1)
+After=network.target
+
+[Service]
+Type=oneshot
+User=runner
+Group=runner
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash -c 'cd /home/akushnir/self-hosted-runner && bash infra/owner-rotate-deployer-key-bootstrap.sh'
+StandardOutput=journal
+StandardError=journal
+# Idempotency guard: skip if rotated recently (default 600s = 10 minutes)
+Environment="MIN_INTERVAL_SECONDS=600"
+# Immutable audit location (append-only)
+Environment="AUDIT_DIR=logs/multi-cloud-audit"
+
+# Security: restart on failure but with backoff
+Restart=on-failure
+RestartSec=30s
+StartLimitInterval=1h
+StartLimitBurst=3
+
+# Timeout for the rotation operation
+TimeoutStartSec=300
