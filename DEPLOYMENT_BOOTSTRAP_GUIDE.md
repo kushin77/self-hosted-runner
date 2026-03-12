@@ -142,6 +142,18 @@ AWS_REGION=us-east-1
 AZURE_SUBSCRIPTION_ID=<id>
 ```
 
+## GitHub OIDC Role (for CI/CD)
+
+The deployment automation uses a dedicated AWS role for GitHub Actions OIDC federation. Add the following role ARN to your deployment or CI configuration where required:
+
+- **Role ARN:** arn:aws:iam::830916170067:role/github-oidc-role
+
+Usage notes:
+- The role is limited to `repo:kushin77/self-hosted-runner:*` via its trust policy.
+- Ensure your GitHub Actions workflows request the correct `aud`/`sub` claims when requesting tokens.
+- The role has limited read-only policies attached by default; attach additional, least-privilege policies as required per environment.
+
+
 ## Idempotency & No-Ops
 
 All scripts are designed to be **idempotent** and **hands-off**:
