@@ -1,0 +1,12 @@
+# Code owners: require maintainer review for ops, infra, and CI changes
+
+# Require review from maintainers for ops scripts and cloudbuild templates
+/scripts/ops/ @kushin77 @BestGaaS220
+/cloudbuild/ @kushin77 @BestGaaS220
+archived_workflows/ @kushin77
+
+# Default owners for backend
+/backend/ @kushin77
+
+# Docs and infra
+/docs/ @kushin77 @BestGaaS220

@@ -1,11 +1,18 @@
-# Repository Policy: No GitHub Actions
+Policy: GitHub Actions Disabled — Use Cloud Build for CI/CD
 
-This repository enforces a "no GitHub Actions" policy. All CI/CD and deployment automation must run via the repository's direct deployment tooling (see `scripts/deploy/direct_deploy.sh`) or operator systems outside GitHub Actions.
+Overview
+- GitHub Actions are DISALLOWED for this repository. All CI/CD, build, and deployment must run via Cloud Build or other approved CI (e.g., GitLab CI) under centralized ops control.
+- Rationale: enforce centralized credential management (GSM/Vault/KMS), immutable audit trail, and standardized deployment pipelines.
 
-Key requirements:
-- No workflows with triggers are allowed in `.github/workflows/` (only `disable-workflows.yml` sentinel is permitted).
-- Any existing workflow files must be archived and removed from the active workflows directory — use `scripts/enforce/disable_github_actions.sh` to perform this action.
-- Releases via pull requests are disallowed. Use direct deployment tools and operator-managed releases.
-- All automation must be idempotent, immutable audit-logged, ephemeral where applicable, and hands-off (no manual approvals required).
+Requirements
+- Do not add or enable workflows under `.github/workflows/`.
+- Use `cloudbuild.yaml` and `cloudbuild/*` templates for builds and deployments.
+- Store secrets in Google Secret Manager, HashiCorp Vault, or KMS-backed secrets only.
+- All deployments must be direct (no GitHub Releases or Actions-triggered releases).
 
-See `scripts/enforce/disable_github_actions.sh` for operational enforcement steps.
+Enforcement
+- Any attempt to add a workflow will be reverted and archived.
+- Maintain a single source of truth for CI: `cloudbuild/` and `scripts/ops/`.
+
+Contact
+- Ops owners: @kushin77, @BestGaaS220
