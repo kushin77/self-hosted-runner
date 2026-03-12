@@ -17,6 +17,9 @@ set -euo pipefail
 
 # Default to localhost if no staging host provided
 STAGING_HOST="${1:-localhost}"
+# Allow explicit staging URL (including port) via env var STAGING_URL
+# Example: STAGING_URL="http://127.0.0.1:9000" bash scripts/ops/test_credential_failover.sh localhost
+STAGING_URL="${STAGING_URL:-http://localhost:8080}"
 
 # Color codes for output
 RED='\033[0;31m'
@@ -68,8 +71,9 @@ test_baseline() {
         "dry_run": true
     }'
     
+    # Use STAGING_URL for local requests to allow custom host:port targets
     if [ "$STAGING_HOST" == "localhost" ]; then
-        local response=$(curl -s -X POST http://localhost:8080/api/v1/migrate \
+        local response=$(curl -s -X POST "$STAGING_URL/api/v1/migrate" \
             -H "Content-Type: application/json" \
             -H "X-Admin-Key: $(gcloud secrets versions access latest --secret=portal-mfa-secret 2>/dev/null || echo 'test-key')" \
             -d "$payload")
@@ -123,7 +127,7 @@ test_gsm_failure_to_vault() {
     }'
     
     if [ "$STAGING_HOST" == "localhost" ]; then
-        local response=$(timeout 10 curl -s -X POST http://localhost:8080/api/v1/migrate \
+            local response=$(timeout 10 curl -s -X POST "$STAGING_URL/api/v1/migrate" \
             -H "Content-Type: application/json" \
             -H "X-Admin-Key: test-admin-key" \
             -d "$payload" || echo '{"error":"timeout"}')
