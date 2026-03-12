@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package discovery;
+
+option go_package = "github.com/kushin77/nexus-engine/pkg/discovery";
+
+// NexusDiscoveryEvent is the canonical format for all pipeline events
+// across GitHub Actions, GitLab CI, Jenkins, and Bitbucket Pipelines
+message NexusDiscoveryEvent {
+  string id = 1;                           // global unique: source-runid-timestamp
+  string source = 2;                       // github|gitlab|jenkins|bitbucket
+  string tenant_id = 3;                    // multi-tenant isolation key
+  string repo = 4;                         // owner/repo or project/key format
+  string branch = 5;
+  string status = 6;                       // success|failed|running|cancelled
+  int32 duration_ms = 7;
+  string environment = 8;                  // dev|staging|prod|custom (inferred from branch)
+  float estimated_cost = 9;                // USD cost estimate
+  repeated Step steps = 10;
+  repeated string tags = 11;               // custom metadata
+  repeated string env_vars_required = 12;  // env vars detected in pipeline
+  repeated string secrets_referenced = 13; // secret names used
+  int64 timestamp = 14;                    // Unix timestamp (ns)
+  map<string, string> metadata = 15;       // source-specific data
+  string triggered_by = 16;                // user who triggered run
+  string commit_sha = 17;
+  string pull_request_id = 18;             // if from PR
+  string runner_type = 19;                 // self-hosted|cloud|hybrid
+}
+
+message Step {
+  string name = 1;
+  string status = 2;                       // success|failed|skipped
+  int32 duration_ms = 3;
+  string runner_type = 4;                  // x86|arm64|gpu|m1
+  repeated string logs = 5;                // log links
+}
+
+// RawWebhookPayload is the input from GitHub/GitLab/Jenkins/Bitbucket
+message RawWebhookPayload {
+  string source = 1;
+  string tenant_id = 2; 
+  bytes payload = 3;                       // raw JSON payload
+  string signature = 4;                    // HMAC verification
+  int64 timestamp = 5;
+}
+
+// NormalizerResponse wraps the output + any validation errors
+message NormalizerResponse {
+  NexusDiscoveryEvent event = 1;
+  bool valid = 2;
+  repeated string errors = 3;
+  repeated string warnings = 4;
+}

@@ -1,0 +1,38 @@
+{
+  "name": "@nexus/frontend",
+  "version": "1.0.0",
+  "description": "NexusShield Portal React Frontend",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:prod": "vite build --mode production",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write src",
+    "type-check": "tsc --noEmit",
+    "test": "vitest"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "axios": "^1.6.5"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "@vitejs/plugin-react": "^4.2.1",
+    "vitest": "^1.1.0",
+    "jsdom": "^23.0.0",
+    "@testing-library/react": "^14.1.2",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "prettier": "^3.1.1"
+  }
+}
