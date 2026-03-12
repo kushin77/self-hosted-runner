@@ -46,9 +46,22 @@ required_labels=(
 )
 
 missing_labels=0
+# Fetch existing labels robustly (prefer API + jq, fallback to gh label list)
+if command -v jq >/dev/null 2>&1; then
+    existing_labels=$(gh api repos/$REPO/labels --paginate 2>/dev/null | jq -r '.[].name' 2>/dev/null || true)
+else
+    existing_labels=$(gh label list $GH_REPO 2>/dev/null | awk -F"\t" '{print $1}' 2>/dev/null || true)
+fi
+
 for label in "${required_labels[@]}"; do
-    if gh label view "$label" $GH_REPO >/dev/null 2>&1; then
-        echo "  ✓ $label exists"
+    alt_label="$label"
+    if [[ "$label" == *":"* ]]; then
+        alt_label="${label#*:}"
+    fi
+
+    if echo "$existing_labels" | grep -xF -- "$label" >/dev/null 2>&1 || \
+       echo "$existing_labels" | grep -xF -- "$alt_label" >/dev/null 2>&1; then
+        echo "  ✓ $label exists (matched: ${label} or ${alt_label})"
     else
         echo "  ✗ $label missing!"
         ((missing_labels++))
