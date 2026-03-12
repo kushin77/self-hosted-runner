@@ -1,0 +1,44 @@
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelector:
+      matchLabels:
+        release: prometheus
+    ruleSelector:
+      matchLabels:
+        role: alert-rules
+    additionalScrapeConfigs: |
+      - job_name: 'canonical-secrets-api'
+        static_configs:
+          - targets: ['canonical-secrets-api:9090']
+
+alertmanager:
+  enabled: true
+  alertmanagerSpec:
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        receiver: ops
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 3h
+      receivers:
+        - name: ops
+          email_configs:
+            - to: ops@example.com
+              send_resolved: true
+
+prometheusRule:
+  customRules:
+    - name: canonical-secrets.rules
+      groups:
+        - name: canonical-secrets.rules
+          rules:
+            # include external file content via Helm or mount a configMap; placeholder rule
+            - alert: CanonicalSecretsAPIDown
+              expr: up{job="canonical-secrets-api"} == 0
+              for: 2m
+              labels:
+                severity: critical
+              annotations:
+                summary: "Canonical Secrets API is down"
