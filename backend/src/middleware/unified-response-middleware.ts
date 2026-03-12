@@ -212,12 +212,17 @@ export function errorHandlerMiddleware(
     stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 
-  res.status(statusCode).json(
-    errorResponse(errorCode, message, req.requestId, {
-      retryable,
-      details,
-    })
-  );
+  const payload = errorResponse(errorCode, message, req.requestId, {
+    retryable,
+    details,
+  });
+
+  // Ensure content-type and send JSON string. Use `send` so supertest
+  // and other clients parse the body as JSON while avoiding double-wrap
+  // by overridden `res.json` implementations.
+  const bodyStr = JSON.stringify(payload);
+  res.setHeader('Content-Type', 'application/json');
+  res.status(statusCode).send(bodyStr);
 }
 
 /**
