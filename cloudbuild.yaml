@@ -26,6 +26,8 @@ steps:
   - |
     echo "Generating SBOM for backend image"
     syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} -o json > sbom-backend-${_SHORT_SHA}.json || true
+    # Also emit CycloneDX for consumers that expect SBOM standards
+    syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} -o cyclonedx > sbom-backend-${_SHORT_SHA}.cyclonedx.json || true
 
 - name: 'gcr.io/cloud-builders/gsutil'
   entrypoint: 'bash'
@@ -35,6 +37,7 @@ steps:
     if [ -n "${_SBOM_BUCKET:-}" ]; then
       echo "Uploading backend SBOM to ${_SBOM_BUCKET}"
       gsutil cp sbom-backend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/sbom-backend-${_SHORT_SHA}.json || true
+      gsutil cp sbom-backend-${_SHORT_SHA}.cyclonedx.json ${_SBOM_BUCKET}/sbom-backend-${_SHORT_SHA}.cyclonedx.json || true
     else
       echo "No _SBOM_BUCKET provided; skipping SBOM upload"
     fi
@@ -47,7 +50,11 @@ steps:
     echo "Updating Trivy DB"
     trivy --download-db-only || true
     echo "Scanning backend image for HIGH/CRITICAL vulnerabilities"
-    trivy image --severity CRITICAL,HIGH --exit-code 1 us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} || (echo "Vulnerabilities found in backend image" && exit 1)
+    trivy image --severity CRITICAL,HIGH --exit-code 1 --format json -o trivy-backend-${_SHORT_SHA}.json us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} || (echo "Vulnerabilities found in backend image" && exit 1)
+    # upload trivy report if bucket provided
+    if [ -n "${_SBOM_BUCKET:-}" ]; then
+      gsutil cp trivy-backend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/trivy-backend-${_SHORT_SHA}.json || true
+    fi
 
 # Build frontend assets first (install then build)
 - name: 'node:18-alpine'
@@ -79,6 +86,7 @@ steps:
   - |
     echo "Generating SBOM for frontend image"
     syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} -o json > sbom-frontend-${_SHORT_SHA}.json || true
+    syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} -o cyclonedx > sbom-frontend-${_SHORT_SHA}.cyclonedx.json || true
 
 - name: 'gcr.io/cloud-builders/gsutil'
   entrypoint: 'bash'
@@ -88,6 +96,7 @@ steps:
     if [ -n "${_SBOM_BUCKET:-}" ]; then
       echo "Uploading frontend SBOM to ${_SBOM_BUCKET}"
       gsutil cp sbom-frontend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/sbom-frontend-${_SHORT_SHA}.json || true
+      gsutil cp sbom-frontend-${_SHORT_SHA}.cyclonedx.json ${_SBOM_BUCKET}/sbom-frontend-${_SHORT_SHA}.cyclonedx.json || true
     else
       echo "No _SBOM_BUCKET provided; skipping SBOM upload"
     fi
@@ -100,7 +109,10 @@ steps:
     echo "Updating Trivy DB"
     trivy --download-db-only || true
     echo "Scanning frontend image for HIGH/CRITICAL vulnerabilities"
-    trivy image --severity CRITICAL,HIGH --exit-code 1 us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} || (echo "Vulnerabilities found in frontend image" && exit 1)
+    trivy image --severity CRITICAL,HIGH --exit-code 1 --format json -o trivy-frontend-${_SHORT_SHA}.json us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} || (echo "Vulnerabilities found in frontend image" && exit 1)
+    if [ -n "${_SBOM_BUCKET:-}" ]; then
+      gsutil cp trivy-frontend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/trivy-frontend-${_SHORT_SHA}.json || true
+    fi
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}']
@@ -111,8 +123,22 @@ steps:
   args:
   - '-c'
   - |
-    gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
-    gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
+    set -euo pipefail
+    # Ensure deployment secrets are available - prefer Secret Manager/GSM
+    if [ -n "${_GITHUB_TOKEN_SECRET:-}" ]; then
+      echo "Fetching GITHUB_TOKEN from Secret Manager"
+      export GITHUB_TOKEN=$(gcloud secrets versions access latest --secret="${_GITHUB_TOKEN_SECRET}" --project="$PROJECT_ID")
+    fi
+    if [ -n "${_GRAFANA_API_KEY_SECRET:-}" ]; then
+      echo "Fetching GRAFANA_API_KEY from Secret Manager"
+      export GRAFANA_API_KEY=$(gcloud secrets versions access latest --secret="${_GRAFANA_API_KEY_SECRET}" --project="$PROJECT_ID")
+    fi
+    if [ -z "${GITHUB_TOKEN:-}" ]; then
+      echo "GITHUB_TOKEN is required for post-deploy verification but not provided; failing build"
+      exit 1
+    fi
+    gcloud run deploy nexus-shield-portal-backend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
+    gcloud run deploy nexus-shield-portal-frontend --image=us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} --region=us-central1 --project=$PROJECT_ID --platform=managed --port=8080 --quiet
     
 # Post-deploy verification: run the post-deploy hook which will run the verify script.
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
