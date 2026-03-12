@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "removeComments": false,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@nexus/core": ["packages/core/src/index.ts"],
+      "@nexus/core/*": ["packages/core/src/*"],
+      "@nexus/api": ["packages/api/src/index.ts"],
+      "@nexus/api/*": ["packages/api/src/*"],
+      "@nexus/diagram-engine": ["packages/diagram-engine/src/index.ts"],
+      "@nexus/diagram-engine/*": ["packages/diagram-engine/src/*"],
+      "@nexus/products/ops": ["packages/products/ops/src/index.ts"],
+      "@nexus/products/ops/*": ["packages/products/ops/src/*"],
+      "@nexus/products/security": ["packages/products/security/src/index.ts"],
+      "@nexus/products/security/*": ["packages/products/security/src/*"]
+    }
+  },
+  "include": ["packages/*/src/**/*"],
+  "exclude": ["node_modules", "dist", "build"]
+}
