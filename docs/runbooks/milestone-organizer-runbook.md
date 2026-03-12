@@ -74,3 +74,48 @@ Next steps for operator
 - Confirm artifacts in S3 and KMS encryption
 
 Contact: ops team — provide kubeconfig or run commands above on admin host to complete deployment and integration tests.
+
+---
+
+## Automated Deployment Script
+
+For a complete deploy-and-test workflow, use the provided operator script:
+
+```bash
+export KUBECONFIG=/path/to/kubeconfig
+export AWS_PROFILE=dev
+./deploy/milestone-organizer-deploy-and-test.sh
+```
+
+Or specify kubecontext:
+```bash
+./deploy/milestone-organizer-deploy-and-test.sh --kubecontext my-cluster-context --aws-profile dev
+```
+
+This script:
+1. Validates kubectl API access
+2. Applies manifests (creates ops namespace, ServiceAccount, CronJob)
+3. Creates a one-off job immediately
+4. Streams pod logs until completion
+5. Verifies S3 archival in the configured bucket
+
+---
+
+## Kubeconfig Setup
+
+Ensure kubeconfig is configured before running deployment:
+
+```bash
+# Check current kubeconfig
+echo $KUBECONFIG
+kubectl config current-context
+
+# Or set kubeconfig explicitly
+export KUBECONFIG=~/.kube/config
+```
+
+On first deployment, the script will create:
+- Namespace: `ops`
+- ServiceAccount: `milestone-organizer-sa` (with IRSA annotation)
+- CronJob: `milestone-organizer` (daily 02:00 UTC)
+
