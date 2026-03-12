@@ -61,7 +61,7 @@ describe('Portal MVP Backend API Tests', () => {
       );
 
       expect(scheduled.scheduledRotationId).toBeDefined();
-      expect(scheduled.nextRun).toBeGreaterThan(new Date());
+      expect((scheduled.nextRun as any).getTime()).toBeGreaterThan(new Date().getTime());
 
       // Schedule again should update (idempotent)
       const updated = await credentialService.scheduleRotation(
