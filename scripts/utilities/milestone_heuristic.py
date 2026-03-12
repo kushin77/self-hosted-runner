@@ -15,14 +15,42 @@ groups={
  'Monitoring, Alerts & Post-Deploy Validation':['monitor','alert','prometheus','ingest','log','logging','alerting','metric']
 }
 
-def pick(text):
-    t=(text or '').lower()
-    best=None; bestscore=0
-    for g,keys in groups.items():
-        score=sum(1 for k in keys if k in t)
-        if score>bestscore:
-            best=g; bestscore=score
-    return best
+def pick(text, labels=None, min_score=2):
+    """
+    Heuristic pick.
+    - If `labels` is None: legacy mode, return milestone string (or None).
+    - If `labels` provided: return (milestone_or_none, score).
+    """
+    legacy = (labels is None)
+    labels = labels or []
+    t = (text or '').lower()
+    # label-first mapping
+    label_map = {
+        'area:observability':'Observability & Provisioning',
+        'area:secrets':'Secrets & Credential Management',
+        'area:deployment':'Deployment Automation & Migration',
+        'area:governance':'Governance & CI Enforcement',
+        'area:docs':'Documentation & Runbooks',
+        'area:monitoring':'Monitoring, Alerts & Post-Deploy Validation'
+    }
+    for L in labels:
+        if L.lower() in label_map:
+            if legacy:
+                return label_map[L.lower()]
+            return label_map[L.lower()], 999
+
+    best = None
+    bestscore = 0
+    for g, keys in groups.items():
+        score = sum(1 for k in keys if k in t)
+        if score > bestscore:
+            best = g; bestscore = score
+
+    if legacy:
+        return best
+    if bestscore < min_score:
+        return None, bestscore
+    return best, bestscore
 
 def main(path):
     issues=json.load(open(path))
