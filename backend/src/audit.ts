@@ -66,11 +66,23 @@ export class AuditService {
    */
   async log(entry: Omit<AuditLogEntry, 'id' | 'hash' | 'previousHash'>): Promise<AuditLogEntry> {
     try {
-      // Calculate hash of this entry + previous hash (blockchain-like chain)
+      // Capture previous hash, preserve timestamp/status/details, then calculate hash
+      const previousHash = this.lastHash || crypto.createHash('sha256').update('genesis').digest('hex');
+      const timestamp = (entry as any).timestamp || new Date();
+      const status = (entry as any).status || 'success';
+
       const hashInput = JSON.stringify({
-        ...entry,
-        previousHash: this.lastHash,
+        timestamp,
+        event: entry.event,
+        resourceType: entry.resourceType,
+        resourceId: entry.resourceId || undefined,
+        actor: entry.actor,
+        action: entry.action,
+        status,
+        details: entry.details || null,
+        previousHash,
       });
+
       const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
 
       // Write to database (immutable append-only)
@@ -78,45 +90,53 @@ export class AuditService {
         data: {
           event: entry.event,
           resource_type: entry.resourceType,
-          resource_id: entry.resourceId,
+          resource_id: entry.resourceId || null,
           actor_id: entry.actor,
           action: entry.action,
           details: entry.details ? JSON.stringify(entry.details) : null,
           hash,
-          previous_hash: this.lastHash,
+          previous_hash: previousHash,
+          status: status,
+          ip_address: (entry as any).ipAddress || null,
+          user_agent: (entry as any).userAgent || null,
+          created_at: timestamp,
         },
       });
 
       // Update last hash for next entry
       this.lastHash = hash;
 
-      // Also write to JSONL for cloud export (GCS)
+      // Also write to JSONL for cloud export (GCS) using the original previousHash value
       this.appendToJSONL({
         id: logEntry.id,
-        timestamp: logEntry.created_at,
-        event: logEntry.event,
-        resourceType: logEntry.resource_type,
-        resourceId: logEntry.resource_id,
-        actor: logEntry.actor_id,
-        action: logEntry.action,
-        status: 'success',
-        details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
-        hash,
-        previousHash: this.lastHash,
-      });
-
-      return {
-        id: logEntry.id,
-        timestamp: logEntry.created_at,
+        timestamp: timestamp,
         event: logEntry.event,
         resourceType: logEntry.resource_type,
         resourceId: logEntry.resource_id || undefined,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: 'success',
+        status: status,
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+        ipAddress: (entry as any).ipAddress || (logEntry as any).ip_address || undefined,
+        userAgent: (entry as any).userAgent || (logEntry as any).user_agent || undefined,
         hash,
-        previousHash: this.lastHash,
+        previousHash: previousHash,
+      });
+
+      return {
+        id: logEntry.id,
+        timestamp: timestamp,
+        event: logEntry.event,
+        resourceType: logEntry.resource_type,
+        resourceId: logEntry.resource_id || undefined,
+        actor: logEntry.actor_id,
+        action: logEntry.action,
+        status: status,
+        details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+        ipAddress: (entry as any).ipAddress || (logEntry as any).ip_address || undefined,
+        userAgent: (entry as any).userAgent || (logEntry as any).user_agent || undefined,
+        hash,
+        previousHash: previousHash,
       };
     } catch (error: any) {
       console.error(`❌ Failed to log audit entry: ${error.message}`);
