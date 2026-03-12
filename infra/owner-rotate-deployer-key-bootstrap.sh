@@ -18,13 +18,18 @@ mkdir -p "$AUDIT_DIR"
 AUDIT_LOG="$AUDIT_DIR/owner-rotate-$(date +%Y%m%d-%H%M%S).jsonl"
 
 log_audit() {
+  # Temporarily disable nounset inside this helper to avoid failures
+  # when parsing/reading optional fields such as prev_hash.
+  set +u
   local msg="$1"
   local level="${2:-INFO}"
   local entry
-  entry=$(printf '%s' "{\"timestamp\":\"%s\",\"level\":\"%s\",\"message\":\"%s\"}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$level" "$msg")
+  entry=$(printf "{\"timestamp\":\"%s\",\"level\":\"%s\",\"message\":\"%s\"}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$level" "$msg")
 
   # Compute chaining: include prev_hash when available
   local prev_line prev_hash hash
+  prev_hash=""
+  prev_line=""
   if [ -f "$AUDIT_LOG" ] && [ -s "$AUDIT_LOG" ]; then
     prev_line=$(tail -n 1 "$AUDIT_LOG" 2>/dev/null || true)
     if [ -n "$prev_line" ]; then
@@ -57,6 +62,9 @@ log_audit() {
 
   # Also write to stdout for operator visibility
   printf '%s\n' "$entry"
+
+  # Restore nounset behavior for the rest of the script
+  set -u
 }
 
 log_audit "OWNER ROTATION BOOTSTRAP START" "INFO"
@@ -85,7 +93,7 @@ fi
 log_audit "Step 2/6: Creating new key for $SA_EMAIL" "INFO"
 if gcloud iam service-accounts keys create "$TEMP_KEY_FILE" \
   --iam-account="$SA_EMAIL" \
-  --project="$PROJECT_ID" 2>&1 | tee -a "$AUDIT_LOG"; then
+  --project="$PROJECT_ID" >/dev/null 2>&1; then
   log_audit "✅ New key created: $TEMP_KEY_FILE" "INFO"
 else
   log_audit "❌ Failed to create key" "ERROR"
@@ -97,7 +105,7 @@ log_audit "Step 3/6: Ensure Secret Manager secret exists and add version: $SECRE
 # Create secret if it doesn't exist (idempotent)
 if ! gcloud secrets describe "$SECRET_NAME" --project="$PROJECT_ID" >/dev/null 2>&1; then
   log_audit "Secret $SECRET_NAME not found, creating with automatic replication" "INFO"
-  if gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID" 2>&1 | tee -a "$AUDIT_LOG"; then
+  if gcloud secrets create "$SECRET_NAME" --replication-policy="automatic" --project="$PROJECT_ID" >/dev/null 2>&1; then
     log_audit "✅ Secret $SECRET_NAME created" "INFO"
   else
     log_audit "❌ Failed to create secret $SECRET_NAME" "ERROR"
@@ -108,7 +116,7 @@ fi
 
 if gcloud secrets versions add "$SECRET_NAME" \
   --data-file="$TEMP_KEY_FILE" \
-  --project="$PROJECT_ID" 2>&1 | tee -a "$AUDIT_LOG"; then
+  --project="$PROJECT_ID" >/dev/null 2>&1; then
   log_audit "✅ New secret version added to $SECRET_NAME" "INFO"
 else
   log_audit "❌ Failed to add secret version" "ERROR"
@@ -118,11 +126,11 @@ fi
 
 # Step 3: Activate the new key locally to verify it works
 log_audit "Step 4/6: Verifying new key works (activate & quick health check)" "INFO"
-if gcloud auth activate-service-account --key-file="$TEMP_KEY_FILE" --project="$PROJECT_ID" 2>&1 | tee -a "$AUDIT_LOG"; then
+if gcloud auth activate-service-account --key-file="$TEMP_KEY_FILE" --project="$PROJECT_ID" >/dev/null 2>&1; then
   log_audit "✅ New key activated successfully (local verification)" "INFO"
   
   # Quick health check: list project ID
-  if gcloud projects describe "$PROJECT_ID" --format="value(projectId)" 2>&1 | tee -a "$AUDIT_LOG"; then
+  if gcloud projects describe "$PROJECT_ID" --format="value(projectId)" >/dev/null 2>&1; then
     log_audit "✅ Deployer SA has access to project (verified)" "INFO"
   else
     log_audit "⚠️  Could not verify project access, but key was added" "WARN"
@@ -136,7 +144,7 @@ fi
 # Step 4: Summary and next steps
 log_audit "Step 5/6: Rotation complete. Securely deleting local key copy." "INFO"
 if command -v shred >/dev/null 2>&1; then
-  shred -vfz -n 3 "$TEMP_KEY_FILE" 2>&1 | tee -a "$AUDIT_LOG" || rm -f "$TEMP_KEY_FILE"
+  shred -vfz -n 3 "$TEMP_KEY_FILE" >/dev/null 2>&1 || rm -f "$TEMP_KEY_FILE"
 else
   rm -f "$TEMP_KEY_FILE"
 fi
