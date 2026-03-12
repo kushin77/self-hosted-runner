@@ -12,9 +12,13 @@ jobs:
     permissions:
       issues: write
       contents: read
+    concurrency:
+      group: issue-${{ github.event.issue.number }}
+      cancel-in-progress: true
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Python
         uses: actions/setup-python@v4
