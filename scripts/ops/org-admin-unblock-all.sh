@@ -40,11 +40,11 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${BLUE}PHASE 1: GitHub Governance Enforcement${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════${NC}"
 
-# Validate GITHUB_TOKEN
+# Validate GITHUB_TOKEN (non-fatal)
 if [ -z "$GITHUB_TOKEN" ]; then
-    echo -e "${RED}✗ GITHUB_TOKEN not set. Please export it.${NC}"
-    echo "  Example: export GITHUB_TOKEN=ghp_xxxxx"
-    exit 1
+  echo -e "${YELLOW}⚠ GITHUB_TOKEN not set. GitHub API steps will be skipped.${NC}"
+  echo "  To enable GitHub API steps: export GITHUB_TOKEN=ghp_xxxxx"
+  SKIP_GITHUB=true
 fi
 
 # Task 1: Apply branch protection to main (#2120, #2197)
@@ -152,11 +152,18 @@ if [ -z "$SKIP_GCP" ]; then
 
     # Task 4: (#2117) Grant iam.serviceAccounts.create
     echo -e "\n${YELLOW}[4/14] Task #2117: Grant iam.serviceAccounts.create...${NC}"
-    gcloud projects add-iam-policy-binding ${GCP_PROJECT} \
-      --member="serviceAccount:automation@${GCP_PROJECT}.iam.gserviceaccount.com" \
-      --role="roles/iam.serviceAccountAdmin" \
-      --quiet 2>/dev/null || echo -e "${YELLOW}  ℹ Role may already be assigned${NC}"
-    echo -e "${GREEN}✓ iam.serviceAccountAdmin role granted${NC}"
+    AUTOMATION_SA=$(gcloud iam service-accounts list --project=${GCP_PROJECT} --format='value(email)' 2>/dev/null | egrep -i 'nxs-automation|automation-runner|automation' | head -1 || true)
+    if [ -n "${AUTOMATION_SA}" ]; then
+      echo "  Using detected automation SA: ${AUTOMATION_SA}"
+      gcloud projects add-iam-policy-binding ${GCP_PROJECT} \
+        --member="serviceAccount:${AUTOMATION_SA}" \
+        --role="roles/iam.serviceAccountAdmin" \
+        --quiet 2>/dev/null || echo -e "${YELLOW}  ℹ Role may already be assigned${NC}"
+      echo -e "${GREEN}✓ iam.serviceAccountAdmin role granted to ${AUTOMATION_SA}${NC}"
+    else
+      echo -e "${YELLOW}  ⚠ No automation service account detected. Skipping automated grant.${NC}"
+      echo "  Suggest: Create or supply automation SA and re-run this script"
+    fi
 
     # Task 5: (#2136) Grant iam.serviceAccountAdmin to deployer
     echo -e "\n${YELLOW}[5/14] Task #2136: Grant iam.serviceAccountAdmin to deployer...${NC}"
@@ -168,18 +175,30 @@ if [ -z "$SKIP_GCP" ]; then
 
     # Task 6: (#2472) Grant roles/iam.serviceAccountTokenCreator
     echo -e "\n${YELLOW}[6/14] Task #2472: Grant serviceAccountTokenCreator for monitoring...${NC}"
-    gcloud projects add-iam-policy-binding ${GCP_PROJECT} \
-      --member="serviceAccount:monitoring-uptime@${GCP_PROJECT}.iam.gserviceaccount.com" \
-      --role="roles/iam.serviceAccountTokenCreator" \
-      --quiet 2>/dev/null || echo -e "${YELLOW}  ℹ Role may already be assigned${NC}"
-    echo -e "${GREEN}✓ Monitoring SA granted serviceAccountTokenCreator${NC}"
+    MONITORING_SA=$(gcloud iam service-accounts list --project=${GCP_PROJECT} --format='value(email)' 2>/dev/null | egrep -i 'monitoring-uptime|monitoring-uchecker|uptime-rotate' | head -1 || true)
+    if [ -n "${MONITORING_SA}" ]; then
+      echo "  Using detected monitoring SA: ${MONITORING_SA}"
+      gcloud projects add-iam-policy-binding ${GCP_PROJECT} \
+        --member="serviceAccount:${MONITORING_SA}" \
+        --role="roles/iam.serviceAccountTokenCreator" \
+        --quiet 2>/dev/null || echo -e "${YELLOW}  ℹ Role may already be assigned${NC}"
+      echo -e "${GREEN}✓ ${MONITORING_SA} granted serviceAccountTokenCreator${NC}"
+    else
+      echo -e "${YELLOW}  ⚠ No monitoring service account detected. Skipping automated grant.${NC}"
+      echo "  Suggest: Confirm SA name (monitoring-uptime@...) and re-run this script"
+    fi
 
     # Task 7: (#2469) Create cloud-audit IAM group
     echo -e "\n${YELLOW}[7/14] Task #2469: Create cloud-audit IAM group...${NC}"
-    # Note: Creating groups requires org admin in Google Cloud Directory API
+    # Note: Creating groups requires org admin and Cloud Identity API enabled.
     echo -e "${YELLOW}  ⚠  Manual step: Create group 'cloud-audit' in Cloud Identity/Google Workspace${NC}"
-    echo "    Then add members: monitoring-uptime@nexusshield-prod.iam.gserviceaccount.com"
-    echo "    Run: gcloud identity groups create cloud-audit@${GCP_PROJECT}.iam.gserviceaccount.com"
+    echo "    Recommended (Console): Admin Console → Groups → Create group 'cloud-audit' and add members."
+    echo "    Recommended (gcloud REST):"
+    echo "      ACCESS_TOKEN=\$(gcloud auth print-access-token)"
+    echo "      curl -s -X POST https://cloudidentity.googleapis.com/v1/groups \\"
+    echo "        -H \"Authorization: Bearer \$ACCESS_TOKEN\" -H \"Content-Type: application/json\" \\"
+    echo "        -d '{\"displayName\":\"cloud-audit\",\"groupKey\":{\"id\":\"cloud-audit@YOUR_DOMAIN\"},\"labels\":{\"cloud\":\"audit\"}}'"
+    echo "    Note: Replace YOUR_DOMAIN with your Google Workspace domain and ensure Cloud Identity is enabled."
 
     # Task 8: (#2345) Cloud SQL org policy exception
     echo -e "\n${YELLOW}[8/14] Task #2345: Cloud SQL org policy exception...${NC}"
@@ -208,10 +227,14 @@ if [ -z "$SKIP_GCP" ]; then
 
     # Task 12: (#2460) Add slack-webhook to GSM
     echo -e "\n${YELLOW}[12/14] Task #2460: Add slack-webhook secret to GSM...${NC}"
-    echo -e "${YELLOW}  ⚠  Manual step: Create secret in Secret Manager${NC}"
-    echo "    Provide Slack webhook URL to ops admin"
-    echo "    Command: gcloud secrets create slack-webhook --replication-policy='automatic' \\"
-    echo "      --data-file=- <<< 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'"
+    # If the secret already exists, show how to update/access it. Otherwise show create command.
+    if gcloud secrets describe slack-webhook --project=${GCP_PROJECT} >/dev/null 2>&1; then
+      echo -e "${GREEN}  ✓ slack-webhook already exists in Secret Manager${NC}"
+      echo "  To grant access: gcloud projects add-iam-policy-binding ${GCP_PROJECT} --member=serviceAccount:YOUR_SA --role=roles/secretmanager.secretAccessor"
+    else
+      echo -e "${YELLOW}  ⚠  slack-webhook not found. To create it manually:${NC}"
+      echo "    gcloud secrets create slack-webhook --project=${GCP_PROJECT} --replication-policy='automatic' --data-file=- <<< 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'"
+    fi
 
     # Task 13: (#2135) Runner-worker Prometheus scrape
     echo -e "\n${YELLOW}[13/14] Task #2135: Apply runner-worker Prometheus scrape...${NC}"
