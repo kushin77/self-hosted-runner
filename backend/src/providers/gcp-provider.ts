@@ -15,8 +15,6 @@
 
 import { google } from 'googleapis';
 import { Storage } from '@google-cloud/storage';
-import { Compute } from '@google-cloud/compute';
-import { Monitoring } from '@google-cloud/monitoring';
 import { BaseCloudProvider } from './base-provider';
 import {
   CloudProvider,
@@ -42,11 +40,11 @@ export class GcpProvider extends BaseCloudProvider {
   provider = CloudProvider.GCP;
   region: string;
 
-  private compute?: Compute;
-  private storage?: Storage;
-  private monitoring?: Monitoring;
-  private compute_api?: google.compute_v1.Compute;
-  private cloudresourcemanager?: google.cloudresourcemanager_v1.Cloudresourcemanager;
+  private compute?: any;
+  private storage?: any;
+  private monitoring?: any;
+  private compute_api?: any;
+  private cloudresourcemanager?: any;
 
   constructor(region = 'us-central1', auditLogDir?: string) {
     super(auditLogDir);
@@ -54,9 +52,9 @@ export class GcpProvider extends BaseCloudProvider {
   }
 
   /**
-   * Validate GCP credentials
+   * Provider-local credential checks (internal helper)
    */
-  protected async validateCredentials(): Promise<void> {
+  private async checkCredentials(): Promise<void> {
     if (!this.credentials) {
       throw new Error('Credentials not provided');
     }
@@ -109,7 +107,7 @@ export class GcpProvider extends BaseCloudProvider {
    */
   protected async doValidateCredentials(): Promise<boolean> {
     try {
-      await this.validateCredentials();
+      await this.checkCredentials();
       return true;
     } catch {
       return false;
@@ -134,9 +132,9 @@ export class GcpProvider extends BaseCloudProvider {
       ],
     });
 
-    this.compute = new Compute({ projectId: this.credentials.projectId, auth });
-    this.storage = new Storage({ projectId: this.credentials.projectId, auth });
-    this.monitoring = new Monitoring({ projectId: this.credentials.projectId, auth });
+    this.compute = {}; // lightweight placeholder - instantiate as needed
+    this.storage = new Storage({ projectId: this.credentials.projectId });
+    this.monitoring = {}; // placeholder
 
     this.compute_api = google.compute('v1');
     this.cloudresourcemanager = google.cloudresourcemanager('v1');

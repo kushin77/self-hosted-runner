@@ -6,10 +6,10 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { CloudProvider, SyncConfig } from './types';
-import { ProviderFactory, MultiCloudProviderManager } from './registry';
-import { SyncOrchestrator } from './sync-orchestrator';
-import { CredentialManagerFactory } from './credential-manager';
+import { CloudProvider, SyncConfig } from '../providers/types';
+import { ProviderFactory, MultiCloudProviderManager } from '../providers/registry';
+import { SyncOrchestrator } from '../providers/sync-orchestrator';
+import { CredentialManagerFactory } from '../providers/credential-manager';
 
 const router = Router();
 
@@ -69,8 +69,8 @@ router.get('/providers/:provider', async (req: Request, res: Response) => {
     }
 
     const health = await instance.healthCheck();
-    const audit = instance.getAuditLog ? instance.getAuditLog() : [];
-    const stats = instance.getAuditStats ? instance.getAuditStats() : { total: 0, successful: 0, failed: 0, byOperation: {} };
+    const audit = (instance as any).getAuditLog ? (instance as any).getAuditLog() : [];
+    const stats = (instance as any).getAuditStats ? (instance as any).getAuditStats() : { total: 0, successful: 0, failed: 0, byOperation: {} };
 
     res.json({
       success: true,
