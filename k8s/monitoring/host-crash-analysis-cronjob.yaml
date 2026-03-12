@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: host-crash-analyzer
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: host-crash-analyzer
+  namespace: monitoring
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: host-crash-analyzer
+  namespace: monitoring
+subjects:
+  - kind: ServiceAccount
+    name: host-crash-analyzer
+    namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: host-crash-analyzer
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: host-crash-analyzer
+  namespace: monitoring
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: host-crash-analyzer
+          restartPolicy: OnFailure
+          containers:
+            - name: analyzer
+              image: bitnami/kubectl:1.30
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -eu
+                  ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                  echo "[$ts] Host crash analysis job started"
+                  kubectl get nodes -o wide || true
+                  kubectl top nodes || true
+                  kubectl get pods -A --field-selector=status.phase=Failed || true
+                  echo "[$ts] Host crash analysis job completed"
