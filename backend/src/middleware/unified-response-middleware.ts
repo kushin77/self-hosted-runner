@@ -217,10 +217,12 @@ export function errorHandlerMiddleware(
     details,
   });
 
-  // Send structured JSON. `unifiedResponseMiddleware` will detect
-  // the `status`/`metadata` fields and avoid double-wrapping.
+  // Ensure content-type and send JSON string. Use `send` so supertest
+  // and other clients parse the body as JSON while avoiding double-wrap
+  // by overridden `res.json` implementations.
+  const bodyStr = JSON.stringify(payload);
   res.setHeader('Content-Type', 'application/json');
-  res.status(statusCode).json(payload);
+  res.status(statusCode).send(bodyStr);
 }
 
 /**
