@@ -30,23 +30,25 @@ fi
 
 echo "Signing $ARTIFACT -> $SIG_OUT using $KEY_PATH"
 
-# Prefer OpenSSL if available
-if command -v openssl >/dev/null 2>&1; then
-  # Create detached signature
-  openssl pkeyutl -inkey "$KEY_PATH" -sign -in "$ARTIFACT" -out "$SIG_OUT"
-  echo "Signed with openssl -> $SIG_OUT"
-  exit 0
-fi
-
-# Fallback: try ssh-keygen sign (requires matching ssh key and OpenSSH 8.0+)
+# Prefer ssh-keygen (OpenSSH -Y sign, recommended for Ed25519)
 if command -v ssh-keygen >/dev/null 2>&1; then
-  # ssh-keygen -Y sign requires OpenSSH private key file and produces binary signature
-  ssh-keygen -Y sign -f "$KEY_PATH" -n file "$ARTIFACT" -q -O "$SIG_OUT" 2>/dev/null || true
-  if [ -f "$SIG_OUT" ]; then
+  if ssh-keygen -Y sign -f "$KEY_PATH" -n artifact < "$ARTIFACT" > "$SIG_OUT" 2>/dev/null; then
     echo "Signed with ssh-keygen -> $SIG_OUT"
     exit 0
+  else
+    echo "ssh-keygen sign failed or produced no signature; falling back to openssl" >&2
   fi
 fi
 
-echo "No supported signing tool found (openssl or ssh-keygen required)" >&2
+# Fallback: try OpenSSL for signing (may not support Ed25519 on all versions)
+if command -v openssl >/dev/null 2>&1; then
+  openssl pkeyutl -inkey "$KEY_PATH" -sign -in "$ARTIFACT" -out "$SIG_OUT" && {
+    echo "Signed with openssl -> $SIG_OUT"
+    exit 0
+  } || {
+    echo "OpenSSL signing failed for this key type" >&2
+  }
+fi
+
+echo "No supported signing tool succeeded (ssh-keygen or openssl required)" >&2
 exit 6
