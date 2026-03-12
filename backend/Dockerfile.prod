@@ -22,19 +22,21 @@ RUN apk add --no-cache bash libc6-compat openssl ca-certificates curl && \
 COPY tsconfig*.json ./
 COPY src ./src
 COPY prisma ./prisma
-RUN npm exec prisma generate || true
+RUN npm exec prisma generate
 # Build TypeScript (ignore errors, keep whatever dist artifacts exists)
 RUN npm run build || echo "⚠️ TypeScript build completed with warnings"
 
 # ===== Runtime image =====
-FROM node:${NODE_VERSION}-alpine
+FROM node:${NODE_VERSION}-slim
 WORKDIR /app
 
 ENV NODE_ENV=${BUILD_ENV} \
     PORT=${PORT} \
     LOG_LEVEL=info
 
-RUN apk add --no-cache bash curl openssl ca-certificates || true
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  bash curl wget ca-certificates openssl \
+  && rm -rf /var/lib/apt/lists/* || true
 RUN mkdir -p /app/logs /etc/vault && chmod 755 /app/logs
 
 # Copy only production dependencies from builder
