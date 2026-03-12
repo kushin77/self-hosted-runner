@@ -153,7 +153,7 @@ test_oidc_role_trust_policy() {
     local role_name=$(echo "$role_arn" | awk -F/ '{print $NF}')
     local trust_policy=$(aws iam get-role --role-name "$role_name" --query 'Role.AssumeRolePolicyDocument' --output json)
     
-    if echo "$trust_policy" | grep -q "oidc.github.com"; then
+    if echo "$trust_policy" | grep -q -E "token.actions.githubusercontent.com|arn:aws:iam::[0-9]+:oidc-provider/token.actions.githubusercontent.com"; then
         log_pass "OIDC Role trust policy includes GitHub OIDC provider"
         test_entry "oidc_role_trust_policy" "pass"
     else
