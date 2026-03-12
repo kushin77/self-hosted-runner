@@ -1,0 +1,9 @@
+[Unit]
+Description=Run runner token refresh every 45 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=45min
+
+[Install]
+WantedBy=timers.target
