@@ -1,5 +1,7 @@
 Title: TROUBLE: automation-runner vault_sync failed; image-pin-service startup failed
 Status: open
+Milestone: Phase 5 (Multi-Cloud Vault Integration)
+Blocker-for-Milestone-4: NO — Phase 5 task; no impact on current deployment
 Labels: incident, blocker, automation
 
 Observed
