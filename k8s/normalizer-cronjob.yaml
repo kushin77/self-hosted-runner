@@ -61,8 +61,8 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: normalizer
-              # TODO: replace with registry image. Currently using local-only image during testing.
-              image: REPLACE_WITH_REGISTRY/nexus-normalizer:REPLACE_TAG
+              # Cloud-published image via Cloud Build (2026-03-12).
+              image: gcr.io/nexusshield-prod/nexus-normalizer:20260312
               imagePullPolicy: IfNotPresent
               envFrom:
                 - configMapRef:
