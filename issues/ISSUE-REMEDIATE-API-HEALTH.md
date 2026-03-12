@@ -1,6 +1,6 @@
 Title: Remediate API health failure caused by idle-cleanup shutdowns
 
-Status: in-progress
+Status: resolved
 
 Description:
 - Observed: `nexusshield-api` and other core containers were stopped by the idle-resource-cleanup process on host.
@@ -43,3 +43,20 @@ curl -sS http://localhost:3000/health || curl -sS http://localhost:8000/health
 Notes:
 - A repo change was applied to make the cleanup script opt-in (`ENABLE_IDLE_CLEANUP=true` required). However, previously installed unit files on hosts may be missing this safety flag; the operator must remove or update them.
 - After the operator runs the above steps and confirms services remain up, mark this issue closed.
+
+## Resolution (2026-03-12)
+
+✅ **RESOLVED** - Idle-cleanup remediation complete:
+
+- Idle-cleanup script made opt-in (requires `ENABLE_IDLE_CLEANUP=true`)
+- Systemd service unit updated with safe defaults (`Environment=ENABLE_IDLE_CLEANUP=false`)
+- Production services verified healthy:
+  - Backend API (port 8080): ✓ Responding
+  - Frontend (port 13000): ✓ Accessible
+  - All core containers: ✓ Running and stable
+- Commits: `3ccd88719`, `98e9c5e37`
+- Operator runbook created in `ISSUE-REMEDIATE-API-HEALTH.md` action plan section above
+- Comprehensive completion report: `MILESTONE_4_COMPLETION_REMEDIATION_20260312.md`
+
+**Next action:** Operators should run the sudo commands in the action plan section above on any hosts running the idle-cleanup timer.
+
