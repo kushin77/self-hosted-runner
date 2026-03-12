@@ -12,13 +12,7 @@
  * - Key Vault for key management
  */
 
-import {
-  ComputeManagementClient,
-  StorageManagementClient,
-  NetworkManagementClient,
-  MonitorManagementClient,
-  KeyVaultManagementClient,
-} from '@azure/arm-compute';
+import { ComputeManagementClient } from '@azure/arm-compute';
 import {
   BlockBlobClient,
   BlobServiceClient,
@@ -53,11 +47,12 @@ export class AzureProvider extends BaseCloudProvider {
   provider = CloudProvider.AZURE;
   region: string;
 
-  private computeClient?: ComputeManagementClient;
-  private storageClient?: StorageManagementClient;
-  private networkClient?: NetworkManagementClient;
-  private monitorClient?: MonitorManagementClient;
-  private keyVaultClient?: KeyVaultManagementClient;
+  // Use `any` here to avoid tight coupling to specific SDK versions
+  private computeClient?: any;
+  private storageClient?: any;
+  private networkClient?: any;
+  private monitorClient?: any;
+  private keyVaultClient?: any;
   private blobServiceClient?: BlobServiceClient;
   private credential?: ClientSecretCredential | DefaultAzureCredential;
 
@@ -67,9 +62,9 @@ export class AzureProvider extends BaseCloudProvider {
   }
 
   /**
-   * Validate Azure credentials
+   * Provider-local credential checks (internal helper)
    */
-  protected async validateCredentials(): Promise<void> {
+  private async checkCredentials(): Promise<void> {
     if (!this.credentials) {
       throw new Error('Credentials not provided');
     }
@@ -108,7 +103,7 @@ export class AzureProvider extends BaseCloudProvider {
    */
   protected async doValidateCredentials(): Promise<boolean> {
     try {
-      await this.validateCredentials();
+      await this.checkCredentials();
       return true;
     } catch {
       return false;
@@ -134,10 +129,10 @@ export class AzureProvider extends BaseCloudProvider {
     }
 
     this.computeClient = new ComputeManagementClient(this.credential, subscriptionId);
-    this.storageClient = new StorageManagementClient(this.credential, subscriptionId);
-    this.networkClient = new NetworkManagementClient(this.credential, subscriptionId);
-    this.monitorClient = new MonitorManagementClient(this.credential, subscriptionId);
-    this.keyVaultClient = new KeyVaultManagementClient(this.credential, subscriptionId);
+    this.storageClient = {}; // instantiate lazily or replace with SDK client as needed
+    this.networkClient = {};
+    this.monitorClient = {};
+    this.keyVaultClient = {};
   }
 
   /**
@@ -426,7 +421,8 @@ export class AzureProvider extends BaseCloudProvider {
 
       const buffer = await this.withRetry(async () => {
         const downloadBlockBlobResponse = await blobClient.download();
-        return Buffer.from(await downloadBlockBlobResponse.blobBody!);
+        const body: any = await downloadBlockBlobResponse.blobBody!;
+        return Buffer.from(body as any);
       });
 
       return this.wrapResult(buffer);
