@@ -1,0 +1,23 @@
+FROM golang:1.24-bullseye
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential librdkafka-dev ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+
+# Copy module files first for efficient caching
+COPY go.mod go.sum ./
+
+# Copy the project
+COPY . /workspace
+
+# Ensure Go proxy/cache is available
+ENV GOPROXY=https://proxy.golang.org,direct
+
+# Build the ingestion/normalizer binary (adjust target if needed)
+RUN mkdir -p /out && \
+    cd /workspace && \
+    CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -v -o /out/normalizer ./cmd/ingestion
+
+CMD ["/bin/bash"]

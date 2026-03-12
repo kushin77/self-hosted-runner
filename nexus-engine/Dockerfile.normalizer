@@ -1,0 +1,8 @@
+FROM debian:bullseye-slim
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends librdkafka1 ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+COPY normalizer /usr/local/bin/normalizer
+RUN chown 1000:1000 /usr/local/bin/normalizer && chmod 0755 /usr/local/bin/normalizer
+USER 1000
+ENTRYPOINT ["/usr/local/bin/normalizer"]
