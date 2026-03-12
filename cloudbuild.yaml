@@ -27,6 +27,18 @@ steps:
     echo "Generating SBOM for backend image"
     syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} -o json > sbom-backend-${_SHORT_SHA}.json || true
 
+- name: 'gcr.io/cloud-builders/gsutil'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ -n "${_SBOM_BUCKET:-}" ]; then
+      echo "Uploading backend SBOM to ${_SBOM_BUCKET}"
+      gsutil cp sbom-backend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/sbom-backend-${_SHORT_SHA}.json || true
+    else
+      echo "No _SBOM_BUCKET provided; skipping SBOM upload"
+    fi
+
 - name: 'aquasec/trivy:0.43.2'
   entrypoint: 'sh'
   args:
@@ -67,6 +79,18 @@ steps:
   - |
     echo "Generating SBOM for frontend image"
     syft packages us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} -o json > sbom-frontend-${_SHORT_SHA}.json || true
+
+- name: 'gcr.io/cloud-builders/gsutil'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ -n "${_SBOM_BUCKET:-}" ]; then
+      echo "Uploading frontend SBOM to ${_SBOM_BUCKET}"
+      gsutil cp sbom-frontend-${_SHORT_SHA}.json ${_SBOM_BUCKET}/sbom-frontend-${_SHORT_SHA}.json || true
+    else
+      echo "No _SBOM_BUCKET provided; skipping SBOM upload"
+    fi
 
 - name: 'aquasec/trivy:0.43.2'
   entrypoint: 'sh'
@@ -134,4 +158,5 @@ substitutions:
   _GITHUB_TOKEN_SECRET: ''
   _GRAFANA_API_KEY_SECRET: ''
   _SHORT_SHA: 'manual'
+  _SBOM_BUCKET: ''
 timeout: '1200s'
