@@ -1,0 +1,310 @@
+# 🚀 ELITE GITLAB RUNNER CONFIGURATION
+# Self-Hosted Runner Setup for Enterprise MSP Operations Control Plane
+
+---
+# RUNNER GROUP 1: PRIMARY SHELL RUNNER (CI/CD Orchestration)
+runner_primary_shell:
+  name: "primary-shell-executor"
+  url: "https://gitlab.com/"
+  token: "${GITLAB_RUNNER_TOKEN_1}"
+  executor: "shell"
+  shell: "bash"
+  builds_dir: "/runner/builds"
+  cache_dir: "/runner/cache"
+  
+  # Concurrency and resource limits
+  concurrent: 8
+  check_interval: 30
+  max_timeout: 3h
+  
+  # Build information and caching
+  builds_dir_is_shared: false
+  cache:
+    type: "s3"
+    s3:
+      server_address: "s3.amazonaws.com"
+      access_key: "${AWS_ACCESS_KEY_ID}"
+      secret_key: "${AWS_SECRET_ACCESS_KEY}"
+      bucket_name: "gitlab-runner-cache-${MSP_TENANT}"
+      bucket_location: "us-east-1"
+      insecure: false
+      path_prefix: "cache"
+  
+  # Custom runner configuration
+  tags:
+    - "self-hosted"
+    - "docker"
+    - "primary"
+  
+  # Run untagged jobs
+  run_untagged: false
+  
+  # Protect runner from being assigned to untagged jobs
+  locked: false
+  
+  # Pre/post build hooks
+  pre_build_script: |
+    set -e
+    echo "=== Pre-Build Hook ==="
+    echo "Runner: ${CI_RUNNER_DESCRIPTION}"
+    echo "Pipeline: ${CI_PIPELINE_ID}"
+    echo "Project: ${CI_PROJECT_NAME}"
+  
+  post_build_script: |
+    echo "=== Post-Build Hook ==="
+    echo "Build status: ${CI_JOB_STATUS}"
+    df -h
+    docker system prune -f || true
+
+---
+# RUNNER GROUP 2: DOCKER RUNNER (Container Operations)
+runner_docker:
+  name: "docker-executor-pool"
+  url: "https://gitlab.com/"
+  token: "${GITLAB_RUNNER_TOKEN_2}"
+  executor: "docker"
+  
+  # Docker configuration
+  docker:
+    image: "docker:latest"
+    privileged: true
+    volumes:
+      - "/certs/client"
+      - "/cache"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    services:
+      - docker:dind
+    allowed_services:
+      - "docker:dind"
+      - "postgres:*"
+      - "redis:*"
+      - "mysql:*"
+    network_mode: "bridge"
+    disable_entrypoint_overwrite: false
+    oom_kill_disable: false
+    oom_score_adj: "0"
+    shm_size: 0
+    
+  # Resource limits
+  machine:
+    cpu: 4
+    memory: "8Gi"
+    disk_size: "100Gi"
+  
+  # Caching
+  cache:
+    type: "s3"
+    s3:
+      server_address: "s3.amazonaws.com"
+      access_key: "${AWS_ACCESS_KEY_ID}"
+      secret_key: "${AWS_SECRET_ACCESS_KEY}"
+      bucket_name: "gitlab-runner-cache-${MSP_TENANT}"
+  
+  tags:
+    - "docker"
+    - "build"
+    - "container"
+    - "security-scan"
+  
+  run_untagged: false
+  
+  # Container registry auth
+  pull_policy: ["if-not-present", "always"]
+
+---
+# RUNNER GROUP 3: KUBERNETES EXECUTOR (K8s-native workloads)
+runner_kubernetes:
+  name: "kubernetes-executor-cluster"
+  url: "https://gitlab.com/"
+  token: "${GITLAB_RUNNER_TOKEN_3}"
+  executor: "kubernetes"
+  
+  # Kubernetes configuration
+  kubernetes:
+    host: "${KUBE_URL}"
+    ca_cert: "${KUBE_CA_CERT}"
+    token: "${KUBE_TOKEN}"
+    namespace: "gitlab-runner"
+    namespace_overwrite: "gitlab-runner-${CI_COMMIT_SHORT_SHA}"
+    
+    # Pod configuration
+    privileged: true
+    image: "ubuntu:22.04"
+    
+    # Service account for runner pods
+    service_account: "gitlab-runner"
+    service_account_overwrite: true
+    
+    # Container configuration
+    container_image: "ubuntu:22.04"
+    container_image_pull_policy: "IfNotPresent"
+    
+    # Resource limits per pod
+    cpu_request: "500m"
+    cpu_limit: "2000m"
+    memory_request: "512Mi"
+    memory_limit: "4Gi"
+    
+    # Volume mounts
+    container_volumes:
+      - name: "cache"
+        emptyDir:
+          sizeLimit: "50Gi"
+    
+    # Network policies
+    pod_security_context:
+      run_as_non_root: true
+      run_as_user: 1000
+      fs_group: 1000
+    
+    # Affinity for pod scheduling
+    pod_affinity: "required"
+    pod_anti_affinity: "preferred"
+    node_affinity_labels:
+      workload: "compute-intensive"
+  
+  tags:
+    - "kubernetes"
+    - "k8s"
+    - "jobs"
+  
+  run_untagged: false
+
+---
+# RUNNER GROUP 4: WINDOWS EXECUTOR (Windows builds)
+# Uncomment if running Windows builds
+# runner_windows:
+#   name: "windows-executor"
+#   url: "https://gitlab.com/"
+#   token: "${GITLAB_RUNNER_TOKEN_4}"
+#   executor: "shell"
+#   shell: "powershell"
+#   
+#   tags:
+#     - "windows"
+#     - "dotnet"
+#   
+#   run_untagged: false
+
+---
+# RUNNER MACHINE AUTOSCALING CONFIGURATION (GitLab Runner on AWS/Google Cloud)
+machine_autoscaling:
+  name: "autoscale-runner-pool"
+  url: "https://gitlab.com/"
+  token: "${GITLAB_RUNNER_TOKEN_5}"
+  executor: "machine"
+  
+  # AWS EC2 configuration for autoscaling
+  machine:
+    image: "ubuntu-focal"
+    machine_type: "n2-standard-4"
+    
+    # Autoscaling configuration
+    IdleCount: 1
+    IdleTime: 600
+    MaxBuilds: 100
+    TimeToLive: 3600
+    MachineName: "gitlab-runner-%s"
+    MachineDriver: "google"
+    
+    # Google Cloud configuration
+    google:
+      username: "centos"
+      project: "${GCP_PROJECT_ID}"
+      zone: "us-central1-a"
+      machine_type: "n2-standard-4"
+      preemptible: true
+      image_family: "centos-7"
+      tags:
+        - "gitlab-runner"
+        - "ci-cd"
+        - "managed"
+      metadata:
+        ci_runner_id: "autoscale-5"
+      use_internal_ip: false
+      network: "default"
+      subnetwork: ""
+      disk_size: 100
+      disk_type: "pd-standard"
+  
+  tags:
+    - "autoscale"
+    - "compute"
+  
+  run_untagged: false
+  locked: false
+
+---
+# GITLAB RUNNER INSTALLATION & SETUP SCRIPT
+# Usage: source this file to install and configure runners
+
+install_gitlab_runner() {
+  local OS=$(uname -s)
+  local ARCH=$(uname -m)
+  
+  echo "Installing GitLab Runner on ${OS} ${ARCH}..."
+  
+  if [[ "$OS" == "Linux" ]]; then
+    # Debian/Ubuntu
+    if command -v apt-get &>/dev/null; then
+      curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh | sudo bash
+      sudo apt-get install -y gitlab-runner
+    # RHEL/CentOS
+    elif command -v yum &>/dev/null; then
+      curl -L https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.rpm.sh | sudo bash
+      sudo yum install -y gitlab-runner
+    fi
+  elif [[ "$OS" == "Darwin" ]]; then
+    brew install gitlab-runner
+  fi
+  
+  echo "✓ GitLab Runner installed"
+  gitlab-runner --version
+}
+
+register_runner() {
+  local RUNNER_NAME=$1
+  local RUNNER_TOKEN=$2
+  local RUNNER_TAGS=$3
+  local EXECUTOR=$4
+  
+  echo "Registering runner: ${RUNNER_NAME}"
+  
+  sudo gitlab-runner register \
+    --non-interactive \
+    --url "https://gitlab.com/" \
+    --registration-token "${RUNNER_TOKEN}" \
+    --executor "${EXECUTOR}" \
+    --description "${RUNNER_NAME}" \
+    --tag-list "${RUNNER_TAGS}" \
+    --run-untagged "false" \
+    --locked "false"
+  
+  echo "✓ Runner registered"
+  sudo gitlab-runner verify
+}
+
+start_runner_service() {
+  echo "Starting GitLab Runner service..."
+  
+  if [[ "$OS" == "Linux" ]]; then
+    sudo systemctl enable --now gitlab-runner
+    sudo systemctl status gitlab-runner
+  elif [[ "$OS" == "Darwin" ]]; then
+    brew services start gitlab-runner
+  fi
+  
+  echo "✓ GitLab Runner service started"
+}
+
+verify_runner() {
+  echo "Verifying runner configuration..."
+  sudo gitlab-runner verify --delete
+  sudo gitlab-runner list
+}
+
+# Export functions for external use
+export -f install_gitlab_runner
+export -f register_runner
+export -f start_runner_service
+export -f verify_runner
