@@ -35,6 +35,7 @@ export enum HttpStatus {
   // 5xx Server Error
   INTERNAL_SERVER_ERROR = 500,
   SERVICE_UNAVAILABLE = 503,
+  GATEWAY_TIMEOUT = 504,
 }
 
 /**
