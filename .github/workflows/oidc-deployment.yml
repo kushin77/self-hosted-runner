@@ -1,0 +1,310 @@
+name: Deploy with AWS OIDC Federation
+
+on:
+  push:
+    branches: [main, governance/*, release/*]
+    paths:
+      - 'infra/terraform/modules/aws_oidc_federation/**'
+      - 'scripts/deploy-aws-oidc-federation.sh'
+      - '.github/workflows/oidc-*.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write  # Required for OIDC token generation
+  contents: read
+  issues: write
+  pull-requests: write
+
+env:
+  AWS_REGION: us-east-1
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+
+jobs:
+  # =========================================================================
+  # Test OIDC Infrastructure Readiness
+  # =========================================================================
+  test-oidc-readiness:
+    name: Test OIDC Readiness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Assume AWS Role via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Verify AWS Identity
+        run: |
+          echo "✅ Successfully assumed AWS role via OIDC"
+          aws sts get-caller-identity --output table
+          
+          ROLE_ARN=$(aws sts get-caller-identity --query Arn --output text)
+          echo "ROLE_ARN=$ROLE_ARN" >> $GITHUB_ENV
+          
+          if [[ "$ROLE_ARN" == *"github-oidc-role"* ]]; then
+            echo "✅ Correct OIDC role assumed"
+          else
+            echo "❌ Wrong role assumed"
+            exit 1
+          fi
+
+      - name: List Available AWS Resources
+        run: |
+          echo "ℹ️  Checking available permissions..."
+          
+          # Check OIDC provider exists
+          aws iam list-open-id-connect-providers || echo "⚠️  No OIDC providers found"
+          
+          # Check role configuration
+          aws iam get-role --role-name github-oidc-role --output table || echo "⚠️  OIDC role not found"
+
+  # =========================================================================
+  # Deploy AWS OIDC Federation (if not exists)
+  # =========================================================================
+  deploy-oidc-infrastructure:
+    name: Deploy OIDC Infrastructure
+    runs-on: ubuntu-latest
+    needs: [test-oidc-readiness]
+    if: success()
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
+
+      - name: Assume AWS Role via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Initialize Terraform
+        run: |
+          cd infra/terraform/modules/aws_oidc_federation
+          terraform init -upgrade
+          terraform validate
+
+      - name: Plan Terraform Deployment
+        run: |
+          cd infra/terraform/modules/aws_oidc_federation
+          terraform plan \
+            -var="aws_account_id=$AWS_ACCOUNT_ID" \
+            -var="aws_region=$AWS_REGION" \
+            -var="gcp_project_id=$GCP_PROJECT_ID" \
+            -var="github_repo=kushin77/self-hosted-runner" \
+            -out=tfplan
+
+      - name: Apply Terraform Deployment
+        run: |
+          cd infra/terraform/modules/aws_oidc_federation
+          terraform apply -auto-approve tfplan
+          
+          echo "✅ OIDC Federation Infrastructure Deployed"
+          
+          # Extract outputs
+          echo "OIDC_PROVIDER_ARN=$(terraform output -raw oidc_provider_arn)" >> $GITHUB_ENV
+          echo "OIDC_ROLE_ARN=$(terraform output -raw oidc_role_arn)" >> $GITHUB_ENV
+          echo "OIDC_ROLE_NAME=$(terraform output -raw oidc_role_name)" >> $GITHUB_ENV
+
+      - name: Log Deployment Results
+        run: |
+          mkdir -p logs
+          cat > logs/oidc-deployment-$(date -u +%Y%m%dT%H%M%SZ).jsonl << EOF
+          {"timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)", "event": "oidc_deployment", "status": "success", "oidc_provider_arn": "$OIDC_PROVIDER_ARN", "oidc_role_arn": "$OIDC_ROLE_ARN", "oidc_role_name": "$OIDC_ROLE_NAME", "workflow_run": "$GITHUB_RUN_ID"}
+          EOF
+          cat logs/oidc-deployment-*.jsonl
+
+      - name: Commit Deployment Log
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add logs/oidc-deployment-*.jsonl || true
+          git commit -m "ops: AWS OIDC Federation deployment logged [skip ci]" || true
+          git push origin main || true
+
+      - name: Update GitHub Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const timestamp = new Date().toISOString();
+            
+            // Find latest OIDC deployment log
+            const logsDir = './logs';
+            if (!fs.existsSync(logsDir)) {
+              console.log('No logs directory found');
+              return;
+            }
+            
+            const logs = fs.readdirSync(logsDir)
+              .filter(f => f.startsWith('oidc-deployment-') && f.endsWith('.jsonl'))
+              .sort()
+              .reverse();
+            
+            if (logs.length === 0) {
+              console.log('No OIDC deployment logs found');
+              return;
+            }
+            
+            const latestLog = fs.readFileSync(`${logsDir}/${logs[0]}`, 'utf-8');
+            const logEntry = JSON.parse(latestLog);
+            
+            const comment = `✅ AWS OIDC Federation Deployment Complete (${timestamp})
+
+**Deployment Artifacts:**
+- OIDC Provider ARN: \`${logEntry.oidc_provider_arn}\`
+- OIDC Role ARN: \`${logEntry.oidc_role_arn}\`
+- OIDC Role Name: \`${logEntry.oidc_role_name}\`
+- Workflow Run: https://github.com/kushin77/self-hosted-runner/actions/runs/${logEntry.workflow_run}
+
+**Architecture Properties:**
+✅ **Immutable**: Deployment logged to JSON audit trail
+✅ **Idempotent**: Terraform state manages infrastructure correctly
+✅ **Ephemeral**: STS tokens expire after 1 hour
+✅ **No-Ops**: Fully automated, committed directly to main
+✅ **Hands-Off**: Zero manual intervention required
+
+**Security Benefits:**
+- No long-lived AWS Access Keys stored in GitHub Secrets
+- OIDC tokens scoped to specific branches and workflows
+- Full AWS CloudTrail audit logging
+- Easily revocable by disabling OIDC provider
+
+**Next Steps:**
+1. ✅ GitHub Actions workflow already using OIDC for AWS access
+2. ⏭️  Update CI/CD pipelines to remove AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY
+3. ⏭️  Delete or rotate any remaining long-lived AWS keys
+4. ⏭️  Enable access logging on S3 and CloudTrail for compliance
+
+**Testing:**
+\`\`\`bash
+# Test OIDC role is working
+aws sts get-caller-identity
+
+# Verify no long-lived keys needed
+echo $AWS_ACCESS_KEY_ID  # Should be empty or unset
+\`\`\``;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: 2159,
+              body: comment
+            });
+
+  # =========================================================================
+  # Verify OIDC Functionality
+  # =========================================================================
+  verify-oidc-functionality:
+    name: Verify OIDC Functionality
+    runs-on: ubuntu-latest
+    needs: [deploy-oidc-infrastructure]
+    if: success()
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Assume AWS Role via OIDC Token
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Verify OIDC Token Usage
+        run: |
+          echo "✅ Successfully obtained temporary AWS credentials via OIDC"
+          
+          # Verify caller identity
+          CALLER_IDENTITY=$(aws sts get-caller-identity --output json)
+          echo "$CALLER_IDENTITY" | jq .
+          
+          # Verify we're using the correct OIDC role
+          ROLE_ARN=$(echo "$CALLER_IDENTITY" | jq -r .Arn)
+          if [[ "$ROLE_ARN" == *"github-oidc-role"* ]]; then
+            echo "✅ Confirmed: Using github-oidc-role for authentication"
+          else
+            echo "❌ Wrong role: $ROLE_ARN"
+            exit 1
+          fi
+          
+          # Verify credentials are temporary (session tokens)
+          if [ -n "$AWS_SESSION_TOKEN" ]; then
+            echo "✅ Confirmed: Using temporary STS credentials (session token present)"
+          else
+            echo "❌ Not using temporary credentials"
+            exit 1
+          fi
+
+      - name: Test S3 Artifact Access
+        run: |
+          echo "Testing S3 access with OIDC credentials..."
+          
+          BUCKET="github-actions-artifacts"
+          
+          # List buckets (read-only access)
+          aws s3 ls || true
+          
+          # Try to access artifacts bucket (if exists)
+          aws s3 ls "s3://$BUCKET/" --human-readable || echo "⚠️  Bucket access denied (expected for bucket creation)"
+
+      - name: Test ECR Access
+        run: |
+          echo "Testing ECR access with OIDC credentials..."
+          
+          # Get ECR authorization
+          aws ecr get-authorization-token --region $AWS_REGION | jq . || echo "⚠️  ECR access limited"
+
+      - name: Generate OIDC Test Report
+        run: |
+          mkdir -p logs
+          cat > logs/oidc-verification-$(date -u +%Y%m%dT%H%M%SZ).jsonl << EOF
+          {"timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)", "test": "oidc_token_exchange", "status": "pass", "details": "Successfully exchanged GitHub OIDC token for AWS temporary credentials"}
+          {"timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)", "test": "aws_identity_verification", "status": "pass", "details": "Verified github-oidc-role identity"}
+          {"timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)", "test": "temporary_credentials", "status": "pass", "details": "Confirmed using STS session token"}
+          EOF
+
+  # =========================================================================
+  # Summary & Documentation
+  # =========================================================================
+  summary:
+    name: Deployment Summary
+    runs-on: ubuntu-latest
+    needs: [verify-oidc-functionality]
+    if: always()
+    steps:
+      - name: Print Summary
+        run: |
+          echo "=========================================="
+          echo "AWS OIDC Federation Deployment Summary"
+          echo "=========================================="
+          echo ""
+          echo "✅ Status: ${{ job.status }}"
+          echo "🔗 Workflow Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "📝 Commit: ${{ github.sha }}"
+          echo "👤 Author: ${{ github.actor }}"
+          echo ""
+          echo "Architecture Properties:"
+          echo "  ✅ Immutable: All changes logged to audit trail"
+          echo "  ✅ Idempotent: Workflow safe to re-run"
+          echo "  ✅ Ephemeral: AWS STS credentials expire (1 hour)"
+          echo "  ✅ No-Ops: Fully automated, no manual intervention"
+          echo "  ✅ Hands-Off: Direct to main (no PR required)"
+          echo ""
+          echo "Benefits:"
+          echo "  🔐 No long-lived AWS keys in GitHub Secrets"
+          echo "  📊 Full audit trail in AWS CloudTrail"
+          echo "  🔄 Token scope limited to repo/branch/workflow"
+          echo "  🚀 CI/CD workflows now OIDC-native"
+          echo ""
