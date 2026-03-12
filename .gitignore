@@ -234,3 +234,18 @@ secrets.env
 secrets.env
 *.key
 /secrets.env.template
+
+# Service account keys and local credentials
+sa-key-*.json
+*-key.json
+kubeconfig
+
+# Local binary downloads
+kubectl
+helm
+terraform
+
+# Temporary credential files
+.aws/
+.gcp/
+credentials/
