@@ -1,0 +1,8 @@
+{
+  "tag_name": "epic5-prod-2026-03-11",
+  "target_commitish": "2678929d8",
+  "name": "EPIC-5 Production Release (EPIC5-PROD-1773198442)",
+  "body": "Production release for EPIC-5. Artifacts in releases/epic5-prod-2026-03-11. Tag push blocked by secret-scan; refer to issue #2436 for remediation.",
+  "draft": false,
+  "prerelease": false
+}
