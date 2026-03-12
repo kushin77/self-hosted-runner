@@ -209,6 +209,7 @@ model CredentialSearch {
   credential_id   String
   search_text     String    // Name + type combined
   
-  @@fulltext([search_text]) // MySQL only; PostgreSQL uses separate FTS
+  // @@fulltext([search_text]) // MySQL-only fulltext index removed for Postgres deployment
+  // If MySQL is used in a future environment, re-enable or gate with generator previewFeatures.
   @@index([credential_id])
 }
