@@ -1,6 +1,6 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA','backend/']
+  args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}','backend/']
 
 # Build frontend assets first (install then build)
 - name: 'node:18-alpine'
@@ -22,12 +22,12 @@ steps:
 
 # Then build frontend Docker image with built assets
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build','-f','frontend/Dockerfile','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA','frontend/']
+  args: ['build','-f','frontend/Dockerfile','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}','frontend/']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA']
+  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA']
+  args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}']
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
   args:
@@ -71,12 +71,13 @@ steps:
       echo "No Grafana secret substitution provided; skipping dashboard import"
     fi
 images:
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:$SHORT_SHA'
-- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:$SHORT_SHA'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}'
+- 'us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}'
 options:
   substitution_option: ALLOW_LOOSE
 substitutions:
   _TAG: 'latest'
   _GITHUB_TOKEN_SECRET: ''
   _GRAFANA_API_KEY_SECRET: ''
+  _SHORT_SHA: 'manual'
 timeout: '1200s'
