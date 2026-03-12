@@ -1,0 +1,25 @@
+# Example Cloud Build step to upload Cloud Build logs to a centralized bucket after build completes.
+# Use this as a post-build step once the service account has storage.objects.get and storage.objects.create on the target bucket.
+
+steps:
+  - id: "upload-cloudbuild-logs"
+    name: "gcr.io/cloud-builders/gsutil"
+    entrypoint: "bash"
+    args:
+      - "-c"
+      - |
+        set -euo pipefail
+        BUILD_ID="$BUILD_ID"
+        SRC_BUCKET="projects/_/logs/your-cloudbuild-logs-bucket"  # replace
+        DEST_BUCKET="gs://nexusshield-dev-sbom-archive/build-logs/$BUILD_ID"
+        mkdir -p /workspace/cloudbuild-logs
+        echo "Searching for logs for build $BUILD_ID in $SRC_BUCKET"
+        gsutil -m cp "${SRC_BUCKET}/**${BUILD_ID}*" /workspace/cloudbuild-logs/ || true
+        if ls /workspace/cloudbuild-logs/* >/dev/null 2>&1; then
+          gsutil -m cp /workspace/cloudbuild-logs/* "$DEST_BUCKET/"
+          echo "Uploaded logs to $DEST_BUCKET"
+        else
+          echo "No logs found to upload"
+        fi
+
+# NOTE: Replace SRC_BUCKET with your Cloud Build logs bucket. Ensure Cloud Build service account has access.
