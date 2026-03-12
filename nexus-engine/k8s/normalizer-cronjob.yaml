@@ -1,0 +1,16 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: normalizer
+  namespace: nexus-engine
+spec:
+  schedule: "*/5 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: normalizer
+            image: ghcr.io/kushin77/nexus-normalizer:20260312
+            imagePullPolicy: IfNotPresent
