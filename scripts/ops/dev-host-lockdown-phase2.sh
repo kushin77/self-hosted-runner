@@ -160,7 +160,8 @@ log_msg "Phase 2.6 COMPLETE: Dev tools verified"
 log_msg "Phase 2.7: Writing audit entry..."
 if [ -f "$AUDIT_FILE" ]; then
     ENTRY="{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"action\":\"DEV_HOST_LOCKDOWN_COMPLETE\",\"host\":\"dev-elevatediq-2 (192.168.168.31)\",\"services_stopped\":5,\"sudoers_configured\":true,\"packages_removed\":${#PKGS_TO_REMOVE[@]},\"artifacts_cleaned\":${#DIRS_TO_CLEAN[@]},\"status\":\"SUCCESS\"}"
-    echo "$ENTRY" >> "$AUDIT_FILE"
+    # Use tee -a so the append runs with root privileges when the script is run under sudo
+    printf '%s\n' "$ENTRY" | tee -a "$AUDIT_FILE" >/dev/null
     log_msg "  Appended audit entry to: $AUDIT_FILE"
 else
     log_msg "  WARNING: Audit file not found at $AUDIT_FILE (skipping append)"
