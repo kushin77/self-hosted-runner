@@ -266,7 +266,7 @@ export const testFixtures = {
   },
   validCredential: {
     id: 'cred-123',
-$PLACEHOLDER
+    name: 'Test Credential',
     type: 'password',
     value: 'SecurePassword123!@#',
     lastRotated: new Date('2026-03-10'),
@@ -285,7 +285,7 @@ $PLACEHOLDER
     id: 'audit-123',
     event: 'credential_rotated',
     resourceType: 'credential',
-$PLACEHOLDER
+    resourceId: 'cred-123',
     actor: 'user-123',
     action: 'rotation',
     status: 'success' as const,
