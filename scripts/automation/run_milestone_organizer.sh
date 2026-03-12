@@ -44,3 +44,50 @@ jq -c '.[] | {state: "closed", number: .number, title: .title, milestone: (.mile
 
 echo "Wrote audit log: $AUDIT_LOG"
 echo "Done"
+
+# Optional archival: upload artifacts to S3 or GCS if configured via env vars.
+ARCHIVE_S3_BUCKET=${ARCHIVE_S3_BUCKET:-}
+ARCHIVE_GCS_BUCKET=${ARCHIVE_GCS_BUCKET:-}
+ARCHIVE_PREFIX=${ARCHIVE_PREFIX:-milestones-assignments}
+
+upload_to_s3() {
+  local file=$1
+  local key="$ARCHIVE_PREFIX/$(basename "$file")"
+  if command -v aws >/dev/null 2>&1; then
+    echo "Uploading $file -> s3://$ARCHIVE_S3_BUCKET/$key"
+    aws s3 cp "$file" "s3://$ARCHIVE_S3_BUCKET/$key" --only-show-errors || echo "s3 upload failed for $file"
+  else
+    echo "aws CLI not available; skipping S3 upload"
+  fi
+}
+
+upload_to_gcs() {
+  local file=$1
+  local dest="gs://$ARCHIVE_GCS_BUCKET/$ARCHIVE_PREFIX/$(basename "$file")"
+  if command -v gsutil >/dev/null 2>&1; then
+    echo "Uploading $file -> $dest"
+    gsutil cp "$file" "$dest" || echo "gcs upload failed for $file"
+  else
+    echo "gsutil not available; skipping GCS upload"
+  fi
+}
+
+if [ -n "$ARCHIVE_S3_BUCKET" ] || [ -n "$ARCHIVE_GCS_BUCKET" ]; then
+  echo "Archival configured: S3=$ARCHIVE_S3_BUCKET GCS=$ARCHIVE_GCS_BUCKET"
+  for f in "$OPEN_JSON" "$CLOSED_JSON" "$AUDIT_LOG"; do
+    if [ -f "$f" ]; then
+      if [ -n "$ARCHIVE_S3_BUCKET" ]; then
+        upload_to_s3 "$f"
+      fi
+      if [ -n "$ARCHIVE_GCS_BUCKET" ]; then
+        upload_to_gcs "$f"
+      fi
+      # write checksum next to file and upload as well
+      shasum -a 256 "$f" | awk '{print $1}' > "$f.sha256"
+      if [ -n "$ARCHIVE_S3_BUCKET" ]; then upload_to_s3 "$f.sha256"; fi
+      if [ -n "$ARCHIVE_GCS_BUCKET" ]; then upload_to_gcs "$f.sha256"; fi
+    fi
+  done
+else
+  echo "No archival target configured; skipping upload step"
+fi
