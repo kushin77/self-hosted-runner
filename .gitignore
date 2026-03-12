@@ -75,6 +75,9 @@ id_rsa*
 id_ecdsa*
 id_ed25519*
 
+# Runner keys (local self-hosted runner private keys)
+.runner-keys/
+
 # Runtime artifacts & logs (never commit)
 logs/
 artifacts/
@@ -162,28 +165,8 @@ frontend/node_modules/
 scripts/audit/
 *.summary.log
 
-# Credential examples and templates (use GSM/Vault/KMS instead)
-scripts/**/*secret*.sh
-scripts/**/*credential*.sh
-scripts/**/*provision*.sh
-!scripts/deployment/hands-off-final-provisioning.sh
-!scripts/automation/watch-operator-provision.sh
-!scripts/automation/deploy-watch-automation.sh
-scripts/**/deploy-with-secrets.sh
-scripts/**/apply-*.sh
-scripts/**/fetch-*.sh
-scripts/**/migrate-*.sh
-scripts/**/redact-*.sh
-docs/**/*.md.bak
-
-**/*.jsonl
-**/*.log
-**/*.bak
-**/*.plan
-**/*.tfstate*
-config/docker-compose.phase6.yml
-# Ignore logs, backups, and sensitive artifacts
-**/*.jsonl
+# Encrypted/sensitive outputs
+*.enc
 
 # Template and example env files that may contain credential patterns
 secrets.env.template
@@ -191,65 +174,9 @@ backend/.env.example
 backend/README.md.bak2
 docs/PHASE_3B_CREDENTIAL_INJECTION_GUIDE.md.bak2
 docs/deployment/CREDENTIAL_PROVISIONING_RUNBOOK.md.bak2
-docs/archive/CREDENTIAL_SECURITY_HARDENING_2026_03_09.md.bak2
 
 # Credential documentation archives
 docs/archive/*CREDENTIAL*.md
 docs/*CREDENTIAL*.md
 docs/governance/*CREDENTIAL*.md
 **/*.log
-**/*.bak
-**/*.plan
-**/*.tfstate*
-/*.tfplan
-config/docker-compose.phase6.yml
-secrets/
-*.key
-*.pem
-scripts/deployment/provision-operator-credentials.sh
-scripts/gcp/*.sh
-terraform/terraform.tfvars
-terraform/*.backup
-# Ignore virtualenvs and local env files
-**/.venv/
-**/venv/
-*.pyc
-__pycache__/
-# Ignore local secret files
-*.pem
-*.key
-*.env
-tools/image_pin_service/.venv/
-# Ignore runtime secrets
-secrets.env
-secrets.env
-*.key
-/secrets.env.template
-secrets.env
-*.key
-/secrets.env.template
-secrets.env
-*.key
-/secrets.env.template
-secrets.env
-*.key
-/secrets.env.template
-
-# Service account keys and local credentials
-sa-key-*.json
-*-key.json
-kubeconfig
-
-# Local binary downloads
-kubectl
-helm
-terraform
-
-# Temporary credential files
-.aws/
-.gcp/
-credentials/
-
-# Build output - never commit compiled artifacts
-backend/dist/
-frontend/dist/
