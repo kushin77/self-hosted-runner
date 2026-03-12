@@ -20,6 +20,22 @@ steps:
         ./scripts/signing/sign_artifact.sh signing_key.pem "${_ARTIFACT_PATH}"
 
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: 'verify-signature'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -euo pipefail
+        echo 'Deriving public key and verifying signature (ssh-keygen preferred)...'
+        if command -v ssh-keygen >/dev/null 2>&1; then
+          ssh-keygen -y -f signing_key.pem > signing_key.pub
+          ssh-keygen -Y verify -f signing_key.pub -s "${_ARTIFACT_PATH}.sig" -n artifact < "${_ARTIFACT_PATH}" || { echo 'Signature verification failed'; exit 5; }
+          echo 'Signature verified with ssh-keygen'
+        else
+          echo 'ssh-keygen not available in this step; skipping verify'
+        fi
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     id: 'upload-sig'
     entrypoint: 'bash'
     args:
