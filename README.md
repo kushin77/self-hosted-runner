@@ -128,6 +128,9 @@ self-hosted-runner/          # 🏆 ELITE STATUS - Root: 4 files
 - **[.instructions.md](.instructions.md)** - Copilot behavior enforcement
 - **[docs/governance/FOLDER_GOVERNANCE_STANDARDS.md](docs/governance/FOLDER_GOVERNANCE_STANDARDS.md)** - Complete governance rules (120+ standards)
 
+### Master Index
+- **[BEST_PRACTICES_MASTER_INDEX_20260312.md](BEST_PRACTICES_MASTER_INDEX_20260312.md)** - Single entry point for operational best practices: 5-pillar framework, decision trees, and runbook map
+
 ### Getting Started
 - **[docs/deployment/README.md](docs/deployment/)** - Deployment guides
 - **[docs/runbooks/README.md](docs/runbooks/)** - Operational runbooks
