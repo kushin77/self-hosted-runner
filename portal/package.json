@@ -1,0 +1,56 @@
+{
+  "name": "@nexusshield/portal",
+  "version": "1.0.0",
+  "description": "NexusShield Control Plane Portal - SaaS OPS Platform",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/api",
+    "packages/diagram-engine",
+    "packages/products/ops",
+    "packages/products/security",
+    "packages/frontend"
+  ],
+  "scripts": {
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r --parallel run build",
+    "build:prod": "pnpm clean && pnpm -r --parallel run build:prod",
+    "preview": "pnpm -r --parallel run preview",
+    "test": "pnpm -r --parallel run test",
+    "test:cov": "pnpm -r --parallel run test:cov",
+    "lint": "pnpm -r --parallel run lint",
+    "format": "pnpm -r --parallel run format",
+    "type-check": "pnpm -r --parallel run type-check",
+    "start": "node packages/api/dist/index.js",
+    "start:prod": "NODE_ENV=production node packages/api/dist/index.js",
+    "clean": "pnpm -r exec rm -rf dist node_modules .turbo",
+    "setup": "pnpm install && pnpm build",
+    "portal:dev": "concurrently 'pnpm -C packages/api dev' 'pnpm -C packages/frontend dev'",
+    "portal:build": "pnpm build",
+    "docker:build": "docker build -f docker/Dockerfile -t nexusshield/portal:latest .",
+    "docker:run": "docker run -p 3000:3000 -p 5000:5000 nexusshield/portal:latest"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.57.0",
+    "@typescript-eslint/parser": "^8.57.0",
+    "prettier": "^3.1.1",
+    "vitest": "^1.1.0",
+    "concurrently": "^8.2.2",
+    "pnpm": "^8.14.0"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
+    }
+  }
+}
