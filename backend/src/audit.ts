@@ -36,9 +36,11 @@ export interface AuditLogEntry {
 // ============================================================================
 
 export class AuditService {
-  private lastHash: string = '';
+  private lastHash: string = crypto.createHash('sha256').update('genesis').digest('hex');
 
   constructor() {
+    // initializeLastHash will try to load the real last hash from DB
+    // but default to the genesis hash immediately to avoid races.
     this.initializeLastHash();
   }
 
@@ -66,24 +68,37 @@ export class AuditService {
    */
   async log(entry: Omit<AuditLogEntry, 'id' | 'hash' | 'previousHash'>): Promise<AuditLogEntry> {
     try {
-      // Calculate hash of this entry + previous hash (blockchain-like chain)
-      const hashInput = JSON.stringify({
-        ...entry,
-        previousHash: this.lastHash,
-      });
-      const hash = crypto.createHash('sha256').update(hashInput).digest('hex');
+      // Capture the previous hash before computing this entry's hash
+      const previousHash = this.lastHash;
 
-      // Write to database (immutable append-only)
+      // Build canonical hash input using the same keys as verifyIntegrity
+      const hashInputObj: Record<string, any> = {
+        event: entry.event,
+        resource_type: entry.resourceType,
+        resource_id: entry.resourceId || null,
+        actor_id: entry.actor,
+        action: entry.action,
+        details: entry.details ? JSON.stringify(entry.details) : null,
+        previousHash,
+      };
+
+      const hash = crypto.createHash('sha256').update(JSON.stringify(hashInputObj)).digest('hex');
+
+      // Write to database (immutable append-only) and include optional fields
       const logEntry = await prisma.auditLog.create({
         data: {
           event: entry.event,
           resource_type: entry.resourceType,
-          resource_id: entry.resourceId,
+          resource_id: entry.resourceId || null,
           actor_id: entry.actor,
           action: entry.action,
           details: entry.details ? JSON.stringify(entry.details) : null,
           hash,
-          previous_hash: this.lastHash,
+          previous_hash: previousHash,
+          status: entry.status,
+          ip_address: (entry as any).ipAddress || null,
+          user_agent: (entry as any).userAgent || null,
+          created_at: (entry as any).timestamp || undefined,
         },
       });
 
@@ -93,30 +108,34 @@ export class AuditService {
       // Also write to JSONL for cloud export (GCS)
       this.appendToJSONL({
         id: logEntry.id,
-        timestamp: logEntry.created_at,
+        timestamp: (entry as any).timestamp || logEntry.created_at,
         event: logEntry.event,
         resourceType: logEntry.resource_type,
         resourceId: logEntry.resource_id,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: 'success',
+        status: entry.status || (logEntry as any).status || 'success',
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+        ipAddress: (entry as any).ipAddress || undefined,
+        userAgent: (entry as any).userAgent || undefined,
         hash,
-        previousHash: this.lastHash,
+        previousHash: previousHash,
       });
 
       return {
         id: logEntry.id,
-        timestamp: logEntry.created_at,
+        timestamp: (entry as any).timestamp || logEntry.created_at,
         event: logEntry.event,
         resourceType: logEntry.resource_type,
         resourceId: logEntry.resource_id || undefined,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: 'success',
+        status: entry.status || (logEntry as any).status || 'success',
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+        ipAddress: (entry as any).ipAddress || undefined,
+        userAgent: (entry as any).userAgent || undefined,
         hash,
-        previousHash: this.lastHash,
+        previousHash: previousHash,
       };
     } catch (error: any) {
       console.error(`❌ Failed to log audit entry: ${error.message}`);
