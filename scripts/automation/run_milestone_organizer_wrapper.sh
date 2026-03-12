@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Wrapper to source credential helpers before running the organizer
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_DIR="$SCRIPT_DIR/.."
+# REPO_DIR should point to the repository root (two levels up from scripts/automation)
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Try to load local credcache
 if [ -x "$REPO_DIR/scripts/utilities/credcache.sh" ]; then
@@ -24,4 +25,9 @@ if [ -x "$REPO_DIR/scripts/utilities/gsm_fetch_token.sh" ]; then
 fi
 
 echo "Starting milestone organizer (wrapper)"
-exec "$REPO_DIR/scripts/automation/run_milestone_organizer.sh"
+TARGET="$REPO_DIR/scripts/automation/run_milestone_organizer.sh"
+if [ ! -x "$TARGET" ]; then
+  echo "ERROR: organizer not found or not executable: $TARGET"
+  exit 1
+fi
+exec "$TARGET"

@@ -63,22 +63,7 @@ jq -c '.[] | {state: "closed", number: .number, title: .title, milestone: (.mile
 
 # Build patch file mapping old -> new milestones for rollback
 echo "Building assignment patch file: $PATCH_FILE"
-python3 - <<PY
-import json
-pre_open=json.load(open('$PRE_OPEN_JSON')) if True else []
-post_open=json.load(open('$OPEN_JSON')) if True else []
-pre_map={i['number']:(i.get('milestone') or {}).get('title') for i in pre_open}
-post_map={i['number']:(i.get('milestone') or {}).get('title') for i in post_open}
-with open('$PATCH_FILE','w') as out:
-  import time
-  ts=time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
-  for num, new in post_map.items():
-    old = pre_map.get(num)
-    if old != new:
-      rec={'number':num,'old_milestone':old,'new_milestone':new,'timestamp':ts}
-      out.write(json.dumps(rec)+"\n")
-print('Wrote patch file:', '$PATCH_FILE')
-PY
+python3 scripts/utilities/generate_assignment_patch.py --pre "$PRE_OPEN_JSON" --post "$OPEN_JSON" --out "$PATCH_FILE" || echo "Patch generation script failed"
 
 # Symlink last patch for easy rollback reference
 ln -f "$PATCH_FILE" "$ARTIFACT_DIR/last_assignment_patch.jsonl" || true
