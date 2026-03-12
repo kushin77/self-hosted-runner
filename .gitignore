@@ -179,4 +179,7 @@ docs/deployment/CREDENTIAL_PROVISIONING_RUNBOOK.md.bak2
 docs/archive/*CREDENTIAL*.md
 docs/*CREDENTIAL*.md
 docs/governance/*CREDENTIAL*.md
-**/*.log
+**/*.log# Governance: ignore generated artifacts/logs that may contain secrets
+artifacts/
+logs/
+*.jsonl
