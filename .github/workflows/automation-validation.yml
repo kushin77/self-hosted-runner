@@ -1,0 +1,32 @@
+name: Automation Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: read
+    concurrency:
+      group: automation-validation-${{ github.head_ref || github.run_id }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run automation validator (skip live test issue)
+        env:
+          SKIP_ISSUE_TEST: "true"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          bash scripts/github-automation/validate-automation.sh ${{ github.repository }}
