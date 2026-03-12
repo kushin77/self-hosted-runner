@@ -196,7 +196,7 @@ sha256sum -c /home/akushnir/self-hosted-runner/logs/checksums.sha256
 **Verify credentials were rotated:**
 ```bash
 # Check GSM for recent secret versions
-gcloud secrets versions list prod-deployer-key --limit=5 --project=nexusshield-prod
+gcloud secrets versions list --limit=5 --project=nexusshield-prod | grep deployer
 
 # Check rotation logs
 journalctl -u credential-rotation-gsm.service --since="7 days ago" | tail -10
@@ -213,8 +213,8 @@ journalctl -u credential-rotation-gsm.service --since="7 days ago" | tail -10
 4. **Contact:** Lead Engineer (full diagnostic logs and git revision history available)
 
 ### For Vault Integration (Phase 5)
-- Contact: Ops team to provide `VAULT_ADDR` and Vault admin access
-- See: `issues/0001-REQUEST-VAULT-ADDR-AND-ADMIN-TOKEN.md`
+- Contact: Ops team to provide Vault HTTPS address and authentication
+- Reference: Phase 5 planning documentation
 - Timeline: Estimated Phase 5, non-blocking for current production
 
 ### For Multi-Cloud Failover (Phase 5+)
@@ -231,7 +231,7 @@ journalctl -u credential-rotation-gsm.service --since="7 days ago" | tail -10
 | Final Sign-Off | Milestone 4 completion checklist | [MILESTONE_4_FINAL_SIGN_OFF_20260312.md](MILESTONE_4_FINAL_SIGN_OFF_20260312.md) |
 | Runbook - API Health | Step-by-step operator procedures | [issues/ISSUE-REMEDIATE-API-HEALTH.md](issues/ISSUE-REMEDIATE-API-HEALTH.md) |
 | Health Validation | Automated health check script | [scripts/final-health-validation.sh](scripts/final-health-validation.sh) |
-| Vault Setup | Phase 5 Vault integration (future) | [issues/0001-REQUEST-VAULT-ADDR-AND-ADMIN-TOKEN.md](issues/0001-REQUEST-VAULT-ADDR-AND-ADMIN-TOKEN.md) |
+| Vault Setup | Phase 5 Vault integration (future) | Phase 5 planning documentation |
 
 ---
 
