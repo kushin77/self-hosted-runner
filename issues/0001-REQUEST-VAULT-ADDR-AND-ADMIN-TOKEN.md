@@ -1,6 +1,8 @@
 Title: REQUEST: Provide VAULT_ADDR and Vault admin token
 Status: open
-Labels: operational, security, blocker
+Labels: operational, security, phase-5
+Milestone: Phase 5 (Multi-Cloud Vault Integration)
+Blocker-for-Milestone-4: NO — Phase 5 deferred enhancement
 
 Summary
 -------
