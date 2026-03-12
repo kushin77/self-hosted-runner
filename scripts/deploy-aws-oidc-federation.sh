@@ -9,7 +9,7 @@ set -euo pipefail
 # No GitHub Actions • Direct commits to main • Hands-off automation
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TERRAFORM_DIR="$REPO_ROOT/infra/terraform/modules/aws_oidc_federation"
 AUDIT_LOG="$REPO_ROOT/logs/aws-oidc-deployment-$(date -u +%Y%m%dT%H%M%SZ).jsonl"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
