@@ -1,6 +1,8 @@
 Title: ACTION: Create AppRole `automation-runner` and validate vault_sync
 Status: open
-Labels: automation, security, task
+Labels: automation, security, task, phase-5
+Milestone: Phase 5 (Multi-Cloud Vault Integration)
+Blocker-for-Milestone-4: NO — Phase 5 contingent on 0001-REQUEST completion
 
 Summary
 -------
