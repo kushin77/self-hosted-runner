@@ -134,6 +134,21 @@ if [ $DRY_RUN -eq 1 ]; then
 fi
 
 echo "Applying assignments in batches..."
+# Ensure fallback milestone exists when applying
+fallback_title='All Untriaged'
+# Prefer 'All Untriaged' but if closed, fall back to 'Backlog Triage'
+fallback_num=$(gh api repos/$REPO/milestones?state=all --jq '.[] | select(.title=="All Untriaged") | .number' 2>/dev/null || true)
+fallback_state=$(gh api repos/$REPO/milestones?state=all --jq '.[] | select(.title=="All Untriaged") | .state' 2>/dev/null || true)
+if [ -z "$fallback_num" ]; then
+  echo "Fallback milestone 'All Untriaged' not present; creating it"
+  gh api repos/$REPO/milestones -f title="$fallback_title" -f description="Automatically created fallback for untriaged issues" || true
+else
+  if [ "$fallback_state" = "closed" ]; then
+    echo "'All Untriaged' exists but is closed; using 'Backlog Triage' as fallback"
+    fallback_title='Backlog Triage'
+  fi
+fi
+export FALLBACK_TITLE="$fallback_title"
 # Assign by repeating the heuristic in Python; track failures and abort if too many
 python3 - <<PY
 import json,subprocess,os
@@ -178,7 +193,7 @@ for i in issues:
     num=i['number']; text=(i.get('title') or '')+'\n'+(i.get('body') or '')
     labels=[l['name'] for l in i.get('labels',[])]
     g,score=pick(text, labels)
-    target=g if g else 'All Untriaged'
+    target=g if g else os.getenv('FALLBACK_TITLE','All Untriaged')
     # attempt assign
     r=subprocess.run(['gh','issue','edit',str(num),'--milestone',target], capture_output=True, text=True)
     if r.returncode==0:
