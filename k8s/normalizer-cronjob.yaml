@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus-engine
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: normalizer-sa
+  namespace: nexus-engine
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: normalizer-config
+  namespace: nexus-engine
+data:
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_INPUT_TOPIC: "raw-events"
+  KAFKA_OUTPUT_TOPIC: "normalized-events"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "nexus"
+  POSTGRES_USER: "nexus_user"
+  LOG_LEVEL: "info"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: normalizer-secrets
+  namespace: nexus-engine
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: "changeme"  # ⚠ TODO: replace with actual secret from GSM/Vault
+  KAFKA_SASL_PASSWORD: ""        # Leave empty if no SASL auth
+---
+# NOTE: Replace the image field below with your registry image, e.g.:
+# image: gcr.io/my-project/nexus-normalizer:v1.0
+# After pushing the image, set imagePullPolicy: IfNotPresent (or Always if you prefer)
+# and update the tag for production.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: normalizer
+  namespace: nexus-engine
+spec:
+  schedule: "*/5 * * * *"  # every 5 minutes
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  successfulJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: normalizer
+            component: ingestion
+        spec:
+          serviceAccountName: normalizer-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: normalizer
+              # TODO: replace with registry image. Currently using local-only image during testing.
+              image: REPLACE_WITH_REGISTRY/nexus-normalizer:REPLACE_TAG
+              imagePullPolicy: IfNotPresent
+              envFrom:
+                - configMapRef:
+                    name: normalizer-config
+                - secretRef:
+                    name: normalizer-secrets
+              env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+              resources:
+                requests:
+                  cpu: "500m"
+                  memory: "512Mi"
+                limits:
+                  cpu: "1000m"
+                  memory: "1Gi"
+              livenessProbe:
+                exec:
+                  command:
+                    - /bin/sh
+                    - -c
+                    - "ps aux | grep -q normalizer"
+                initialDelaySeconds: 30
+                periodSeconds: 60
+              volumeMounts:
+                - name: log-volume
+                  mountPath: /var/log/normalizer
+          volumes:
+            - name: log-volume
+              emptyDir: {}
+          nodeSelector: {}
+          affinity: {}
+          tolerations: []
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: nexus-engine
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: nexus-engine
+spec:
+  ports:
+    - port: 9092
+      targetPort: 9092
+  selector:
+    app: kafka
