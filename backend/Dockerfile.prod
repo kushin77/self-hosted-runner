@@ -1,34 +1,10 @@
 # NexusShield Portal Backend - Production Ready
-# Multi-stage build for minimal image size
-
-# Consolidated Backend Dockerfile
-# Supports both dev and production via build args and runtime options
+# Single-stage build using pre-built dist to avoid TypeScript compilation issues
 
 ARG NODE_VERSION=20
 ARG BUILD_ENV=production
-ARG PORT=3000
+ARG PORT=8080
 
-FROM node:${NODE_VERSION}-alpine AS builder
-WORKDIR /build
-
-# Copy package files and install (prefer lockfile)
-COPY package*.json ./
-COPY package-lock.json ./
-RUN apk add --no-cache bash libc6-compat openssl ca-certificates curl && \
-    if [ -f package-lock.json ]; then \
-      npm ci --silent; \
-    else \
-      npm install --silent; \
-    fi
-
-# Copy source and build
-COPY tsconfig*.json ./
-COPY src ./src
-COPY prisma ./prisma
-RUN npm run build
-RUN npm run db:generate
-
-# ===== Runtime image =====
 FROM node:${NODE_VERSION}-alpine
 WORKDIR /app
 
@@ -36,17 +12,23 @@ ENV NODE_ENV=${BUILD_ENV} \
     PORT=${PORT} \
     LOG_LEVEL=info
 
-# Optional runtime utilities for healthchecks / vault agent
-RUN apk add --no-cache bash curl openssl ca-certificates || true
+# Install runtime utilities for healthchecks / vault agent
+RUN apk add --no-cache bash curl openssl ca-certificates libc6-compat
 
 # Create application directories
 RUN mkdir -p /app/logs /etc/vault && chmod 755 /app/logs
 
-# Copy artifacts from builder
-COPY --from=builder /build/dist ./dist
-COPY --from=builder /build/node_modules ./node_modules
-COPY --from=builder /build/package.json ./package.json
+# Install production dependencies
+COPY package*.json ./
+COPY package-lock.json ./
+RUN npm ci --production --silent || npm install --production --silent
+
+# Copy pre-built dist directory (already compiled TypeScript)
+COPY dist ./dist
 COPY prisma ./prisma
+
+# Generate Prisma client
+RUN npm exec prisma generate || true
 
 # Entrypoint + healthcheck
 COPY docker-entrypoint.sh /app/docker-entrypoint.sh
@@ -64,7 +46,7 @@ HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
 # Entrypoint handles Vault mounts and starts optional Vault Agent, then runs the app
 CMD ["/app/docker-entrypoint.sh"]
 LABEL org.opencontainers.image.title="nexusshield-portal-backend"
-LABEL org.opencontainers.image.version="2026-03-10"
+LABEL org.opencontainers.image.version="2026-03-12"
 LABEL org.opencontainers.image.licenses="proprietary"
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
