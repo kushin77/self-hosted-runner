@@ -1,0 +1,17 @@
+steps:
+- name: "gcr.io/cloud-builders/git"
+  entrypoint: "/bin/bash"
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    git clone https://github.com/kushin77/self-hosted-runner.git repo
+    cd repo
+    bash scripts/secrets/run_vault_rotation.sh
+
+availableSecrets:
+  secretManager:
+  - versionName: "projects/${_GSM_PROJECT}/secrets/VAULT_ADDR/versions/latest"
+    env: "VAULT_ADDR"
+  - versionName: "projects/${_GSM_PROJECT}/secrets/VAULT_TOKEN/versions/latest"
+    env: "VAULT_TOKEN"

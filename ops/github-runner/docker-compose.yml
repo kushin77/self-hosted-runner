@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  runner:
+    image: "<YOUR_RUNNER_IMAGE>" # e.g. ghcr.io/actions/runner:latest or your custom image
+    restart: unless-stopped
+    environment:
+      # Use secret injection / mount secrets instead of plaintext envs
+      - RUNNER_NAME=runner-01
+      - RUNNER_REPO=<org_or_user/repo>
+      - RUNNER_TOKEN=__REPLACE_WITH_TOKEN__
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./_work:/actions-runner/_work
+    # optional healthcheck
+    healthcheck:
+      test: [ "CMD", "curl", "-fs", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+# Customize per your runner implementation and secret management strategy.
