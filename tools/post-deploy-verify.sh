@@ -18,7 +18,15 @@ echo "post-deploy-verify: starting"
 
 if [ -n "${GITHUB_TOKEN:-}" ]; then
   echo "Using GITHUB_TOKEN from environment"
-  exec env GITHUB_TOKEN="$GITHUB_TOKEN" "$VERIFY_SCRIPT"
+  # Run the verify script and afterward manage GitHub issues (idempotent)
+  env GITHUB_TOKEN="$GITHUB_TOKEN" "$VERIFY_SCRIPT"
+  if [ -x "$SCRIPT_DIR/../tools/manage_github_issues.sh" ]; then
+    echo "Running GitHub issue manager"
+    env GITHUB_TOKEN="$GITHUB_TOKEN" GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}" "$SCRIPT_DIR/../tools/manage_github_issues.sh" || true
+  else
+    echo "manage_github_issues.sh not found or not executable; skipping"
+  fi
+  exit 0
 fi
 
 if [ -n "${GOOGLE_CLOUD_PROJECT:-}" ] && [ -n "${GITHUB_TOKEN_SECRET:-}" ]; then
@@ -33,6 +41,14 @@ if [ -n "${GOOGLE_CLOUD_PROJECT:-}" ] && [ -n "${GITHUB_TOKEN_SECRET:-}" ]; then
     exit 4
   fi
   exec env GITHUB_TOKEN="$GITHUB_TOKEN_VALUE" "$VERIFY_SCRIPT"
+fi
+
+# If we fetched token from Secret Manager, also run issue manager if present
+if [ -n "${GITHUB_TOKEN_VALUE:-}" ]; then
+  if [ -x "$SCRIPT_DIR/../tools/manage_github_issues.sh" ]; then
+    echo "Running GitHub issue manager"
+    env GITHUB_TOKEN="$GITHUB_TOKEN_VALUE" GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}" "$SCRIPT_DIR/../tools/manage_github_issues.sh" || true
+  fi
 fi
 
 echo "No GITHUB_TOKEN found. Configure by either:
