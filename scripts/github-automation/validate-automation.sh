@@ -77,29 +77,35 @@ fi
 # Check 3: Test issue lifecycle
 echo ""
 echo "✓ Checking issue lifecycle..."
-test_issue=$(gh issue create $GH_REPO \
-    --title "Test: Automation Setup Validation $(date +%s)" \
-    --body "This is a test issue for validation" \
-    --draft 2>/dev/null | grep -oP '#\d+' | cut -c2-)
 
-if [ -n "$test_issue" ]; then
-    echo "  ✓ Created test issue #$test_issue"
-    
-    # Check labels were applied
-    sleep 2
-    labels=$(gh issue view "$test_issue" $GH_REPO --json labels --jq '.labels[].name' 2>/dev/null | wc -l)
-    
-    if [ "$labels" -gt 0 ]; then
-        echo "  ✓ Auto-labeling works ($(echo $labels | tr -d '[:space:]') labels applied)"
-    else
-        echo "  ⚠️ Auto-labeling may not be working"
-    fi
-    
-    # Clean up
-    gh issue close "$test_issue" $GH_REPO 2>/dev/null
-    echo "  ✓ Cleaned up test issue"
+# Allow skipping live test issue creation in CI by setting SKIP_ISSUE_TEST=true
+if [ "${SKIP_ISSUE_TEST:-}" = "true" ]; then
+    echo "  ⚠️ Skipping live test issue creation (SKIP_ISSUE_TEST=true)"
 else
-    echo "  ✗ Could not create test issue"
+    test_issue=$(gh issue create $GH_REPO \
+        --title "Test: Automation Setup Validation $(date +%s)" \
+        --body "This is a test issue for validation" \
+        --draft 2>/dev/null | grep -oP '#\d+' | cut -c2-)
+
+    if [ -n "$test_issue" ]; then
+        echo "  ✓ Created test issue #$test_issue"
+        
+        # Check labels were applied
+        sleep 2
+        labels=$(gh issue view "$test_issue" $GH_REPO --json labels --jq '.labels[].name' 2>/dev/null | wc -l)
+        
+        if [ "$labels" -gt 0 ]; then
+            echo "  ✓ Auto-labeling works ($(echo $labels | tr -d '[:space:]') labels applied)"
+        else
+            echo "  ⚠️ Auto-labeling may not be working"
+        fi
+        
+        # Clean up
+        gh issue close "$test_issue" $GH_REPO 2>/dev/null
+        echo "  ✓ Cleaned up test issue"
+    else
+        echo "  ✗ Could not create test issue"
+    fi
 fi
 
 # Check 4: Verify CLI tool
