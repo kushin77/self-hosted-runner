@@ -51,7 +51,7 @@ module "monitoring" {
   project_id                = var.project_id
   environment               = var.environment
   service_name              = var.service_name
-  notification_email        = "ops@example.com"
+  notification_email        = "support@elevatediq.ai"
   enable_slack_notification = false
   labels                    = var.labels
   # Optional: pass notification channels (list of notification channel resource IDs)
@@ -100,9 +100,8 @@ module "health" {
   environment  = var.environment
   service_name = var.service_name
 
-  # NOTE: Terraform-created uptime checks may fail due to monitored resource
-  # validation and org policy. Create uptime checks via gcloud script instead.
-  enable_checks = false
+  # Uptime checks enabled — org policy workarounds applied via synthetic function
+  enable_checks = true
 
   # Full service URLs (used by module inputs that expect URL)
   backend_url  = "https://nexus-shield-portal-backend-2tqp6t4txq-uc.a.run.app"

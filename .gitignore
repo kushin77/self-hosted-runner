@@ -249,3 +249,7 @@ terraform
 .aws/
 .gcp/
 credentials/
+
+# Build output - never commit compiled artifacts
+backend/dist/
+frontend/dist/

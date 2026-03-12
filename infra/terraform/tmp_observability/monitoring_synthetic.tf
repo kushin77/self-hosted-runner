@@ -23,16 +23,10 @@ locals {
 }
 
 resource "google_monitoring_alert_policy" "synthetic_uptime_alert" {
-  display_name = "Synthetic Uptime Check - Failure Alert"
-  combiner     = "OR"
-  project      = var.project_id
-
-  dynamic "notification_channels" {
-    for_each = local.notification_channels
-    content {
-      notification_channel = notification_channels.value
-    }
-  }
+  display_name          = "Synthetic Uptime Check - Failure Alert"
+  combiner              = "OR"
+  project               = var.project_id
+  notification_channels = local.notification_channels
 
   conditions {
     display_name = "Synthetic uptime check equals 0"
