@@ -1,0 +1,15 @@
+steps:
+- name: 'gcr.io/cloud-builders/git'
+  id: 'fetch'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    git fetch --unshallow || true
+    # COMMIT_RANGE and COMMIT_SHA are provided by Cloud Build substitutions
+    if git diff --name-only "$COMMIT_RANGE" | grep -E "^\.github/workflows/"; then
+      echo "❌ POLICY VIOLATION: .github/workflows/ modifications detected"
+      exit 1
+    fi
+
+# This build config should be used as a step in a Cloud Build trigger that runs on pushes to main
