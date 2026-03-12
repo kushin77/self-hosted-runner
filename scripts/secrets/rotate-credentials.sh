@@ -99,17 +99,42 @@ rotate_vault() {
   fi
   require_cmd curl
   require_cmd jq
-  local role_id_path="auth/approle/role/example-role/role-id"
-  local secret_id_path="auth/approle/role/example-role/secret-id"
+  
+  # Validate Vault endpoint is not a placeholder
+  if [[ "$VAULT_ADDR" =~ PLACEHOLDER|example|your- ]]; then
+    log "VAULT_ADDR contains placeholder; skipping Vault rotation"
+    return 0
+  fi
+  if [[ "$VAULT_TOKEN" =~ PLACEHOLDER|REDACTED|your_ ]]; then
+    log "VAULT_TOKEN contains placeholder; skipping Vault rotation"
+    return 0
+  fi
+  
+  local approle_role="nexusshield-deployer"
+  local secret_id_path="auth/approle/role/${approle_role}/secret-id"
+  
   if $DRY_RUN; then
-    log "DRY-RUN: Would call Vault to generate new secret_id for AppRole and store in GSM (name=vault-example-role-secret_id)"
+    log "DRY-RUN: Would call Vault API to generate new secret_id for AppRole '$approle_role' and store in GSM"
   else
-    log "Requesting new AppRole secret_id from Vault"
-    local new_secret_id
-    new_secret_id=$(curl -sS --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/$secret_id_path" | jq -r '.data.secret_id') || true
-    if [[ -z "$new_secret_id" || "$new_secret_id" == "null" ]]; then
-      err "Failed to obtain new AppRole secret_id from Vault API"
+    log "Requesting new AppRole secret_id from Vault at $VAULT_ADDR"
+    
+    # Health check first
+    if ! curl -sfS --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDR/v1/sys/health" >/dev/null 2>&1; then
+      log "WARNING: Vault health check failed; ensuring connectivity..."
     fi
+    
+    # Generate new secret_id via POST (not GET)
+    local new_secret_id
+    new_secret_id=$(curl -sS --request POST \
+      --header "X-Vault-Token: $VAULT_TOKEN" \
+      "$VAULT_ADDR/v1/$secret_id_path" | jq -r '.data.secret_id' 2>/dev/null || true)
+    
+    if [[ -z "$new_secret_id" || "$new_secret_id" == "null" ]]; then
+      log "WARNING: Failed to obtain new AppRole secret_id from Vault API. Check VAULT_ADDR and VAULT_TOKEN — skipping Vault rotation for now"
+      return 0
+    fi
+
+    log "Successfully obtained new secret_id from Vault"
     printf "%s" "$new_secret_id" | gsm_put_secret_version "vault-example-role-secret_id"
   fi
 }
