@@ -53,7 +53,7 @@ export class CredentialManager {
   private gsmClient?: AxiosInstance;
   private vaultClient?: AxiosInstance;
   private kmsClient?: AxiosInstance;
-  private rotationIntervals = new Map<string, NodeJS.Timer>();
+  private rotationIntervals = new Map<string, ReturnType<typeof setInterval>>();
   private readonly DEFAULT_TTL = 3600 * 24; // 24 hours
   private readonly CACHE_CLEANUP_INTERVAL = 3600 * 1000; // 1 hour
 
