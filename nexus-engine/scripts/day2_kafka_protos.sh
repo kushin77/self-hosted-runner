@@ -168,12 +168,17 @@ KAFKA_COMPOSE
 step_create_topics() {
     log "Step 3/6: Creating Kafka topics..."
     
-    # Use Kafka CLI tools via Docker
-    kafka_cli="docker run --rm -it --network host confluentinc/cp-kafka:7.5.0"
+    # Use Kafka CLI tools via Docker (non-interactive)
+    kafka_cli="docker run --rm --network host confluentinc/cp-kafka:7.5.0"
     
     for topic in "${!TOPICS[@]}"; do
         config="${TOPICS[$topic]}"
         IFS=',' read -r partitions replication min_isr <<< "$config"
+        # Allow overriding replication in dev environments with single broker
+        if [[ -n "${KAFKA_DEV_OVERRIDE_REPLICATION:-}" ]]; then
+            replication="$KAFKA_DEV_OVERRIDE_REPLICATION"
+            log "Overriding replication factor to $replication (KAFKA_DEV_OVERRIDE_REPLICATION)"
+        fi
         
         log "Creating topic: $topic"
         log "  Partitions: $partitions, Replication Factor: $replication, Min ISR: $min_isr"
@@ -217,7 +222,22 @@ step_compile_protos() {
     for proto_file in $proto_files; do
         proto_name=$(basename "$proto_file")
         log "Compiling: $proto_name"
-        
+        # Ensure protoc plugins are available (protoc-gen-go, protoc-gen-go-grpc)
+        if ! command -v protoc-gen-go &>/dev/null; then
+            if command -v go &>/dev/null; then
+                log "protoc-gen-go not found; installing via 'go install'"
+                PATH="$PATH:$(go env GOPATH 2>/dev/null)/bin"; export PATH
+                go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28.1 >> "$LOG_FILE" 2>&1 || true
+            fi
+        fi
+        if ! command -v protoc-gen-go-grpc &>/dev/null; then
+            if command -v go &>/dev/null; then
+                log "protoc-gen-go-grpc not found; installing via 'go install'"
+                PATH="$PATH:$(go env GOPATH 2>/dev/null)/bin"; export PATH
+                go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0 >> "$LOG_FILE" 2>&1 || true
+            fi
+        fi
+
         protoc \
             --go_out=nexus-engine/pkg/pb \
             --go-grpc_out=nexus-engine/pkg/pb \
@@ -280,7 +300,7 @@ step_final_verification() {
     
     # Verify Kafka broker is healthy
     log "Verifying Kafka broker health..."
-    kafka_cli="docker run --rm -it --network host confluentinc/cp-kafka:7.5.0"
+    kafka_cli="docker run --rm --network host confluentinc/cp-kafka:7.5.0"
     
     broker_info=$($kafka_cli kafka-broker-api-versions --bootstrap-server "$KAFKA_BOOTSTRAP" 2>/dev/null | head -3)
     if [[ -n "$broker_info" ]]; then
