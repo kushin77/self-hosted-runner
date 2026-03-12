@@ -1,0 +1,16 @@
+#!/bin/bash
+# NexusShield CLI wrapper - Makes CLI accessible as 'nexus' command
+
+set -e
+
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Ensure Python SDK is installed
+if ! python3 -c "import nexusshield" 2>/dev/null; then
+    echo "Installing NexusShield Python SDK..."
+    pip install -e "${SCRIPT_DIR}/../generated/python-sdk" >/dev/null
+fi
+
+# Execute CLI
+exec python3 "${SCRIPT_DIR}/nexus.py" "$@"

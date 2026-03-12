@@ -15,7 +15,7 @@ describe('Compliance Service', () => {
 
   describe('Credential Validation', () => {
     it('should validate compliant credential', async () => {
-$PLACEHOLDER
+      const result = await complianceService.validateCredential('test_cred', 'password', 'StrongP@ssw0rd!');
 
       expect(result).toBeDefined();
       expect(result.isCompliant === true || result.isCompliant === undefined).toBe(true);
@@ -153,9 +153,9 @@ $PLACEHOLDER
     it('should support wildcard pattern matching for credential names', async () => {
       // Test patterns like "db_*", "*_key", etc.
       const patterns = [
-$PLACEHOLDER
+        { name: 'db_pass', pattern: 'db_*' },
         { name: 'api_key', pattern: '*_key' },
-$PLACEHOLDER
+        { name: 'service_key', pattern: '*_key' },
       ];
 
       for (const { name, pattern } of patterns) {
