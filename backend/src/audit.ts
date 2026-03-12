@@ -79,7 +79,7 @@ export class AuditService {
         actor: entry.actor,
         action: entry.action,
         status,
-        details: entry.details || null,
+        details: entry.details,
         previousHash,
       });
 
@@ -227,14 +227,16 @@ export class AuditService {
       let entriesChecked = 0;
 
       for (const entry of entries) {
-        // Reconstruct the hash
+        // Reconstruct the hash using the same canonical form used at creation
         const hashInput = JSON.stringify({
+          timestamp: entry.created_at,
           event: entry.event,
-          resource_type: entry.resource_type,
-          resource_id: entry.resource_id,
-          actor_id: entry.actor_id,
+          resourceType: entry.resource_type,
+          resourceId: entry.resource_id || undefined,
+          actor: entry.actor_id,
           action: entry.action,
-          details: entry.details,
+          status: (entry as any).status || 'success',
+          details: entry.details ? JSON.parse(entry.details) : undefined,
           previousHash,
         });
         const calculatedHash = crypto
