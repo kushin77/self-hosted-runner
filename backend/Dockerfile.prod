@@ -14,7 +14,8 @@ WORKDIR /build
 # Copy package files and install (prefer lockfile)
 COPY package*.json ./
 COPY package-lock.json ./
-RUN if [ -f package-lock.json ]; then \
+RUN apk add --no-cache bash libc6-compat openssl ca-certificates curl && \
+    if [ -f package-lock.json ]; then \
       npm ci --silent; \
     else \
       npm install --silent; \
@@ -24,8 +25,8 @@ RUN if [ -f package-lock.json ]; then \
 COPY tsconfig*.json ./
 COPY src ./src
 COPY prisma ./prisma
-RUN npm run build || true
-RUN npm run db:generate || true
+RUN npm run build
+RUN npm run db:generate
 
 # ===== Runtime image =====
 FROM node:${NODE_VERSION}-alpine
