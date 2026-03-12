@@ -1,0 +1,555 @@
+# 🚀 ELITE OBSERVABILITY & MONITORING CONFIGURATION
+# Comprehensive observability for MSP Operations Control Plane
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+      external_labels:
+        cluster: 'production'
+        environment: 'msp-ops'
+    
+    # Alertmanager configuration
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets:
+                - alertmanager:9093
+    
+    # Rule files
+    rule_files:
+      - '/etc/prometheus/rules/*.yml'
+    
+    # Scrape configurations
+    scrape_configs:
+      
+      # GitLab Runner metrics
+      - job_name: 'gitlab-runner'
+        static_configs:
+          - targets: ['localhost:9252']
+        metrics_path: '/metrics'
+        scrape_interval: 30s
+      
+      # Kubernetes metrics
+      - job_name: 'kubernetes-apiservers'
+        kubernetes_sd_configs:
+          - role: endpoints
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      
+      # Container metrics
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+      
+      # Node metrics
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        scheme: https
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      
+      # Pipeline metrics (custom)
+      - job_name: 'gitlab-pipelines'
+        static_configs:
+          - targets: ['gitlab-exporter:9090']
+        scrape_interval: 1m
+      
+      # Cost tracking metrics
+      - job_name: 'cost-allocation'
+        static_configs:
+          - targets: ['cost-exporter:9100']
+        scrape_interval: 5m
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: monitoring
+data:
+  alert-rules.yml: |
+    groups:
+      - name: gitlab-pipelines
+        interval: 30s
+        rules:
+          
+          # Pipeline Failure Rate
+          - alert: PipelineFailureRateHigh
+            expr: |
+              (
+                sum(rate(gitlab_pipeline_failed_total[5m]))
+                /
+                sum(rate(gitlab_pipeline_total[5m]))
+              ) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              team: devops
+            annotations:
+              summary: "Pipeline failure rate > 10%"
+              description: "{{ $value | humanizePercentage }} of pipelines are failing"
+          
+          # Pipeline Stuck
+          - alert: PipelineStuck
+            expr: |
+              gitlab_pipeline_duration_seconds{status="running"}
+              > 3600
+            for: 30m
+            labels:
+              severity: critical
+              team: devops
+            annotations:
+              summary: "Pipeline stuck for > 1 hour"
+              description: "Pipeline {{ $labels.pipeline_id }} has been running for {{ $value | humanizeDuration }}"
+          
+          # Build Queue Length
+          - alert: BuildQueueTooLong
+            expr: |
+              gitlab_build_queue_size > 50
+            for: 10m
+            labels:
+              severity: warning
+              team: devops
+            annotations:
+              summary: "Build queue > 50 jobs"
+              description: "Build queue has {{ $value }} pending jobs"
+          
+          # Artifact Storage Pressure
+          - alert: ArtifactStorageFull
+            expr: |
+              gitlab_artifact_storage_used_bytes
+              /
+              gitlab_artifact_storage_total_bytes > 0.85
+            for: 15m
+            labels:
+              severity: warning
+              team: devops
+            annotations:
+              summary: "Artifact storage > 85% full"
+              description: "Storage utilization: {{ $value | humanizePercentage }}"
+      
+      - name: runner-health
+        interval: 30s
+        rules:
+          
+          # Runner Offline
+          - alert: GitLabRunnerOffline
+            expr: |
+              gitlab_runner_info{status="offline"} == 1
+            for: 5m
+            labels:
+              severity: critical
+              team: devops
+            annotations:
+              summary: "GitLab Runner offline"
+              description: "Runner {{ $labels.runner_name }} is offline"
+          
+          # Runner High CPU
+          - alert: RunnerHighCPUUsage
+            expr: |
+              process_cpu_seconds_total > 0.9
+            for: 10m
+            labels:
+              severity: warning
+              team: devops
+            annotations:
+              summary: "Runner CPU usage > 90%"
+              description: "Runner {{ $labels.runner_name }} CPU: {{ $value | humanizePercentage }}"
+          
+          # Runner Disk Full
+          - alert: RunnerDiskFull
+            expr: |
+              node_filesystem_avail_bytes{mountpoint="/runner"}
+              /
+              node_filesystem_size_bytes{mountpoint="/runner"} < 0.1
+            for: 10m
+            labels:
+              severity: critical
+              team: devops
+            annotations:
+              summary: "Runner disk < 10% free"
+              description: "Available space: {{ $value | humanize1024 }}B"
+      
+      - name: deployment-health
+        interval: 30s
+        rules:
+          
+          # High Error Rate in Production
+          - alert: ProductionErrorRateHigh
+            expr: |
+              (
+                sum(rate(http_requests_total{status=~"5.."}[5m]))
+                /
+                sum(rate(http_requests_total[5m]))
+              ) > 0.01
+            for: 5m
+            labels:
+              severity: critical
+              team: platform
+              environment: production
+            annotations:
+              summary: "Production error rate > 1%"
+              description: "Error rate: {{ $value | humanizePercentage }}"
+          
+          # Deployment Latency SLO
+          - alert: DeploymentLatencySloViolation
+            expr: |
+              histogram_quantile(0.99, deployment_latency_seconds)
+              > 0.5
+            for: 10m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "P99 deployment latency > 500ms"
+              description: "Latency: {{ $value | humanizeDuration }}"
+          
+          # Pod CrashLoop
+          - alert: PodCrashLooping
+            expr: |
+              rate(kube_pod_container_status_restarts_total[15m]) > 0.1
+            for: 5m
+            labels:
+              severity: warning
+              team: platform
+            annotations:
+              summary: "Pod crash looping"
+              description: "Pod {{ $labels.pod }} restart rate: {{ $value }}/min"
+      
+      - name: cost-tracking
+        interval: 5m
+        rules:
+          
+          # Tenant Cost Exceeds Budget
+          - alert: TenantCostExceedsBudget
+            expr: |
+              tenant_monthly_cost_usd > tenant_monthly_budget_usd
+            for: 10m
+            labels:
+              severity: warning
+              team: finance
+            annotations:
+              summary: "Tenant {{ $labels.tenant }} cost exceeds budget"
+              description: "Cost: ${{ $value | printf \"%.2f\" }} > Budget: ${{ $labels.budget }}"
+          
+          # Abnormal Cost Spike
+          - alert: AbnormalCostSpike
+            expr: |
+              rate(tenant_monthly_cost_usd[1h]) > 10
+            for: 30m
+            labels:
+              severity: critical
+              team: finance
+            annotations:
+              summary: "Abnormal cost spike detected"
+              description: "Cost increase rate: ${{ $value }}/hour"
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  namespace: monitoring
+data:
+  pipeline-health.json: |
+    {
+      "dashboard": {
+        "title": "GitLab Pipeline Health",
+        "panels": [
+          {
+            "title": "Pipeline Success Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(gitlab_pipeline_success_total[1h])) / sum(rate(gitlab_pipeline_total[1h]))"
+              }
+            ],
+            "type": "gauge",
+            "thresholds": ["0.8", "0.95", "1.0"],
+            "colors": ["red", "yellow", "green"]
+          },
+          {
+            "title": "Pipeline Duration (P50/P95/P99)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.5, gitlab_pipeline_duration_seconds)"
+              },
+              {
+                "expr": "histogram_quantile(0.95, gitlab_pipeline_duration_seconds)"
+              },
+              {
+                "expr": "histogram_quantile(0.99, gitlab_pipeline_duration_seconds)"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Build Queue Length",
+            "targets": [
+              {
+                "expr": "gitlab_build_queue_size"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Pipeline Count by Status",
+            "targets": [
+              {
+                "expr": "sum by (status) (rate(gitlab_pipeline_total[1h]))"
+              }
+            ],
+            "type": "piechart"
+          }
+        ]
+      }
+    }
+  
+  deployment-slos.json: |
+    {
+      "dashboard": {
+        "title": "Deployment SLOs",
+        "panels": [
+          {
+            "title": "Deployment Frequency",
+            "targets": [
+              {
+                "expr": "sum(rate(deployments_total[1d]))"
+              }
+            ],
+            "unit": "deployments/day"
+          },
+          {
+            "title": "Lead Time",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.5, lead_time_seconds)"
+              }
+            ],
+            "unit": "minutes"
+          },
+          {
+            "title": "MTTR (Mean Time to Recover)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.5, incident_duration_seconds)"
+              }
+            ],
+            "unit": "minutes"
+          },
+          {
+            "title": "Change Failure Rate",
+            "targets": [
+              {
+                "expr": "sum(rate(failed_deployments_total[1d])) / sum(rate(deployments_total[1d]))"
+              }
+            ],
+            "unit": "percent"
+          },
+          {
+            "title": "System Availability",
+            "targets": [
+              {
+                "expr": "sum(uptime_seconds) / sum(total_seconds)"
+              }
+            ],
+            "unit": "percent"
+          }
+        ]
+      }
+    }
+  
+  cost-tracking.json: |
+    {
+      "dashboard": {
+        "title": "Cost Allocation & Tracking",
+        "panels": [
+          {
+            "title": "Cost by Tenant (Monthly)",
+            "targets": [
+              {
+                "expr": "sum by (tenant) (tenant_monthly_cost_usd)"
+              }
+            ],
+            "type": "barchart"
+          },
+          {
+            "title": "Cost Breakdown (Compute/Storage/Network)",
+            "targets": [
+              {
+                "expr": "sum by (category) (cost_usd)"
+              }
+            ],
+            "type": "piechart"
+          },
+          {
+            "title": "Cost Trend (30 days)",
+            "targets": [
+              {
+                "expr": "sum(increase(cost_usd[1d]))"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "title": "Resource Utilization",
+            "targets": [
+              {
+                "expr": "container_cpu_usage_seconds_total / container_spec_cpu_quota"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-config
+  namespace: monitoring
+data:
+  sampling.json: |
+    {
+      "default_strategy": {
+        "type": "probabilistic",
+        "param": 0.1
+      },
+      "service_strategies": [
+        {
+          "service": "backend",
+          "type": "probabilistic",
+          "param": 0.2
+        },
+        {
+          "service": "frontend",
+          "type": "ratelimiting",
+          "param": 100
+        }
+      ]
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: monitoring
+data:
+  fluent.conf: |
+    # Input: Kubernetes logs
+    <source>
+      @type tail
+      path /var/log/containers/*/*.log
+      pos_file /var/log/fluentd-containers.log.pos
+      tag kubernetes.*
+      read_from_head true
+      <parse>
+        @type json
+        time_format %iso8601
+      </parse>
+    </source>
+    
+    # Filter: Parse Kubernetes metadata
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL']}"
+      verify_ssl false
+      watch true
+      cache_size 1000
+      cache_ttl 3600
+      use_kubelet true
+    </filter>
+    
+    # Filter: Parse CI/CD logs
+    <filter kubernetes.var.log.containers.**gitlab**>
+      @type parser
+      key_name log
+      <parse>
+        @type multiline
+        format_firstline /^\d{4}-\d{2}-\d{2}/
+        format1 /^(?<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?<level>[A-Z]+) \[(?<module>[^\]]+)\] (?<message>.*)$/
+        time_format %Y-%m-%d %H:%M:%S
+      </parse>
+    </filter>
+    
+    # Output: Elasticsearch
+    <match **>
+      @type elasticsearch
+      @id output_es
+      @log_level info
+      include_tag_key true
+      host "#{ENV['FLUENT_ELASTICSEARCH_HOST']}"
+      port "#{ENV['FLUENT_ELASTICSEARCH_PORT']}"
+      path "#{ENV['FLUENT_ELASTICSEARCH_PATH']}"
+      http_auth "#{ENV['FLUENT_ELASTICSEARCH_HTTP_AUTH']}"
+      logstash_format true
+      logstash_prefix kubernetes-${FLUENT_ELASTICSEARCH_LOGSTASH_PREFIX}
+      logstash_dateformat %Y.%m.%d
+    </match>
+
+---
+# SLI/SLO Definitions
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slo-definitions
+  namespace: monitoring
+data:
+  slos.yaml: |
+    service_level_objectives:
+      
+      # Availability SLO
+      availability:
+        target: 99.9
+        window: 30d
+        error_budget_percent: 0.1
+        sli: |
+          sum(rate(http_requests_total{status=~"2.."}[5m])) / 
+          sum(rate(http_requests_total[5m]))
+      
+      # Latency SLO
+      latency:
+        target: 99
+        percentile: p99
+        threshold_ms: 500
+        window: 30d
+        error_budget_percent: 1
+        sli: |
+          histogram_quantile(0.99, http_request_duration_seconds)
+      
+      # Pipeline Success SLO
+      pipeline_success:
+        target: 95
+        window: 30d
+        error_budget_percent: 5
+        sli: |
+          sum(rate(gitlab_pipeline_success_total[5m])) /
+          sum(rate(gitlab_pipeline_total[5m]))
+      
+      # Deployment Frequency SLO
+      deployment_frequency:
+        minimum: 1  # per day
+        window: 30d
+      
+      # Mean Time to Recovery SLO
+      mttr:
+        target_minutes: 15
+        window: 30d
