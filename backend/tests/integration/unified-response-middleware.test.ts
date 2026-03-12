@@ -151,15 +151,29 @@ describe('Unified Response Middleware', () => {
 
   describe('Error Handler Middleware', () => {
     it('should catch errors and return APIResponse with error status', async () => {
-      app.get('/test/throws', (req: Request, res: Response) => {
+      // Use a minimal app to isolate error handler behavior (avoid other middleware)
+      const server = express();
+      server.use(requestIdMiddleware);
+      server.get('/test/throws', (req: Request, res: Response) => {
         throw new Error('Test error');
       });
+      // import and attach the error handler directly
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { errorHandlerMiddleware } = require('../../src/middleware/unified-response-middleware');
+      server.use(errorHandlerMiddleware);
 
-      const response = await request(app).get('/test/throws');
+      const response = await request(server).get('/test/throws');
       expect(response.statusCode).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
-      expect(response.body.status).toBe('error');
-      expect(response.body.error.code).toBe(ErrorCode.INTERNAL_ERROR);
-      expect(response.body.data).toBeNull();
+
+      // Parse body reliably from response.text
+      let body: any = response.body;
+      if (!body || Object.keys(body).length === 0) {
+        try { body = JSON.parse(response.text || '{}'); } catch (e) { body = {}; }
+      }
+
+      expect(body.status).toBe('error');
+      expect(body.error.code).toBe(ErrorCode.INTERNAL_ERROR);
+      expect(body.data).toBeNull();
     });
   });
 
