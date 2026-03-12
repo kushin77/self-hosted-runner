@@ -46,7 +46,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: analyzer
-              image: bitnami/kubectl:latest
+              image: lachlanevenson/k8s-kubectl:latest
               imagePullPolicy: IfNotPresent
               command:
                 - /bin/sh
