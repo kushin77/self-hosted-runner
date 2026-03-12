@@ -1,0 +1,27 @@
+groups:
+- name: canonical-secrets.slos
+  interval: 1m
+  rules:
+  # Recording rules: availability and latency
+  - record: job:canonical_secrets:request_success_rate
+    expr: |
+      sum(rate(canonical_secrets_api_requests_total{status=~"2.."}[5m]))
+      / sum(rate(canonical_secrets_api_requests_total[5m]))
+
+  - record: job:canonical_secrets:request_p95
+    expr: histogram_quantile(0.95, canonical_secrets_api_response_time_ms_bucket)
+
+  # SLO: availability over 7d window
+  - record: slo:availability:7d
+    expr: avg_over_time(job:canonical_secrets:request_success_rate[7d])
+
+  # SLO: P95 latency over 7d window
+  - record: slo:latency_p95:7d
+    expr: avg_over_time(job:canonical_secrets:request_p95[7d])
+
+  # Error budget burn rate (5m vs 7d budget)
+  - record: slo:error_budget_burn_rate:5m
+    expr: (
+      (1 - job:canonical_secrets:request_success_rate)
+      / (1 - 0.99) # example SLO availability 99%
+    )

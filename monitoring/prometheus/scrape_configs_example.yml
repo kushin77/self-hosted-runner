@@ -1,0 +1,10 @@
+scrape_configs:
+  - job_name: 'canonical-secrets-api'
+    static_configs:
+      - targets: ['canonical-secrets-api:9090']
+    metrics_path: /metrics
+    scheme: http
+
+  - job_name: 'kubernetes-service-endpoints'
+    kubernetes_sd_configs:
+      - role: endpoints
