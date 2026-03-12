@@ -118,6 +118,35 @@ steps:
   args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}']
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}']
+# Optional: Sign images with cosign when _COSIGN_KMS_URI is provided
+- name: 'gcr.io/sigstore/cosign/cosign:2.1.0'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ -n "${_COSIGN_KMS_URI:-}" ]; then
+      echo "Signing backend image with cosign using KMS: ${_COSIGN_KMS_URI}"
+      cosign sign --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}
+      echo "Signing frontend image with cosign using KMS: ${_COSIGN_KMS_URI}"
+      cosign sign --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA}
+    else
+      echo "No _COSIGN_KMS_URI provided; skipping image signing"
+    fi
+
+# Optional: verify signatures before deploy when _COSIGN_KMS_URI is provided
+- name: 'gcr.io/sigstore/cosign/cosign:2.1.0'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    if [ -n "${_COSIGN_KMS_URI:-}" ]; then
+      echo "Verifying backend image signature using KMS (public key via KMS URI): ${_COSIGN_KMS_URI}"
+      cosign verify --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA} || (echo "Backend image signature verification failed" && exit 1)
+      echo "Verifying frontend image signature"
+      cosign verify --key "${_COSIGN_KMS_URI}" us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-frontend:${_SHORT_SHA} || (echo "Frontend image signature verification failed" && exit 1)
+    else
+      echo "No _COSIGN_KMS_URI provided; skipping signature verification"
+    fi
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: 'bash'
   args:
@@ -184,5 +213,5 @@ substitutions:
   _GITHUB_TOKEN_SECRET: ''
   _GRAFANA_API_KEY_SECRET: ''
   _SHORT_SHA: 'manual'
-  _SBOM_BUCKET: ''
+  _SBOM_BUCKET: 'gs://nexusshield-dev-sbom-archive'
 timeout: '1200s'
