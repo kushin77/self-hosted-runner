@@ -26,6 +26,26 @@ for df in "$@"; do
 
   # Extract image (could be 'node:20-alpine' or 'node:20' etc.)
   image_tag=$(echo "$from_line" | awk '{print $2}')
+
+  # Export ARGs defined earlier in the Dockerfile so we can expand variables in FROM
+  # Read ARG lines up to the FROM line and export them for expansion
+  # Collect ARG assignments (with defaults) prior to the FROM line into a temp file
+  tmpfile=$(mktemp)
+  awk '/^FROM /{exit} /^ARG /{print}' "$df" | sed 's/^ARG //' | grep '=' > "$tmpfile" || true
+  if [ -s "$tmpfile" ]; then
+    # Export variables from tmpfile into the current shell
+    set -a
+    # shellcheck disable=SC1090
+    . "$tmpfile"
+    set +a
+  fi
+  rm -f "$tmpfile"
+
+  # Expand any variable references in the image tag (e.g., ${NODE_VERSION})
+  expanded_image_tag=$(eval "echo $image_tag")
+  if [ -n "$expanded_image_tag" ]; then
+    image_tag="$expanded_image_tag"
+  fi
   echo "Processing $df -> base image: $image_tag"
 
   echo "Pulling $image_tag..."
