@@ -15,6 +15,13 @@ AUDIT_LOG="$ARTIFACT_DIR/assignments_$TS.jsonl"
 
 echo "Repo: $REPO"
 echo "Artifact dir: $ARTIFACT_DIR"
+LOCKFILE=${LOCKFILE:-/tmp/milestone_organizer.lock}
+
+# Acquire non-blocking flock to avoid concurrent runs
+exec 9>"$LOCKFILE" || exit 1
+if ! flock -n 9; then
+  echo "Another organizer run is in progress; exiting"; exit 0
+fi
 
 # Ensure gh auth available; try helper fallbacks (GSM/Vault/KMS helpers should set GH_TOKEN)
 if gh auth status >/dev/null 2>&1; then
@@ -32,7 +39,11 @@ else
 fi
 
 echo "Running organizer (apply) — idempotent"
-scripts/utilities/organize_milestones.sh --apply || echo "organizer exited with non-zero status"
+if ! scripts/utilities/organize_milestones.sh --apply; then
+  echo "organizer exited with non-zero status"; rc=$?; \
+  gh issue create --title "milestone-organizer: run failure" --body "Organizer exited with status $rc. See artifacts in $ARTIFACT_DIR" || true; \
+  exit $rc
+fi
 
 echo "Exporting current issue state to artifacts"
 gh issue list --state open --limit 1000 --json number,title,milestone > "$OPEN_JSON" || true
