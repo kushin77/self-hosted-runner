@@ -72,12 +72,17 @@ export class AuditService {
       const previousHash = this.lastHash;
 
       // Build canonical hash input using the same keys as verifyIntegrity
+      const timestamp = (entry as any).timestamp || new Date();
+      const status = (entry as any).status || 'success';
+
       const hashInputObj: Record<string, any> = {
+        timestamp: timestamp,
         event: entry.event,
         resource_type: entry.resourceType,
         resource_id: entry.resourceId || null,
         actor_id: entry.actor,
         action: entry.action,
+        status: status,
         details: entry.details ? JSON.stringify(entry.details) : null,
         previousHash,
       };
@@ -114,10 +119,10 @@ export class AuditService {
         resourceId: logEntry.resource_id,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: entry.status || (logEntry as any).status || 'success',
-        details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
-        ipAddress: (entry as any).ipAddress || undefined,
-        userAgent: (entry as any).userAgent || undefined,
+          status: status || (logEntry as any).status || 'success',
+          details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
+          ipAddress: (entry as any).ipAddress || (logEntry as any).ip_address || undefined,
+          userAgent: (entry as any).userAgent || (logEntry as any).user_agent || undefined,
         hash,
         previousHash: previousHash,
       });
@@ -130,10 +135,10 @@ export class AuditService {
         resourceId: logEntry.resource_id || undefined,
         actor: logEntry.actor_id,
         action: logEntry.action,
-        status: entry.status || (logEntry as any).status || 'success',
+        status: status || (logEntry as any).status || 'success',
         details: logEntry.details ? JSON.parse(logEntry.details) : undefined,
-        ipAddress: (entry as any).ipAddress || undefined,
-        userAgent: (entry as any).userAgent || undefined,
+        ipAddress: (entry as any).ipAddress || (logEntry as any).ip_address || undefined,
+        userAgent: (entry as any).userAgent || (logEntry as any).user_agent || undefined,
         hash,
         previousHash: previousHash,
       };
@@ -219,20 +224,19 @@ export class AuditService {
         orderBy: { created_at: 'asc' },
       });
 
-      let previousHash = crypto
-        .createHash('sha256')
-        .update('genesis')
-        .digest('hex');
+      let previousHash = crypto.createHash('sha256').update('genesis').digest('hex');
       let entriesChecked = 0;
 
       for (const entry of entries) {
         // Reconstruct the hash
         const hashInput = JSON.stringify({
+          timestamp: entry.created_at,
           event: entry.event,
           resource_type: entry.resource_type,
           resource_id: entry.resource_id,
           actor_id: entry.actor_id,
           action: entry.action,
+          status: (entry as any).status || 'success',
           details: entry.details,
           previousHash,
         });

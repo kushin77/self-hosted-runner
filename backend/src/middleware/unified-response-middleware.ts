@@ -157,8 +157,8 @@ export function responseTimingMiddleware(
     const latency = Date.now() - req.startTime;
     res.setHeader('X-Response-Time-MS', latency);
 
-    // Log to console in development
-    if (process.env.NODE_ENV !== 'production') {
+    // Log only in development (avoid noisy logs during tests)
+    if (process.env.NODE_ENV === 'development') {
       console.log(`[${req.method}] ${req.path} - ${res.statusCode} (${latency}ms)`);
     }
 
