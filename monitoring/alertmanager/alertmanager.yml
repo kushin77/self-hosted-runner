@@ -10,7 +10,7 @@ route:
 receivers:
   - name: ops
     email_configs:
-      - to: ops@example.com
+      - to: support@elevatediq.ai
         send_resolved: true
 
 templates: []
