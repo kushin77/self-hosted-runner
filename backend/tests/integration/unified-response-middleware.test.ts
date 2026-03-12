@@ -7,8 +7,8 @@ import {
   requestIdMiddleware,
   unifiedResponseMiddleware,
   rateLimitMiddleware,
-} from '../../../src/middleware/unified-response-middleware';
-import { ErrorCode, HttpStatus } from '../../../src/lib/unified-response';
+} from '../../src/middleware/unified-response-middleware';
+import { ErrorCode, HttpStatus } from '../../src/lib/unified-response';
 
 describe('Unified Response Middleware', () => {
   let app: Express;
