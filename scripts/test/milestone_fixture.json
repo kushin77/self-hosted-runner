@@ -1,0 +1,23 @@
+[
+  {
+    "number": 9001,
+    "title": "Provision GSM for orchestrator",
+    "body": "Provision GSM secrets and add rotation automation",
+    "labels": [],
+    "milestone": null
+  },
+  {
+    "number": 9002,
+    "title": "Add observability agents to nodes",
+    "body": "Install filebeat and node_exporter",
+    "labels": [],
+    "milestone": null
+  },
+  {
+    "number": 9003,
+    "title": "Write runbook: deploy canary",
+    "body": "Runbook for canary deployments and rollback",
+    "labels": [],
+    "milestone": null
+  }
+]
