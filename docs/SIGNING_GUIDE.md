@@ -31,3 +31,54 @@ Integration notes
 
 Files in this PR
 - `scripts/signing/sign_artifact.sh` — simple wrapper to sign using `openssl` or `ssh-keygen`.
+Files in this PR
+- `scripts/signing/sign_artifact.sh` — simple wrapper to sign using `openssl` or `ssh-keygen`.
+
+Cloud Build example
+-------------------
+This example shows how to fetch a private key from GSM, run the signing script, and upload the signature to a GCS bucket. Do not store private keys in source control.
+
+```yaml
+# cloudbuild.yaml (example)
+steps:
+	- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+		id: 'fetch-signing-key'
+		entrypoint: 'bash'
+		args:
+			- '-c'
+			- |
+				set -e
+				gcloud secrets versions access latest --secret="${_SIGNING_SECRET_NAME}" > signing_key.pem
+				chmod 600 signing_key.pem
+
+	- name: 'gcr.io/cloud-builders/docker'
+		id: 'run-sign'
+		entrypoint: 'bash'
+		args:
+			- '-c'
+			- |
+				chmod +x scripts/signing/sign_artifact.sh
+				./scripts/signing/sign_artifact.sh signing_key.pem "${_ARTIFACT_PATH}"
+
+	- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+		id: 'upload-sig'
+		entrypoint: 'bash'
+		args:
+			- '-c'
+			- |
+				gsutil cp "${_ARTIFACT_PATH}.sig" gs://${_SIGNATURE_BUCKET}/
+
+substitutions:
+	_SIGNING_SECRET_NAME: 'terraform-signing-key'
+	_ARTIFACT_PATH: 'build/output/terraform-plan.zip'
+	_SIGNATURE_BUCKET: 'my-signatures-bucket'
+
+options:
+	machineType: 'E2_HIGHCPU_8'
+
+secrets:
+	- kmsKeyName: '' # optional: encrypt secret using KMS
+
+Security notes
+- Give the Cloud Build service account only `roles/secretmanager.secretAccessor` and `roles/storage.objectCreator` for the specific resources.
+- Use VPC-SC or Private Pools for sensitive signing steps where available.
