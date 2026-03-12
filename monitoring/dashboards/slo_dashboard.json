@@ -1,0 +1,13 @@
+{
+  "dashboard": {
+    "title": "Canonical Secrets SLOs",
+    "timezone": "UTC",
+    "panels": [
+      { "title": "Availability (7d)", "type": "stat", "targets": [{ "expr": "slo:availability:7d", "legendFormat": "Availability (7d)" }] },
+      { "title": "P95 Latency (7d)", "type": "graph", "targets": [{ "expr": "slo:latency_p95:7d", "legendFormat": "P95 (7d)" }] },
+      { "title": "Error Budget Burn Rate (5m)", "type": "graph", "targets": [{ "expr": "slo:error_budget_burn_rate:5m", "legendFormat": "Burn Rate" }] }
+    ],
+    "refresh": "30s",
+    "templating": { "list": [] }
+  }
+}

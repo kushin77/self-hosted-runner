@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: milestone-organizer-sa
+  namespace: ops
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::830916170067:role/milestone-organizer-irsa
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: milestone-organizer
+  namespace: ops
+spec:
+  schedule: "0 2 * * *" # daily at 02:00 UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: milestone-organizer-sa
+          restartPolicy: OnFailure
+          initContainers:
+            - name: fetch-gh-token
+              image: alpine:3.18
+              command: ["/bin/sh","-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  apk add --no-cache curl git bash jq python3
+                  # Example: fetch from GSM (replace PROJECT/SECRET)
+                  if [ -x /workspace/repo/scripts/utilities/gsm_fetch_token.sh ]; then
+                    /workspace/repo/scripts/utilities/gsm_fetch_token.sh "projects/PROJECT/secrets/GH_TOKEN" /var/run/secrets/gh_token || true
+                  fi
+                  # Example: fetch from Vault
+                  if [ -x /workspace/repo/scripts/utilities/vault_fetch_token.sh ]; then
+                    /workspace/repo/scripts/utilities/vault_fetch_token.sh "secret/data/gh_token" /var/run/secrets/gh_token || true
+                  fi
+              volumeMounts:
+                - name: workspace
+                  mountPath: /workspace
+                - name: gh-token
+                  mountPath: /var/run/secrets
+          containers:
+            - name: organizer
+              image: alpine:3.18
+              command: ["/bin/sh","-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  apk add --no-cache curl git bash jq python3 py3-pip
+                  cd /workspace || true
+                  if [ ! -d repo ]; then
+                    git clone https://github.com/kushin77/self-hosted-runner.git repo
+                  fi
+                  cd repo
+                  if [ -f /var/run/secrets/gh_token ]; then
+                    export GH_TOKEN=$(cat /var/run/secrets/gh_token)
+                    echo "$GH_TOKEN" | gh auth login --with-token || true
+                  fi
+                  ./scripts/automation/run_milestone_organizer.sh
+              volumeMounts:
+                - name: workspace
+                  mountPath: /workspace
+                - name: gh-token
+                  mountPath: /var/run/secrets
+          volumes:
+            - name: workspace
+              emptyDir: {}
+          # Placeholders: configure secret injection via projected volumes (GSM/Vault)
+
