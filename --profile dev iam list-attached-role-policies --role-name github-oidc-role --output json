@@ -1,0 +1,38 @@
+{
+    "Role": {
+        "Path": "/",
+        "RoleName": "github-oidc-role",
+        "RoleId": "AROA4C5TWSFJTXH3XLQUE",
+        "Arn": "arn:aws:iam::830916170067:role/github-oidc-role",
+        "CreateDate": "2026-03-12T01:10:07+00:00",
+        "AssumeRolePolicyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Principal": {
+                        "Federated": "arn:aws:iam::830916170067:oidc-provider/token.actions.githubusercontent.com"
+                    },
+                    "Action": "sts:AssumeRoleWithWebIdentity",
+                    "Condition": {
+                        "StringLike": {
+                            "token.actions.githubusercontent.com:sub": "repo:kushin77/self-hosted-runner:*"
+                        }
+                    }
+                }
+            ]
+        },
+        "MaxSessionDuration": 3600,
+        "Tags": [
+            {
+                "Key": "managed_by",
+                "Value": "terraform"
+            },
+            {
+                "Key": "phase",
+                "Value": "tier-2-aws-migration"
+            }
+        ],
+        "RoleLastUsed": {}
+    }
+}
