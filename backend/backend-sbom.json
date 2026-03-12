@@ -1,0 +1,8 @@
+
+╔══════════════════════════════════════════════════════════════╗
+║  ⛔ ElevatedIQ NODE POLICY VIOLATION                        ║
+║  'docker run' is BLOCKED on 192.168.168.31 (.31)         ║
+║  All Docker workloads must run on 192.168.168.42 (.42)      ║
+║  Use: ssh akushnir@192.168.168.42 'docker run ...'       ║
+╚══════════════════════════════════════════════════════════════╝
+
