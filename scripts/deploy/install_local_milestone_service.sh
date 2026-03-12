@@ -14,6 +14,11 @@ fi
 
 cp "$SERVICE_SRC" /etc/systemd/system/milestone-organizer.service
 cp "$TIMER_SRC" /etc/systemd/system/milestone-organizer.timer
+# Install metrics service
+cp "$(pwd)/systemd/milestone-metrics.service" /etc/systemd/system/milestone-metrics.service || true
+systemctl daemon-reload
+systemctl enable --now milestone-metrics.service || true
+systemctl start milestone-metrics.service || true
 systemctl daemon-reload
 systemctl enable --now milestone-organizer.timer
 systemctl start milestone-organizer.service || true

@@ -1,0 +1,13 @@
+[Unit]
+Description=Milestone Organizer Metrics Exporter
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/usr/bin/python3 /home/akushnir/self-hosted-runner/scripts/utilities/metrics_server.py
+User=akushnir
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
