@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: milestone-organizer
+  namespace: ops
+spec:
+  schedule: "0 2 * * *" # daily at 02:00 UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: milestone-organizer-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: organizer
+              image: alpine:3.18
+              command: ["/bin/sh","-c"]
+              args:
+                - |
+                  set -euo pipefail
+                  apk add --no-cache curl git bash jq python3 py3-pip
+                  cd /workspace || true
+                  if [ ! -d repo ]; then
+                    git clone https://github.com/kushin77/self-hosted-runner.git repo
+                  fi
+                  cd repo
+                  # Fetch GH_TOKEN via credential helper (example placeholders)
+                  # Implement GSM/Vault/KMS fetch in an init step or sidecar.
+                  ./scripts/automation/run_milestone_organizer.sh
+              volumeMounts:
+                - name: workspace
+                  mountPath: /workspace
+          volumes:
+            - name: workspace
+              emptyDir: {}
+          # Placeholders: configure secret injection via projected volumes (GSM/Vault)
