@@ -15,7 +15,7 @@ import {
   ErrorPayload,
   HttpStatus,
   getHttpStatus,
-} from './unified-response';
+} from '../lib/unified-response';
 
 declare global {
   namespace Express {
@@ -120,7 +120,7 @@ export function rateLimitMiddleware(
   // Check if limit exceeded
   if (bucket.count > LIMIT) {
     res.setHeader('X-RateLimit-RetryAfter', resetIn);
-    return res.status(HttpStatus.TOO_MANY_REQUESTS).json(
+    res.status(HttpStatus.TOO_MANY_REQUESTS).json(
       errorResponse(
         ErrorCode.RATE_LIMITED,
         `Rate limit exceeded: ${LIMIT} requests per ${WINDOW / 1000}s`,
@@ -136,6 +136,7 @@ export function rateLimitMiddleware(
         }
       )
     );
+    return;
   }
 
   next();
