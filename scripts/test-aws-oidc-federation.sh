@@ -8,7 +8,7 @@ set -euo pipefail
 # Properties: Immutable (results logged), Idempotent (safe to rerun)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_LOG="$REPO_ROOT/logs/aws-oidc-test-$(date -u +%Y%m%dT%H%M%SZ).jsonl"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
