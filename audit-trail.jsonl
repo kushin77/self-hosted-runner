@@ -1,0 +1,12 @@
+{ "timestamp": "2026-03-12T17:43:33Z", "action": "governance-enforcement", "event": "archived-github-actions-workflows", "workflows_archived": 2, "reason": "Policy NO_GITHUB_ACTIONS enforced", "replacement": "Cloud Build CI/CD" }
+2026-03-12T18:12:36Z | remove | removed repo paths: logs/, artifacts/ | actor: automation-agent
+2026-03-12T18:17:41Z | remove | removed sensitive scripts and raw reports: scripts/nexusshield-secrets-cli.sh, scripts/azure-credentials.sh, gitleaks-report.json, reports/gitleaks-targeted.json, docs/*.bak | actor: automation-agent
+2026-03-12T18:53:02Z | remove | removed high-severity secret artifacts: logs/secret-mirror, artifacts/secret_mirror, logs/deploy-blocker, artifacts/audit, logs/multi-cloud-audit | actor: automation-agent
+2026-03-12T19:21:57Z | remove | removed batch3 sensitive artifacts: logs/deploy-blocker, logs/multi-cloud-audit, terraform-apply-production log, PHASE_4_2_OBSERVABILITY_COMPLETE.md | actor: automation-agent
+2026-03-12T19:24:03Z | remove | removed logs/deploy-blocker/credential-rotation-20260311.jsonl | actor: automation-agent
+2026-03-12T19:24:17Z | remove | removed artifacts/audit/credential-rotation-20260311.jsonl | actor: automation-agent
+2026-03-12T19:24:29Z | remove | removed logs/multi-cloud-audit/ directory | actor: automation-agent
+2026-03-12T19:24:44Z | remove | removed terraform apply production log | actor: automation-agent
+2026-03-12T19:26:16Z | remove | removed discovery keys, .venv, orchestration script, observability doc | actor: automation-agent
+2026-03-12T19:33:49Z | remove | removed remaining GitHub Actions workflows (admin-merge, phase0-proto-ci) | actor: automation-agent
+2026-03-12T19:37:41Z | purge | history-rewrite performed locally (sensitive paths removed) | actor: automation-agent
