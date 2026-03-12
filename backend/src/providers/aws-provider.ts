@@ -53,9 +53,9 @@ export class AwsProvider extends BaseCloudProvider {
   }
 
   /**
-   * Validate AWS credentials
+   * Provider-local credential checks (internal helper)
    */
-  protected async validateCredentials(): Promise<void> {
+  private async checkCredentials(): Promise<void> {
     if (!this.credentials) {
       throw new Error('Credentials not provided');
     }
@@ -69,7 +69,7 @@ export class AwsProvider extends BaseCloudProvider {
     // Test credentials by making a simple API call
     await this.withRetry(async () => {
       const sts = new AWS.STS({
-        accessKeyKeyId: accessKeyId,
+        accessKeyId: accessKeyId,
         secretAccessKey,
         region,
       });
@@ -138,7 +138,7 @@ export class AwsProvider extends BaseCloudProvider {
    */
   protected async doValidateCredentials(): Promise<boolean> {
     try {
-      await this.validateCredentials();
+      await this.checkCredentials();
       return true;
     } catch {
       return false;

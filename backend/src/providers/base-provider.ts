@@ -71,8 +71,9 @@ export abstract class BaseCloudProvider implements ICloudProvider {
   };
 
   constructor(auditLogDir?: string) {
+    const providerName = (this.constructor as any).name || 'provider';
     this.auditLogPath = path.join(
-      auditLogDir || `.providers_audit/${this.provider}`,
+      auditLogDir || `.providers_audit/${providerName}`,
       `${Date.now()}.jsonl`,
     );
   }
@@ -133,10 +134,8 @@ export abstract class BaseCloudProvider implements ICloudProvider {
     return this.credentials;
   }
 
-  /**
-   * Validate credentials
-   */
-  protected abstract validateCredentials(): Promise<void>;
+  // Note: Provider-specific credential validation should be implemented
+  // by subclasses via `doValidateCredentials()` which returns a boolean.
 
   /**
    * Authenticate with provider
@@ -537,4 +536,4 @@ export abstract class BaseCloudProvider implements ICloudProvider {
   }
 }
 
-export { BaseCloudProvider };
+// exported via class declaration
