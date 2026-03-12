@@ -14,6 +14,7 @@ Recommended architecture
   - Mounts a short-lived secret (GH token) fetched from GSM/Vault/KMS
   - Runs `scripts/automation/run_milestone_organizer.sh` on schedule (cron or systemd timer)
   - Writes audit artifacts to an append-only object store (GCS/S3) or to the `artifacts/milestones-assignments/` path and copies to secure archival storage.
+    Optionally configure archival by setting `ARCHIVE_S3_BUCKET` (S3) or `ARCHIVE_GCS_BUCKET` (GCS) in the runner environment; the wrapper will upload artifacts and a SHA-256 checksum for each file.
 
 Credential flow examples
 - GSM (GCP Secret Manager): use a service account with access to the secret; job fetches the secret at runtime and exports `GH_TOKEN` for `gh auth login --with-token`.
@@ -25,8 +26,11 @@ Security notes
 - Rotate tokens regularly and use short-lived tokens where possible.
 - Audit logs must be retained externally (GCS/S3) for immutability.
 
-Scheduling
+- Scheduling
 - Use `cron` or `systemd` timers to run the script at a cadence (daily/nightly) appropriate for your workflow.
 
 No GitHub Actions
 - This project policy forbids GitHub Actions. Use the above local/external runner approach.
+
+Archival and retention
+- The wrapper uploads artifacts with a timestamped filename and creates a corresponding `.sha256` checksum. After upload, configure bucket lifecycle policies or object lock to enforce immutability/retention per your compliance needs.
