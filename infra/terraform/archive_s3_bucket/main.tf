@@ -36,8 +36,11 @@ resource "aws_s3_bucket" "archive" {
       }
     }
   }
-
-  object_lock_enabled = true
+  lifecycle {
+    ignore_changes = [
+      object_lock_configuration,
+    ]
+  }
 }
 
 resource "aws_s3_bucket_public_access_block" "archive_block" {
