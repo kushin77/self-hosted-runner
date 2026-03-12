@@ -15,43 +15,6 @@ terraform {
   }
 }
 
-variable "github_repo" {
-  description = "GitHub repository (owner/repo)"
-  type        = string
-  default     = "kushin77/self-hosted-runner"
-}
-
-variable "gcp_project_id" {
-  description = "GCP project ID (for workload identity pool)"
-  type        = string
-}
-
-variable "aws_account_id" {
-  description = "AWS account ID"
-  type        = string
-}
-
-variable "aws_region" {
-  description = "AWS region"
-  type        = string
-  default     = "us-east-1"
-}
-
-variable "role_name" {
-  description = "IAM role name for OIDC provider"
-  type        = string
-  default     = "github-oidc-role"
-}
-
-variable "tags" {
-  description = "Tags for all resources"
-  type        = map(string)
-  default = {
-    managed_by = "terraform"
-    phase      = "tier-2-aws-migration"
-  }
-}
-
 # ============================================================================
 # AWS OIDC Provider
 # ============================================================================
@@ -187,22 +150,4 @@ resource "aws_iam_role_policy" "assume_role_chaining" {
       }
     ]
   })
-}
-
-# ============================================================================
-# Outputs
-# ============================================================================
-output "oidc_provider_arn" {
-  description = "ARN of the GitHub OIDC provider"
-  value       = aws_iam_openid_connect_provider.github.arn
-}
-
-output "oidc_role_arn" {
-  description = "ARN of the GitHub OIDC IAM role"
-  value       = aws_iam_role.github_oidc.arn
-}
-
-output "oidc_role_name" {
-  description = "Name of the GitHub OIDC IAM role"
-  value       = aws_iam_role.github_oidc.name
 }
