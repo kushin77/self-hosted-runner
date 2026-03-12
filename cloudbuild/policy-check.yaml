@@ -1,0 +1,19 @@
+steps:
+- id: 'check-workflows'
+  name: 'gcr.io/cloud-builders/git'
+  entrypoint: 'bash'
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    # Detect files changed in this commit range (support Cloud Build substitution vars)
+    RANGE=${COMMIT_RANGE:-$COMMIT_SHA}
+    git fetch --no-tags --depth=1 origin || true
+    if git diff --name-only "$RANGE" | grep -E "^\.github/workflows/" >/dev/null 2>&1; then
+      echo "ERROR: GitHub Actions workflows are not allowed in this repo. Changes detected under .github/workflows/."
+      exit 1
+    fi
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: '120s'
