@@ -1,0 +1,89 @@
+---
+# Default deny all ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-ingress
+  namespace: credential-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+
+---
+# Default deny all egress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-egress
+  namespace: credential-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+
+---
+# Allow credential-helper to Vault
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-credhelper-to-vault
+  namespace: credential-system
+spec:
+  podSelector:
+    matchLabels:
+      app: credential-helper
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: vault
+    ports:
+    - protocol: TCP
+      port: 8200
+
+---
+# Allow credential-helper to GSM (via NAT gateway, external)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-credhelper-to-gsm
+  namespace: credential-system
+spec:
+  podSelector:
+    matchLabels:
+      app: credential-helper
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Allow managed-auth to credential-helper
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-managed-auth-to-credhelper
+  namespace: credential-system
+spec:
+  podSelector:
+    matchLabels:
+      app: credential-helper
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          name: managed-auth
+    ports:
+    - protocol: TCP
+      port: 8080
