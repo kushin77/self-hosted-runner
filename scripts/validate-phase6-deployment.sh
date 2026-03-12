@@ -14,6 +14,9 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP="$(date -u +%Y%m%d_%H%M%S)"
 RESULTS_FILE="${PROJECT_ROOT}/deployments/validation_${TIMESTAMP}.json"
 
+# Allow running validation against a remote host (set TARGET_HOST or ONPREM_HOST)
+TARGET_HOST="${TARGET_HOST:-${ONPREM_HOST:-localhost}}"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -38,16 +41,16 @@ test_endpoint() {
   if response=$(curl -s --max-time 5 "$endpoint" 2>/dev/null); then
     if echo "$response" | grep -qi "$expected_pattern"; then
       echo -e "${GREEN}✅ PASS${NC}"
-      ((TESTS_PASSED["$name"]++)) || true
+      TESTS_PASSED["$name"]=$(( ${TESTS_PASSED["$name"]:-0} + 1 )) || true
       return 0
     else
       echo -e "${RED}❌ FAIL${NC} (unexpected response)"
-      ((TESTS_FAILED["$name"]++)) || true
+      TESTS_FAILED["$name"]=$(( ${TESTS_FAILED["$name"]:-0} + 1 )) || true
       return 1
     fi
   else
     echo -e "${RED}❌ FAIL${NC} (no response)"
-    ((TESTS_FAILED["$name"]++)) || true
+    TESTS_FAILED["$name"]=$(( ${TESTS_FAILED["$name"]:-0} + 1 )) || true
     return 1
   fi
 }
@@ -62,11 +65,11 @@ test_database() {
   
   if nc -zv -w 2 "$host" "$port" 2>/dev/null; then
     echo -e "${GREEN}✅ PASS${NC}"
-    ((TESTS_PASSED["$name"]++)) || true
+    TESTS_PASSED["$name"]=$(( ${TESTS_PASSED["$name"]:-0} + 1 )) || true
     return 0
   else
     echo -e "${RED}❌ FAIL${NC} (cannot connect)"
-    ((TESTS_FAILED["$name"]++)) || true
+    TESTS_FAILED["$name"]=$(( ${TESTS_FAILED["$name"]:-0} + 1 )) || true
     return 1
   fi
 }
@@ -78,11 +81,11 @@ test_docker_service() {
   
   if docker ps --filter "name=$service" --filter "status=running" | grep -q "$service"; then
     echo -e "${GREEN}✅ PASS${NC}"
-    ((TESTS_PASSED["docker_$service"]++)) || true
+    TESTS_PASSED["docker_$service"]=$(( ${TESTS_PASSED["docker_$service"]:-0} + 1 )) || true
     return 0
   else
     echo -e "${RED}❌ FAIL${NC} (not running)"
-    ((TESTS_FAILED["docker_$service"]++)) || true
+    TESTS_FAILED["docker_$service"]=$(( ${TESTS_FAILED["docker_$service"]:-0} + 1 )) || true
     return 1
   fi
 }
@@ -92,28 +95,32 @@ test_docker_service() {
 # ============================================================================
 echo -e "${BLUE}[VALIDATION] Docker Services${NC}"
 
-for service in nexusshield-frontend nexusshield-backend nexusshield-postgres nexusshield-redis nexusshield-rabbitmq; do
-  test_docker_service "$service"
-done
+if [[ "${TARGET_HOST:-localhost}" != "localhost" && "${TARGET_HOST:-localhost}" != "127.0.0.1" ]]; then
+  echo -e "${YELLOW}Skipping local Docker checks; validating remote host: ${TARGET_HOST}${NC}"
+else
+  for service in nexusshield-frontend nexusshield-backend nexusshield-postgres nexusshield-redis nexusshield-rabbitmq; do
+    test_docker_service "$service"
+  done
+fi
 
 # ============================================================================
 # PHASE 2: HEALTH ENDPOINTS
 # ============================================================================
 echo -e "${BLUE}[VALIDATION] Health Endpoints${NC}"
 
-test_endpoint "Frontend Health" "http://localhost:3000/health" "ok|healthy|up" || true
-test_endpoint "Backend Health" "http://localhost:8080/api/health" "ok|healthy|running" || true
-test_endpoint "Prometheus" "http://localhost:9090/-/healthy" "Prometheus" || true
-test_endpoint "Grafana" "http://localhost:3001/api/health" "ok" || true
+test_endpoint "Frontend Health" "http://${TARGET_HOST}:3000/health" "ok|healthy|up" || true
+test_endpoint "Backend Health" "http://${TARGET_HOST}:8080/api/health" "ok|healthy|running" || true
+test_endpoint "Prometheus" "http://${TARGET_HOST}:9090/-/healthy" "Prometheus" || true
+test_endpoint "Grafana" "http://${TARGET_HOST}:3001/api/health" "ok" || true
 
 # ============================================================================
 # PHASE 3: DATABASE CONNECTIVITY
 # ============================================================================
 echo -e "${BLUE}[VALIDATION] Database Connectivity${NC}"
 
-test_database "PostgreSQL" "localhost" "5432" || true
-test_database "Redis" "localhost" "6379" || true
-test_database "RabbitMQ" "localhost" "5672" || true
+test_database "PostgreSQL" "${TARGET_HOST}" "5432" || true
+test_database "Redis" "${TARGET_HOST}" "6379" || true
+test_database "RabbitMQ" "${TARGET_HOST}" "5672" || true
 
 # ============================================================================
 # PHASE 4: API INTEGRATION TESTS
@@ -125,7 +132,7 @@ echo -n "Testing GET /api/credentials ... "
 if response=$(curl -s -X GET "http://localhost:8080/api/credentials" -H "Content-Type: application/json" 2>/dev/null); then
   if echo "$response" | grep -qi "credentials\|data\|\[\]"; then
     echo -e "${GREEN}✅ PASS${NC}"
-    ((TESTS_PASSED["api_credentials"]++)) || true
+    TESTS_PASSED["api_credentials"]=$(( ${TESTS_PASSED["api_credentials"]:-0} + 1 )) || true
   else
     echo -e "${YELLOW}⚠️  WARN${NC} (response unclear)"
   fi
@@ -137,7 +144,7 @@ echo -n "Testing GET /api/audit ... "
 if response=$(curl -s -X GET "http://localhost:8080/api/audit" -H "Content-Type: application/json" 2>/dev/null); then
   if echo "$response" | grep -qi "audit\|entries\|logs\|data"; then
     echo -e "${GREEN}✅ PASS${NC}"
-    ((TESTS_PASSED["api_audit"]++)) || true
+    TESTS_PASSED["api_audit"]=$(( ${TESTS_PASSED["api_audit"]:-0} + 1 )) || true
   else
     echo -e "${YELLOW}⚠️  WARN${NC}"
   fi
@@ -156,7 +163,7 @@ if git log --all --source --full-history -- ".credentials/*" 2>/dev/null | grep 
   ((TESTS_FAILED["security_creds_in_git"]++)) || true
 else
   echo -e "${GREEN}✅ PASS${NC}"
-  ((TESTS_PASSED["security_creds_in_git"]++)) || true
+  TESTS_PASSED["security_creds_in_git"]=$(( ${TESTS_PASSED["security_creds_in_git"]:-0} + 1 )) || true
 fi
 
 echo -n "Checking immutable audit log exists... "
@@ -164,7 +171,7 @@ AUDIT_LOG=$(ls -t "${PROJECT_ROOT}/deployments/audit_"*.jsonl 2>/dev/null | head
 if [ -n "$AUDIT_LOG" ]; then
   AUDIT_LINES=$(wc -l < "$AUDIT_LOG")
   echo -e "${GREEN}✅ PASS${NC} ($AUDIT_LINES events)"
-  ((TESTS_PASSED["audit_log_exists"]++)) || true
+  TESTS_PASSED["audit_log_exists"]=$(( ${TESTS_PASSED["audit_log_exists"]:-0} + 1 )) || true
 else
   echo -e "${YELLOW}⚠️  WARN${NC} (no audit log)"
 fi
@@ -173,7 +180,7 @@ echo -n "Checking .credentials directory permissions... "
 if [ -d "${PROJECT_ROOT}/.credentials" ]; then
   PERMS=$(stat -c %a "${PROJECT_ROOT}/.credentials" 2>/dev/null || echo "unknown")
   echo -e "${GREEN}✅ PASS${NC} (mode: $PERMS)"
-  ((TESTS_PASSED["creds_permissions"]++)) || true
+  TESTS_PASSED["creds_permissions"]=$(( ${TESTS_PASSED["creds_permissions"]:-0} + 1 )) || true
 else
   echo -e "${YELLOW}⚠️  WARN${NC} (directory missing)"
 fi
@@ -187,7 +194,7 @@ if [ -f "${PROJECT_ROOT}/frontend/cypress.config.ts" ] && command -v cypress &> 
   echo -n "Running Cypress E2E tests... "
   if cd "${PROJECT_ROOT}/frontend" && npx cypress run --headless --spec "cypress/e2e/**/*.cy.ts" 2>/dev/null | grep -q "passed"; then
     echo -e "${GREEN}✅ PASS${NC}"
-    ((TESTS_PASSED["e2e_cypress"]++)) || true
+    TESTS_PASSED["e2e_cypress"]=$(( ${TESTS_PASSED["e2e_cypress"]:-0} + 1 )) || true
   else
     echo -e "${YELLOW}⚠️  WARN${NC} (some tests may have failed)"
   fi
