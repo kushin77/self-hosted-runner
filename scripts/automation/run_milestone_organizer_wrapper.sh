@@ -30,4 +30,16 @@ if [ ! -x "$TARGET" ]; then
   echo "ERROR: organizer not found or not executable: $TARGET"
   exit 1
 fi
-exec "$TARGET"
+
+# Run organizer and capture exit code
+"$TARGET"
+STATUS=$?
+
+# Alert on failure (only if non-zero)
+if [ $STATUS -ne 0 ]; then
+  echo "Organizer failed with exit code $STATUS; creating alert issue"
+  python3 "$REPO_DIR/scripts/utilities/milestone_organizer_alert.py" \
+    --status "$STATUS" --repo kushin77/self-hosted-runner || true
+fi
+
+exit $STATUS
