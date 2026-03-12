@@ -2,6 +2,7 @@ stages:
   - validate
   - triage
   - sla
+  - bootstrap
 
 variables:
   GITLAB_API_URL: "https://gitlab.com/api/v4"
@@ -36,3 +37,21 @@ sla-monitor:
     - PROJECT_ID=${CI_PROJECT_ID} GITLAB_API_URL=${GITLAB_API_URL} GITLAB_TOKEN=${GITLAB_TOKEN} bash scripts/gitlab-automation/sla-monitor-gitlab.sh || true
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
+
+bootstrap:provision:
+  stage: bootstrap
+  image: python:3.11
+  variables:
+    SKIP_ISSUE_TEST: "true"
+  script:
+    - apt-get update && apt-get install -y curl jq || true
+    - chmod +x scripts/gitlab-automation/create-ci-variables-gitlab.sh
+    - chmod +x scripts/gitlab-automation/create-required-labels-gitlab.sh || true
+    - PROJECT_ID=${CI_PROJECT_ID} GITLAB_TOKEN=${GITLAB_TOKEN} bash scripts/gitlab-automation/create-ci-variables-gitlab.sh
+    - PROJECT_ID=${CI_PROJECT_ID} GITLAB_TOKEN=${GITLAB_TOKEN} bash scripts/gitlab-automation/create-required-labels-gitlab.sh
+  when: manual
+  allow_failure: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+    - when: never
