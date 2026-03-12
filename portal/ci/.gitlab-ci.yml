@@ -1,0 +1,123 @@
+stages:
+  - install
+  - lint
+  - build
+  - test
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+install:deps:
+  stage: install
+  image: node:18-alpine
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm install --frozen-lockfile
+  artifacts:
+    paths:
+      - node_modules/
+      - packages/*/node_modules/
+    expire_in: 1 hour
+
+lint:
+  stage: lint
+  image: node:18-alpine
+  dependencies:
+    - install:deps
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm lint
+
+type:check:
+  stage: lint
+  image: node:18-alpine
+  dependencies:
+    - install:deps
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm type-check
+
+build:all:
+  stage: build
+  image: node:18-alpine
+  dependencies:
+    - install:deps
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm build:prod
+  artifacts:
+    paths:
+      - packages/*/dist/
+    expire_in: 1 day
+
+test:unit:
+  stage: test
+  image: node:18-alpine
+  dependencies:
+    - install:deps
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm test
+
+test:coverage:
+  stage: test
+  image: node:18-alpine
+  dependencies:
+    - install:deps
+  before_script:
+    - npm install -g pnpm
+  script:
+    - pnpm test:cov
+  artifacts:
+    paths:
+      - coverage/
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+
+docker:build:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  dependencies:
+    - build:all
+  script:
+    - docker build -f docker/Dockerfile -t nexusshield/portal:$CI_COMMIT_SHA -t nexusshield/portal:latest .
+    - docker push nexusshield/portal:$CI_COMMIT_SHA
+    - docker push nexusshield/portal:latest
+  only:
+    - main
+
+deploy:staging:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying to staging..."
+    # Add your deployment script here
+  only:
+    - main
+  environment:
+    name: staging
+    url: https://portal-staging.example.com
+
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "Deploying to production..."
+    # Add your deployment script here
+  only:
+    - main
+  when: manual
+  environment:
+    name: production
+    url: https://portal.example.com
