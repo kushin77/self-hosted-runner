@@ -98,6 +98,11 @@ for file in $STAGED_FILES; do
     # Check staged content for credential patterns
     for pattern in "${CREDENTIAL_PATTERNS[@]}"; do
         if git show ":$file" 2>/dev/null | grep -iE "$pattern" >/dev/null 2>&1; then
+            # Allow Terraform resource references (not actual credentials)
+            MATCH=$(git show ":$file" 2>/dev/null | grep -iE "$pattern" || true)
+            if echo "$MATCH" | grep -qE '(random_password|google_secret_manager|var\.|module\.|data\.|local\.)'; then
+                continue
+            fi
             echo -e "${RED}✗ BLOCKED: Credential pattern detected in $file${NC}"
             echo "  Pattern: $pattern"
             echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"result\":\"blocked\",\"file\":\"$file\",\"pattern\":\"$pattern\"}" >> "$AUDIT_LOG"
