@@ -18,10 +18,18 @@ Commands (local testing only)
 openssl genpkey -algorithm Ed25519 -out signing_key.pem
 openssl pkey -in signing_key.pem -pubout -out signing_key.pub
 
-# Sign an artifact (detached signature)
+# Sign an artifact (detached signature) — preferred: `ssh-keygen`
+# Using OpenSSH `ssh-keygen -Y sign` (recommended for Ed25519 keys):
+ssh-keygen -Y sign -f signing_key.pem -n artifact < artifact.bin > artifact.bin.sig
+
+# Verify with ssh-keygen:
+ssh-keygen -y -f signing_key.pem > signing_key.pub
+ssh-keygen -Y verify -f signing_key.pub -s artifact.bin.sig -n artifact < artifact.bin
+
+# Fallback (OpenSSL) — note: some OpenSSL builds do not support Ed25519 signing:
 openssl pkeyutl -inkey signing_key.pem -sign -in artifact.bin -out artifact.bin.sig
 
-# Verify
+# OpenSSL verify (fallback)
 openssl pkeyutl -verify -pubin -inkey signing_key.pub -in artifact.bin -sigfile artifact.bin.sig
 ```
 
