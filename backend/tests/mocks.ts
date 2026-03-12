@@ -30,6 +30,7 @@ export const createMockPrisma = () => {
           previous_hash: data.previous_hash || null,
         };
       }),
+      count: jest.fn(async (_opts?: any) => auditLogCounter),
       findFirst: jest.fn(async () => ({
         id: 'audit-1',
         hash: 'abc123',
@@ -45,12 +46,30 @@ export const createMockPrisma = () => {
         name: 'test_policy',
         rules: {},
       })),
+      upsert: jest.fn(async (input: any) => {
+        const data = input.create || input.update || {};
+        return {
+          id: data.id || 'policy-1',
+          name: data.name || 'test_policy',
+          description: data.description || null,
+          rules: typeof data.rules === 'string' ? data.rules : JSON.stringify(data.rules || {}),
+          resource_types: data.resourceTypes || data.resource_types || [],
+          resource_names: data.resource_names || data.resourceNames || [],
+          resourceNames: data.resourceNames || data.resource_names || [],
+          enabled: typeof data.enabled === 'boolean' ? data.enabled : true,
+          enforced: typeof data.enforced === 'boolean' ? data.enforced : false,
+          created_at: data.created_at || new Date(),
+          updated_at: data.updated_at || new Date(),
+        };
+      }),
     },
     credential: {
       findUnique: jest.fn(async () => ({
         id: 'cred-1',
         name: 'test_cred',
         type: 'password',
+        created_at: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        rotations: [{ rotated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) }],
       })),
       findMany: jest.fn(async () => []),
       create: jest.fn(async (input: any) => {
@@ -59,6 +78,15 @@ export const createMockPrisma = () => {
           id: `cred-${++credentialCounter}`,
           name: data.name || 'test_cred',
           type: data.type || 'password',
+        };
+      }),
+      upsert: jest.fn(async (input: any) => {
+        const data = input.create || input.update || input.data || {};
+        return {
+          id: data.id || input.where?.id || `cred-${++credentialCounter}`,
+          name: data.name || 'test_cred',
+          type: data.type || 'password',
+          value: data.value,
         };
       }),
       update: jest.fn(async (input: any) => {
@@ -72,6 +100,60 @@ export const createMockPrisma = () => {
     },
     $executeRaw: jest.fn(async () => undefined),
     $queryRaw: jest.fn(async () => []),
+    scheduledRotation: {
+      upsert: jest.fn(async (input: any) => {
+        const data = input.create || input.update || {};
+        return {
+          id: data.id || 'sched-1',
+          credentialId: data.credentialId || null,
+          nextRunAt: data.nextRunAt || new Date(),
+        };
+      }),
+      findMany: jest.fn(async () => []),
+    },
+    rotationHistory: {
+      create: jest.fn(async (input: any) => {
+        const data = input.data || input.create || {};
+        return {
+          id: data.id || `rot-${Date.now()}`,
+          credentialId: data.credentialId || data.credential_id || null,
+          changeType: data.changeType || data.change_type || 'rotation',
+          changedBy: data.changedBy || data.changed_by || 'system',
+          details: data.details || null,
+          created_at: data.created_at || new Date(),
+        };
+      }),
+    },
+    systemMetrics: {
+      create: jest.fn(async (input: any) => {
+        const data = input.data || {};
+        return {
+          id: data.id || `metric-${Date.now()}`,
+          name: data.name || 'test_metric',
+          value: data.value || 0,
+          recorded_at: data.recorded_at || new Date(),
+        };
+      }),
+      findMany: jest.fn(async (_opts?: any) => []),
+    },
+    complianceEvent: {
+      create: jest.fn(async (input: any) => {
+        const data = input.data || {};
+        return {
+          id: data.id || `ce-${Date.now()}`,
+          event_type: data.event_type || 'policy_violation',
+          resource_type: data.resource_type || 'credential',
+          resource_id: data.resource_id || null,
+          severity: data.severity || 'high',
+          status: data.status || 'open',
+          details: data.details || JSON.stringify({}),
+          remediation: data.remediation || null,
+          created_at: data.created_at || new Date(),
+          resolved_at: data.resolved_at || null,
+        };
+      }),
+      findMany: jest.fn(async (_opts?: any) => []),
+    },
   };
 };
 
@@ -168,6 +250,11 @@ export const createMockFS = () => ({
   appendFileSync: jest.fn(),
   existsSync: jest.fn(() => true),
   mkdirSync: jest.fn(),
+  createWriteStream: jest.fn(() => ({
+    write: jest.fn(),
+    end: jest.fn(),
+    on: jest.fn(),
+  })),
 });
 
 // ============================================================================
@@ -175,15 +262,23 @@ export const createMockFS = () => ({
 // ============================================================================
 
 export const createMockCrypto = () => ({
-  createHash: jest.fn().mockImplementation((algo) => ({
-    update: jest.fn().mockReturnThis(),
-    digest: jest.fn().mockReturnValue('mock-hash-abc123'),
-  })),
+  createHash: jest.fn().mockImplementation((algo) => {
+    return {
+      update: (input: any) => {
+        const last = typeof input === 'string' ? input : JSON.stringify(input);
+        return {
+          digest: (_enc?: any) => `mock-hash-${Buffer.from(String(last)).toString('hex').slice(0,8)}-${Math.floor(Math.random()*100000)}`,
+        };
+      },
+      digest: () => `mock-hash-${Math.floor(Math.random()*100000)}`,
+    } as any;
+  }),
   randomBytes: jest.fn().mockReturnValue(Buffer.from('randomness')),
   createHmac: jest.fn().mockImplementation(() => ({
     update: jest.fn().mockReturnThis(),
     digest: jest.fn().mockReturnValue('mock-hmac'),
   })),
+  randomUUID: jest.fn(() => `mock-uuid-${Date.now()}`),
 });
 
 // ============================================================================
@@ -221,7 +316,7 @@ export const createMockRedis = () => ({
  */
 export const setupDefaultMocks = () => {
   // Mock Prisma
-  jest.mock('../../src/prisma-wrapper', () => ({
+  jest.mock('../src/prisma-wrapper', () => ({
     getPrisma: () => createMockPrisma(),
   }));
 
@@ -230,6 +325,25 @@ export const setupDefaultMocks = () => {
 
   // Mock crypto
   jest.mock('crypto', () => createMockCrypto());
+
+  // Mock Google Secret Manager client
+  jest.mock('@google-cloud/secret-manager', () => ({
+    SecretManagerServiceClient: function () {
+      return createMockSecretManager();
+    },
+  }));
+
+  // Mock node-vault
+  jest.mock('node-vault', () => {
+    return jest.fn(() => createMockVault());
+  });
+
+  // Mock Google KMS
+  jest.mock('@google-cloud/kms', () => ({
+    KeyManagementServiceClient: function () {
+      return createMockKMS();
+    },
+  }));
 };
 
 // ============================================================================
