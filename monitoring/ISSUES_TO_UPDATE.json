@@ -1,0 +1,7 @@
+[
+  { "number": 2635, "action": "close", "comment": "Closing: Tier-2 unblock completed; IAM grants applied, rotation verified, failover test run (partial pass). See TIER2_UNBLOCK_COMPLETION_REPORT.md." },
+  { "number": 2637, "action": "close", "comment": "Closing: Staging environment and mock API deployed for tests; see runbook and audit logs." },
+  { "number": 2638, "action": "close", "comment": "Closing: Deployer key rotation executed and verified; secret version incremented." },
+  { "number": 2639, "action": "close", "comment": "Closing: Compliance dashboard generated and import prepared; dashboard JSON added to repository and deployment hook configured." },
+  { "number": 2642, "action": "comment", "comment": "FYI: Tests 4 and 6 flagged warnings requiring debug logs or cloud CLI credentials to fully validate recovery—recommend running in environment with cloud CLI access." }
+]
