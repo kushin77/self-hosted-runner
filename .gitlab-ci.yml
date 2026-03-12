@@ -18,6 +18,29 @@ validate:ci:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
+prohibit:github_actions:
+  stage: validate
+  image: alpine:3.18
+  before_script:
+    - apk add --no-cache git ca-certificates >/dev/null || true
+  script:
+    - |
+      # Fail if any GitHub Actions workflow files are present in the repository.
+      if [ -d ".github/workflows" ] && [ "$(ls -A .github/workflows 2>/dev/null)" ]; then
+        echo "ERROR: .github/workflows detected. GitHub Actions are disallowed by policy. Remove these files and rely on GitLab CI for all automation." >&2
+        ls -la .github/workflows || true
+        exit 2
+      fi
+      # Also check for any files matching the pattern anywhere in the repo tree
+      matches=$(git ls-files | grep -E "^\.github/workflows/" || true)
+      if [ -n "$matches" ]; then
+        echo "ERROR: Found committed GitHub Actions workflow files:" >&2
+        echo "$matches" >&2
+        exit 2
+      fi
+  rules:
+    - when: always
+
 triage:manual:
   stage: triage
   image: python:3.11
