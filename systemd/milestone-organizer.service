@@ -8,7 +8,7 @@ WorkingDirectory=/home/akushnir/self-hosted-runner
 Environment=MIN_SCORE=2
 Environment=REASSIGN=1
 Environment=FAILURE_THRESHOLD=50
-ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/automation/run_milestone_organizer.sh
+ExecStart=/bin/bash /home/akushnir/self-hosted-runner/scripts/automation/run_milestone_organizer_wrapper.sh
 User=akushnir
 
 [Install]
