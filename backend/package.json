@@ -30,17 +30,27 @@
   "author": "NexusShield Team",
   "license": "Apache-2.0",
   "dependencies": {
+    "@azure/arm-compute": "^21.1.0",
+    "@azure/identity": "^4.0.0",
+    "@azure/storage-blob": "^12.20.0",
+    "@google-cloud/compute": "^4.0.0",
     "@google-cloud/kms": "^4.0.0",
+    "@google-cloud/monitoring": "^3.0.0",
     "@google-cloud/secret-manager": "^5.0.0",
+    "@google-cloud/storage": "^7.0.0",
     "@prisma/client": "^5.8.0",
+    "axios": "^1.6.0",
+    "aws-sdk": "^2.1500.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "googleapis": "^118.0.0",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.0",
     "node-vault": "^0.10.9",
     "prom-client": "^15.0.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "zod": "^3.22.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",
