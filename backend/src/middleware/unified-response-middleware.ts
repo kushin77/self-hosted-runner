@@ -170,6 +170,7 @@ export function responseTimingMiddleware(
 
 /**
  * Error response middleware (should be last)
+ * IMPORTANT: Must have 4 parameters for Express to recognize as error handler
  */
 export function errorHandlerMiddleware(
   err: any,
@@ -217,12 +218,11 @@ export function errorHandlerMiddleware(
     details,
   });
 
-  // Ensure content-type and send JSON string. Use `send` so supertest
-  // and other clients parse the body as JSON while avoiding double-wrap
-  // by overridden `res.json` implementations.
-  const bodyStr = JSON.stringify(payload);
+  // Send error response with proper status code
+  // The unifiedResponseMiddleware will detect this is already an APIResponse
+  // and will not double-wrap it
   res.setHeader('Content-Type', 'application/json');
-  res.status(statusCode).send(bodyStr);
+  res.status(statusCode).send(JSON.stringify(payload));
 }
 
 /**
