@@ -1,0 +1,53 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'policy-check'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== Policy Check: Prevent .github/workflows modifications ==="
+        
+        # Get the commit being checked
+        COMMIT_SHA="${COMMIT_SHA:-${BUILD_COMMIT_SHA}}"
+        
+        # Check if any files in .github/workflows were added or modified
+        if git diff-tree --no-commit-id --name-only -r "$COMMIT_SHA" | grep -q '^\.github/workflows/'; then
+          echo "❌ POLICY VIOLATION: .github/workflows/ modifications detected"
+          echo "   Governance Rule: No GitHub Actions workflows allowed"
+          echo "   Use Cloud Build for CI/CD instead (direct-deploy pipeline)"
+          exit 1
+        fi
+        
+        echo "✅ Policy check passed: No .github/workflows modifications"
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'audit-log'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Log the policy check result to Cloud Logging
+        gcloud logging write policy-check-audit \
+          "Policy check completed successfully for commit $COMMIT_SHA" \
+          --severity=INFO \
+          --project=${PROJECT_ID} \
+          --labels=branch_ref=${BRANCH_NAME},commit=${COMMIT_SHA:0:8}
+
+onFailure:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Log policy violation
+        gcloud logging write policy-check-audit \
+          "POLICY VIOLATION: .github/workflows modifications blocked for commit $COMMIT_SHA" \
+          --severity=ERROR \
+          --project=${PROJECT_ID} \
+          --labels=branch_ref=${BRANCH_NAME},commit=${COMMIT_SHA:0:8}
+
+# Policy check should run quickly as a gate before any real build
+timeout: '300s'
+tags:
+  - 'policy-check'
+  - 'governance'
