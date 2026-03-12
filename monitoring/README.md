@@ -28,3 +28,17 @@ Manual import (Grafana UI):
 3. Choose the Prometheus datasource used by the Canonical Secrets monitoring.
 
 If you want, I can attempt the import now — provide `GRAFANA_URL` and a short-lived `GRAFANA_API_KEY`, or allow me to run it if credentials are configured on this machine.
+
+Automate on deploy
+------------------
+
+To import the dashboard automatically on first deployment, add the following deployment hook or CI step after your Grafana credentials are available:
+
+```bash
+# Example deployment hook (idempotent)
+GRAFANA_URL="https://grafana.example.com" \
+GRAFANA_API_KEY="${GRAFANA_API_KEY}" \
+  ./scripts/monitoring/ensure_grafana_dashboard.sh
+```
+
+The `ensure_grafana_dashboard.sh` script checks whether a dashboard named "Canonical Secrets API Monitoring" already exists and only imports if missing.
