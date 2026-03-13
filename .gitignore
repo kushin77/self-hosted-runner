@@ -187,3 +187,4 @@ gitleaks-report.json
 *-scan-report.json
 *-security-report.json
 *.scan.json
+.venv_gfr/

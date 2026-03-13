@@ -4,16 +4,27 @@
  */
 
 import { TextEncoder, TextDecoder } from 'util';
-import { jest } from '@jest/globals';
+import { jest, expect, beforeAll, afterEach } from '@jest/globals';
+import * as path from 'path';
 
 // Polyfills for Node.js
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder as any;
 
 /**
+ * Load test environment configuration
+ */
+const testEnvPath = path.join(__dirname, 'config', 'test.env');
+try {
+  require('dotenv').config({ path: testEnvPath });
+} catch (e) {
+  // dotenv not available, continue with process.env
+}
+
+/**
  * Mock Prisma wrapper globally
  */
-jest.mock('../src/prisma-wrapper', () => {
+jest.mock('./src/prisma-wrapper', () => {
   const mocks = require('./mocks');
   return {
     getPrisma: () => mocks.createMockPrisma(),
