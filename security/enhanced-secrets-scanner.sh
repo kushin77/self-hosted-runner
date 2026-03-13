@@ -74,6 +74,7 @@ ALLOWED_PATHS=(
     "PHASE_5_EXECUTION_FRAMEWORK_20260311.md"
     "AWS_MULTICLOUD_INTEGRATION_RUNBOOK.md"
     "PRODUCTION_COMPLETE_HANDOFF_20260313.md"
+    "OPERATOR_RUNBOOK_CANONICAL_SECRETS.md"
 )
 
 ##############################################################################
