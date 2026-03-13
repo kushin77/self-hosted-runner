@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: terraform-drift-detection
+  namespace: ops
+spec:
+  schedule: "0 3 * * *" # daily at 03:00 UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: terraform-runner-sa
+          containers:
+          - name: drift-check
+            image: hashicorp/terraform:1.5.5
+            imagePullPolicy: IfNotPresent
+            command: ["/bin/sh","-c"]
+            args:
+              - mkdir -p /workspace && cd /workspace && git clone https://github.com/kushin77/self-hosted-runner.git . && ./scripts/ops/drift/run_drift.sh
+            env:
+            - name: PROJECT_ID
+              value: "REPLACE_WITH_PROJECT"
+            - name: SLACK_WEBHOOK
+              valueFrom:
+                secretKeyRef:
+                  name: ops-secrets
+                  key: slack_webhook
+            volumeMounts:
+            - name: gcp-credentials
+              mountPath: /secrets/gcp
+              readOnly: true
+          restartPolicy: OnFailure
+          volumes:
+          - name: gcp-credentials
+            secret:
+              secretName: gcp-ops-sa-key
