@@ -10,3 +10,4 @@
 2026-03-12T19:26:16Z | remove | removed discovery keys, .venv, orchestration script, observability doc | actor: automation-agent
 2026-03-12T19:33:49Z | remove | removed remaining GitHub Actions workflows (admin-merge, phase0-proto-ci) | actor: automation-agent
 2026-03-12T19:37:41Z | purge | history-rewrite performed locally (sensitive paths removed) | actor: automation-agent
+2026-03-13T03:50:00Z | deploy | portal immutable-deploy applied to worker akushnir@192.168.168.42; smoke-check timer installed and enabled; alert webhook not configured | actor: automation-agent
