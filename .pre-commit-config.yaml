@@ -1,0 +1,90 @@
+repos:
+  # Detect secrets using detect-secrets
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args:
+          - '--baseline'
+          - '.secrets.baseline'
+          - '--allow-multiple-files'
+        exclude: |
+          (?x)^(
+            \.git/|
+            \.env\.example|
+            tests/fixtures/|
+            docs/examples/
+          )$
+        stages:
+          - commit
+
+  # Gitleaks for additional secret scanning
+  - repo: https://github.com/gitleaks/gitleaks-action
+    rev: v2.3.2
+    hooks:
+      - id: gitleaks
+        args:
+          - '--source'
+          - 'local'
+          - '--verbose'
+        stages:
+          - commit
+
+  # Secret sprawl detection mechanism
+  - repo: local
+    hooks:
+      - id: secret-sprawl-detector
+        name: Secret Sprawl Detector
+        entry: python3 scripts/security/secret_sprawl_detector.py --staged
+        language: system
+        stages:
+          - commit
+        pass_filenames: false
+        description: Detect unauthorized secret storage patterns and sprawl
+
+  # Require commit messages have proper format
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v2.3.0
+    hooks:
+      - id: conventional-pre-commit
+        stages:
+          - commit-msg
+        args:
+          - --force-atom
+
+  # Basic checks (trailing whitespace, YAML formatting, etc)
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args:
+          - '--unsafe'
+      - id: check-json
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args:
+          - '--fix=lf'
+
+  # Bandit for Python security issues
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args:
+          - '-c'
+          - 'pyproject.toml'
+        additional_dependencies:
+          - 'bandit[toml]'
+        files: '^backend/.*\.py$'
+
+  # Shellcheck for bash script linting
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.9.0.2
+    hooks:
+      - id: shellcheck
+        args:
+          - '--severity=warning'
+        files: '^scripts/.*\.sh$'
