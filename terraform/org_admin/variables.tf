@@ -46,3 +46,15 @@ variable "kms_crypto_key_resource_name" {
   type        = string
   default     = ""
 }
+
+variable "github_org" {
+  description = "GitHub organization/owner (e.g., kushin77)"
+  type        = string
+  default     = "kushin77"
+}
+
+variable "github_repo_name" {
+  description = "GitHub repository name (e.g., self-hosted-runner)"
+  type        = string
+  default     = "self-hosted-runner"
+}
