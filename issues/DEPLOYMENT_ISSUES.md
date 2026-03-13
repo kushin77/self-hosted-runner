@@ -27,6 +27,10 @@
 - [ ] No DNS failures reported by clients
 - [ ] Close this issue once 24h validation complete
 
+### Phase4 monitoring
+- Phase4 monitor started: `run/phase4.pid` → PID recorded; logs: `logs/cutover/phase4.log`
+	- Prometheus `up` and error-rate polling active; sustained healthy checks will be recorded in the Phase4 log.
+
 ## Governance Compliance (All ✅)
 - ✅ Immutable: All actions logged to JSONL + git
 - ✅ Ephemeral: Secrets fetched from GSM (no long-lived creds)
