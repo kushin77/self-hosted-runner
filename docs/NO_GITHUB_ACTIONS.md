@@ -1,3 +1,10 @@
+## No GitHub Actions Policy
+
+This repository enforces direct deployment via Cloud Build and operator automation.
+
+Please do not add GitHub Actions workflows. All CI/CD must be implemented using the approved control plane (Cloud Build) and in-repo scripts invoked by Cloud Build or the agent.
+
+If you need a new build step, open an issue and reference the required Cloud Build config; an ops maintainer will add the Cloud Build trigger.
 # GitHub Actions Disabled — Cloud Build Only Policy
 
 **Effective date:** March 12, 2026  
