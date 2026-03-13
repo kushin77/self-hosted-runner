@@ -26,8 +26,17 @@ get_secret() {
   return 1
 }
 
-VAULT_ADDR_RAW=$(get_secret VAULT_ADDR || true)
-VAULT_TOKEN_RAW=$(get_secret VAULT_TOKEN || true)
+if [[ -n "${VAULT_ADDR:-}" ]]; then
+  VAULT_ADDR_RAW="${VAULT_ADDR}"
+else
+  VAULT_ADDR_RAW=$(get_secret VAULT_ADDR || true)
+fi
+
+if [[ -n "${VAULT_TOKEN:-}" ]]; then
+  VAULT_TOKEN_RAW="${VAULT_TOKEN}"
+else
+  VAULT_TOKEN_RAW=$(get_secret VAULT_TOKEN || true)
+fi
 
 if [[ -z "$VAULT_ADDR_RAW" || -z "$VAULT_TOKEN_RAW" ]]; then
   echo "ERROR: VAULT_ADDR and VAULT_TOKEN must be provided via env or Secret Manager" >&2

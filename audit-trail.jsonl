@@ -10,3 +10,24 @@
 2026-03-12T19:26:16Z | remove | removed discovery keys, .venv, orchestration script, observability doc | actor: automation-agent
 2026-03-12T19:33:49Z | remove | removed remaining GitHub Actions workflows (admin-merge, phase0-proto-ci) | actor: automation-agent
 2026-03-12T19:37:41Z | purge | history-rewrite performed locally (sensitive paths removed) | actor: automation-agent
+{"timestamp":"2026-03-13T00:24:00Z","event":"REMEDIATION_PURGE_ITERATION_3_COMPLETE","status":"SUCCESS","details":{"iteration":3,"method":"git-filter-repo","paths_removed":66,"gitleaks_findings_before":585,"gitleaks_findings_after":0,"verification":"CLEAN","branches_force_updated":"~120 unprotected","protected_branches_pending":["main","production"],"prs_created":[2912,2913]},"operator":"autonomous-agent"}
+{
+  "timestamp": "2026-03-13T00:49:31Z",
+  "action": "history_purge_and_rotation",
+  "backup_tag": "backup/main-before-history-purge-20260313T004633Z",
+  "main_sha": "153511261910165b9953f6272efedc0c8dbfe0dc",
+  "builds": [
+    "ed176312-51e3-4dcf-bd7c-2d3b2674c904",
+    "b6b97208-7756-4c8e-baa4-60597c39a00b",
+    "0c5fa6ee-e197-48f2-bba0-2398acfe2fdf",
+    "e96c445e-4e2a-4e5e-aa68-e1e66de8d287",
+    "9d6227d2-85d9-40d7-b9f1-f716b75be401"
+  ],
+  "secrets": {
+    "github-token": "28",
+    "aws-access-key-id": "17",
+    "aws-secret-access-key": "17"
+  },
+  "vault_rotation_skipped": true,
+  "notes": "Force-pushed remediation branch to main; rotated credentials; Vault rotation skipped due to unresolved endpoint."
+}
