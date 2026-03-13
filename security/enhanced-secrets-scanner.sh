@@ -67,6 +67,7 @@ ALLOWED_PATHS=(
     "security/"
     "EPIC-5_MULTI_CLOUD_SYNC_COMPLETE.md"
     "DAY1_POSTGRESQL_EXECUTION_PLAN.md"
+    "TERRAFORM_INFRASTRUCTURE.md"
 )
 
 ##############################################################################
@@ -150,7 +151,8 @@ scan_repository() {
         # Skip if in whitelist
         local skip=0
         for allowed in "${ALLOWED_PATHS[@]}"; do
-            if [[ "$file" == "$allowed"* ]]; then
+            # If allowed is a directory prefix or exact filename, skip
+            if [[ "${file}" == *"/${allowed}" ]] || [[ "${file}" == "${allowed}" ]] || [[ "${file}" == *"/${allowed}/"* ]]; then
                 skip=1
                 break
             fi

@@ -167,22 +167,27 @@ cat infra/migrations/003_rls_policies.sql
 # 4. If critical, document the error and contact DBA team
 ```
 
-### Error: "GSM secret not found" (postgres-password)
+### Error: "GSM secret not found" (database credential)
 
-**Cause**: Google Secret Manager credential not accessible
+**Cause**: Google Secret Manager credential for the database is not accessible or not present.
 
 **Fix**:
 ```bash
-# Verify GCP credentials
+# Verify GCP credentials and project
 gcloud auth list
 gcloud config get-value project
 
-# Create the secret if missing (ADMIN ACTION ONLY)
-gcloud secrets create postgres-password \
-  --replication-policy="automatic" \
-  --data-file=- <<< "your-password-here"
+# Preferred (recommended): re-run the Day 1 deploy script which will
+# create and store the database credential in GSM automatically:
+bash infra/scripts/deploy-postgres.sh
 
-# Then re-run Day 1 script
+# Manual (ADMIN ACTION ONLY): if you must add the secret yourself, use
+# a secure prompt to avoid leaving the secret in your shell history:
+read -s -p "Enter postgres password (input hidden): " POSTGRES_PW; echo
+echo -n "$POSTGRES_PW" | gcloud secrets create postgres-password \
+  --replication-policy="automatic" --data-file=- --project=nexusshield-prod
+
+# Then re-run the Day 1 script
 ```
 
 ### Port 5432 Already in Use

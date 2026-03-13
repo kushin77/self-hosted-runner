@@ -106,8 +106,15 @@ vi infra/terraform/environments/prod.tfvars
 - `project_id`: Your GCP project ID
 - `backend_image`: Container image for backend service
 - `frontend_image`: Container image for frontend service
-- `redis_auth_password`: Password for Redis authentication
-- `database_root_password`: Root password for Cloud SQL
+- `redis_auth_password`: Retrieve from GSM: `gcloud secrets versions access latest --secret=redis-password --project=nexusshield-prod`
+- `database_root_password`: Retrieve from GSM: `gcloud secrets versions access latest --secret=db-password --project=nexusshield-prod`
+
+**IMPORTANT**: Never hardcode passwords in tfvars files. Always retrieve them from Google Secret Manager (GSM) and pass as environment variables:
+```bash
+export TF_VAR_redis_auth_password=$(gcloud secrets versions access latest --secret=redis-password --project=nexusshield-prod)
+export TF_VAR_database_root_password=$(gcloud secrets versions access latest --secret=db-password --project=nexusshield-prod)
+terraform apply -var-file=environments/prod.tfvars
+```
 
 ### 3. Initialize Terraform
 
@@ -255,8 +262,8 @@ enable_wif                  = true
 enable_nat_gateway          = true
 
 # Secrets (REQUIRED, use sensitive = true)
-redis_auth_password         = ""  # Set before deploy
-database_root_password      = ""  # Set before deploy
+redis_auth_password         = ""  # Set from GSM: $(gcloud secrets versions access latest --secret=redis-password)
+database_root_password      = ""  # Set from GSM: $(gcloud secrets versions access latest --secret=db-password)
 ```
 
 ## 🔧 Deployment Scripts
