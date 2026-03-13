@@ -12,15 +12,12 @@ RUN npm install -g pnpm
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
 COPY packages/ ./packages/
 
-# Install dependencies and build packages
+# Install dependencies
 RUN if [ -f pnpm-lock.yaml ]; then \
 			pnpm install --no-frozen-lockfile || pnpm install --force; \
 		else \
 			pnpm install; \
 		fi
-
-# Build all packages to create dist artifacts
-RUN pnpm -r build || true
 
 # Stage 2: Runtime
 FROM node:18.18.0-alpine

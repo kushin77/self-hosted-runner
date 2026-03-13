@@ -11,7 +11,11 @@ services:
       NODE_ENV: production
       LOG_LEVEL: info
       PORT: 5000
-    command: pnpm --filter @nexus/api start
+    volumes:
+      - ../packages/api/src:/app/packages/api/src
+      - ../packages/core/src:/app/packages/core/src
+      - ../packages/api/package.json:/app/packages/api/package.json
+    command: pnpm --filter @nexus/api dev
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
@@ -28,10 +32,16 @@ services:
     env_file:
       - .env
     environment:
-      NODE_ENV: production
+      NODE_ENV: development
       VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_LOG_LEVEL: info
-    command: pnpm --filter @nexus/frontend preview
+      VITE_LOG_LEVEL: debug
+    volumes:
+      - ../packages/frontend/src:/app/packages/frontend/src
+      - ../packages/frontend/package.json:/app/packages/frontend/package.json
+      - ../packages/frontend/index.html:/app/packages/frontend/index.html
+      - ../packages/frontend/tsconfig.app.json:/app/packages/frontend/tsconfig.app.json
+      - ../packages/frontend/vite.config.ts:/app/packages/frontend/vite.config.ts
+    command: pnpm --filter @nexus/frontend dev --host
     depends_on:
       - portal-api
     restart: unless-stopped
