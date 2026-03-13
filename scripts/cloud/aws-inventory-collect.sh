@@ -54,6 +54,7 @@ success "Collected $S3_COUNT S3 buckets"
 # EC2 Instances (all regions)
 log "Collecting EC2 instances (all regions)..."
 aws ec2 describe-instances \
+  --region "$AWS_REGION" \
   --output json \
   > "$OUTPUT_DIR/aws-ec2-instances.json" || err "Failed to list EC2 instances"
 EC2_COUNT=$(jq '.Reservations[].Instances[]' "$OUTPUT_DIR/aws-ec2-instances.json" | jq -s 'length')
