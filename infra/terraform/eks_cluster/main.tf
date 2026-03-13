@@ -18,17 +18,12 @@ module "eks" {
   cluster_name    = var.cluster_name
   cluster_version = var.kubernetes_version
 
-  # Create a VPC when none provided to allow unattended provisioning.
-  create_vpc      = true
-  vpc_cidr        = "10.0.0.0/16"
+  # If `vpc_id`/`subnet_ids` are empty, the module will create networking by default.
+  vpc_id     = var.vpc_id
+  subnet_ids = var.subnet_ids
 
-  # VPC inputs: if operator prefers to inject an existing VPC, set vpc_id/subnet_ids
-  vpc_id          = var.vpc_id
-  subnet_ids      = var.subnet_ids
-
-  node_groups = var.node_groups
-
-  manage_aws_auth = true
+  # Create managed node groups via the module's supported variable
+  eks_managed_node_groups = var.eks_managed_node_groups
 
   tags = merge(var.tags, { "Name" = var.cluster_name })
 }

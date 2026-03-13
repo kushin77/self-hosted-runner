@@ -1,0 +1,7 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build','-t','gcr.io/$PROJECT_ID/milestone-organizer:$SHORT_SHA','-f','Dockerfile.milestone-organizer','.']
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push','gcr.io/$PROJECT_ID/milestone-organizer:$SHORT_SHA']
+images:
+- 'gcr.io/$PROJECT_ID/milestone-organizer:$SHORT_SHA'
