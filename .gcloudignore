@@ -1,0 +1,11 @@
+# ignore stale/missing file references
+scripts/utilities/undo_milestone_assignments.py
+
+# ignore build artifacts and logs
+.git*
+*.log
+/logs/
+/reports/
+node_modules/
+.venv/
+.venv_gfr/
