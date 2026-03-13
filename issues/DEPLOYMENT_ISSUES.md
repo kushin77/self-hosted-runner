@@ -2,13 +2,18 @@
 
 ## Issue #1: Phase 2+3 Finalization — Ready to Execute
 
-**Status:** 🟡 **READY TO EXECUTE** (await operator token injection)  
+**Status:** 🔴 **BLOCKED** (placeholder token detected in GSM)  
 **Priority:** CRITICAL (blocking full DNS promotion)  
 **Created:** 2026-03-13  
-**Updated:** 2026-03-13T13:08:00Z
+**Updated:** 2026-03-13T13:36:00Z
 
 ### Description
 Full DNS promotion (Phase 2) and stakeholder notifications (Phase 3) are ready to execute but require Cloudflare API token to be available in Google Secret Manager.
+
+### Latest Execution Attempt
+- `scripts/ops/finalize-deployment.sh` executed at 2026-03-13T13:35:09Z.
+- Result: blocked because `cloudflare-api-token` exists but contains `PLACEHOLDER_TOKEN_AWAITING_INPUT`.
+- Required action: replace secret value with a valid Cloudflare API token (Zone.DNS Edit).
 
 ### How to Resolve (5 Minutes)
 **Operator must inject Cloudflare API token using:**
@@ -46,7 +51,7 @@ Steps to obtain token:
 After Phase 2-3 execute, operator must validate production for 24 hours to ensure DNS cutover was successful.
 
 ### Validation Steps
-1. Monitor Grafana (http://192.168.168.42:3000) — watch error rates <0.1%
+1. Monitor Grafana (http://192.168.168.42:3001) — watch error rates <0.1%
 2. Query Prometheus: `curl -s 'http://192.168.168.42:9090/api/v1/query?query=up'`
 3. Check poller logs: `tail -f logs/cutover/poller.log`
 4. Test DNS: `nslookup nexusshield.io` (should point to 192.168.168.42)
