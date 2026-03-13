@@ -1,0 +1,34 @@
+# terraform/org_admin/terraform.tfvars.example
+# Copy this file to terraform.tfvars and populate with actual values before applying
+# DO NOT commit actual terraform.tfvars to version control
+
+# Your GCP project ID
+project_id = "nexusshield-prod"
+
+# GCP region for provider
+gcp_region = "us-central1"
+
+# Email of the production deployer service account
+# Format: serviceAccount:NAME@PROJECT.iam.gserviceaccount.com
+prod_deployer_sa_email = "prod-deployer-sa@nexusshield-prod.iam.gserviceaccount.com"
+
+# Cloud Build service account email
+# Run: gcloud projects describe PROJECT --format='value(projectNumber)' | xargs -I {} echo "{}@cloudbuild.gserviceaccount.com"
+cloud_build_sa_email = "PROJECTNUMBER@cloudbuild.gserviceaccount.com"
+
+# Backend service account email
+backend_sa_email = "backend-sa@nexusshield-prod.iam.gserviceaccount.com"
+
+# Frontend service account email
+frontend_sa_email = "frontend-sa@nexusshield-prod.iam.gserviceaccount.com"
+
+# Cloud Scheduler service account (if applicable)
+cloud_scheduler_sa_email = "cloud-scheduler-sa@nexusshield-prod.iam.gserviceaccount.com"
+
+# Milestone organizer service account (Pub/Sub publisher)
+milestone_sa_email = "milestone-organizer-sa@nexusshield-prod.iam.gserviceaccount.com"
+
+# KMS crypto key resource name for production
+# Run: gcloud kms keys list --location=us --keyring=KEYRING_NAME --project=PROJECT
+# Format: projects/PROJECT/locations/LOCATION/keyRings/KEYRING_NAME/cryptoKeys/KEY_NAME
+kms_crypto_key_resource_name = "projects/nexusshield-prod/locations/us/keyRings/prod-portal-keyring/cryptoKeys/prod-portal-secret-key"

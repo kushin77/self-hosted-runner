@@ -1,0 +1,17 @@
+{
+  "displayName": "NexusShield Portal Uptime Check",
+  "monitoredResource": {
+    "type": "uptime_url",
+    "labels": {
+      "host": "nexusshield-portal-backend-production-2tqp6t4txq-uc.a.run.app"
+    }
+  },
+  "httpCheck": {
+    "path": "/health",
+    "port": 443,
+    "useSsl": true,
+    "requestMethod": "GET"
+  },
+  "period": "60s",
+  "timeout": "10s"
+}

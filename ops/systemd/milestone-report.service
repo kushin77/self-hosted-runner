@@ -1,0 +1,15 @@
+[Unit]
+Description=Milestone Organizer Report (oneshot)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/home/akushnir/self-hosted-runner
+Environment=PYTHON=python3
+ExecStart=/home/akushnir/self-hosted-runner/scripts/monitoring/run_report_pipeline.sh
+Nice=10
+
+[Install]
+WantedBy=multi-user.target
