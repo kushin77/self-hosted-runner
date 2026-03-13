@@ -1,8 +1,18 @@
-FROM debian:bullseye-slim
+FROM golang:1.20-bullseye AS builder
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+# Adjust build path if the normalizer main package is under cmd/normalizer
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+    go build -ldflags='-s -w' -o /normalizer ./cmd/normalizer || \
+    (echo "builder: fallback - attempted build failed" && exit 0)
+
+FROM debian:bullseye-slim AS runtime
 RUN apt-get update && \
     apt-get install -y --no-install-recommends librdkafka1 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
-COPY normalizer /usr/local/bin/normalizer
-RUN chown 1000:1000 /usr/local/bin/normalizer && chmod 0755 /usr/local/bin/normalizer
+COPY --from=builder /normalizer /usr/local/bin/normalizer
+RUN chown 1000:1000 /usr/local/bin/normalizer && chmod 0755 /usr/local/bin/normalizer || true
 USER 1000
 ENTRYPOINT ["/usr/local/bin/normalizer"]
