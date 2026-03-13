@@ -177,16 +177,29 @@ CLASSIFICATION_FILE=$(mktemp /tmp/classification_XXXX.json)
 echo "$CLASSIFICATION_JSON" > "$CLASSIFICATION_FILE"
 trap "rm -f $CLASSIFICATION_FILE" EXIT
 
-ASSIGN_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/assign_milestones.py"
+ASSIGN_SCRIPT_SEQ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/assign_milestones.py"
+ASSIGN_SCRIPT_BATCH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/assign_milestones_batch.py"
 
-if [ ! -x "$ASSIGN_SCRIPT" ]; then
-  chmod +x "$ASSIGN_SCRIPT"
-fi
-
-if python3 "$ASSIGN_SCRIPT" "$CLASSIFICATION_FILE" "$REPO" --failure-threshold=$FAILURE_THRESHOLD; then
-  APPLY_EXIT_CODE=0
+if [ "${BATCH_ASSIGN:-0}" = "1" ] && [ -f "$ASSIGN_SCRIPT_BATCH" ]; then
+  if [ ! -x "$ASSIGN_SCRIPT_BATCH" ]; then
+    chmod +x "$ASSIGN_SCRIPT_BATCH"
+  fi
+  echo "Using GraphQL batch assigner"
+  if python3 "$ASSIGN_SCRIPT_BATCH" "$CLASSIFICATION_FILE" "$REPO" --batch-size=20; then
+    APPLY_EXIT_CODE=0
+  else
+    APPLY_EXIT_CODE=$?
+  fi
 else
-  APPLY_EXIT_CODE=$?
+  if [ ! -x "$ASSIGN_SCRIPT_SEQ" ]; then
+    chmod +x "$ASSIGN_SCRIPT_SEQ"
+  fi
+  echo "Using sequential assigner"
+  if python3 "$ASSIGN_SCRIPT_SEQ" "$CLASSIFICATION_FILE" "$REPO" --failure-threshold=$FAILURE_THRESHOLD; then
+    APPLY_EXIT_CODE=0
+  else
+    APPLY_EXIT_CODE=$?
+  fi
 fi
 
 exit $APPLY_EXIT_CODE
