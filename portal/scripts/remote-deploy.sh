@@ -70,7 +70,16 @@ fi
   "${COMPOSE_CMD[@]}" ps
   shred -u "$TMP_ENV" || rm -f "$TMP_ENV"
 else
-  echo "No secrets fetched to $TMP_ENV; running docker compose without env-file (will use defaults)." >&2
+  echo "No secrets fetched to $TMP_ENV; preparing a default .env on remote to satisfy compose env_file entries." >&2
+  # Ensure a .env exists on remote (compose may require it if referenced by env_file)
+  if [[ -f .env.production ]]; then
+    cp .env.production .env || true
+  elif [[ -f .env.example ]]; then
+    cp .env.example .env || true
+  else
+    : > .env
+  fi
+  chmod 600 .env || true
   if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD=(docker compose)
   else
