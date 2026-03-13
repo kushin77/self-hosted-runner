@@ -140,7 +140,7 @@ echo "=== Classifying issues ==="
 TMP=$(mktemp /tmp/organize_milestones_XXXX.json)
 trap "rm -f $TMP" EXIT
 
-gh issue list --state "$ISSUE_STATE" --limit 1000 --json number,title,body,labels,milestone > "$TMP" || {
+gh issue list --repo="$REPO" --state "$ISSUE_STATE" --limit 1000 --json number,title,body,labels,milestone > "$TMP" || {
   echo "ERROR: Failed to fetch issues"
   exit 1
 }
@@ -148,18 +148,39 @@ gh issue list --state "$ISSUE_STATE" --limit 1000 --json number,title,body,label
 ISSUE_COUNT=$(jq 'length' "$TMP")
 echo "Fetched $ISSUE_COUNT issues"
 
-# Run heuristic classifier
+# Run heuristic classifier with robust logging (capture stdout/stderr)
 if [ ! -x "$HEURISTIC_SCRIPT" ]; then
   chmod +x "$HEURISTIC_SCRIPT"
 fi
 
-CLASSIFICATION_JSON=$(cat "$TMP" | "$HEURISTIC_SCRIPT" classify --"min-score=${MIN_SCORE}" 2>/dev/null || echo '{}')
+CLASS_OUT=$(mktemp /tmp/classifier_out_XXXX.json)
+CLASS_ERR=$(mktemp /tmp/classifier_err_XXXX.log)
 
-echo "Classification complete"
+if cat "$TMP" | "$HEURISTIC_SCRIPT" classify --"min-score=${MIN_SCORE}" > "$CLASS_OUT" 2> "$CLASS_ERR"; then
+  CLASSIFICATION_JSON=$(cat "$CLASS_OUT" || echo '{}')
+  echo "Classification complete (classifier exit 0)"
+else
+  echo "WARNING: Classifier exited non-zero. See stderr below:" >&2
+  sed -n '1,200p' "$CLASS_ERR" >&2 || true
+  CLASSIFICATION_JSON='{}'
+fi
+
+echo "--- Classifier stdout (first 200 lines) ---"
+sed -n '1,200p' "$CLASS_OUT" || true
+echo "--- End classifier stdout ---"
+
+echo "--- Classifier stderr (first 200 lines) ---" >&2
+sed -n '1,200p' "$CLASS_ERR" >&2 || true
+echo "--- End classifier stderr ---" >&2
+
+# Try to summarise classifier output counts
 echo "$CLASSIFICATION_JSON" | jq 'with_entries(select(.value | length > 0)) | to_entries[] | "\(.key): \(.value | length)"' 2>/dev/null || echo "Heuristic output unavailable"
 
 # Export for subprocess
 export CLASSIFICATION_JSON
+
+# Clean temp files (keep for debugging if needed)
+rm -f "$CLASS_OUT" "$CLASS_ERR" || true
 
 # Persist classification to artifacts dir if available for reporting
 if [[ -n "${ARTIFACT_DIR:-}" ]]; then

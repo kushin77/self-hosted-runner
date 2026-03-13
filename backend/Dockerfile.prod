@@ -5,13 +5,13 @@ ARG NODE_VERSION=20
 ARG BUILD_ENV=production
 ARG PORT=8080
 
-FROM node@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS builder
+FROM node:${NODE_VERSION}-slim AS builder
 WORKDIR /build
 
 # Copy package files and install
 COPY package*.json ./
 COPY package-lock.json ./
-RUN apk add --no-cache bash libc6-compat openssl ca-certificates curl && \
+RUN apt-get update && apt-get install -y --no-install-recommends bash ca-certificates && \
     if [ -f package-lock.json ]; then \
       npm ci --silent; \
     else \

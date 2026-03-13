@@ -134,11 +134,13 @@ resource "google_project_iam_member" "secretmanager_accessor_frontend" {
 # Example: grant `secretAccessor` to the backend service account for a single
 # secret named `my-backend-secret`. Replace `my-backend-secret` with the
 # actual secret id in your project.
-resource "google_secret_manager_secret_iam_member" "backend_secret_accessor" {
-  secret_id = "projects/${var.project_id}/secrets/my-backend-secret"
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.backend_sa_email}"
-}
+# COMMENTED OUT: Backend already has project-level secret accessor role.
+# Uncomment and update secret_id to apply this for a specific secret.
+# resource "google_secret_manager_secret_iam_member" "backend_secret_accessor" {
+#   secret_id = "projects/${var.project_id}/secrets/my-backend-secret"
+#   role      = "roles/secretmanager.secretAccessor"
+#   member    = "serviceAccount:${var.backend_sa_email}"
+# }
 
 # Example: if you prefer referencing an existing secret resource created in
 # Terraform, use the secret resource reference instead of the string path:

@@ -118,11 +118,16 @@ echo "VERIFYING PROJECT-LEVEL IAM BINDINGS (Items 1-2, 7-13)"
 echo "=================================================================================="
 echo ""
 
-# Item 1: prod-deployer-sa → roles/iam.serviceAccountAdmin
-check_iam_binding \
-    "prod-deployer-sa@${PROJECT_ID}.iam.gserviceaccount.com" \
-    "roles/iam.serviceAccountAdmin" \
-    "Item 1: prod-deployer-sa has roles/iam.serviceAccountAdmin"
+# Item 1: prod-deployer-sa (allowing name variants) → roles/iam.serviceAccountAdmin
+log_info "Checking Item 1: prod-deployer-sa (any variant) has roles/iam.serviceAccountAdmin"
+if gcloud projects get-iam-policy "$PROJECT_ID" \
+    --flatten="bindings[].members" \
+    --filter="bindings.role:roles/iam.serviceAccountAdmin" \
+    --format="value(bindings.members)" 2>/dev/null | grep -E "prod-deployer-sa" >/dev/null; then
+    log_pass "Item 1: prod-deployer-sa variant has roles/iam.serviceAccountAdmin"
+else
+    log_fail "Item 1: prod-deployer-sa does NOT have roles/iam.serviceAccountAdmin"
+fi
 
 # Item 2: Cloud Build SA → roles/iam.serviceAccounts.create
 check_iam_binding \

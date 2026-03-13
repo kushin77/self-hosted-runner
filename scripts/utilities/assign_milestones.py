@@ -41,7 +41,7 @@ def assign_issues(classification: Dict, repo: str, failure_threshold: int = 10) 
             
             # Attempt assignment
             result = subprocess.run(
-                ['gh', 'issue', 'edit', str(issue_num), '--milestone', milestone_name],
+                ['gh', 'issue', 'edit', str(issue_num), '--repo', repo, '--milestone', milestone_name],
                 capture_output=True, text=True
             )
             

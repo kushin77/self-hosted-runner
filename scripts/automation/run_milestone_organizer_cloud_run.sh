@@ -4,6 +4,17 @@ set -euo pipefail
 
 echo "🚀 Milestone Organizer Cloud Run Startup ($(date -u +'%Y-%m-%dT%H:%M:%SZ'))"
 
+# Ensure we're in the app directory and git repo is initialized
+cd /app
+if [[ ! -d .git ]]; then
+  echo "Initializing git repository..."
+  git init . >/dev/null 2>&1 || true
+  git config user.email "organizer@nexusshield.com" 2>/dev/null || true
+  git config user.name "Milestone Organizer" 2>/dev/null || true
+  # Add remote for pushes (even if we don't use it, gh needs it)
+  git remote add origin https://github.com/kushin77/self-hosted-runner.git >/dev/null 2>&1 || true
+fi
+
 # Start metrics server in background (listens on 8080)
 echo "📊 Starting metrics server on port 8080..."
 python3 /app/scripts/monitoring/metrics_server.py &
@@ -16,7 +27,7 @@ export AWS_REGION="${AWS_REGION:-us-west-2}"
 
 # Run organizer once on startup
 echo "🎯 Running milestone organizer on startup..."
-/bin/bash /app/scripts/automation/run_milestone_organizer_v2.sh || {
+cd /app && /bin/bash /app/scripts/automation/run_milestone_organizer_v2.sh || {
   echo "⚠️  First run failed, but continuing..."
 }
 
