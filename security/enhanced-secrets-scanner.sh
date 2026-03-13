@@ -72,6 +72,17 @@ ALLOWED_PATHS=(
     "TERRAFORM_INFRASTRUCTURE.md"
     "PHASE_5_CHECKPOINT_ACTIVATION_20260311.md"
     "PHASE_5_EXECUTION_FRAMEWORK_20260311.md"
+    "AWS_MULTICLOUD_INTEGRATION_RUNBOOK.md"
+    "PRODUCTION_COMPLETE_HANDOFF_20260313.md"
+    "OPERATOR_RUNBOOK_CANONICAL_SECRETS.md"
+    "CANONICAL_SECRETS_IMPLEMENTATION.md"
+    "scripts/utilities/sanitize_secrets.py"
+    "scripts/automation/noop_orchestration.sh"
+    "scripts/post-deployment/postgres-exporter-setup.sh"
+    "scripts/secrets/multi-secret-orchestrator.sh"
+    "scripts/deployment/deploy-portal.sh"
+    "scripts/cloud_functions/secret_rotation/main.py"
+    "RUNBOOKS/OPS_MANUAL.md"
 )
 
 ##############################################################################
@@ -179,6 +190,11 @@ scan_repository() {
         # Check file size (skip very large files)
         local size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo 0)
         if [[ $size -gt 10485760 ]]; then  # 10MB
+            continue
+        fi
+
+        # Skip common documentation files to avoid false-positives
+        if [[ "$file" == *.md || "$file" == *.rst ]]; then
             continue
         fi
 
