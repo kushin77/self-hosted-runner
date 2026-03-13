@@ -70,7 +70,7 @@ ALLOWED_PATHS=(
     "DAY1_POSTGRESQL_EXECUTION_PLAN.md"
     "TERRAFORM_INFRASTRUCTURE.md"
     "PHASE_5_CHECKPOINT_ACTIVATION_20260311.md"
-    "backend/README.md"
+    "PHASE_5_EXECUTION_FRAMEWORK_20260311.md"
 )
 
 ##############################################################################
