@@ -1,0 +1,7 @@
+steps:
+- name: "gcr.io/cloud-builders/gcloud"
+  entrypoint: "bash"
+  args: ["-c", "./scripts/ops/run_smoke.sh"]
+
+options:
+  logging: CLOUD_LOGGING_ONLY
