@@ -43,7 +43,7 @@ spec:
           containers:
             - name: organizer
               # Use hardened runner image built and pushed to GCR/registry
-              image: gcr.io/PROJECT_ID/milestone-organizer-runner:SHORT_SHA
+              image: gcr.io/nexusshield-prod/milestone-organizer-runner:b2820b8e6
               command: ["/bin/sh","-c"]
               args:
                 - |
