@@ -96,3 +96,20 @@ if [[ -x "$SMOKE_CHECK_SCRIPT" ]]; then
 else
   echo "Smoke-check script not found or not executable: $SMOKE_CHECK_SCRIPT" >&2
 fi
+
+# Zeroize any persistent env files on the worker unless KEEP_ENV is set locally
+if [[ -z "${KEEP_ENV:-}" ]]; then
+  echo "Removing persistent env files on remote worker for immutability hygiene"
+  ssh "$WORKER" bash -s <<'ZERO'
+set -euo pipefail
+cd ~/self-hosted-runner/portal/docker
+for f in .env .env.production; do
+  if [[ -f "$f" ]]; then
+    shred -u "$f" 2>/dev/null || rm -f "$f"
+  fi
+done
+ZERO
+  echo "Persistent env files removed on worker"
+else
+  echo "KEEP_ENV set; skipping remote env file removal"
+fi
