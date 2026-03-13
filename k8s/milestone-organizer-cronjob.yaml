@@ -42,7 +42,7 @@ spec:
                 - name: workspace
                   mountPath: /workspace
                 - name: gh-secret
-                  mountPath: /var/run/gh
+                  mountPath: /var/run/secrets
           containers:
             - name: organizer
               # Use hardened runner image built and pushed to GCR/registry
@@ -71,12 +71,15 @@ spec:
                 - name: workspace
                   mountPath: /workspace
                 - name: gh-secret
-                  mountPath: /var/run/gh
+                  mountPath: /var/run/secrets
           # Enforce pod and container security context
+          # Running as root temporarily to allow in-pod package installs and
+          # image pulls during bootstrap. Replace with non-root and least
+          # privilege settings after provider and image registry access are
+          # confirmed.
           securityContext:
-            runAsNonRoot: true
-            runAsUser: 1000
-            fsGroup: 1000
+            runAsUser: 0
+            fsGroup: 0
           volumes:
             - name: workspace
               emptyDir: {}
