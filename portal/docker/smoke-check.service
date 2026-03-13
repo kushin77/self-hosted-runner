@@ -1,0 +1,13 @@
+[Unit]
+Description=Portal smoke-check service
+After=network.target
+
+[Service]
+Type=oneshot
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner/portal/docker
+ExecStart=/bin/bash -c './smoke-check.sh 127.0.0.1 || (./alert-on-failure.sh "Portal smoke-check failed on $(hostname)" && exit 1)'
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target
