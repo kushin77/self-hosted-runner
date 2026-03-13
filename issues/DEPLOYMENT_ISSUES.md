@@ -40,3 +40,12 @@
 - ✅ GSM/Vault/KMS: Primary creds from GSM. Note: `cloudflare-api-token` present; `slack-webhook` currently placeholder and requires operator update.
 - ✅ Direct Deployment: No GitHub Actions used; direct script execution
 - ✅ No GitHub Releases: No PR-based deployments; direct commit to main
+
+## Governance Hardening Update (2026-03-13)
+- ✅ Disabled GitHub Actions workflow file to enforce no-actions policy (`.github/workflows/deploy-normalizer-cronjob.yml.disabled`).
+- ✅ Corrected ops script repository-root pathing for deterministic logs/PIDs/markers under repo root.
+- ✅ Re-launched automation in dedicated background terminals for stable hands-off operation:
+	- `scripts/ops/poll-dns-propagation.sh`
+	- `scripts/ops/auto-retry-notifications.sh`
+	- `scripts/ops/phase4-monitor.sh`
+	- `scripts/ops/watch-auto-close.sh`

@@ -2,7 +2,7 @@
 # Retry Slack notifications idempotently
 set -e
 PROJECT_ID="nexusshield-prod"
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG="$REPO_ROOT/logs/cutover/notifications.log"
 mkdir -p "$(dirname "$LOG")"
 

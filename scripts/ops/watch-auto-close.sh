@@ -1,15 +1,25 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 POLL_LOG="$REPO_ROOT/logs/cutover/poller.log"
 OUT_LOG="$REPO_ROOT/logs/cutover/auto-close-watch.log"
 PID_DIR="$REPO_ROOT/run"
+LOCK_FILE="$PID_DIR/auto-close-watch.lock"
 
 mkdir -p "$(dirname "$OUT_LOG")" "$PID_DIR"
+
+# Enforce singleton execution for idempotent hands-off behavior.
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Auto-close watcher already running; exiting." >> "$OUT_LOG"
+  exit 0
+fi
+
+echo $$ > "$PID_DIR/auto-close-watch.pid"
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Auto-close watcher started" >> "$OUT_LOG"
 
-tail -F "$POLL_LOG" | while read -r line; do
+tail -Fn0 "$POLL_LOG" | while read -r line; do
   echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] $line" >> "$OUT_LOG"
   if echo "$line" | grep -q -E "DNS propagation observed|Closing Issue #1"; then
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Auto-close event detected: $line" >> "$OUT_LOG"

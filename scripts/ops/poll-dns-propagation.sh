@@ -1,7 +1,7 @@
 #!/bin/bash
 # Poll DNS propagation for nexusshield.io and close issue when target seen
 set -e
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARGET_IP="192.168.168.42"
 CHECK_DOMAIN="nexusshield.io"
 LOG="$REPO_ROOT/logs/cutover/poller.log"

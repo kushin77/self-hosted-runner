@@ -2,7 +2,7 @@
 # Watch GSM for slack-webhook secret and run retry-notifications.sh when available
 set -e
 PROJECT_ID="nexusshield-prod"
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG="$REPO_ROOT/logs/cutover/auto-retry-notifications.log"
 mkdir -p "$(dirname "$LOG")"
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOG="$REPO_ROOT/logs/cutover/phase4.log"
 PID_DIR="$REPO_ROOT/run"
 PROM_URL="http://192.168.168.42:9090"
