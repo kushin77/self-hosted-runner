@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cost-tracking-monitor
+  namespace: ops
+  labels:
+    app: cost-monitor
+    component: monitoring
+spec:
+  schedule: "0 6 * * *"  # Daily at 6 AM UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: cost-monitor-sa
+          containers:
+          - name: cost-tracker
+            image: gcr.io/nexusshield-prod/cost-tracker:latest
+            env:
+            - name: GCP_PROJECT_ID
+              value: "nexusshield-prod"
+            - name: AWS_REGION
+              value: "us-east-1"
+            # Use GSM secret names; the container will fetch values at runtime via GSM
+            - name: GSM_SLACK_SECRET
+              value: "slack-webhook"
+            - name: GSM_AWS_CREDENTIALS_SECRET
+              value: "aws-credentials"
+            volumeMounts:
+            - name: gcp-service-account
+              mountPath: /tmp
+              readOnly: true
+            - name: reports-volume
+              mountPath: /reports
+          volumes:
+          - name: gcp-service-account
+            secret:
+              secretName: gcp-service-account
+          - name: reports-volume
+            persistentVolumeClaim:
+              claimName: cost-reports-pvc
+          restartPolicy: OnFailure
+      backoffLimit: 3
