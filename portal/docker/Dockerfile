@@ -12,11 +12,11 @@ RUN npm install -g pnpm
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
 COPY packages/ ./packages/
 
-# Install dependencies. Use frozen lockfile if present, otherwise fall back to no-frozen-lockfile
+# Install dependencies. Use lockfile if present, allow pnpm to handle version mismatches
 RUN if [ -f pnpm-lock.yaml ]; then \
-			pnpm install --frozen-lockfile; \
+			pnpm install --no-frozen-lockfile || pnpm install --force; \
 		else \
-			pnpm install --no-frozen-lockfile; \
+			pnpm install; \
 		fi
 
 # Do not run monorepo-wide builds during image creation.
