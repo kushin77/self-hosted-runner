@@ -1,24 +1,10 @@
-# Direct Deployment (Cloud Build) - No GitHub Actions
+(Updated) Add a smoke verification step using `cloudbuild.smoke.yaml`.
 
-This repository uses direct deployment via Google Cloud Build. GitHub Actions and GitHub pull-based releases are not used.
-
-Principles
-- Immutable artifacts and idempotent infrastructure (Terraform with remote state)
-- Secrets: Google Secret Manager (GSM) and Vault + KMS for encryption
-- Single outbound agent for data-plane operations
-- Fully automated: Cloud Build triggers, no manual server-side steps
-
-Quick deploy (local):
+After Phase0 resources are applied and Cloud Build integration is configured, trigger the smoke build:
 
 ```bash
-# trigger default build
-scripts/ops/deploy_cloudbuild.sh --project nexusshield-prod --config cloudbuild.nexus-phase0.yaml
+# Trigger the smoke build manually
+gcloud builds submit --config=cloudbuild.smoke.yaml . --project=PROJECT_ID
 ```
 
-Security
-- All secrets referenced by Cloud Build must be read from GSM or Vault via KMS.
-- No plaintext secrets in repo or CI.
-
-Operator notes
-- Ensure Cloud Build service account has access to GSM secrets and KMS decrypt.
-- Configure Cloud Build triggers in the GCP console or via `gcloud beta builds triggers create`.
+Or create a Cloud Build trigger that points at `cloudbuild.smoke.yaml` for one-off verification runs.
