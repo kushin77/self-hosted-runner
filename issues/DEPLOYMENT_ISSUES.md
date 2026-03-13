@@ -1,18 +1,24 @@
 # Deployment Issues Tracker
 
 ## Issue #1: DNS Cutover Phase 2+3 (Closed ✅)
-**Status:** CLOSED - 2026-03-13T13:10:00Z
+**Status:** CLOSED - 2026-03-13T13:49:44Z
 - Phase 1 (Canary): ✅ Complete
 - Phase 2 (Full Promotion): ✅ Complete
-- Phase 3 (Notifications): ✅ Complete
+- Phase 3 (Notifications): ✅ Complete (notification attempted; see Issue #2)
 - Target: 192.168.168.42 on-prem
-- Logs: logs/cutover/execution_full_2026*.log
+- Logs: logs/cutover/execution_full_20260313T134942Z.log
+- Post-run: Phase 4 (24h validation) active — monitor Grafana/Prometheus
 
-## Issue #2: Slack Webhook Configuration (Optional)
-**Status:** OPTIONAL - Webhook available, notifications sent
-- Current: Placeholder in GSM
-- Status: Successfully sent via GSM webhook
-- Action: None required (working)
+## Issue #2: Slack Webhook Configuration (Operational)
+**Status:** ACTION REQUIRED - Webhook unreachable during Phase 3
+- Current: `slack-webhook` in GSM present but delivery attempts failed during finalization
+- Evidence: `logs/cutover/execution_full_20260313T134942Z.log` contains `Slack notification delivery failed (webhook unreachable)` entries
+- Impact: Non-blocking for DNS cutover; reduces operator alerting
+- Recommended Action:
+	1. Verify `slack-webhook` secret in GSM and re-inject if placeholder or invalid.
+	2. From runner, test webhook egress: `curl -sS -X POST -H 'Content-type: application/json' --data '{"text":"test"}' $(gcloud secrets versions access latest --secret=slack-webhook --project=nexusshield-prod)`
+	3. Re-run idempotent notifications step: `bash scripts/ops/retry-notifications.sh` (non-destructive)
+	4. Consider alternate notification channels if Slack remains unreachable.
 
 ## Issue #3: AWS Credentials (Optional)
 **Status:** OPTIONAL - Route53 fallback available but not configured
