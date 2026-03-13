@@ -21,9 +21,9 @@ PASSED_CHECKS=0
 FAILED_CHECKS=0
 
 log() { echo -e "${BLUE}[VERIFY]${NC} $*"; }
-pass() { echo -e "${GREEN}[✓]${NC} $*"; ((PASSED_CHECKS++)); }
-fail() { echo -e "${RED}[✗]${NC} $*"; ((FAILED_CHECKS++)); }
-count() { ((TOTAL_CHECKS++)); }
+pass() { echo -e "${GREEN}[✓]${NC} $*"; ((PASSED_CHECKS+=1)); }
+fail() { echo -e "${RED}[✗]${NC} $*"; ((FAILED_CHECKS+=1)); }
+count() { ((TOTAL_CHECKS+=1)); }
 
 ##############################################################################
 # VERIFICATION CHECKS

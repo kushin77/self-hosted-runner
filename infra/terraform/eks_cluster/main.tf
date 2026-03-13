@@ -2,7 +2,9 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 4.0"
+        # Allow provider versions compatible with the EKS module and existing lockfile
+        # (accept 4.x and 6.x releases but prevent major-7 jumps)
+        version = ">= 4.33.0, < 7.0"
     }
   }
 }
