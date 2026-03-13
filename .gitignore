@@ -78,6 +78,9 @@ id_ed25519*
 # Runner keys (local self-hosted runner private keys)
 .runner-keys/
 
+# Explicitly ignore signing key moved to GSM
+signing_key.pem
+
 # Runtime artifacts & logs (never commit)
 logs/
 artifacts/
