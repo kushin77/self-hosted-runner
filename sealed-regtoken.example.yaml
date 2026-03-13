@@ -1,7 +1,0 @@
-apiVersion: v1
-data:
-  registrationToken: RVhBTVBMRV9UT0tFTg==
-kind: Secret
-metadata:
-  name: gitlab-runner-regtoken
-  namespace: gitlab-runner
