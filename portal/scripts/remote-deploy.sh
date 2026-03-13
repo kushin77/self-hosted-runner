@@ -73,3 +73,26 @@ fi
 SSHEND
 
 echo "Remote deploy finished. Run ./portal/docker/smoke-check.sh <worker-host> locally to verify." 
+
+# Automated smoke-check and audit logging
+HOST_ONLY=$(echo "$WORKER" | cut -d@ -f2)
+REPO_ROOT=$(dirname "$(cd "$LOCAL_DIR" && pwd)/..")
+SMOKE_CHECK_SCRIPT="$LOCAL_DIR/../portal/docker/smoke-check.sh"
+
+if [[ -x "$SMOKE_CHECK_SCRIPT" ]]; then
+  echo "Running smoke-check against $HOST_ONLY"
+  if "$SMOKE_CHECK_SCRIPT" "$HOST_ONLY"; then
+    TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    printf '%s\n' "{ \"timestamp\": \"$TS\", \"action\": \"deploy\", \"service\": \"portal\", \"host\": \"$HOST_ONLY\", \"status\": \"success\", \"actor\": \"automation-agent\" }" >> "$REPO_ROOT/audit-trail.jsonl"
+    (cd "$REPO_ROOT" && git add audit-trail.jsonl && git commit -m "audit: portal deploy to $HOST_ONLY - success" || true && git push || true)
+    echo "Smoke-check passed and audit recorded."
+  else
+    TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    printf '%s\n' "{ \"timestamp\": \"$TS\", \"action\": \"deploy\", \"service\": \"portal\", \"host\": \"$HOST_ONLY\", \"status\": \"failure\", \"actor\": \"automation-agent\" }" >> "$REPO_ROOT/audit-trail.jsonl"
+    (cd "$REPO_ROOT" && git add audit-trail.jsonl && git commit -m "audit: portal deploy to $HOST_ONLY - failure" || true && git push || true)
+    echo "Smoke-check FAILED; audit recorded." >&2
+    exit 2
+  fi
+else
+  echo "Smoke-check script not found or not executable: $SMOKE_CHECK_SCRIPT" >&2
+fi
