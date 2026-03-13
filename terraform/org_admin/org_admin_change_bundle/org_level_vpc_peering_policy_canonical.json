@@ -1,0 +1,9 @@
+{
+  "constraint": "constraints/compute.restrictVpcPeering",
+  "listPolicy": {
+    "inheritFromParent": false,
+    "allowedValues": [
+      "//cloudresourcemanager.googleapis.com/projects/151423364222"
+    ]
+  }
+}

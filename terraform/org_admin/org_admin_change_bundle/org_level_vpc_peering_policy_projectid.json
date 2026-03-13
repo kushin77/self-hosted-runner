@@ -1,0 +1,9 @@
+{
+  "constraint": "constraints/compute.restrictVpcPeering",
+  "listPolicy": {
+    "inheritFromParent": false,
+    "allowedValues": [
+      "projects/nexusshield-prod"
+    ]
+  }
+}

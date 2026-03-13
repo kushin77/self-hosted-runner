@@ -1,0 +1,9 @@
+{
+  "constraint": "constraints/compute.restrictVpcPeering",
+  "listPolicy": {
+    "inheritFromParent": false,
+    "allowedValues": [
+      "in:projects/151423364222"
+    ]
+  }
+}

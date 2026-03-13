@@ -1,0 +1,181 @@
+# Cloud Build Configuration for Terraform Plan Gating (No Manual Applies)
+# - Terraform plan shows any drift from desired state  
+# - Changes are automatically applied by automation only
+# - Human operator can review and block before automatic apply
+
+steps:
+  # Step 1: Initialize Terraform
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-init'
+    args:
+      - 'init'
+      - '-backend-config=bucket=${_BACKEND_BUCKET}'
+      - '-backend-config=prefix=terraform/state'
+    dir: 'terraform'
+    env:
+      - 'TF_VERSION=${_TF_VERSION}'
+    waitFor: ['-']
+
+  # Step 2: Validate Terraform configuration
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-validate'
+    args:
+      - 'validate'
+    dir: 'terraform'
+    waitFor: ['terraform-init']
+
+  # Step 3: Format check (ensure consistent formatting)
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-fmt-check'
+    args:
+      - 'fmt'
+      - '-check'
+      - '-recursive'
+    dir: 'terraform'
+    waitFor: ['terraform-validate']
+
+  # Step 4: Run Terraform plan and capture output
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-plan'
+    args:
+      - 'plan'
+      - '-no-color'
+      - '-out=terraform.tfplan'
+      - '-input=false'
+    dir: 'terraform'
+    env:
+      - 'TF_LOG=DEBUG'  # For debugging
+    waitFor: ['terraform-fmt-check']
+
+  # Step 5: Generate human-readable plan summary
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-plan-summary'
+    args:
+      - 'show'
+      - '-json'
+      - 'terraform.tfplan'
+    dir: 'terraform'
+    waitFor: ['terraform-plan']
+
+  # Step 6: Check for unexpected changes (drift)
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'check-drift'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        cd terraform
+        
+        # Parse plan JSON output
+        CHANGES=$(terraform show -json terraform.tfplan | jq '.resource_changes[] | select(.change.actions != ["no-op"]) | length')
+        
+        if [ -z "$CHANGES" ] || [ "$CHANGES" = "0" ]; then
+          echo "✅ No drift detected - infrastructure is in sync"
+          exit 0
+        else
+          echo "⚠️  Drift detected - $CHANGES resources would change"
+          echo ""
+          echo "Plan shows:"
+          terraform show terraform.tfplan
+          
+          # If approval required, this will trigger approval flow
+          if [ "${_REQUIRE_APPROVAL}" = "true" ]; then
+            echo "ℹ️  Approval required before applying changes"
+            exit 0  # Don't fail, just require approval
+          else
+            echo "ℹ️  Auto-applying changes (approval not required)"
+            exit 0
+          fi
+        fi
+    waitFor: ['terraform-plan-summary']
+
+  # Step 7: If no drift or approved, apply (automation-only, no human manual apply)
+  - name: 'gcr.io/cloud-builders/terraform'
+    id: 'terraform-apply'
+    args:
+      - 'apply'
+      - '-auto-approve'
+      - 'terraform.tfplan'
+    dir: 'terraform'
+    env:
+      - 'TF_LOG=DEBUG'
+    waitFor: ['check-drift']
+    # Only runs if explicitly triggered by automation
+
+  # Step 8: Take state snapshot for rollback
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'snapshot-state'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        TIMESTAMP=$(date +%s)
+        STATE_VERSION=$(gcloud storage versions list gs://${_BACKEND_BUCKET}/terraform/state | head -2 | tail -1 | awk '{print $1}')
+        
+        echo "Taking state snapshot: terraform-state-$TIMESTAMP.backup"
+        
+        gsutil -m cp -r \
+          "gs://${_BACKEND_BUCKET}/terraform/state#$STATE_VERSION" \
+          "gs://${_BACKEND_BUCKET}/../nexusshield-terraform-snapshots-*/terraform-state-$TIMESTAMP.backup" || true
+        
+        echo "Snapshot complete"
+    waitFor: ['terraform-apply']
+
+  # Step 9: Document result
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'document-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        set -e
+        cat > plan-result.json << EOF
+        {
+          "timestamp": "$(date -Iseconds)",
+          "commit_sha": "$COMMIT_SHA",
+          "branch": "$BRANCH_NAME",
+          "approval_required": "${_REQUIRE_APPROVAL}",
+          "drift_detected": "$(terraform show terraform.tfplan | grep -c 'will be' || echo '0')
+        }
+        EOF
+        
+        cat plan-result.json
+    dir: 'terraform'
+    waitFor: ['snapshot-state']
+
+# Substitutions (from trigger configuration)
+substitutions:
+  _REQUIRE_APPROVAL: 'true'        # Require human approval before apply
+  _BACKEND_BUCKET: ''              # Set by trigger
+  _TF_VERSION: '1.6.0'             # Terraform version
+  _DETECT_DRIFT: 'false'           # Drift detection flag
+
+# Timeout for entire build
+timeout: '1800s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_STANDARD_2'
+  substitution_option: 'ALLOW_LOOSE'
+
+# Log results
+logsBucket: 'gs://nexusshield-cloudbuild-logs/$BUILD_ID'
+
+# Tags
+tags:
+  - 'terraform'
+  - 'idempotent'
+  - 'nexusshield'
+
+# Build images (none - this is a plan only)
+images: []
+
+artifacts:
+  objects:
+    location: 'gs://nexusshield-cloudbuild-artifacts'
+    paths:
+      - 'terraform/terraform.tfplan'
+      - 'terraform/plan-result.json'

@@ -1,0 +1,101 @@
+# JSDoc validation for Cloud Build CI/CD pipeline
+# Runs on every commit to ensure all functions are documented
+
+steps:
+  # Install dependencies
+  - name: 'node:18'
+    id: install-deps
+    entrypoint: npm
+    args: ['install']
+    waitFor: ['-']
+
+  # Generate JSDoc
+  - name: 'node:18'
+    id: generate-docs
+    entrypoint: npm
+    args: ['run', 'docs:jsdoc']
+    waitFor: ['install-deps']
+
+  # Validate JSDoc coverage
+  - name: 'node:18'
+    id: validate-jsdoc
+    entrypoint: npm
+    args: ['run', 'jsdoc:coverage']
+    waitFor: ['install-deps']
+
+  # Check JSDoc compliance
+  - name: 'node:18'
+    id: lint-jsdoc
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        npm run lint:jsdoc 2>&1 | tee /workspace/jsdoc-lint-report.txt
+        
+        # Fail if coverage below threshold
+        MIN_COVERAGE=80
+        COVERAGE=$(grep -o "Coverage: [0-9]*" /workspace/jsdoc-coverage-report.txt || echo "0")
+        COVERAGE_NUM=$(echo "$COVERAGE" | grep -o "[0-9]*" || echo "0")
+        
+        echo ""
+        echo "JSDoc Coverage: ${COVERAGE_NUM}%"
+        echo "Minimum Required: ${MIN_COVERAGE}%"
+        
+        if [ "${COVERAGE_NUM}" -lt "${MIN_COVERAGE}" ]; then
+          echo "❌ JSDoc coverage below threshold!"
+          exit 1
+        fi
+        
+        echo "✅ JSDoc validation passed"
+    waitFor: ['generate-docs']
+    env:
+      - 'NODE_ENV=production'
+
+  # Generate HTML documentation
+  - name: 'node:18'
+    id: build-html-docs
+    entrypoint: npm
+    args: ['run', 'docs:jsdoc']
+    waitFor: ['validate-jsdoc']
+
+  # Upload documentation to Cloud Storage
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: upload-docs
+    args:
+      - '-m'
+      - 'cp'
+      - '-r'
+      - './docs/api-html/*'
+      - 'gs://${_DOCS_BUCKET}/api-docs/${BUILD_ID}/'
+    waitFor: ['build-html-docs']
+    env:
+      - 'CLOUDSDK_COMPUTE_REGION=${_GCP_REGION}'
+
+  # Archive JSDoc reports
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: archive-reports
+    args:
+      - '-m'
+      - 'cp'
+      - '-r'
+      - './docs/*'
+      - 'gs://${_DOCS_BUCKET}/reports/${BUILD_ID}/'
+    waitFor: ['generate-docs']
+
+substitutions:
+  _DOCS_BUCKET: 'nexusshield-documentation'
+  _GCP_REGION: 'us-central1'
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  substitutionOption: 'ALLOW_UNDEFINED'
+
+timeout: '600s'
+
+artifacts:
+  objects:
+    location: 'gs://${_DOCS_BUCKET}/reports/${BUILD_ID}'
+    paths: ['docs/**/*', 'jsdoc-lint-report.txt']
+
+images:
+  - 'us-central1-docker.pkg.dev/${PROJECT_ID}/images/backend-documented:${BUILD_ID}'

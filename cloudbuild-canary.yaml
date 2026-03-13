@@ -1,0 +1,146 @@
+# Cloud Build Configuration for Automated Canary Deployments
+# Implements no-ops automation: scheduled canary runs with auto-rollback
+
+steps:
+  # Step 1: Deploy to canary environment (10% of traffic)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'canary-deploy'
+    args:
+      - 'run'
+      - '--filename=k8s/canary/'
+      - '--image=gcr.io/$PROJECT_ID/nexusshield:$COMMIT_SHA'
+      - '--location=us-central1'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+      - 'CANARY_PERCENTAGE=${_CANARY_PERCENTAGE}'
+    waitFor: ['-']
+
+  # Step 2: Run health checks on canary
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'canary-health-check'
+    args:
+      - 'run'
+      - '--filename=k8s/tests/health-checks/'
+      - '--location=us-central1'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+      - 'TEST_TIMEOUT=300'
+    waitFor: ['canary-deploy']
+
+  # Step 3: Monitor error rate during canary
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'monitor-error-rate'
+    args:
+      - 'exec'
+      - 'nexusshield-canary-monitor'
+      - '-n'
+      - 'canary'
+      - '--'
+      - '/scripts/check_error_rate.sh'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+      - 'ERROR_RATE_THRESHOLD=${_ERROR_RATE_THRESHOLD}'
+      - 'MONITORING_DURATION=600'  # Monitor for 10 minutes
+    waitFor: ['canary-health-check']
+    onFailure: ['ROLLBACK_CANARY']
+
+  # Step 4: If healthy, promote canary to production (100% traffic)
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'promote-to-production'
+    args:
+      - 'run'
+      - '--filename=k8s/production/'
+      - '--image=gcr.io/$PROJECT_ID/nexusshield:$COMMIT_SHA'
+      - '--location=us-central1'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+    waitFor: ['monitor-error-rate']
+
+  # Step 5: Verify production deployment
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'verify-production'
+    args:
+      - 'run'
+      - '--filename=k8s/tests/smoke-tests/'
+      - '--location=us-central1'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+    waitFor: ['promote-to-production']
+
+  # Step 6: Send success notification
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'notify-success'
+    args:
+      - 'run'
+      - '--filename=k8s/notifications/'
+      - '--location=us-central1'
+    env:
+      - 'NOTIFICATION_TYPE=DEPLOYMENT_SUCCESS'
+      - 'DEPLOYMENT_VERSION=$COMMIT_SHA'
+    waitFor: ['verify-production']
+
+onFailure:
+  # Step: Rollback on failure
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'rollback-on-failure'
+    args:
+      - 'rollout'
+      - 'undo'
+      - 'deployment/nexusshield-api'
+      - '-n'
+      - 'production'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexusshield-primary'
+
+  # Send failure notification
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'notify-failure'
+    args:
+      - 'run'
+      - '--filename=k8s/notifications/'
+      - '--location=us-central1'
+    env:
+      - 'NOTIFICATION_TYPE=DEPLOYMENT_ROLLBACK'
+      - 'DEPLOYMENT_VERSION=$COMMIT_SHA'
+      - 'ERROR_MESSAGE=$BUILD_FAILURE_MESSAGE'
+
+# Substitutions (can be overridden)
+substitutions:
+  _CANARY_PERCENTAGE: '10'        # Start with 10% of traffic
+  _ERROR_RATE_THRESHOLD: '5'      # Rollback if error rate > 5%
+
+# Timeout for entire build
+timeout: '3600s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  substitution_option: 'ALLOW_LOOSE'
+
+# Logging configuration
+logsBucket: 'gs://nexusshield-cloudbuild-logs/$BUILD_ID'
+
+# Build tags
+tags:
+  - 'canary'
+  - 'noop-automation'
+  - 'nexusshield'
+
+# Build images (none for this build)
+images: []
+
+# Artifacts (none for this build)
+artifacts:
+  objects:
+    location: 'gs://nexusshield-cloudbuild-artifacts'
+    paths:
+      - 'deployment-report-*.json'
+      - 'health-check-results-*.json'
+      - 'error-rate-logs-*.txt'

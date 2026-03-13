@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  portal-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+      PORT: 5000
+    volumes:
+      - ./packages/api/src:/app/packages/api/src
+      - ./packages/core/src:/app/packages/core/src
+      - ./packages/api/package.json:/app/packages/api/package.json
+    command: pnpm --filter @nexus/api dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  portal-frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+      VITE_LOG_LEVEL: debug
+    volumes:
+      - ./packages/frontend/src:/app/packages/frontend/src
+      - ./packages/frontend/package.json:/app/packages/frontend/package.json
+      - ./packages/frontend/index.html:/app/packages/frontend/index.html
+      - ./packages/frontend/tsconfig.app.json:/app/packages/frontend/tsconfig.app.json
+      - ./packages/frontend/vite.config.ts:/app/packages/frontend/vite.config.ts
+    command: pnpm --filter @nexus/frontend dev --host
+    depends_on:
+      - portal-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Optional: Add PostgreSQL for future data persistence
+  # postgres:
+  #   image: postgres:15-alpine
+  #   environment:
+  #     POSTGRES_DB: portal
+  #     POSTGRES_USER: portal
+  #     POSTGRES_PASSWORD: dev-password
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+
+# volumes:
+#   postgres_data:

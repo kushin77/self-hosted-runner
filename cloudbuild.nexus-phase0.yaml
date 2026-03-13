@@ -1,0 +1,302 @@
+steps:
+  # ============================================================================
+  # 1. CHECKOUT & VALIDATION
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'checkout'
+    args: ['clone', '--depth', '1', 'https://github.com${REPO_OWNER}/${REPO_NAME}.git', '.']
+    env:
+      - 'REPO_OWNER=/kushin77'
+      - 'REPO_NAME=self-hosted-runner'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'validate-dockerfile'
+    args: ['build', '--dry-run', '-t', 'nexus-phase0:validate', '.']
+
+  # ============================================================================
+  # 2. SECURITY SCANNING (Trivy + Snyk)
+  # ============================================================================
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan-dependencies'
+    args: 
+      - 'fs'
+      - '--exit-code'
+      - '0'  # Don't fail build on vulns (logged only)
+      - '--severity'
+      - 'HIGH,CRITICAL'
+      - '--format'
+      - 'json'
+      - '--output'
+      - 'trivy-report.json'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'upload-trivy-report'
+    args:
+      - 'run'
+      - '--filename=trivy-report.json'
+      - '--image=gs://nexusshield-sbom-archive/trivy-reports/'
+
+  # ============================================================================
+  # 3. BUILD ARTIFACTS (No Docker Hub)
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-normalizer'
+    args:
+      - 'build'
+      - '-t'
+      - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:${COMMIT_SHA}'
+      - '-t'
+      - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:latest'
+      - '-f'
+      - 'Dockerfile.normalizer'
+      - '.'
+    env:
+      - '_GCP_REGION=us-central1'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-normalizer'
+    args:
+      - 'push'
+      - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:${COMMIT_SHA}'
+    env:
+      - '_GCP_REGION=us-central1'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-portal-api'
+    args:
+      - 'build'
+      - '-t'
+      - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/portal-api:${COMMIT_SHA}'
+      - '-f'
+      - 'portal/Dockerfile'
+      - 'portal/'
+    env:
+      - '_GCP_REGION=us-central1'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-portal-api'
+    args:
+      - 'push'
+      - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/portal-api:${COMMIT_SHA}'
+    env:
+      - '_GCP_REGION=us-central1'
+
+  # ============================================================================
+  # 4. UNIT & INTEGRATION TESTS
+  # ============================================================================
+  - name: 'golang:1.21'
+    id: 'test-go-normalizer'
+    args:
+      - 'go'
+      - 'test'
+      - '-v'
+      - '-race'
+      - '-coverprofile=coverage.out'
+      - './internal/normalizer'
+    env:
+      - 'CGO_ENABLED=1'
+      - 'GOOS=linux'
+
+  - name: 'node:20'
+    id: 'test-portal-api'
+    args:
+      - 'npm'
+      - 'test'
+      - '--'
+      - '--coverage'
+    dir: 'portal'
+
+  # ============================================================================
+  # 5. TERRAFORM: PLAN & APPLY
+  # ============================================================================
+  - name: 'hashicorp/terraform:latest'
+    id: 'terraform-validate'
+    args: ['validate']
+    dir: 'terraform/phase0-core'
+
+  - name: 'hashicorp/terraform:latest'
+    id: 'terraform-plan'
+    args:
+      - 'plan'
+      - '-out=tfplan'
+      - '-lock=true'
+    dir: 'terraform/phase0-core'
+    env:
+      - 'TF_VAR_gcp_project_id=${PROJECT_ID}'
+      - 'TF_VAR_gcp_region=us-central1'
+      - 'TF_VAR_gcp_standby_region=us-west1'
+
+  - name: 'hashicorp/terraform:latest'
+    id: 'terraform-apply'
+    args:
+      - 'apply'
+      - '-auto-approve'
+      - 'tfplan'
+    dir: 'terraform/phase0-core'
+    env:
+      - 'TF_VAR_gcp_project_id=${PROJECT_ID}'
+      - 'TF_VAR_gcp_region=us-central1'
+      - 'TF_VAR_gcp_standby_region=us-west1'
+
+  # ============================================================================
+  # 6. KUBERNETES: DEPLOY NORMALIZER + KAFKA
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-kafka-topics'
+    args:
+      - 'run'
+      - '--filename=k8s/nexus-kafka-setup-job.yaml'
+      - '--image=${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/kafka-setup'
+      - '--location=${_CLUSTER_ZONE}'
+      - '--cluster=nexus-prod'
+    env:
+      - '_GCP_REGION=us-central1'
+      - '_CLUSTER_ZONE=us-central1-a'
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-normalizer-pod'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/nexus-normalizer'
+      - 'normalizer=${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:${COMMIT_SHA}'
+      - '-n'
+      - 'nexus'
+    env:
+      - '_GCP_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexus-prod'
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'deploy-portal-api'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/portal-api'
+      - 'api=${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/portal-api:${COMMIT_SHA}'
+      - '-n'
+      - 'nexus'
+    env:
+      - '_GCP_REGION=us-central1'
+      - 'CLOUDSDK_COMPUTE_ZONE=us-central1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=nexus-prod'
+
+  # ============================================================================
+  # 7. DATABASE MIGRATIONS
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/cloud-sql-proxy'
+    id: 'run-db-migrations'
+    args:
+      - '--version'
+
+  # Run migrations via Cloud SQL Proxy
+  - name: 'google/cloud-sdk:latest'
+    id: 'migrate-discovery-db'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud sql connect nexus-postgres-primary-${PROJECT_ID} \
+          --user=postgres \
+          --project=${PROJECT_ID} \
+          < database/migrations/001_init_schema.sql
+
+  # ============================================================================
+  # 8. OBSERVABILITY: METRICS & LOGGING
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'create-monitoring-dashboards'
+    args:
+      - 'monitoring'
+      - 'dashboards'
+      - 'create'
+      - '--config-from-file=monitoring/dashboards/nexus-phase0.json'
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'setup-log-sinks'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        gcloud logging sinks create nexus-audit-sink gs://nexus-audit-logs-${PROJECT_ID} \
+          --log-filter="severity >= INFO" \
+          --project=${PROJECT_ID}
+
+  # ============================================================================
+  # 9. SMOKE TESTS
+  # ============================================================================
+  - name: 'curlimages/curl:latest'
+    id: 'health-check-normalizer'
+    args:
+      - '-f'
+      - 'http://nexus-normalizer:8080/health'
+
+  - name: 'curlimages/curl:latest'
+    id: 'smoke-test-portal-api'
+    args:
+      - '-f'
+      - 'http://portal-api:3000/api/v1/discovery/stats'
+
+  # ============================================================================
+  # 10. AUDIT LOGGING
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'log-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "{
+          \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",
+          \"deployment\": \"nexus-phase0\",
+          \"commit_sha\": \"${COMMIT_SHA}\",
+          \"branch\": \"${BRANCH_NAME}\",
+          \"status\": \"SUCCESS\",
+          \"components\": [\"normalizer\", \"portal-api\", \"kafka\", \"postgresql\"],
+          \"immutable\": true,
+          \"ephemeral\": true,
+          \"no_ops\": true
+        }" | gsutil cp - gs://nexus-audit-logs-${PROJECT_ID}/deployments/phase0-${BUILD_ID}.json
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+timeout: '3600s'
+serviceAccount: 'projects/${PROJECT_ID}/serviceAccounts/nexus-cloud-build@${PROJECT_ID}.iam.gserviceaccount.com'
+
+images:
+  - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:${COMMIT_SHA}'
+  - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/normalizer:latest'
+  - '${_GCP_REGION}-docker.pkg.dev/${PROJECT_ID}/nexus/portal-api:${COMMIT_SHA}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  substitutionOption: 'ALLOW_LOOSE'
+
+# Environment substitutions
+substitutions:
+  '_GCP_REGION': 'us-central1'
+  '_CLUSTER_ZONE': 'us-central1-a'
+
+# Only run on main branch (direct deployment policy)
+onFailure:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Rollback on failure
+        gcloud container deployments rollout undo deployment/nexus-normalizer -n nexus
+        gcloud container deployments rollout undo deployment/portal-api -n nexus
+        # Log failure
+        echo "{\"status\": \"FAILED\", \"build_id\": \"${BUILD_ID}\"}" | \
+          gsutil cp - gs://nexus-audit-logs-${PROJECT_ID}/deployments/failure-${BUILD_ID}.json
+
+tags:
+  - 'nexus-phase0'
+  - 'gke-deploy'
+  - 'direct-deployment'
+  - 'no-github-actions'
