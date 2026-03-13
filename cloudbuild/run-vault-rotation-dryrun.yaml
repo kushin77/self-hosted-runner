@@ -1,0 +1,16 @@
+steps:
+- name: "gcr.io/cloud-builders/git"
+  entrypoint: "/bin/bash"
+  args:
+  - -c
+  - |
+    set -euo pipefail
+    git clone https://github.com/kushin77/self-hosted-runner.git repo
+    cd repo
+    echo "Starting mock Vault server inside build"
+    python3 scripts/secrets/mock_vault_server.py >/tmp/mock_vault.log 2>&1 &
+    sleep 1
+    echo "Running rotation script in DRY_RUN mode against mock Vault"
+    DRY_RUN=1 VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=dummy GSM_PROJECT=nexusshield-prod bash scripts/secrets/run_vault_rotation.sh
+
+timeout: "600s"

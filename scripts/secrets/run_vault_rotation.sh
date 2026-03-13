@@ -70,12 +70,17 @@ if [[ -z "$NEW_SECRET_ID" || "$NEW_SECRET_ID" == "null" ]]; then
 fi
 
 echo "Storing new secret_id into GSM secret 'vault-example-role-secret_id'"
-if [[ -n "${GSM_PROJECT:-}" ]]; then
-  echo -n "$NEW_SECRET_ID" | gcloud secrets versions add vault-example-role-secret_id --data-file=- --project="$GSM_PROJECT"
-  echo "Stored new version in GSM"
+if [[ "${DRY_RUN:-0}" == "1" ]]; then
+  echo "DRY_RUN enabled - not writing new secret to GSM"
+  echo "New secret_id would be: ${NEW_SECRET_ID:0:8}... (redacted)"
 else
-  echo "GSM_PROJECT not set; aborting" >&2
-  exit 1
+  if [[ -n "${GSM_PROJECT:-}" ]]; then
+    echo -n "$NEW_SECRET_ID" | gcloud secrets versions add vault-example-role-secret_id --data-file=- --project="$GSM_PROJECT"
+    echo "Stored new version in GSM"
+  else
+    echo "GSM_PROJECT not set; aborting" >&2
+    exit 1
+  fi
 fi
 
 echo "Vault AppRole rotation completed successfully"
