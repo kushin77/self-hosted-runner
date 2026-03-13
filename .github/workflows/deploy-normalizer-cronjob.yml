@@ -1,0 +1,31 @@
+name: Deploy Normalizer CronJob
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy-cronjob:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && contains(github.ref, 'refs/heads/main')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Decode kubeconfig
+        env:
+          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+        run: |
+          echo "$KUBECONFIG_BASE64" | base64 --decode > $HOME/.kube/config
+
+      - name: Apply normalizer CronJob
+        run: |
+          kubectl apply -f k8s/normalizer-cronjob.yaml
+
+      - name: Rollout status
+        run: |
+          kubectl get cronjob normalizer -n nexus-engine -o wide
