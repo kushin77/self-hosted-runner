@@ -57,18 +57,28 @@ else
   echo "No GSM or Vault CLI found on worker; ensure secrets are provisioned or run the deploy with secrets pre-created" >&2
 fi
 
-if [[ -s "$TMP_ENV" ]]; then
+  if [[ -s "$TMP_ENV" ]]; then
   chmod 600 "$TMP_ENV" || true
   echo "Starting docker-compose with ephemeral env file"
-  docker compose pull || true
-  docker compose --env-file "$TMP_ENV" up -d --build
-  docker compose ps
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+  else
+    COMPOSE_CMD=(docker-compose)
+  fi
+  "${COMPOSE_CMD[@]}" pull || true
+  "${COMPOSE_CMD[@]}" --env-file "$TMP_ENV" up -d --build
+  "${COMPOSE_CMD[@]}" ps
   shred -u "$TMP_ENV" || rm -f "$TMP_ENV"
 else
   echo "No secrets fetched to $TMP_ENV; running docker compose without env-file (will use defaults)." >&2
-  docker compose pull || true
-  docker compose up -d --build
-  docker compose ps
+  if docker compose version >/dev/null 2>&1; then
+    COMPOSE_CMD=(docker compose)
+  else
+    COMPOSE_CMD=(docker-compose)
+  fi
+  "${COMPOSE_CMD[@]}" pull || true
+  "${COMPOSE_CMD[@]}" up -d --build
+  "${COMPOSE_CMD[@]}" ps
 fi
 SSHEND
 
