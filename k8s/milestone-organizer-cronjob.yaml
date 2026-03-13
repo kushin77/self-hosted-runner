@@ -45,8 +45,9 @@ spec:
                   mountPath: /var/run/secrets
           containers:
             - name: organizer
-              # Use hardened runner image built and pushed to GCR/registry
-              image: gcr.io/nexusshield-prod/milestone-organizer-runner:b2820b8e6
+              # Using public alpine image for bootstrap (install deps at runtime).
+              # Replace with hardened private image once registry pull access is configured.
+              image: alpine:3.18
               command: ["/bin/sh","-c"]
               args:
                 - |
