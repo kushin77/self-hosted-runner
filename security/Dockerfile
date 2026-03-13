@@ -11,8 +11,8 @@ RUN npm ci --only=prod && npm ci --only=dev
 COPY security/*.ts ./
 COPY security/tsconfig.json ./
 
-# Build TypeScript
-RUN npm run tsc || true
+# Build TypeScript to JS for runtime
+RUN npm run build
 
 # Runtime image
 FROM node:20-alpine
@@ -25,8 +25,8 @@ WORKDIR /app
 # Copy deps from builder
 COPY --from=builder /build/node_modules ./node_modules
 
-# Copy runtime (compiled JS would be here; for now using TS directly)
-COPY security/*.ts ./
+# Copy runtime artifacts
+COPY --from=builder /build/dist ./dist
 COPY security/package*.json ./
 
 # Copy credential rotation scripts for sidecar access
@@ -47,7 +47,7 @@ EXPOSE 8080
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "-r", "ts-node/register", "server.ts"]
+CMD ["node", "dist/server.js"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
