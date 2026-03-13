@@ -76,7 +76,7 @@ Watch the logs for:
 ✅ Migration Completed: All 8 migrations applied successfully
 ✅ RLS Policies Enabled on github_repos table
 ✅ Health Check: PostgreSQL responding to queries
-✅ Credential Storage: postgres-password stored in GSM
+✅ Credential Storage: `postgres-password` stored in Google Secret Manager (GSM). Do NOT paste passwords into files; use GSM as the single source-of-truth.
 ```
 
 **If you see errors**, go to "Troubleshooting" section below.
