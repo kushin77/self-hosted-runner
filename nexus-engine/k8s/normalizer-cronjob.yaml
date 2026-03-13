@@ -14,3 +14,8 @@ spec:
           - name: normalizer
             image: gcr.io/nexusshield-prod/nexus-normalizer:20260312
             imagePullPolicy: IfNotPresent
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              runAsNonRoot: true
+              runAsUser: 1000

@@ -59,3 +59,8 @@ spec:
                   kubectl top nodes || true
                   kubectl get pods -A --field-selector=status.phase=Failed || true
                   echo "[$ts] Host crash analysis job completed"
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 1000

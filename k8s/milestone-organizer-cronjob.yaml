@@ -63,6 +63,11 @@ spec:
                   mountPath: /workspace
                 - name: secrets-store-inline
                   mountPath: /var/run/secrets
+          # Enforce pod and container security context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
           volumes:
             - name: workspace
               emptyDir: {}
