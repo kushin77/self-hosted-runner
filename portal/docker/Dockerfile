@@ -12,15 +12,15 @@ RUN npm install -g pnpm
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
 COPY packages/ ./packages/
 
-# Install dependencies. Use lockfile if present, allow pnpm to handle version mismatches
+# Install dependencies and build packages
 RUN if [ -f pnpm-lock.yaml ]; then \
 			pnpm install --no-frozen-lockfile || pnpm install --force; \
 		else \
 			pnpm install; \
 		fi
 
-# Do not run monorepo-wide builds during image creation.
-# Compose starts service-specific commands for API and frontend.
+# Build all packages to create dist artifacts
+RUN pnpm -r build || true
 
 # Stage 2: Runtime
 FROM node:18.18.0-alpine
@@ -29,7 +29,7 @@ WORKDIR /app
 
 RUN npm install -g pnpm
 
-# Copy built files and dependencies
+# Copy built files and dependencies from builder
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/pnpm-lock.yaml* ./
