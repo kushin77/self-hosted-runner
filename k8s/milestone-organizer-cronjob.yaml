@@ -26,12 +26,15 @@ spec:
               args:
                 - |
                   set -euo pipefail
-                  apk add --no-cache curl git bash jq python3
-                  # Example: fetch from GSM (replace PROJECT/SECRET)
+                  # Prefer mounted k8s Secret at /var/run/gh/gh_token if present
+                  if [ -f /var/run/gh/gh_token ] && [ ! -f /var/run/secrets/gh_token ]; then
+                    cp /var/run/gh/gh_token /var/run/secrets/gh_token || true
+                    chmod 600 /var/run/secrets/gh_token || true
+                  fi
+                  # Fallback: attempt GSM/Vault fetch scripts if they exist in repo
                   if [ -x /workspace/repo/scripts/utilities/gsm_fetch_token.sh ]; then
                     /workspace/repo/scripts/utilities/gsm_fetch_token.sh "projects/PROJECT/secrets/GH_TOKEN" /var/run/secrets/gh_token || true
                   fi
-                  # Example: fetch from Vault
                   if [ -x /workspace/repo/scripts/utilities/vault_fetch_token.sh ]; then
                     /workspace/repo/scripts/utilities/vault_fetch_token.sh "secret/data/gh_token" /var/run/secrets/gh_token || true
                   fi
