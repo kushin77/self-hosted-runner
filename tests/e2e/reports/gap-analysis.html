@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2E Testing Gap Analysis Report</title>
+  <style>
+    * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; padding: 0; }
+    body { background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h1 { color: #333; border-bottom: 3px solid #0066cc; padding-bottom: 10px; margin-bottom: 20px; }
+    h2 { color: #0066cc; margin-top: 30px; margin-bottom: 10px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+    .card { background: #f9f9f9; padding: 15px; border-left: 4px solid #0066cc; border-radius: 4px; }
+    .card.critical { border-left-color: #cc0000; }
+    .card.high { border-left-color: #ff9900; }
+    .metric { font-size: 24px; font-weight: bold; color: #0066cc; margin-bottom: 5px; }
+    .label { color: #666; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e0e0e0; }
+    th { background: #f5f5f5; font-weight: 600; }
+    tr:hover { background: #fafafa; }
+    .status { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+    .status.complete { background: #d4edda; color: #155724; }
+    .status.partial { background: #fff3cd; color: #856404; }
+    .status.untested { background: #f8d7da; color: #721c24; }
+    .gap { margin: 10px 0; padding: 10px; background: #ffebee; border-left: 3px solid #f44336; border-radius: 4px; }
+    .rec { margin: 10px 0; padding: 10px; background: #e3f2fd; border-left: 3px solid #2196f3; border-radius: 4px; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🧪 E2E Testing Gap Analysis Report</h1>
+    <p>Generated: 3/13/2026, 4:58:50 AM</p>
+    
+    <h2>📊 Coverage Summary</h2>
+    <div class="summary">
+      <div class="card">
+        <div class="metric" style="color: #cc0000">
+          0.0%
+        </div>
+        <div class="label">Overall Coverage</div>
+      </div>
+      <div class="card">
+        <div class="metric">0.0%</div>
+        <div class="label">API Endpoints</div>
+      </div>
+      <div class="card">
+        <div class="metric">0.0%</div>
+        <div class="label">CLI Functions</div>
+      </div>
+      <div class="card">
+        <div class="metric">0.0%</div>
+        <div class="label">UI Elements</div>
+      </div>
+    </div>
+
+    <div class="summary">
+      <div class="card">
+        <div class="metric">0</div>
+        <div class="label">✅ Complete (100%)</div>
+      </div>
+      <div class="card">
+        <div class="metric">0</div>
+        <div class="label">⚠️ Partial</div>
+      </div>
+      <div class="card">
+        <div class="metric">0</div>
+        <div class="label">❌ Missing</div>
+      </div>
+    </div>
+
+    
+    <h2>🔴 CRITICAL GAPS (5)</h2>
+    <div class="gap"><strong>credentials.list</strong>: No tests ran or API unreachable</div><div class="gap"><strong>credentials.create</strong>: No tests ran or API unreachable</div><div class="gap"><strong>credentials.get</strong>: No tests ran or API unreachable</div><div class="gap"><strong>credentials.rotate</strong>: No tests ran or API unreachable</div><div class="gap"><strong>audit.query</strong>: No tests ran or API unreachable</div>
+    
+
+    <h2>💡 Recommendations</h2>
+    <div class="rec">🔴 BASELINE REPORT: Tests have not been executed yet (coverage is 0%)</div><div class="rec">💡 To enable actual testing:</div><div class="rec">  1. Set WORKER_HOST=<your-worker-hostname-or-ip></div><div class="rec">  2. Ensure API service is running on the worker node</div><div class="rec">  3. Run: CI=true WORKER_HOST=... bash tests/e2e/run-tests.sh</div><div class="rec">  4. Re-run gap-analysis to populate with real test results</div>
+
+    <h2>📋 Items to Test</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Coverage</th>
+          <th>Pass Rate</th>
+          <th>Tests</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td><strong>GET /api/v1/credentials</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>POST /api/v1/credentials</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>GET /api/v1/credentials/{id}</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>PUT /api/v1/credentials/{id}</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>DELETE /api/v1/credentials/{id}</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>POST /api/v1/credentials/{id}/rotate</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+        <tr>
+          <td><strong>GET /api/v1/audit</strong></td>
+          <td>API</td>
+          <td><span class="status untested">untested</span></td>
+          <td>0.0%</td>
+          <td>0%</td>
+          <td>0</td>
+        </tr>
+        
+      </tbody>
+    </table>
+
+    <div class="footer">
+      <p>💡 <strong>Next Steps:</strong></p>
+      <ol>
+        <li>Set WORKER_HOST environment variable to your worker node hostname/IP</li>
+        <li>Ensure API is running on the worker at http://$WORKER_HOST:3000</li>
+        <li>Run: CI=true WORKER_HOST=<your-host> bash tests/e2e/run-tests.sh</li>
+        <li>Re-generate this report with full test results</li>
+      </ol>
+      <p style="margin-top: 20px;">📄 <strong>Reports:</strong> HTML | <a href="gap-analysis.json">JSON</a> | <a href="gap-analysis.csv">CSV</a></p>
+    </div>
+  </div>
+</body>
+</html>
