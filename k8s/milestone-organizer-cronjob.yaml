@@ -45,14 +45,12 @@ spec:
                   mountPath: /var/run/secrets
           containers:
             - name: organizer
-              # Using public alpine image for bootstrap (install deps at runtime).
-              # Replace with hardened private image once registry pull access is configured.
-              image: alpine:3.18
+              # Use hardened runner image built and pushed to GCR/registry
+              image: gcr.io/nexusshield-prod/milestone-organizer-runner:b2820b8e6
               command: ["/bin/sh","-c"]
               args:
                 - |
                   set -euo pipefail
-                  apk add --no-cache curl git bash jq python3 py3-pip
                   cd /workspace || true
                   if [ ! -d repo ]; then
                     git clone https://github.com/kushin77/self-hosted-runner.git repo
@@ -71,22 +69,29 @@ spec:
               volumeMounts:
                 - name: workspace
                   mountPath: /workspace
-                - name: gh-secret
+                - name: secrets-store-inline
                   mountPath: /var/run/secrets
+                - name: gh-secret
+                  mountPath: /var/run/gh
           # Enforce pod and container security context
-          # Running as root temporarily to allow in-pod package installs and
-          # image pulls during bootstrap. Replace with non-root and least
-          # privilege settings after provider and image registry access are
-          # confirmed.
+          # Enforce pod and container security context
           securityContext:
-            runAsUser: 0
-            fsGroup: 0
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
           volumes:
             - name: workspace
               emptyDir: {}
-            # CSI volume removed temporarily as provider plugin unavailable.
-            # Once the AWS provider is installed, restore the CSI volume block
-            # above to enable in-cluster secret injection via SecretProviderClass.
+            - name: secrets-store-inline
+              csi:
+                driver: secrets-store.csi.k8s.io
+                readOnly: true
+                volumeAttributes:
+                  secretProviderClass: "milestone-organizer-spc"
+            - name: gh-secret
+              secret:
+                secretName: github-token
+                optional: true
             - name: gh-secret
               secret:
                 secretName: github-token
