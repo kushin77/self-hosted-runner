@@ -8,6 +8,9 @@ steps:
     git clone https://github.com/kushin77/self-hosted-runner.git repo
     cd repo
     bash scripts/secrets/run_vault_rotation.sh
+  secretEnv:
+  - VAULT_ADDR
+  - VAULT_TOKEN
 
 availableSecrets:
   secretManager:
