@@ -102,6 +102,19 @@ vi infra/terraform/environments/staging.tfvars
 vi infra/terraform/environments/prod.tfvars
 ```
 
+**Important:** Do not store passwords directly in tfvars files. Retrieve them from GSM and pass them as variables instead:
+
+```bash
+# Example: deploy with GSM credentials
+REDIS_PASSWORD=$(gcloud secrets versions access latest --secret=redis-password --project=nexusshield-prod)
+DB_PASSWORD=$(gcloud secrets versions access latest --secret=db-password --project=nexusshield-prod)
+
+terraform apply \
+  -var="redis_auth_password=$REDIS_PASSWORD" \
+  -var="database_root_password=$DB_PASSWORD" \
+  -var-file=environments/prod.tfvars
+```
+
 **Required parameters in tfvars:**
 - `project_id`: Your GCP project ID
 - `backend_image`: Container image for backend service
