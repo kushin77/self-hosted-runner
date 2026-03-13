@@ -138,7 +138,7 @@ set -euo pipefail
 TOKEN=$(curl -sS -X POST http://localhost:3000/api/auth/keys \
   -H "Content-Type: application/json" \
   -d '{"name":"prometheus-import","role":"Admin"}' \
-  -u admin:admin 2>/dev/null | grep -o '"key":"[^"]*' | cut -d'"' -f4 || echo "")
+  -u [REDACTED] 2>/dev/null | grep -o '"key":"[^"]*' | cut -d'"' -f4 || echo "")
 echo "$TOKEN"
 GRAFANA_TOKEN_SCRIPT
 )

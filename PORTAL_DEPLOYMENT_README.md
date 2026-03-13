@@ -159,7 +159,7 @@ curl -X POST http://localhost:3000/auth/login \
 
 **Profile**
 ```bash
-curl -H "Authorization: Bearer YOUR_TOKEN" \
+curl -H "Authorization: Bearer [REDACTED]" \
   http://localhost:3000/auth/profile
 ```
 

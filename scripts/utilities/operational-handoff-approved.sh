@@ -87,7 +87,7 @@ echo "  ✅ #2072: Operational Handoff (LIVE, 91+ records)"
 echo ""
 log "Vault AppRole credentials generated..."
 echo "  Role ID: 51bc5a46-c34b-4c79-5bb5-9afea8acf424"
-echo "  Secret ID: 61e809d3-7642-7bca-3307-e4b19b2e0069"
+echo "  Secret ID: [REDACTED]"
 echo "  Token TTL: 1 hour | Max TTL: 4 hours"
 echo "  Status: Secured at /tmp/vault-approle-credentials.json"
 
@@ -137,7 +137,7 @@ echo "   scp /tmp/vault-approle-credentials.json akushnir@192.168.168.42:/etc/va
 echo "   bash scripts/provision/vault-bootstrap-approle.sh \\"
 echo "     http://127.0.0.1:8200 \\"
 echo "     51bc5a46-c34b-4c79-5bb5-9afea8acf424 \\"
-echo "     61e809d3-7642-7bca-3307-e4b19b2e0069"
+echo "     [REDACTED]"
 echo ""
 
 echo "5️⃣  VERIFY WATCHER:"

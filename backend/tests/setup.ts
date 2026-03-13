@@ -29,7 +29,7 @@ beforeAll(() => {
   process.env.VAULT_ADDR = 'http://localhost:8200';
   process.env.VAULT_TKN = 'test-token';
   process.env.GCP_PROJECT = 'test-project';
-  process.env.JWT_SECRET = 'test-secret-key-min-32-chars-long';
+  process.env.JWT_SECRET = '[REDACTED]';
   process.env.CORS_ORIGINS = 'http://localhost:3001';
 });
 

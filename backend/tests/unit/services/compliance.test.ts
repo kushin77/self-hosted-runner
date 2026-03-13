@@ -260,7 +260,7 @@ describe('Compliance Service', () => {
     });
 
     it('should validate OAuth token format', async () => {
-      const token = 'ya29.a0AfH6SMBx...';
+      const token = '[REDACTED]';
       const result = await complianceService.validateCredential('oauth_token', 'oauth_token', token);
 
       expect(result).toBeDefined();
