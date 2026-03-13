@@ -47,7 +47,7 @@ EXPOSE 8080
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "-r", "ts-node/register", "zero-trust-auth.ts"]
+CMD ["node", "-r", "ts-node/register", "server.ts"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
