@@ -236,7 +236,7 @@ sudo iptables -A OUTPUT -p tcp --dport 8888 -j DROP
 
 # Trigger migration job
 curl -X POST http://localhost:8080/api/v1/migrate \
-  -H "X-Admin-Key: admin-key-here" \
+  -H "X-Admin-Key: [REDACTED]" \
   -H "Content-Type: application/json" \
   -d '{"source":"s3://bucket","destination":"gs://bucket","dry_run":true}'
 

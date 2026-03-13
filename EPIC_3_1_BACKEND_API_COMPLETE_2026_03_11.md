@@ -65,7 +65,7 @@ All endpoints:
 **Usage Example:**
 ```bash
 curl -X GET "http://localhost:8080/api/v1/jobs?page=1&limit=25" \
-  -H "X-Admin-Key: admin-key-here"
+  -H "X-Admin-Key: [REDACTED]"
 ```
 
 ---
@@ -122,7 +122,7 @@ curl -X GET "http://localhost:8080/api/v1/jobs?page=1&limit=25" \
 **Usage Example:**
 ```bash
 curl -X GET "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000/details" \
-  -H "X-Admin-Key: admin-key-here"
+  -H "X-Admin-Key: [REDACTED]"
 ```
 
 ---
@@ -162,7 +162,7 @@ curl -X GET "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-446655440
 **Usage Example:**
 ```bash
 curl -X DELETE "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000" \
-  -H "X-Admin-Key: admin-key-here"
+  -H "X-Admin-Key: [REDACTED]"
 ```
 
 ---
@@ -210,7 +210,7 @@ curl -X DELETE "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-446655
 **Usage Example:**
 ```bash
 curl -X POST "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-446655440000/replay" \
-  -H "X-Admin-Key: admin-key-here"
+  -H "X-Admin-Key: [REDACTED]"
 ```
 
 ---
@@ -251,7 +251,7 @@ curl -X POST "http://localhost:8080/api/v1/jobs/550e8400-e29b-41d4-a716-44665544
 **Usage Example:**
 ```bash
 curl -X GET "http://localhost:8080/api/v1/metrics/summary" \
-  -H "X-Admin-Key: admin-key-here" \
+  -H "X-Admin-Key: [REDACTED]" \
   -H "Accept: application/json"
 ```
 

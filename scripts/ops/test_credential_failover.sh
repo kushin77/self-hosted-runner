@@ -185,12 +185,12 @@ test_gsm_failure_to_vault() {
     if [ "$STAGING_HOST" == "localhost" ]; then
             local response=$(timeout 10 curl -s -X POST "$STAGING_URL/api/v1/migrate" \
             -H "Content-Type: application/json" \
-            -H "X-Admin-Key: test-admin-key" \
+            -H "X-Admin-Key: [REDACTED]" \
             -d "$payload" || echo '{"error":"timeout"}')
     else
         local response=$(ssh "$STAGING_HOST" "timeout 10 curl -s -X POST http://localhost:8080/api/v1/migrate \
             -H 'Content-Type: application/json' \
-            -H 'X-Admin-Key: test-admin-key' \
+            -H 'X-Admin-Key: [REDACTED]' \
             -d '$payload' || echo '{\"error\":\"timeout\"}'")
     fi
     

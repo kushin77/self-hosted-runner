@@ -27,7 +27,7 @@ Runbook Steps
    - Confirm secrets present in GSM:
      - `gcloud secrets versions access latest --secret=azure-client-id --project=nexusshield-prod`
      - `gcloud secrets versions access latest --secret=aws-access-key-id --project=nexusshield-prod`
-     - `gcloud secrets versions access latest --secret=gcp-epic6-operator-sa-key --project=nexusshield-prod`
+     - `gcloud secrets versions access latest --secret=[REDACTED] --project=nexusshield-prod`
    - Confirm mirrored secrets in Vault (if used): `vault kv get secret/aws/epic6`
 
 4. Rotate credentials (idempotent)

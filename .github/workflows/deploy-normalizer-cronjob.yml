@@ -16,11 +16,23 @@ jobs:
       - name: Setup kubectl
         uses: azure/setup-kubectl@v3
 
-      - name: Decode kubeconfig
+      - name: Decode kubeconfig (with fallback)
         env:
           KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+          STAGING_KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
         run: |
-          echo "$KUBECONFIG_BASE64" | base64 --decode > $HOME/.kube/config
+          set -euo pipefail
+          mkdir -p "$HOME/.kube"
+          if [ -n "${KUBECONFIG_BASE64:-}" ]; then
+            echo "$KUBECONFIG_BASE64" | base64 --decode > "$HOME/.kube/config"
+            echo "Using KUBECONFIG_BASE64 from secrets"
+          elif [ -n "${STAGING_KUBECONFIG:-}" ]; then
+            echo "$STAGING_KUBECONFIG" | base64 --decode > "$HOME/.kube/config"
+            echo "Using STAGING_KUBECONFIG fallback"
+          else
+            echo "No kubeconfig secret provided (KUBECONFIG_BASE64 or STAGING_KUBECONFIG)" >&2
+            exit 1
+          fi
 
       - name: Apply normalizer CronJob
         run: |
