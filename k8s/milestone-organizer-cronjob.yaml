@@ -42,7 +42,8 @@ spec:
                   mountPath: /var/run/secrets
           containers:
             - name: organizer
-              image: alpine:3.18
+              # Use hardened runner image built and pushed to GCR/registry
+              image: gcr.io/PROJECT_ID/milestone-organizer-runner:SHORT_SHA
               command: ["/bin/sh","-c"]
               args:
                 - |

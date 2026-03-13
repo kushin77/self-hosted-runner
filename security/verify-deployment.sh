@@ -264,7 +264,8 @@ check_kubernetes_manifests() {
     if [[ $k8s_files -gt 0 ]]; then
         pass "Kubernetes manifests found ($k8s_files files)"
         
-        if grep -r "securityContext" "$PROJECT_ROOT/k8s" 2>/dev/null | grep -q "runAsNonRoot: true"; then
+        # Robust check: look for explicit runAsNonRoot across k8s manifests
+        if grep -r "runAsNonRoot: true" "$PROJECT_ROOT/k8s" 2>/dev/null >/dev/null; then
             pass "Security contexts configured (non-root)"
         else
             fail "Security contexts not properly configured"
@@ -290,8 +291,14 @@ check_code_syntax() {
             else
                 fail "TypeScript syntax errors found"
             fi
+        elif command -v npx &> /dev/null; then
+            if npx --no-install tsc --noEmit "$PROJECT_ROOT/security"/*.ts 2>/dev/null; then
+                pass "TypeScript syntax valid (via npx)"
+            else
+                fail "TypeScript syntax errors found (via npx)"
+            fi
         else
-            fail "TypeScript compiler not available"
+            fail "TypeScript compiler not available (install tsc or use npx)"
         fi
     fi
 }
