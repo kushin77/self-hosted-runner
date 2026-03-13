@@ -21,5 +21,6 @@ ENV PATH=/app/scripts/utilities:$PATH
 # Expose metrics port
 EXPOSE 8080
 
-# Entrypoint runs the wrapper
-CMD ["/bin/bash","/app/scripts/automation/run_milestone_organizer_v2.sh"]
+# Entrypoint starts metrics server + runs organizer
+RUN chmod +x /app/scripts/automation/run_milestone_organizer_cloud_run.sh
+CMD ["/bin/bash","/app/scripts/automation/run_milestone_organizer_cloud_run.sh"]

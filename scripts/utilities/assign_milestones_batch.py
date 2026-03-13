@@ -11,14 +11,39 @@ Notes:
 - Requires GH_TOKEN in environment (GSM/Vault/KMS cred helper should set this).
 - Uses GraphQL mutation `updateIssue` with milestoneId.
 - Batches up to --batch-size updates per request.
+- Emits Prometheus metrics on metrics server (:8080/metrics).
 """
 import json
 import os
 import sys
 import requests
+import time
 from typing import Dict, List
 
+try:
+    from prometheus_client import Counter, Histogram, CollectorRegistry, generate_latest
+    METRICS_AVAILABLE = True
+except ImportError:
+    METRICS_AVAILABLE = False
+
 GITHUB_API = "https://api.github.com/graphql"
+
+# Prometheus metrics (optional)
+if METRICS_AVAILABLE:
+    ASSIGNMENTS_TOTAL = Counter('milestone_assignments_total', 'Total milestones assigned', ['milestone'])
+    FAILURES_TOTAL = Counter('milestone_assignment_failures_total', 'Total assignment failures')
+    DURATION_SECONDS = Histogram('milestone_assignment_duration_seconds', 'Duration of assignment batch')
+    BATCH_SIZE_METRIC = Histogram('milestone_batch_size', 'Issues per batch')
+else:
+    # No-op metrics
+    class NoOpCounter:
+        def inc(self, **kwargs): pass
+    class NoOpHistogram:
+        def observe(self, x): pass
+    ASSIGNMENTS_TOTAL = NoOpCounter()
+    FAILURES_TOTAL = NoOpCounter()
+    DURATION_SECONDS = NoOpHistogram()
+    BATCH_SIZE_METRIC = NoOpHistogram()
 
 
 def graphql(query: str, variables: Dict = None) -> Dict:
@@ -71,8 +96,9 @@ def issue_node_id(owner: str, name: str, number: int) -> str:
     return data['repository']['issue']['id']
 
 
-def batch_update(owner: str, name: str, updates: List[Dict], milestone_map: Dict[str,str]) -> None:
-    # updates: list of {number, milestone}
+def batch_update(owner: str, name: str, updates: List[Dict], milestone_map: Dict[str,str]) -> int:
+    """Execute batch update, return count of successful updates."""
+    # updates: list of {number, milestone, issueId}
     # Build a mutation with aliases
     parts = []
     variables = {}
@@ -87,8 +113,21 @@ def batch_update(owner: str, name: str, updates: List[Dict], milestone_map: Dict
     var_defs = ' '.join([f"${k}: ID!" for k in variables.keys()])
     mutation = f"mutation({var_defs}){{ {' '.join(parts)} }}"
     # Execute
-    data = graphql(mutation, variables)
-    # No further handling for now; errors are printed by graphql()
+    try:
+        data = graphql(mutation, variables)
+        # Track successful updates (count successful aliases in response)
+        success_count = 0
+        for i in range(len(updates)):
+            alias = f"m{i}"
+            if alias in data and data[alias].get('issue', {}).get('number'):
+                success_count += 1
+                milestone = updates[i]['milestone']
+                ASSIGNMENTS_TOTAL.inc(milestone=milestone)
+        return success_count
+    except Exception as e:
+        print(f"Batch update error: {e}", file=sys.stderr)
+        FAILURES_TOTAL.inc()
+        return 0
 
 
 def main():
@@ -129,9 +168,13 @@ def main():
             updates.append({'number': num, 'issueId': issue_id, 'milestone': target})
 
     # Batch and execute
+    start_time = time.time()
     i = 0
+    total_success = 0
     while i < len(updates):
         chunk = updates[i:i+batch_size]
+        # Track batch size
+        BATCH_SIZE_METRIC.observe(len(chunk))
         # Build milestone map for chunk
         chunk_milestones = {u['milestone'] for u in chunk}
         missing = [m for m in chunk_milestones if m not in milestone_nodes]
@@ -139,11 +182,18 @@ def main():
             print('Missing milestones for chunk:', missing, file=sys.stderr)
             # attempt to proceed; will fail
         try:
-            batch_update(owner, name, chunk, milestone_nodes)
-            print(f'Batch updated issues {i+1}-{i+len(chunk)}')
+            success = batch_update(owner, name, chunk, milestone_nodes)
+            total_success += success
+            print(f'Batch updated issues {i+1}-{i+len(chunk)} ({success} successful)')
         except Exception as e:
             print('Batch update failed:', e, file=sys.stderr)
+            FAILURES_TOTAL.inc()
         i += batch_size
+    
+    # Track total duration
+    duration = time.time() - start_time
+    DURATION_SECONDS.observe(duration)
+    print(f'✓ Batch assignment complete: {total_success} updates in {duration:.1f}s')
 
 if __name__ == '__main__':
     main()
