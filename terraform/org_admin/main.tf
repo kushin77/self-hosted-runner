@@ -36,11 +36,65 @@ resource "google_project_iam_member" "prod_deployer_sa_service_account_admin" {
 }
 
 # ---------------------------------------------------------------------------
+# 1b) Grant Cloud Run deployer role to prod-deployer-sa
+# ---------------------------------------------------------------------------
+resource "google_project_iam_member" "prod_deployer_run_admin" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${var.prod_deployer_sa_email}"
+}
+
+# ---------------------------------------------------------------------------
+# 1c) Grant Compute Admin role to prod-deployer-sa for direct deployment
+# ---------------------------------------------------------------------------
+resource "google_project_iam_member" "prod_deployer_compute_admin" {
+  project = var.project_id
+  role    = "roles/compute.admin"
+  member  = "serviceAccount:${var.prod_deployer_sa_email}"
+}
+
+# ---------------------------------------------------------------------------
+# 1d) Grant KMS and Secret Manager access to prod-deployer-sa
+# ---------------------------------------------------------------------------
+resource "google_project_iam_member" "prod_deployer_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${var.prod_deployer_sa_email}"
+}
+
+resource "google_project_iam_member" "prod_deployer_kms_user" {
+  project = var.project_id
+  role    = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member  = "serviceAccount:${var.prod_deployer_sa_email}"
+}
+
+# ---------------------------------------------------------------------------
 # 2) Grant `roles/iam.serviceAccounts.create` to Cloud Build SA
 # ---------------------------------------------------------------------------
 resource "google_project_iam_member" "cloud_build_serviceaccounts_create" {
   project = var.project_id
-  role    = "roles/iam.serviceAccounts.create"
+  role    = "roles/iam.serviceAccountCreator"
+  member  = "serviceAccount:${var.cloud_build_sa_email}"
+}
+
+# ---------------------------------------------------------------------------
+# 2b) Grant Cloud Build necessary roles for direct deployment pipeline
+# ---------------------------------------------------------------------------
+resource "google_project_iam_member" "cloud_build_editor" {
+  project = var.project_id
+  role    = "roles/cloudbuild.builds.editor"
+  member  = "serviceAccount:${var.cloud_build_sa_email}"
+}
+
+resource "google_project_iam_member" "cloud_build_run_admin" {
+  project = var.project_id
+  role    = "roles/run.admin"
+  member  = "serviceAccount:${var.cloud_build_sa_email}"
+}
+
+resource "google_project_iam_member" "cloud_build_log_writer" {
+  project = var.project_id
+  role    = "roles/logging.logWriter"
   member  = "serviceAccount:${var.cloud_build_sa_email}"
 }
 
@@ -48,7 +102,7 @@ resource "google_project_iam_member" "cloud_build_serviceaccounts_create" {
 # 7) Allow Cloud Build SA to impersonate the deployer SA
 # ---------------------------------------------------------------------------
 resource "google_service_account_iam_member" "cloud_build_impersonate_deployer" {
-  service_account_id = var.prod_deployer_sa_email
+  service_account_id = "projects/${var.project_id}/serviceAccounts/${var.prod_deployer_sa_email}"
   role               = "roles/iam.serviceAccountTokenCreator"
   member             = "serviceAccount:${var.cloud_build_sa_email}"
 }
@@ -70,6 +124,36 @@ resource "google_project_iam_member" "secretmanager_accessor_frontend" {
   role    = "roles/secretmanager.secretAccessor"
   member  = "serviceAccount:${var.frontend_sa_email}"
 }
+
+# ---------------------------------------------------------------------------
+# Resource-level Secret Manager IAM examples (preferred for least-privilege)
+# Use these examples to grant access to a specific secret rather than the
+# whole project. Org admins should adapt `secret_id` to point to the exact
+# secret resource (recommended) or use the full resource path.
+# ---------------------------------------------------------------------------
+# Example: grant `secretAccessor` to the backend service account for a single
+# secret named `my-backend-secret`. Replace `my-backend-secret` with the
+# actual secret id in your project.
+resource "google_secret_manager_secret_iam_member" "backend_secret_accessor" {
+  secret_id = "projects/${var.project_id}/secrets/my-backend-secret"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${var.backend_sa_email}"
+}
+
+# Example: if you prefer referencing an existing secret resource created in
+# Terraform, use the secret resource reference instead of the string path:
+#
+# resource "google_secret_manager_secret" "example" {
+#   secret_id = "my-backend-secret"
+#   replication { automatic = true }
+# }
+#
+# resource "google_secret_manager_secret_iam_member" "backend_secret_accessor_ref" {
+#   secret_id = google_secret_manager_secret.example.id
+#   role      = "roles/secretmanager.secretAccessor"
+#   member    = "serviceAccount:${var.backend_sa_email}"
+# }
+
 
 # ---------------------------------------------------------------------------
 # 10) Enable required APIs
@@ -109,7 +193,7 @@ resource "google_kms_crypto_key_iam_member" "kms_decrypter_backend" {
 }
 
 # ---------------------------------------------------------------------------
-# 11) Cloud Scheduler permissions: grant scheduler invoker to the scheduler SA
+# 11) Cloud Scheduler permissions: grant scheduler invoker & pubsub publisher
 # ---------------------------------------------------------------------------
 resource "google_project_iam_member" "cloud_scheduler_invoker" {
   project = var.project_id
@@ -117,32 +201,81 @@ resource "google_project_iam_member" "cloud_scheduler_invoker" {
   member  = "serviceAccount:${var.cloud_scheduler_sa_email}"
 }
 
+resource "google_project_iam_member" "cloud_scheduler_pubsub_publisher" {
+  project = var.project_id
+  role    = "roles/pubsub.publisher"
+  member  = "serviceAccount:${var.cloud_scheduler_sa_email}"
+}
+
+resource "google_project_iam_member" "cloud_scheduler_run_invoker" {
+  project = var.project_id
+  role    = "roles/run.invoker"
+  member  = "serviceAccount:${var.cloud_scheduler_sa_email}"
+}
+
 # ---------------------------------------------------------------------------
-# 13) Pub/Sub topic IAM placeholder: create binding for milestone organizer
+# 13) Pub/Sub topic IAM: grant publisher role for milestone organizer
 # ---------------------------------------------------------------------------
-# Note: We create a project-level Pub/Sub IAM binding (topic-level preferred).
 resource "google_project_iam_member" "pubsub_publisher_milestone" {
   project = var.project_id
   role    = "roles/pubsub.publisher"
   member  = "serviceAccount:${var.milestone_sa_email}"
 }
 
-# ---------------------------------------------------------------------------
-# 9) VPC-SC exceptions and org policies cannot be applied by project-level
-#    Terraform without org-level credentials. Provide sample org_policy
-#    resources below in comments for org admins to consider.
-# ---------------------------------------------------------------------------
+resource "google_project_iam_member" "pubsub_subscriber_milestone" {
+  project = var.project_id
+  role    = "roles/pubsub.subscriber"
+  member  = "serviceAccount:${var.milestone_sa_email}"
+}
 
 # ---------------------------------------------------------------------------
-# 3/4/6/14 - Org-level items that require org admin manual approval:
-#  - Cloud SQL org policy exceptions (3 & 4)
-#  - S3 ObjectLock for AWS bucket (6) [AWS side]
-#  - Service account allowlist for worker SSH (14)
-#
-# These are documented in README.md with the commands and sample Terraform
-# snippets that org admins can apply in their org-level workspace.
+# 13b) Add Secret Manager and KMS access for milestone organizer
 # ---------------------------------------------------------------------------
+resource "google_project_iam_member" "milestone_secret_accessor" {
+  project = var.project_id
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${var.milestone_sa_email}"
+}
+
+# ---------------------------------------------------------------------------
+# 3/4/6/14 - ORG-LEVEL ITEMS REQUIRING MANUAL APPROVAL
+# ---------------------------------------------------------------------------
+# The following items require org-level credentials and must be applied 
+# by GCP organization admins in a separate org-level Terraform workspace.
+# 
+# ITEM 3: Approve Cloud SQL org policy exception for production
+#   Command: gcloud org-policies delete sql.restrictPublicIp --project=nexusshield-prod
+#   Or create exception in Cloud Console: 
+#   https://console.cloud.google.com/iam-admin/orgpolicies
+#
+# ITEM 4: Approve Cloud SQL org policy exception for staging
+#   Command: gcloud org-policies delete sql.restrictPublicIp --project=nexusshield-staging
+#
+# ITEM 6: Approve S3 ObjectLock for compliance bucket retention (AWS side)
+#   Command (on AWS): aws s3api put-bucket-object-lock-configuration \
+#     --bucket nexusshield-prod-immutable-logs \
+#     --object-lock-configuration 'ObjectLockEnabled=Enabled,Rule={DefaultRetention={Mode=COMPLIANCE,Days=365}}'
+#   This MUST be done before the bucket is created or modified.
+#
+# ITEM 14: Confirm service account allowlist changes for worker SSH access
+#   - Add 'prod-deployer-sa@nexusshield-prod.iam.gserviceaccount.com' to 
+#     the allowlist for GCE instance metadata SSH key uploads
+#   - Verify in Cloud Console: Compute Engine > Settings > Service Accounts
+#
+# These require org-admin review and approval. Once complete, update this
+# file to reflect completion and re-run: terraform plan && terraform apply
+# ---------------------------------------------------------------------------
+
+output "checklist_org_items" {
+  value = {
+    item_3  = "Cloud SQL org policy exception for production"
+    item_4  = "Cloud SQL org policy exception for staging"
+    item_6  = "AWS S3 ObjectLock compliance bucket encryption"
+    item_14 = "Service account allowlist for worker SSH access"
+  }
+  description = "Org-level items requiring manual approval. See comments in main.tf"
+}
 
 output "note_manual_steps" {
-  value = "Some items require org-level approval and are documented in README.md. Review before apply."
+  value = "ORG-LEVEL ITEMS: 3, 4, 6, 14 require org admin approval. See output.checklist_org_items above."
 }
