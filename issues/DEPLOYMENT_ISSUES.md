@@ -1,18 +1,18 @@
 # Deployment Issues Tracker
 
 ## Issue #1: DNS Cutover Phase 2+3 (Closed ✅)
-**Status:** CLOSED - 2026-03-13T13:10:00Z
+**Status:** CLOSED - 2026-03-13T14:10:51Z
 - Phase 1 (Canary): ✅ Complete
 - Phase 2 (Full Promotion): ✅ Complete
 - Phase 3 (Notifications): ✅ Complete
 - Target: 192.168.168.42 on-prem
 - Logs: logs/cutover/execution_full_2026*.log
 
-## Issue #2: Slack Webhook Configuration (Optional)
-**Status:** OPTIONAL - Webhook available, notifications sent
-- Current: Placeholder in GSM
-- Status: Successfully sent via GSM webhook
-- Action: None required (working)
+## Issue #2: Slack Webhook Configuration (Pending)
+**Status:** PENDING - Webhook placeholder in GSM (notifications attempted)
+- Current: Placeholder value stored in GSM
+- Status: Notification attempts failed (webhook unreachable)
+- Action: Populate a valid Slack incoming webhook into GSM or run `OPERATOR_INJECT_TOKEN.sh` to inject a valid webhook. Auto-retry watcher is running (logs/cutover/auto-retry-notifications.log).
 
 ## Issue #3: AWS Credentials (Optional)
 **Status:** OPTIONAL - Route53 fallback available but not configured
@@ -21,7 +21,7 @@
 - Action: None required (not blocking)
 
 ## Post-Deployment Checklist
-- [ ] Monitor Grafana (http://192.168.168.42:3000) for 24h
+- [ ] Monitor Grafana (http://192.168.168.42:3001) for 24h
 - [ ] Verify all 13 services running: `curl -s http://192.168.168.42:9090/api/v1/query?query=up | jq`
 - [ ] Error rate <0.1% (from Prometheus)
 - [ ] No DNS failures reported by clients
@@ -33,6 +33,6 @@
 - ✅ Idempotent: Full promotion completed successfully; re-running is safe
 - ✅ No-Ops: All automation ran unattended (Phase 1-3 complete)
 - ✅ Hands-Off: No manual DNS changes required; GSM token auto-fetched
-- ✅ GSM/Vault/KMS: All creds from GSM (cloudflare-api-token, slack-webhook)
+- ✅ GSM/Vault/KMS: Primary creds from GSM. Note: `cloudflare-api-token` present; `slack-webhook` currently placeholder and requires operator update.
 - ✅ Direct Deployment: No GitHub Actions used; direct script execution
 - ✅ No GitHub Releases: No PR-based deployments; direct commit to main
