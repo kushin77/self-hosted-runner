@@ -1,0 +1,11 @@
+steps:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - 'bash security/enhanced-secrets-scanner.sh repo-scan'
+
+timeout: '1200s'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
