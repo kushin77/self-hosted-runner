@@ -40,6 +40,8 @@ spec:
                   mountPath: /workspace
                 - name: secrets-store-inline
                   mountPath: /var/run/secrets
+                - name: gh-secret
+                  mountPath: /var/run/gh
           containers:
             - name: organizer
               # Use hardened runner image built and pushed to GCR/registry
@@ -54,6 +56,11 @@ spec:
                     git clone https://github.com/kushin77/self-hosted-runner.git repo
                   fi
                   cd repo
+                  # If a k8s Secret is mounted at /var/run/gh, copy into expected path
+                  if [ -f /var/run/gh/gh_token ] && [ ! -f /var/run/secrets/gh_token ]; then
+                    cp /var/run/gh/gh_token /var/run/secrets/gh_token || true
+                    chmod 600 /var/run/secrets/gh_token || true
+                  fi
                   if [ -f /var/run/secrets/gh_token ]; then
                     export GH_TOKEN=$(cat /var/run/secrets/gh_token)
                     echo "$GH_TOKEN" | gh auth login --with-token || true
@@ -64,6 +71,8 @@ spec:
                   mountPath: /workspace
                 - name: secrets-store-inline
                   mountPath: /var/run/secrets
+                - name: gh-secret
+                  mountPath: /var/run/gh
           # Enforce pod and container security context
           securityContext:
             runAsNonRoot: true
@@ -78,5 +87,9 @@ spec:
                 readOnly: true
                 volumeAttributes:
                   secretProviderClass: "milestone-organizer-spc"
+            - name: gh-secret
+              secret:
+                secretName: github-token
+                optional: true
           # Secrets Store CSI will inject secrets at /var/run/secrets
 
