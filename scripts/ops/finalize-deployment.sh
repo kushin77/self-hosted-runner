@@ -73,7 +73,7 @@ log_event "PHASE 3: STAKEHOLDER NOTIFICATIONS - STARTING"
 SLACK_WEBHOOK=$(gcloud secrets versions access latest --secret=slack-webhook --project="$PROJECT_ID" 2>/dev/null || true)
 
 if [ -n "$SLACK_WEBHOOK" ] && ! echo "$SLACK_WEBHOOK" | grep -q "ERROR\|NOT_FOUND\|PLACEHOLDER"; then
-  SLACK_MSG="{\"text\":\"🚀 *DNS Cutover Complete*\n✅ Phase 1: Canary DNS running, monitoring stable\n✅ Phase 2: Full promotion executed - all DNS records now point to 192.168.168.42 (on-prem)\n✅ On-prem production live\n📊 Monitoring dashboard: http://192.168.168.42:3000\n⏱️ Continue 24h validation per OPERATOR_QUICKSTART_GUIDE.md\"}"
+  SLACK_MSG="{\"text\":\"🚀 *DNS Cutover Complete*\n✅ Phase 1: Canary DNS running, monitoring stable\n✅ Phase 2: Full promotion executed - all DNS records now point to 192.168.168.42 (on-prem)\n✅ On-prem production live\n📊 Monitoring dashboard: http://192.168.168.42:3001\n⏱️ Continue 24h validation per OPERATOR_QUICKSTART_GUIDE.md\"}"
   
   if curl -s -X POST -H 'Content-type: application/json' --data "$SLACK_MSG" "$SLACK_WEBHOOK" > /dev/null 2>&1; then
     log_event "✓ Slack notification sent to operations team"
@@ -189,7 +189,7 @@ log_event "   • Phase 3 (Notifications): ✅ Complete - Slack notified"
 log_event "   • Phase 4 (Validation): 🔄 In progress - 24h required (monitor Grafana)"
 log_event ""
 log_event "📊 Monitoring:"
-log_event "   • Grafana: http://192.168.168.42:3000"
+log_event "   • Grafana: http://192.168.168.42:3001"
 log_event "   • Prometheus metrics: http://192.168.168.42:9090"
 log_event "   • Poller logs: logs/cutover/poller.log"
 log_event "   • Full log: $CUTOVER_LOG"
