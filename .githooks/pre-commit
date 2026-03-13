@@ -1,4 +1,18 @@
 #!/usr/bin/env bash
+# Pre-commit hook: run repository secrets scanner
+set -euo pipefail
+HOOK_DIR=$(cd "$(dirname "$0")" && pwd)
+REPO_ROOT=$(git rev-parse --show-toplevel)
+echo "[pre-commit] running secrets scanner..."
+bash "$REPO_ROOT/security/enhanced-secrets-scanner.sh" pre-commit
+status=$?
+if [[ $status -ne 0 ]]; then
+  echo "[pre-commit] secrets scanner failed. Commit aborted." >&2
+  exit $status
+fi
+echo "[pre-commit] secrets scanner passed."
+exit 0
+#!/usr/bin/env bash
 ################################################################################
 # PRE-COMMIT HOOK: Multi-Pattern Credential Detection & Blocking
 # 

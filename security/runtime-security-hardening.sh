@@ -74,7 +74,7 @@ rules:
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
   resources: ["secrets"]
-  verbs: []  # No access to secrets via RBAC; use CSI instead
+  verbs: ["get"]  # Minimal explicit access if required; otherwise remove
 ---
 # ClusterRoleBinding: Bind role to service account
 apiVersion: rbac.authorization.k8s.io/v1
@@ -423,7 +423,7 @@ install_falco() {
     helm repo update
     
     # Install Falco
-    kubectl create namespace falco --ignore-not-found=true
+    kubectl create namespace falco 2>/dev/null || true
     
     helm upgrade --install falco falcosecurity/falco \
         --namespace falco \

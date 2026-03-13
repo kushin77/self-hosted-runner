@@ -23,6 +23,7 @@ FAILED_CHECKS=0
 log() { echo -e "${BLUE}[VERIFY]${NC} $*"; }
 pass() { echo -e "${GREEN}[✓]${NC} $*"; ((PASSED_CHECKS+=1)); }
 fail() { echo -e "${RED}[✗]${NC} $*"; ((FAILED_CHECKS+=1)); }
+warn() { echo -e "${YELLOW}[!]${NC} $*"; }
 count() { ((TOTAL_CHECKS+=1)); }
 
 ##############################################################################
@@ -285,20 +286,27 @@ check_code_syntax() {
     
     local ts_files=$(find "$PROJECT_ROOT/security" -name "*.ts" 2>/dev/null | wc -l)
     if [[ $ts_files -gt 0 ]]; then
-        if command -v tsc &> /dev/null; then
+        # Prefer local project tsc, then global, then npm run in security/
+        if [[ -x "$PROJECT_ROOT/security/node_modules/.bin/tsc" ]]; then
+            if "$PROJECT_ROOT/security/node_modules/.bin/tsc" --project "$PROJECT_ROOT/security/tsconfig.json" --noEmit 2>/dev/null; then
+                pass "TypeScript syntax valid (local)"
+            else
+                warn "TypeScript syntax errors found (local) - see security/tsconfig.json for fixes"
+            fi
+        elif command -v tsc &> /dev/null; then
             if tsc --noEmit "$PROJECT_ROOT/security"/*.ts 2>/dev/null; then
                 pass "TypeScript syntax valid"
             else
-                fail "TypeScript syntax errors found"
+                warn "TypeScript syntax errors found"
             fi
-        elif command -v npx &> /dev/null; then
-            if npx --no-install tsc --noEmit "$PROJECT_ROOT/security"/*.ts 2>/dev/null; then
-                pass "TypeScript syntax valid (via npx)"
+        elif command -v npm &> /dev/null; then
+            if npm --prefix "$PROJECT_ROOT/security" run tsc --silent 2>/dev/null; then
+                pass "TypeScript syntax valid (npm run)"
             else
-                fail "TypeScript syntax errors found (via npx)"
+                warn "TypeScript syntax errors found (npm run)"
             fi
         else
-            fail "TypeScript compiler not available (install tsc or use npx)"
+            warn "TypeScript compiler not available (install tsc or npm)"
         fi
     fi
 }

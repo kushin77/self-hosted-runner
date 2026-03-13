@@ -1,0 +1,69 @@
+steps:
+  # Step 1: Build Zero-Trust auth container
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-zero-trust'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/zero-trust-auth:latest'
+      - '-f'
+      - 'security/Dockerfile'
+      - '.'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+  # Step 2: Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-zero-trust'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}'
+    waitFor: ['build-zero-trust']
+
+  # Step 3: Vulnerability scan (optional, may skip if service unavailable)
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'scan-image'
+    args:
+      - 'pull'
+      - 'gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}'
+    waitFor: ['push-zero-trust']
+
+  # Step 4: Deploy to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'deploy-cloudrun'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'zero-trust-auth'
+      - '--image=gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--no-allow-unauthenticated'
+      - '--set-env-vars=JWT_ISSUER_URL=https://accounts.google.com,LOG_LEVEL=info'
+      - '--cpu=2'
+      - '--memory=512Mi'
+      - '--timeout=30'
+      - '--max-instances=10'
+    waitFor: ['push-zero-trust']
+
+  # Step 5: Create audit entry
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'audit-deploy'
+    args:
+      - 'bash'
+      - '-c'
+      - 'echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"component\":\"zero-trust-auth\",\"action\":\"deploy\",\"image\":\"gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}\",\"commit\":\"${COMMIT_SHA}\",\"status\":\"deployed\"}" >> audit-trail.jsonl'
+
+# Images
+images:
+  - 'gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}'
+  - 'gcr.io/$PROJECT_ID/zero-trust-auth:latest'
+
+# Options
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '1800s'

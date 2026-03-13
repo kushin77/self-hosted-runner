@@ -378,7 +378,7 @@ What we did:
 - [Preventive measures]
 
 What you should do:
-- Change password immediately
+- Change account credentials immediately (do not share credentials over email)
 - Monitor account for suspicious activity
 - Contact us if you see anything odd
 

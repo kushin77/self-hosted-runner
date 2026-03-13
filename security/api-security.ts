@@ -50,7 +50,7 @@ interface ValidationSchema {
 class DistributedRateLimiter {
   private config: RateLimitConfig;
   private store: Map<string, Array<number>> = new Map();
-  private cleanupInterval: NodeJS.Timer | null = null;
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: RateLimitConfig) {
     this.config = config;
@@ -91,7 +91,7 @@ class DistributedRateLimiter {
 
   shutdown() {
     if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
+      clearInterval(this.cleanupInterval as unknown as NodeJS.Timeout);
     }
   }
 }
@@ -198,7 +198,7 @@ class InputValidator {
  */
 class APIKeyManager {
   private keys: Map<string, APIKey> = new Map();
-  private rotationInterval: NodeJS.Timer | null = null;
+  private rotationInterval: ReturnType<typeof setInterval> | null = null;
   private readonly MAX_KEY_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days
 
   constructor() {
@@ -303,8 +303,15 @@ class APIKeyManager {
 
   shutdown() {
     if (this.rotationInterval) {
-      clearInterval(this.rotationInterval);
+      clearInterval(this.rotationInterval as unknown as NodeJS.Timeout);
     }
+  }
+  
+  /**
+   * Safe accessor for keys to avoid exposing internal map directly.
+   */
+  getKey(id: string): APIKey | undefined {
+    return this.keys.get(id);
   }
 }
 
@@ -443,7 +450,7 @@ export function createAPISecurityMiddleware(
       }
 
       // Get API key secret from manager
-      const key = keyManager.keys?.get?.(apiKey);
+      const key = keyManager.getKey(apiKey);
       if (!key) {
         return res.status(401).json({ error: 'Invalid API key' });
       }

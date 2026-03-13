@@ -47,7 +47,7 @@ interface RequestMetadata {
 class RevocationCache extends EventEmitter {
   private cache: Map<string, number> = new Map();
   private lastSync: number = 0;
-  private syncInterval: NodeJS.Timer | null = null;
+  private syncInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(private config: ZeroTrustConfig) {
     super();
@@ -61,7 +61,7 @@ class RevocationCache extends EventEmitter {
 
   stop() {
     if (this.syncInterval) {
-      clearInterval(this.syncInterval);
+      clearInterval(this.syncInterval as unknown as NodeJS.Timeout);
     }
   }
 
@@ -95,7 +95,7 @@ export class ZeroTrustAuth {
   private config: ZeroTrustConfig;
   private revocationCache: RevocationCache;
   private publicKeys: Map<string, string> = new Map();
-  private keyRefreshTimer: NodeJS.Timer | null = null;
+  private keyRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(config: ZeroTrustConfig) {
     this.config = config;
@@ -165,7 +165,7 @@ export class ZeroTrustAuth {
     }
 
     // 1. Verify certificate chain
-    if (!clientCert.issuerCertificate) {
+    if (!(clientCert as any).issuerCertificate) {
       return false;
     }
 
@@ -311,7 +311,7 @@ export class ZeroTrustAuth {
   shutdown() {
     this.revocationCache.stop();
     if (this.keyRefreshTimer) {
-      clearInterval(this.keyRefreshTimer);
+      clearInterval(this.keyRefreshTimer as unknown as NodeJS.Timeout);
     }
   }
 }

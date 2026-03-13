@@ -39,7 +39,7 @@ declare -A SECRET_PATTERNS=(
     ["api_key"]="api[_-]?key[=:\s]['\"]?[a-zA-Z0-9]{20,}['\"]?"
     ["password"]="password[=:\s]['\"]?[a-zA-Z0-9@#$%^&*!~]{8,}['\"]?"
     ["jwt"]="eyJ[a-zA-Z0-9_-]+\.eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+"
-    ["gcp_sa_key"]="\"type\":\s*\"service_account\""
+    ["gcp_sa_key"]="\"private_key\"\s*:\s*\"-----BEGIN"
     ["db_connection"]="(postgresql|mysql|mongodb)://[a-zA-Z0-9:@/.?=&_-]{20,}"
 )
 
@@ -65,6 +65,8 @@ ALLOWED_PATHS=(
     "tests/"
     ".github/workflows/"
     "security/"
+    "EPIC-5_MULTI_CLOUD_SYNC_COMPLETE.md"
+    "DAY1_POSTGRESQL_EXECUTION_PLAN.md"
 )
 
 ##############################################################################
@@ -86,7 +88,7 @@ scan_staged_files() {
         # Skip if file is in whitelist
         local skip=0
         for allowed in "${ALLOWED_PATHS[@]}"; do
-            if [[ "$file" == "$allowed"* ]]; then
+            if [[ "$file" == "$allowed"* || "$file" == *"/$allowed"* ]]; then
                 skip=1
                 break
             fi

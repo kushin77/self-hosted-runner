@@ -3,8 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^18.0.0"
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "helmet": "^7.0.0",
+    "jsonwebtoken": "^9.0.0"
   },
   "scripts": {
     "tsc": "tsc --project tsconfig.json --noEmit"
