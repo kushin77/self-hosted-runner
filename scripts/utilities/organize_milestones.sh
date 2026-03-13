@@ -116,14 +116,14 @@ for i in issues:
 print('Planned assignments:')
 for g,ids in plan.items():
   print(f'- {g}: {len(ids)}')
-print(f'- All Untriaged (fallback): {len(unassigned)}')
+print(f'- Backlog Triage (fallback): {len(unassigned)}')
 print('\nConfidence distribution:')
 for s,c in sorted(confidence_counts.items(), reverse=True):
   print(f'- score {s}: {c}')
 print('\nSample per group (top 10):')
 for g,ids in plan.items():
   print(f'-- {g}:', [i for i,s in ids[:10]])
-print('-- All Untriaged sample:', unassigned[:20])
+print('-- Backlog Triage sample:', unassigned[:20])
 print('\nTo apply these changes, re-run the wrapper with --apply')
 PY
 
@@ -178,7 +178,7 @@ for i in issues:
     num=i['number']; text=(i.get('title') or '')+'\n'+(i.get('body') or '')
     labels=[l['name'] for l in i.get('labels',[])]
     g,score=pick(text, labels)
-    target=g if g else 'All Untriaged'
+    target=g if g else 'Backlog Triage'
     # attempt assign
     r=subprocess.run(['gh','issue','edit',str(num),'--milestone',target], capture_output=True, text=True)
     if r.returncode==0:

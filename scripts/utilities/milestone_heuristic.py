@@ -32,7 +32,7 @@ def main(path):
             continue
         text=(i.get('title') or '')+'\n'+(i.get('body') or '')
         g=pick(text)
-        target=g if g else 'All Untriaged'
+        target=g if g else 'Backlog Triage'
         assignments.append({'issue':i.get('number'),'milestone':target})
     print(json.dumps(assignments,indent=2))
 
