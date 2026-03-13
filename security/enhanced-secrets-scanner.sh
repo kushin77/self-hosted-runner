@@ -75,6 +75,7 @@ ALLOWED_PATHS=(
     "AWS_MULTICLOUD_INTEGRATION_RUNBOOK.md"
     "PRODUCTION_COMPLETE_HANDOFF_20260313.md"
     "OPERATOR_RUNBOOK_CANONICAL_SECRETS.md"
+    "CANONICAL_SECRETS_IMPLEMENTATION.md"
 )
 
 ##############################################################################
