@@ -53,7 +53,7 @@ resource "google_compute_network" "redis_vpc" {
   auto_create_subnetworks = false
 }
 
-data "google_client_config" "current" {}
+# Note: data "google_client_config" "current" defined in cost-saving-cloudrun.tf (avoid duplicates)
 
 output "redis_host" {
   value       = try(google_redis_instance.development[0].host, "")

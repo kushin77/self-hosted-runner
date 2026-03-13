@@ -78,7 +78,7 @@ resource "google_sql_database_instance" "scheduled_shutdown_metadata" {
   # Note: Cloud SQL doesn't support native scheduling; use external cleanup service
 }
 
-data "google_client_config" "current" {}
+# Note: data "google_client_config" "current" defined in cost-saving-cloudrun.tf (avoid duplicates)
 
 resource "google_compute_network" "dev_vpc" {
   name                    = "nexusshield-dev-vpc"

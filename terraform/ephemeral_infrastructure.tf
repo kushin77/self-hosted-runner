@@ -179,28 +179,9 @@ resource "google_storage_bucket" "ephemeral" {
 
 # ============================================================================
 # GCP Cloud Scheduler: Ephemeral Resource Cleanup Job
+# NOTE: Cloud Scheduler job is defined in hands_off_automation.tf
+# This file defines the Kubernetes-based cleanup worker (CronJob)
 # ============================================================================
-resource "google_cloud_scheduler_job" "ephemeral_cleanup" {
-  project     = var.gcp_project_id
-  name        = "ephemeral-cleanup-${formatdate("YYYYMMDDhhmmss", timestamp())}"
-  description = "Auto-cleanup ephemeral resources (marks them for deletion)"
-  region      = var.gcp_region
-  schedule    = "0 * * * *"  # Every hour
-  time_zone   = "UTC"
-
-  http_target {
-    http_method = "POST"
-    uri         = "https://cloudfunctions.net/ephemeral-cleanup"
-    
-    headers = {
-      "Content-Type" = "application/json"
-    }
-
-    oidc_token {
-      service_account_email = google_service_account.ephemeral_cleanup.email
-    }
-  }
-}
 
 # ============================================================================
 # Service Account: Ephemeral Cleanup
