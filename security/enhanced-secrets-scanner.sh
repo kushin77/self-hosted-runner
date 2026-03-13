@@ -65,6 +65,7 @@ ALLOWED_PATHS=(
     "tests/"
     ".github/workflows/"
     "security/"
+    "terraform/"
     "EPIC-5_MULTI_CLOUD_SYNC_COMPLETE.md"
     "DAY1_POSTGRESQL_EXECUTION_PLAN.md"
     "TERRAFORM_INFRASTRUCTURE.md"
