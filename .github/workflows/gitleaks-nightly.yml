@@ -1,0 +1,41 @@
+name: Nightly Secret Scan (gitleaks)
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # daily at 02:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  gitleaks-scan:
+    name: Gitleaks Nightly Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run gitleaks (container)
+        uses: docker://zricethezav/gitleaks:8.18.0
+        with:
+          entrypoint: /bin/sh
+          args: -c "gitleaks detect --source . --redact --report-format json --report-path reports/gitleaks-nightly.json || true"
+
+      - name: Upload report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-nightly-report
+          path: reports/gitleaks-nightly.json
+
+      - name: Fail on leaks
+        if: always()
+        run: |
+          if [ -f reports/gitleaks-nightly.json ]; then
+            count=$(jq '. | length' reports/gitleaks-nightly.json || echo 0)
+            echo "Found $count gitleaks findings"
+            if [ "$count" -gt 0 ]; then
+              echo "Leaks detected; failing workflow to notify maintainers"
+              exit 1
+            fi
+          else
+            echo 'No report generated; marking as failure'
+            exit 1
+          fi
