@@ -18,8 +18,7 @@ RUN npm run tsc || true
 FROM node:20-alpine
 RUN apk add --no-cache dumb-init ca-certificates
 
-# Non-root user
-RUN addgroup -g 1000 -S appuser && adduser -u 1000 -S appuser -G appuser
+# Use existing non-root `node` user from official base image to avoid uid/gid conflicts
 
 WORKDIR /app
 
@@ -35,7 +34,7 @@ COPY scripts/secrets/rotate-credentials.sh /app/scripts/
 RUN chmod +x /app/scripts/rotate-credentials.sh || true
 
 # Ownership
-RUN chown -R appuser:appuser /app
+RUN chown -R node:node /app
 
 # Security headers
 ENV NODE_ENV=production
@@ -43,7 +42,7 @@ ENV LOG_LEVEL=info
 ENV JWT_ISSUER_URL=https://accounts.google.com
 ENV MUTABLE_CACHE_TTL=300
 
-USER appuser
+USER node
 EXPOSE 8080
 
 # Use dumb-init to handle signals properly

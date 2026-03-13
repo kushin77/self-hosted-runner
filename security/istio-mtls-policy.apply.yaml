@@ -41,7 +41,6 @@ spec:
       interval: 30s
       baseEjectionTime: 30s
       maxEjectionPercent: 50
-      minRequestVolume: 10
 ---
 # AuthorizationPolicy: Deny-all by default, explicit allow
 apiVersion: security.istio.io/v1beta1
@@ -122,7 +121,8 @@ spec:
   jwtRules:
   - issuer: "https://auth.company.com"
     jwksUri: "https://auth.company.com/.well-known/jwks.json"
-    audiences: "api.company.com"
+    audiences:
+    - "api.company.com"
 ---
 # VirtualService: Circuit breaker configuration
 apiVersion: networking.istio.io/v1beta1
@@ -146,16 +146,6 @@ spec:
     retries:
       attempts: 3
       perTryTimeout: 10s
----
-# PeerAuthentication: Partial mTLS for specific namespaces
-apiVersion: security.istio.io/v1beta1
-kind: PeerAuthentication
-metadata:
-  name: frontend-mtls
-  namespace: frontend
-spec:
-  mtls:
-    mode: PERMISSIVE  # Allow both mTLS and plain-text (for migration)
 ---
 # DestinationRule: Certificate pinning for critical services
 apiVersion: networking.istio.io/v1beta1
@@ -181,7 +171,8 @@ spec:
   jwtRules:
   - issuer: "cluster.local"  # Internal issuer for service tokens
     jwksUri: "http://istio-system/istio-ca-root-cert"
-    audiences: "backend.default.svc.cluster.local"
+    audiences:
+    - "backend.default.svc.cluster.local"
 ---
 # ServiceEntry: For external services with mTLS
 apiVersion: networking.istio.io/v1alpha3
@@ -265,40 +256,6 @@ spec:
     ports:
     - protocol: UDP
       port: 53
----
-# ServiceMonitor: Prometheus monitoring with mTLS
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  name: backend-metrics
-  namespace: default
-spec:
-  selector:
-    matchLabels:
-      app: backend
-  endpoints:
-  - port: metrics
-    scheme: https
-    tlsConfig:
-      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-      serverName: backend.default.svc
----
-# PrometheusRule: Alert on TLS errors
-apiVersion: monitoring.coreos.com/v1
-kind: PrometheusRule
-metadata:
-  name: mtls-alerts
-  namespace: default
-spec:
-  groups:
-  - name: mtls.rules
-    interval: 30s
-    rules:
-    - alert: HighMTLSErrorRate
-      expr: rate(istio_request_total{response_code=~"5.."}[5m]) > 0.05
-      for: 5m
-      annotations:
-        summary: "High mTLS error rate detected"
 ---
 # PodDisruptionBudget: Ensure service availability during certificate rotations
 apiVersion: policy/v1
