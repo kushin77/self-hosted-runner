@@ -58,8 +58,8 @@ Run these commands on a machine with GitHub push rights:
 ```bash
 cd /home/akushnir/self-hosted-runner
 
-# Set GitHub PAT (short-lived, repo push scope)
-export GITHUB_TOKEN="ghp_YOUR_SHORT_LIVED_TOKEN"
+# Fetch GitHub PAT from GSM (recommended)
+export GITHUB_TOKEN=$(gcloud secrets versions access latest --secret=github-token --project=nexusshield-prod)
 
 # Run the published script (push, merge to main, tag, create+close issue)
 ./scripts/release/publish_release_locally.sh

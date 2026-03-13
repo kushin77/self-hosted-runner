@@ -8,7 +8,17 @@
 
 **Repository:** https://github.com/kushin77/self-hosted-runner.git
 
-**Branch Protection:** Applied locally and enforcement confirmed via pre-commit hook (`.githooks/prevent-workflows`). To update remote branch protections or GitHub Issues, export a GitHub admin token as `auth_token` and run the provided automation scripts or the curl commands in `scripts/github/` (optional automated sync).
+**Branch Protection:** Applied locally and enforcement confirmed via pre-commit hook (`.githooks/prevent-workflows`).
+To update remote branch protections or GitHub Issues, retrieve the GitHub token from Google Secret Manager (GSM) and export it into your shell, for example:
+
+```bash
+# Fetch GitHub token from GSM (recommended):
+export GITHUB_TOKEN=$(gcloud secrets versions access latest --secret=github-token --project=nexusshield-prod)
+
+# Then run the provided automation scripts or the curl commands in `scripts/github/`.
+```
+
+If the `github-token` secret is not yet present in GSM, add it as an admin-only operation and then re-run the commands above.
 
 ---
 

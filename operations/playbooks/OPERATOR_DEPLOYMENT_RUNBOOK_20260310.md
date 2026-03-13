@@ -80,13 +80,14 @@ bash scripts/finalize_credentials.sh
 If you want to close issues on GitHub remotely (requires GitHub token with repo scope):
 
 ```bash
-export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+# Recommended: fetch GitHub token from GSM instead of hardcoding
+export GITHUB_TOKEN=$(gcloud secrets versions access latest --secret=github-token --project=nexusshield-prod)
 
-# Close 9 tracked issues with audit links
+# Close tracked issues with audit links
 ./scripts/close_github_issues.sh scripts/issues_to_close.txt
 ```
 
-**Note:** Without token, issues stay open. You can close them manually later using the contents of `ISSUE_CLOSURES_20260310.md`.
+**Note:** If `github-token` is not present in GSM, the operator must add it (admin-only). Without a token, issues stay open and can be closed manually using the contents of `ISSUE_CLOSURES_20260310.md`.
 
 ---
 

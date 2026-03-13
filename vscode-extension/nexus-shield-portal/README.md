@@ -175,7 +175,9 @@ For CI/CD or remote scenarios:
 ```bash
 export NEXUS_SHIELD_API_URL="http://api.example.com:8080"
 export NEXUS_SHIELD_DASHBOARD_URL="http://dashboard.example.com:3000"
-export NEXUS_SHIELD_API_KEY="sk_live_..."
+export NEXUS_SHIELD_API_KEY="$(gcloud secrets versions access latest --secret=nexus-shield-api-key --project=nexusshield-prod)"
+
+Note: Add your `nexus-shield-api-key` to Google Secret Manager (GSM) and reference it from CI or local shells as shown above. Do NOT store API keys in files.
 ```
 
 ---
