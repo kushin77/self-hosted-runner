@@ -3,8 +3,9 @@ steps:
     id: "setup"
     entrypoint: "bash"
     args:
-      - -eux
+      - -c
       - |
+        set -eux
         python -m venv /workspace/.venv
         . /workspace/.venv/bin/activate
         python -m pip install --upgrade pip setuptools wheel
@@ -17,8 +18,9 @@ steps:
     id: "run-happy-path"
     entrypoint: "bash"
     args:
-      - -eux
+      - -c
       - |
+        set -eux
         . /workspace/.venv/bin/activate
         pytest -q tests/e2e_test_framework.py::test_happy_path -k test_happy_path -s --maxfail=1
 
