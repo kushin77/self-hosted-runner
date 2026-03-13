@@ -1,4 +1,4 @@
-.PHONY: build push
+.PHONY: build push qa-prod-gate qa-overlap qa-prod-gate-execute
 
 IMAGE ?= gcr.io/$(GCP_PROJECT)/automation-runner:latest
 
@@ -7,3 +7,12 @@ build:
 
 push: build
 	docker push $(IMAGE)
+
+qa-overlap:
+	bash scripts/qa/review-overlap.sh
+
+qa-prod-gate:
+	bash scripts/qa/production-readiness-gate.sh
+
+qa-prod-gate-execute:
+	bash scripts/qa/production-readiness-gate.sh --execute-shutdown --strict
