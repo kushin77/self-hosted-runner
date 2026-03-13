@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	"github.com/kushin77/nexus-engine/pkg/discovery"
 )
 
 func TestMapGitHubStatus(t *testing.T) {
@@ -105,5 +104,58 @@ func TestGitHubNormalizer_Normalize(t *testing.T) {
 	// validate metadata
 	if v := evt.Metadata["workflow_name"]; v != "CI" {
 		t.Fatalf("unexpected metadata.workflow_name: %s", v)
+	}
+}
+
+func TestGitLabNormalizer_Normalize(t *testing.T) {
+	logger := zap.NewNop()
+	n := NewGitLabNormalizer(logger)
+
+	started := "2026-03-12T10:00:00Z"
+	finished := "2026-03-12T10:02:10Z" // 130 seconds
+
+	payload := map[string]interface{}{
+		"object_kind": "pipeline",
+		"pipeline": map[string]interface{}{
+			"id":  54321,
+			"sha": "deadbeef",
+			"ref": "main",
+			"status": "success",
+			"started_at": started,
+			"finished_at": finished,
+			"web_url": "https://gitlab.com/org/repo/-/pipelines/54321",
+		},
+		"project": map[string]interface{}{"id": 99, "path_with_namespace": "org/repo"},
+		"user": map[string]interface{}{"username": "runner-user"},
+	}
+
+	b, _ := json.Marshal(payload)
+	evt, err := n.Normalize("tenant-2", b)
+	if err != nil {
+		t.Fatalf("GitLab Normalize returned error: %v", err)
+	}
+	if evt == nil {
+		t.Fatalf("Normalize returned nil event")
+	}
+	if evt.Repo != "org/repo" {
+		t.Fatalf("unexpected repo: %s", evt.Repo)
+	}
+	if evt.TenantId != "tenant-2" {
+		t.Fatalf("unexpected tenant: %s", evt.TenantId)
+	}
+	if evt.Status != "success" {
+		t.Fatalf("unexpected status: %s", evt.Status)
+	}
+	if evt.Environment != "prod" {
+		t.Fatalf("unexpected env: %s", evt.Environment)
+	}
+	if evt.TriggeredBy != "runner-user" {
+		t.Fatalf("unexpected trigger: %s", evt.TriggeredBy)
+	}
+	if evt.CommitSha != "deadbeef" {
+		t.Fatalf("unexpected sha: %s", evt.CommitSha)
+	}
+	if evt.EstimatedCost <= 0 {
+		t.Fatalf("expected estimated cost > 0, got %v", evt.EstimatedCost)
 	}
 }
