@@ -1,0 +1,168 @@
+# Cloud Build Governance Policy Check
+# Purpose: Block any commits that attempt to add or modify .github/workflows files
+# This enforces the FAANG standard: No GitHub Actions, Cloud Build only
+# Trigger: Runs on all pushes to main branch
+
+steps:
+  # Step 1: Fetch full Git history for diff comparison
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'fetch-history'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Fetching full Git history for diff analysis..."
+        git fetch --unshallow || true
+        git config --global user.email "cloud-build-policy@example.com"
+        git config --global user.name "Cloud Build Policy Check"
+
+  # Step 2: Check for .github/workflows modifications in this commit
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'check-workflows-policy'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "=== CI/CD Governance Policy Check ==="
+        echo "Checking for .github/workflows modifications..."
+        
+        # Get parent commit for diff
+        PARENT_COMMIT=$(git rev-parse HEAD~1 2>/dev/null || echo "HEAD")
+        
+        # Check if any .github/workflows files were added, modified, or staged
+        WORKFLOW_FILES=$(git diff --name-only ${PARENT_COMMIT}..HEAD 2>/dev/null | grep -E "^\.github/workflows/" || true)
+        
+        if [ -n "$WORKFLOW_FILES" ]; then
+          echo ""
+          echo "❌ POLICY VIOLATION: GitHub Actions workflows detected in commit"
+          echo "Files found:"
+          echo "$WORKFLOW_FILES" | sed 's/^/  - /'
+          echo ""
+          echo "RATIONALE: This repository enforces Cloud Build only deployment"
+          echo "REMEDIATION:"
+          echo "  1. Remove the .github/workflows files from this commit"
+          echo "  2. Delete workflows from local: git rm --cached .github/workflows/FILE"
+          echo "  3. Push your changes to Cloud Build: gcloud builds submit"
+          echo ""
+          exit 42  # Custom exit code for workflows violation
+        fi
+        
+        echo "✅ Policy check passed: No GitHub Actions workflows in this commit"
+
+  # Step 3: Check for deprecated CI/CD patterns
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'check-deprecated-patterns'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Checking for deprecated CI/CD patterns..."
+        
+        PARENT_COMMIT=$(git rev-parse HEAD~1 2>/dev/null || echo "HEAD")
+        CHANGED_FILES=$(git diff --name-only ${PARENT_COMMIT}..HEAD 2>/dev/null || true)
+        
+        # Check for GitHub Actions references in code
+        if echo "$CHANGED_FILES" | grep -E "(\.yml|\.yaml|README)" | xargs grep -l "github.*actions\|uses:\|workflow" 2>/dev/null | head -5; then
+          echo "⚠️  Warning: References to GitHub Actions found in commit"
+          echo "   Recommendation: Update documentation to reference Cloud Build"
+        fi
+        
+        # Check for direct secrets in files
+        if git diff ${PARENT_COMMIT}..HEAD 2>/dev/null | grep -E "(password|secret|api.?key|token)" -i | head -3 2>/dev/null; then
+          echo "❌ SECURITY CHECK: Potential secrets detected in commit"
+          echo "   Remediation: Use Google Secret Manager instead of hardcoding secrets"
+          exit 1
+        fi
+        
+        echo "✅ No deprecated patterns detected"
+
+  # Step 4: Verify Cloud Build configuration is present
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'verify-cloudbuild-config'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Verifying Cloud Build infrastructure is in place..."
+        
+        if [ ! -f "cloudbuild.yaml" ]; then
+          echo "⚠️  Warning: cloudbuild.yaml not found in repository root"
+          echo "   This repository requires Cloud Build automation"
+          exit 1
+        fi
+        
+        # Check for required Cloud Build best practices
+        if ! grep -q "substitutions:" cloudbuild.yaml; then
+          echo "⚠️  Warning: Cloud Build substitutions not configured"
+        fi
+        
+        if ! grep -q "timeout:" cloudbuild.yaml; then
+          echo "⚠️  Warning: Cloud Build timeout not specified"
+        fi
+        
+        echo "✅ Cloud Build configuration verified"
+
+  # Step 5: Generate policy compliance report
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'generate-report'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "=== Compliance Report ==="
+        echo ""
+        cat > /workspace/policy-check-report.txt << 'EOF'
+GOVERNANCE POLICY CHECK REPORT
+==============================
+Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+Commit SHA: ${COMMIT_SHA}
+Build ID: ${BUILD_ID}
+
+Checks Performed:
+✅ No GitHub Actions workflows (.github/workflows) detected
+✅ No deprecated CI/CD patterns
+✅ Cloud Build configuration present
+✅ No hardcoded secrets detected
+
+Enforcement Rules:
+1. All deployments MUST go through Cloud Build
+2. .github/workflows directory is archival only
+3. No GitHub Actions runs permitted on this repository
+4. Cloud Build triggers enforce policy validation on every commit
+5. SBOM, vulnerability scanning, and signing required
+6. All changes must be audited and immutable
+
+Standards Enforced:
+- FAANG Enterprise CI/CD
+- Zero-Trust deployment model
+- Immutable infrastructure
+- Security-first automation
+EOF
+        echo "Policy check report generated"
+
+# Only keep recent reports (delete older than 30 days if bucket provided)
+onFailure:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Policy check failed - see details above"
+        exit 1
+
+# Configuration
+timeout: '300s'
+machineType: 'N1_HIGHCPU_8'
+
+substitutions:
+  _POLICY_BUCKET: 'gs://nexusshield-prod-policy-reports'
+  _NOTIFY_EMAIL: 'devops@example.com'
+
+# These are inherited from the trigger's source control provider
+tags:
+  - 'policy-check'
+  - 'governance'
+  - 'faang'

@@ -14,6 +14,10 @@ import sys
 import os
 from datetime import datetime
 from typing import Dict, List, Any
+try:
+    from google.cloud import storage
+except Exception:
+    storage = None
 
 def generate_html_report(classification_file: str, output_file: str = "milestone-organizer-report.html") -> str:
     """Generate HTML report from classification JSON."""
@@ -134,6 +138,22 @@ def generate_html_report(classification_file: str, output_file: str = "milestone
     return output_file
 
 
+def upload_to_gcs(bucket_name: str, local_path: str, dest_path: str) -> bool:
+    """Upload a local file to GCS. Returns True on success."""
+    if storage is None:
+        print("WARNING: google-cloud-storage not installed; skipping upload", file=sys.stderr)
+        return False
+    try:
+        client = storage.Client()
+        bucket = client.bucket(bucket_name)
+        blob = bucket.blob(dest_path)
+        blob.upload_from_filename(local_path)
+        return True
+    except Exception as e:
+        print(f"ERROR uploading to GCS: {e}", file=sys.stderr)
+        return False
+
+
 if __name__ == '__main__':
     classification_file = sys.argv[1] if len(sys.argv) > 1 else "artifacts/milestones-assignments/classification.json"
     output_file = sys.argv[2] if len(sys.argv) > 2 else "milestone-organizer-report.html"
@@ -141,6 +161,18 @@ if __name__ == '__main__':
     try:
         result = generate_html_report(classification_file, output_file)
         print(f"✓ Report generated: {result}")
+        # Optional upload to GCS when REPORT_GCS_BUCKET is set
+        gcs_bucket = os.environ.get('REPORT_GCS_BUCKET')
+        if gcs_bucket:
+            ts = datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')
+            short = os.environ.get('SHORT_SHA', '') or ''
+            dest = f"milestone-organizer-report-{short or 'latest'}-{ts}.html"
+            print(f"Uploading report to gs://{gcs_bucket}/{dest} ...")
+            ok = upload_to_gcs(gcs_bucket, result, dest)
+            if ok:
+                print("✓ Uploaded report to GCS")
+            else:
+                print("⚠️  Upload failed (see errors)", file=sys.stderr)
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         sys.exit(1)

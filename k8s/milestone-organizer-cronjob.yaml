@@ -38,7 +38,7 @@ spec:
               volumeMounts:
                 - name: workspace
                   mountPath: /workspace
-                - name: gh-token
+                - name: secrets-store-inline
                   mountPath: /var/run/secrets
           containers:
             - name: organizer
@@ -61,10 +61,16 @@ spec:
               volumeMounts:
                 - name: workspace
                   mountPath: /workspace
-                - name: gh-token
+                - name: secrets-store-inline
                   mountPath: /var/run/secrets
           volumes:
             - name: workspace
               emptyDir: {}
-          # Placeholders: configure secret injection via projected volumes (GSM/Vault)
+            - name: secrets-store-inline
+              csi:
+                driver: secrets-store.csi.k8s.io
+                readOnly: true
+                volumeAttributes:
+                  secretProviderClass: "milestone-organizer-spc"
+          # Secrets Store CSI will inject secrets at /var/run/secrets
 

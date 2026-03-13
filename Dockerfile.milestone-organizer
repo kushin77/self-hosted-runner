@@ -12,7 +12,7 @@ WORKDIR /app
 COPY . /app
 
 # Install Python deps
-RUN pip install --no-cache-dir requests prometheus_client flask
+RUN pip install --no-cache-dir requests prometheus_client flask google-cloud-storage
 
 # Default env
 ENV PYTHONUNBUFFERED=1

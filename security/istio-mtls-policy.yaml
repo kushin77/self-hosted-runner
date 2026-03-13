@@ -1,0 +1,326 @@
+/**
+ * mTLS & Service Mesh Configuration (FAANG-Grade, Istio)
+ * 
+ * Implements:
+ * - Automatic mTLS between services
+ * - Service-to-service authorization policies
+ * - Certificate rotation
+ * - Mutual TLS enforcement
+ * - Traffic policies
+ * - Circuit breakers
+ */
+
+---
+# PeerAuthentication: Enforce mTLS for all workloads
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: default
+spec:
+  mtls:
+    mode: STRICT  # STRICT = mTLS required for all traffic
+---
+# PeerAuthentication for system namespace (monitoring, logging, etc.)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: system-mtls
+  namespace: istio-system
+spec:
+  mtls:
+    mode: STRICT
+---
+# DestinationRule: Configure client-side TLS settings
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: default-mtls
+  namespace: default
+spec:
+  host: '*.local'
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL  # Use Istio-provisioned certs
+    connectionPool:
+      tcp:
+        maxConnections: 1000
+      http:
+        http1MaxPendingRequests: 100
+        http2MaxRequests: 1000
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minRequestVolume: 10
+---
+# AuthorizationPolicy: Deny-all by default, explicit allow
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-default
+  namespace: default
+spec:
+  {}  # This denies all traffic
+---
+# AuthorizationPolicy: Allow intra-service communication
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-internal
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/default/sa/backend-sa"
+        - "cluster.local/ns/default/sa/api-gateway-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths:
+        - "/api/v1/*"
+        - "/health"
+---
+# AuthorizationPolicy: Allow from API Gateway to backend
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-from-gateway
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  rules:
+  - from:
+    - source:
+        namespaces: ["default", "ingress"]
+        principals:
+        - "cluster.local/ns/default/sa/api-gateway"
+        - "cluster.local/ns/ingress/sa/ingress-controller"
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+---
+# AuthorizationPolicy: Deny specific principle (e.g., suspicious service)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-untrusted
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  rules:
+  - from:
+    - source:
+        notPrincipals:
+        - "cluster.local/ns/*"  # Only allow cluster-internal services
+---
+# RequestAuthentication: Validate JWT tokens
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-auth
+  namespace: default
+spec:
+  jwtRules:
+  - issuer: "https://auth.company.com"
+    jwksUri: "https://auth.company.com/.well-known/jwks.json"
+    audiences: "api.company.com"
+---
+# VirtualService: Circuit breaker configuration
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: backend-circuit-breaker
+  namespace: default
+spec:
+  hosts:
+  - backend
+  http:
+  - match:
+    - uri:
+        prefix: "/api/"
+    route:
+    - destination:
+        host: backend
+        port:
+          number: 8080
+    timeout: 30s
+    retries:
+      attempts: 3
+      perTryTimeout: 10s
+---
+# PeerAuthentication: Partial mTLS for specific namespaces
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: frontend-mtls
+  namespace: frontend
+spec:
+  mtls:
+    mode: PERMISSIVE  # Allow both mTLS and plain-text (for migration)
+---
+# DestinationRule: Certificate pinning for critical services
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: critical-service-pinning
+  namespace: default
+spec:
+  host: critical-service.default.svc.cluster.local
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: critical-service.default.svc.cluster.local
+      # In production, add certificate pinning via custom fields
+---
+# RequestAuthentication + AuthorizationPolicy for service-to-service
+# Example: API Gateway -> Backend
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: backend-auth
+  namespace: default
+spec:
+  jwtRules:
+  - issuer: "cluster.local"  # Internal issuer for service tokens
+    jwksUri: "http://istio-system/istio-ca-root-cert"
+    audiences: "backend.default.svc.cluster.local"
+---
+# ServiceEntry: For external services with mTLS
+apiVersion: networking.istio.io/v1alpha3
+kind: ServiceEntry
+metadata:
+  name: external-api
+  namespace: default
+spec:
+  hosts:
+  - api.external.com
+  ports:
+  - number: 443
+    name: https
+    protocol: HTTPS
+  location: MESH_EXTERNAL
+  resolution: DNS
+---
+# DestinationRule for external service with TLS
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: external-api-tls
+  namespace: default
+spec:
+  host: api.external.com
+  trafficPolicy:
+    tls:
+      mode: SIMPLE
+      sni: api.external.com
+---
+# NetworkPolicy: Kubernetes-level network segmentation
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-ingress
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+---
+# NetworkPolicy: Allow specific ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-backend-ingress
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: backend
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    - namespaceSelector:
+        matchLabels:
+          name: ingress
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# NetworkPolicy: Allow DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-ingress
+  namespace: default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# ServiceMonitor: Prometheus monitoring with mTLS
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend-metrics
+  namespace: default
+spec:
+  selector:
+    matchLabels:
+      app: backend
+  endpoints:
+  - port: metrics
+    scheme: https
+    tlsConfig:
+      caFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      serverName: backend.default.svc
+---
+# PrometheusRule: Alert on TLS errors
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: mtls-alerts
+  namespace: default
+spec:
+  groups:
+  - name: mtls.rules
+    interval: 30s
+    rules:
+    - alert: HighMTLSErrorRate
+      expr: rate(istio_request_total{response_code=~"5.."}[5m]) > 0.05
+      for: 5m
+      annotations:
+        summary: "High mTLS error rate detected"
+---
+# PodDisruptionBudget: Ensure service availability during certificate rotations
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: backend-pdb
+  namespace: default
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: backend

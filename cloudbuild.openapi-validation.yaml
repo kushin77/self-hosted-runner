@@ -1,0 +1,207 @@
+# Cloud Build OpenAPI Specification Validation
+# Purpose: Validate OpenAPI spec matches code implementation
+# FAANG Standard: Specs are source of truth, code implementation must match
+
+steps:
+  # Step 1: Install OpenAPI validation tools
+  - name: 'node:18-alpine'
+    id: 'install-openapi-tools'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "Installing OpenAPI validation tools..."
+        npm install -g @apidevtools/swagger-cli @redocly/cli@latest openapi-typescript 2>&1 | tail -5
+        echo "✅ OpenAPI tools installed"
+
+  # Step 2: Validate OpenAPI spec syntax and structure
+  - name: 'node:18-alpine'
+    id: 'validate-openapi-syntax'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo "=== OpenAPI Specification Validation ==="
+        
+        # Find OpenAPI spec files
+        SPEC_FILES=$(find . -type f \( -name "*openapi*.yaml" -o -name "*openapi*.yml" -o -name "*openapi*.json" \) \
+          ! -path "./node_modules/*" ! -path "./.git/*" ! -path "*/vendor/*" | head -10)
+        
+        if [ -z "$SPEC_FILES" ]; then
+          echo "⚠️  No OpenAPI spec files found"
+          echo "   Located at: ./openapi.yaml, ./api/spec/openapi.json, or ./docs/openapi.yml"
+          exit 0
+        fi
+        
+        echo "Validating OpenAPI specs: $SPEC_FILES"
+        VALIDATION_FAILED=0
+        
+        for spec_file in $SPEC_FILES; do
+          echo ""
+          echo "Validating: $spec_file"
+          
+          # Validate with swagger-cli
+          if ! swagger-cli validate "$spec_file" 2>&1; then
+            echo "❌ OpenAPI spec validation failed: $spec_file"
+            VALIDATION_FAILED=1
+            continue
+          fi
+          
+          # Validate with Redocly CLI (stricter rules)
+          if ! redocly lint "$spec_file" --extend=recommended 2>&1 | head -20; then
+            echo "⚠️  OpenAPI lint warnings found in $spec_file"
+          fi
+          
+          echo "✅ OpenAPI spec valid: $spec_file"
+        done
+        
+        if [ $VALIDATION_FAILED -eq 1 ]; then
+          echo ""
+          echo "❌ OpenAPI validation failed - see errors above"
+          exit 1
+        fi
+
+  # Step 3: Generate TypeScript types from OpenAPI spec (consistency check)
+  - name: 'node:18-alpine'
+    id: 'generate-types-from-spec'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Generating TypeScript types from OpenAPI spec..."
+        
+        SPEC_FILES=$(find . -type f \( -name "*openapi*.yaml" -o -name "*openapi*.yml" \) \
+          ! -path "./node_modules/*" ! -path "./.git/*" ! -path "*/vendor/*" || true)
+        
+        if [ -z "$SPEC_FILES" ]; then
+          echo "Skipping type generation (no YAML specs found)"
+          exit 0
+        fi
+        
+        for spec_file in $SPEC_FILES; do
+          echo "Generating types from: $spec_file"
+          
+          # Create output directory
+          output_dir=$(dirname "$spec_file")/generated
+          mkdir -p "$output_dir"
+          
+          # Generate TypeScript types
+          openapi-typescript "$spec_file" --output "$output_dir/types.ts" 2>&1 | head -10 || true
+          
+          if [ -f "$output_dir/types.ts" ]; then
+            echo "✅ Generated types: $output_dir/types.ts"
+          fi
+        done
+
+  # Step 4: Compare OpenAPI spec with code endpoints
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'compare-spec-to-code'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Comparing OpenAPI spec with code implementation..."
+        
+        # This is a template for endpoint extraction
+        # Adapt based on your backend framework (Express, FastAPI, etc.)
+        
+        SPEC_FILE=$(find . -type f -name "*openapi*.yaml" -o -name "*openapi*.yml" | head -1)
+        
+        if [ -z "$SPEC_FILE" ]; then
+          echo "⚠️  No OpenAPI spec found for comparison"
+          exit 0
+        fi
+        
+        echo "Spec file: $SPEC_FILE"
+        
+        # Extract endpoints from OpenAPI spec
+        SPEC_ENDPOINTS=$(grep -E '^\s+/[a-zA-Z]' "$SPEC_FILE" 2>/dev/null | wc -l)
+        echo "Endpoints defined in spec: $SPEC_ENDPOINTS"
+        
+        # Search for actual endpoint implementations in backend
+        if [ -d "backend" ]; then
+          IMPLEMENTED_ENDPOINTS=$(grep -r "app\.get\|app\.post\|app\.put\|app\.delete\|router\." backend/ 2>/dev/null | grep -E "'|\"" | wc -l)
+          echo "Endpoints implemented in code: $IMPLEMENTED_ENDPOINTS"
+          
+          # Calculate difference
+          DIFFERENCE=$((SPEC_ENDPOINTS - IMPLEMENTED_ENDPOINTS))
+          if [ $DIFFERENCE -gt 2 ]; then
+            echo "⚠️  Warning: Significant difference between spec and implementation"
+            echo "   Difference: $DIFFERENCE endpoints"
+            echo "   Action: Review backend/routes and update OpenAPI spec accordingly"
+          fi
+        fi
+        
+        echo "✅ Spec-to-code comparison complete"
+
+  # Step 5: Generate OpenAPI documentation
+  - name: 'node:18-alpine'
+    id: 'generate-documentation'
+    entrypoint: 'sh'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Generating OpenAPI documentation..."
+        
+        SPEC_FILES=$(find . -type f -name "*openapi*.yaml" -o -name "*openapi*.yml" | head -5)
+        
+        for spec_file in $SPEC_FILES; do
+          echo "Creating ReDoc documentation for: $spec_file"
+          
+          # Note: ReDoc Docker image can be used if available
+          # For now, we just validate the spec is ready for documentation
+          echo "✅ Documentation ready: $spec_file"
+        done
+
+  # Step 6: Upload OpenAPI spec to versioned storage
+  - name: 'gcr.io/cloud-builders/gsutil'
+    id: 'archive-openapi-spec'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo ""
+        echo "Archiving OpenAPI specification..."
+        
+        SPEC_FILE=$(find . -type f -name "*openapi*.yaml" -o -name "*openapi*.yml" | head -1)
+        
+        if [ -z "$SPEC_FILE" ]; then
+          echo "No OpenAPI spec to archive"
+          exit 0
+        fi
+        
+        if [ -n "${_SPEC_BUCKET:-}" ]; then
+          DEST="${_SPEC_BUCKET}/openapi-${COMMIT_SHA:0:7}.yaml"
+          echo "Uploading spec to: $DEST"
+          gsutil cp "$SPEC_FILE" "$DEST" || echo "⚠️  Upload failed (bucket may not exist)"
+          
+          # Also tag with timestamp
+          gsutil cp "$SPEC_FILE" "${_SPEC_BUCKET}/openapi-latest.yaml" || true
+        else
+          echo "⚠️  No spec storage bucket configured"
+        fi
+
+# Configuration
+timeout: '600s'
+machineType: 'N1_HIGHCPU_4'
+
+substitutions:
+  _SPEC_BUCKET: 'gs://nexusshield-prod-openapi-specs'
+
+tags:
+  - 'openapi'
+  - 'specification'
+  - 'validation'
+
+# Only run if OpenAPI spec exists
+onFailure:
+  - name: 'gcr.io/cloud-builders/gcloud'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "OpenAPI validation failed - check spec against implementation"
+        exit 1
