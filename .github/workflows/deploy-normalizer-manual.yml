@@ -1,0 +1,36 @@
+name: Deploy Normalizer CronJob (manual)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-cronjob:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Decode kubeconfig
+        env:
+          KUBECONFIG_BASE64: ${{ secrets.KUBECONFIG_BASE64 }}
+          STAGING_KUBECONFIG: ${{ secrets.STAGING_KUBECONFIG }}
+        run: |
+          if [ -n "$KUBECONFIG_BASE64" ]; then
+            echo "$KUBECONFIG_BASE64" | base64 --decode > $HOME/.kube/config
+          elif [ -n "$STAGING_KUBECONFIG" ]; then
+            echo "$STAGING_KUBECONFIG" | base64 --decode > $HOME/.kube/config
+          else
+            echo "No kubeconfig secret found (KUBECONFIG_BASE64 or STAGING_KUBECONFIG)" >&2
+            exit 1
+          fi
+
+      - name: Apply normalizer CronJob
+        run: |
+          kubectl apply -f k8s/normalizer-cronjob.yaml
+
+      - name: Rollout status
+        run: |
+          kubectl get cronjob normalizer -n nexus-engine -o wide
