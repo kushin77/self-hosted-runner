@@ -69,6 +69,8 @@ ALLOWED_PATHS=(
     "EPIC-5_MULTI_CLOUD_SYNC_COMPLETE.md"
     "DAY1_POSTGRESQL_EXECUTION_PLAN.md"
     "TERRAFORM_INFRASTRUCTURE.md"
+    "PHASE_5_CHECKPOINT_ACTIVATION_20260311.md"
+    "backend/README.md"
 )
 
 ##############################################################################
@@ -152,10 +154,20 @@ scan_repository() {
         # Skip if in whitelist
         local skip=0
         for allowed in "${ALLOWED_PATHS[@]}"; do
-            # If allowed is a directory prefix or exact filename, skip
-            if [[ "${file}" == *"/${allowed}" ]] || [[ "${file}" == "${allowed}" ]] || [[ "${file}" == *"/${allowed}/"* ]]; then
-                skip=1
-                break
+            # Handle both directory patterns (ending with /) and file patterns
+            if [[ "${allowed}" == */ ]]; then
+                # Directory pattern - match if path contains this directory
+                local dir="${allowed%/}"  # Remove trailing /
+                if [[ "${file}" == *"/${dir}/"* ]] || [[ "${file}" == "${dir}"* ]]; then
+                    skip=1
+                    break
+                fi
+            else
+                # File pattern - match exact or suffix
+                if [[ "${file}" == *"/${allowed}" ]] || [[ "${file}" == "${allowed}" ]]; then
+                    skip=1
+                    break
+                fi
             fi
         done
         

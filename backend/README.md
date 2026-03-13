@@ -98,21 +98,25 @@ GET    /api/v1/compliance/report           # PDF generation
 ## Environment Variables
 
 ```bash
-# Database (PostgreSQL)
-DATABASE_URL=postgresql://user:pass@host:5432/portal_main?sslmode=require
+# Database (PostgreSQL) - Fetch connection string from GSM
+DATABASE_URL=$(gcloud secrets versions access latest --secret=database-url)
 
 # Auth (GitHub OAuth)
-GITHUB_CLIENT_ID=xxx
-GITHUB_CLIENT_SECRET=xxx
+GITHUB_CLIENT_ID=$(gcloud secrets versions access latest --secret=github-client-id)
+GITHUB_CLIENT_SECRET=$(gcloud secrets versions access latest --secret=github-client-secret)
 
 # Secrets (GSM/Vault/KMS)
 VAULT_ADDR=https://vault.example.com
-REDACTED_REDACTED=s.xxxxx (ephemeral, rotated hourly)
-GCP_PROJECT_ID=xxx
-AWS_KMS_KEY_ID=arn:aws:kms:us-east-1:xxx:key/xxx
+VAULT_TOKEN=$(gcloud secrets versions access latest --secret=vault-token)
+GCP_PROJECT_ID=nexusshield-prod
+AWS_KMS_KEY_ID=$(gcloud secrets versions access latest --secret=aws-kms-key-id)
 
 # Deployment
 NODE_ENV=production
+```
+
+**⚠️ Security Note**: All credentials (DATABASE_URL, GitHub tokens, AWS keys) are fetched from Google Secret Manager at runtime. Never commit plaintext secrets to the repository.
+
 PORT=3000
 ```
 
