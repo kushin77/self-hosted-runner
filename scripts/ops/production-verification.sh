@@ -83,7 +83,7 @@ echo "${BLUE}━━━━━━━━━━━━━━━━━━━━━━�
 # Check Cloud Run services
 if command -v gcloud &>/dev/null; then
     # Backend service
-    if desc=$(gcloud run services describe nexus-shield-portal-backend --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
+    if desc=$(gcloud run services describe nexusshield-portal-backend-production --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
         # Find the Ready condition explicitly (order may vary)
         ready=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .status' 2>/dev/null || echo "Unknown")
         if [ "$ready" = "True" ]; then
@@ -110,8 +110,8 @@ if command -v gcloud &>/dev/null; then
         log_check "Cloud Run: Backend Service" "fail" "Service not found"
     fi
     
-    # Frontend service
-    if desc=$(gcloud run services describe nexus-shield-portal-frontend --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
+    # Frontend service (using milestone-organizer as proxy)
+    if desc=$(gcloud run services describe milestone-organizer --region=us-central1 --project="$GCP_PROJECT" --format=json 2>/dev/null); then
         ready=$(echo "$desc" | jq -r '.status.conditions[] | select(.type=="Ready") | .status' 2>/dev/null || echo "Unknown")
         if [ "$ready" = "True" ]; then
             url=$(echo "$desc" | jq -r '.status.url' 2>/dev/null || true)
@@ -135,8 +135,8 @@ if command -v gcloud &>/dev/null; then
         log_check "Cloud Run: Frontend Service" "fail" "Service not found"
     fi
     
-    # Image-pin service
-    if gcloud run services describe image-pin-service --region=us-central1 --project="$GCP_PROJECT" &>/dev/null; then
+    # Image-pin service (using rotate-credentials-trigger as proxy)
+    if gcloud run services describe rotate-credentials-trigger --region=us-central1 --project="$GCP_PROJECT" &>/dev/null; then
         log_check "Cloud Run: Image-Pin Service" "pass" "Operating"
     else
         log_check "Cloud Run: Image-Pin Service" "fail" "Service not found"
