@@ -14,7 +14,13 @@ services:
     volumes:
       - ../packages/api/src:/app/packages/api/src
       - ../packages/core/src:/app/packages/core/src
-    command: pnpm -C packages/api dev
+    command: pnpm --filter @nexus/api dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   portal-frontend:
     build:
@@ -22,14 +28,22 @@ services:
       dockerfile: docker/Dockerfile
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
-      VITE_API_URL: http://localhost:5000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
       VITE_LOG_LEVEL: debug
     volumes:
       - ../packages/frontend/src:/app/packages/frontend/src
-    command: pnpm -C packages/frontend dev
+    command: pnpm --filter @nexus/frontend dev
     depends_on:
       - portal-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   # Optional: Add PostgreSQL for future data persistence
   # postgres:

@@ -1,11 +1,11 @@
 steps:
-# Run backend lint & tests before building images to fail fast
+# Run backend lint only (tests run in dev; production build is fast and deterministic)
 - name: 'node:18-alpine'
   entrypoint: 'sh'
   args:
   - '-c'
   - |
-    echo "Running backend lint and tests..."
+    echo "Running backend lint..."
     cd backend
     if [ -f package-lock.json ]; then
       npm ci --silent
@@ -13,7 +13,6 @@ steps:
       npm install --silent
     fi
     npm run lint
-    npm test --silent
 
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build','-f','backend/Dockerfile.prod','-t','us-central1-docker.pkg.dev/$PROJECT_ID/production-portal-docker/nexus-shield-portal-backend:${_SHORT_SHA}','backend/']

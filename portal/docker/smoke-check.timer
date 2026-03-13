@@ -1,0 +1,10 @@
+[Unit]
+Description=Run portal smoke-check every 5 minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=1m
+
+[Install]
+WantedBy=timers.target

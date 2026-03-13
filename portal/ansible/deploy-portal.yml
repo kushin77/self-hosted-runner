@@ -1,0 +1,70 @@
+---
+# Ansible playbook to deploy portal helper files and configure secrets/alerts on workers
+# Usage:
+# ansible-playbook -i hosts.ini deploy-portal.yml --extra-vars "alert_webhook='https://hooks.example/xxx'"
+
+- hosts: portal_workers
+  become: yes
+  vars:
+    repo_dir: /home/{{ ansible_user }}/self-hosted-runner/portal
+    docker_dir: "{{ repo_dir }}/docker"
+    alert_webhook: "{{ alert_webhook|default('') }}"
+
+  tasks:
+    - name: Ensure portal directory exists
+      file:
+        path: "{{ repo_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+
+    - name: Rsync portal files from control machine (requires ansible control node has repo)
+      synchronize:
+        src: ../../
+        dest: "{{ repo_dir }}/.."
+        rsync_opts:
+          - "--delete"
+        exclude:
+          - node_modules
+          - dist
+          - .git
+      delegate_to: localhost
+
+    - name: Copy smoke-check units and scripts to worker
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ docker_dir }}/{{ item.dest }}"
+        owner: "{{ ansible_user }}"
+        mode: '0755'
+      loop:
+        - { src: 'portal/docker/smoke-check.service', dest: 'smoke-check.service' }
+        - { src: 'portal/docker/smoke-check.timer', dest: 'smoke-check.timer' }
+        - { src: 'portal/docker/smoke-check.sh', dest: 'smoke-check.sh' }
+        - { src: 'portal/docker/alert-on-failure.sh', dest: 'alert-on-failure.sh' }
+        - { src: 'portal/docker/install-smokecheck.sh', dest: 'install-smokecheck.sh' }
+
+    - name: Install smoke-check units
+      command: bash -lc "cd {{ docker_dir }} && sudo bash ./install-smokecheck.sh"
+      args:
+        warn: false
+
+    - name: If alert_webhook provided, install systemd drop-in
+      when: alert_webhook != ''
+      block:
+        - name: Create systemd drop-in directory
+          file:
+            path: /etc/systemd/system/smoke-check.service.d
+            state: directory
+            mode: '0755'
+
+        - name: Install override.conf with ALERT_WEBHOOK
+          copy:
+            dest: /etc/systemd/system/smoke-check.service.d/override.conf
+            content: |
+              [Service]
+              Environment="ALERT_WEBHOOK={{ alert_webhook }}"
+              Environment="ALERT_THRESHOLD=2"
+              Environment="ALERT_COOLDOWN_SECONDS=1800"
+            mode: '0644'
+
+        - name: Reload systemd and restart timer
+          command: systemctl daemon-reload && systemctl restart smoke-check.timer

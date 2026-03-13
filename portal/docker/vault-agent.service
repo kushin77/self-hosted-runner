@@ -1,0 +1,15 @@
+[Unit]
+Description=Vault Agent for Portal - render secrets for docker compose securely
+After=network.target
+
+[Service]
+Type=simple
+User=akushnir
+Group=akushnir
+ExecStart=/usr/local/bin/vault agent -config=/home/akushnir/self-hosted-runner/portal/docker/vault-agent-config.hcl
+Restart=on-failure
+RestartSec=5s
+Environment=VAULT_ADDR=https://vault.example.internal:8200
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,216 @@
+{
+  "generated": "2026-03-13T04:58:50.400Z",
+  "status": "BASELINE (no tests executed yet)",
+  "summary": {
+    "totalItems": 7,
+    "completeItems": 0,
+    "partialItems": 0,
+    "unterstedItems": 7,
+    "missingItems": 0
+  },
+  "coverage": {
+    "apis": 0,
+    "clis": 0,
+    "uis": 0,
+    "overall": 0
+  },
+  "criticalGaps": [
+    {
+      "itemId": "credentials.list",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "critical"
+    },
+    {
+      "itemId": "credentials.create",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "critical"
+    },
+    {
+      "itemId": "credentials.get",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "critical"
+    },
+    {
+      "itemId": "credentials.rotate",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "critical"
+    },
+    {
+      "itemId": "audit.query",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "critical"
+    }
+  ],
+  "highPriorityGaps": [
+    {
+      "itemId": "credentials.update",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "high"
+    },
+    {
+      "itemId": "credentials.delete",
+      "type": "api",
+      "reason": "No tests ran or API unreachable",
+      "priority": "high"
+    }
+  ],
+  "scorecards": [
+    {
+      "id": "credentials.list",
+      "type": "api",
+      "name": "GET /api/v1/credentials",
+      "path": "/api/v1/credentials",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.list",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "critical"
+        }
+      ],
+      "recommendations": [
+        "Ensure API is running on worker node",
+        "Set API_URL and WORKER_HOST",
+        "Run: CI=true bash run-tests.sh"
+      ]
+    },
+    {
+      "id": "credentials.create",
+      "type": "api",
+      "name": "POST /api/v1/credentials",
+      "path": "/api/v1/credentials",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.create",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "critical"
+        }
+      ],
+      "recommendations": []
+    },
+    {
+      "id": "credentials.get",
+      "type": "api",
+      "name": "GET /api/v1/credentials/{id}",
+      "path": "/api/v1/credentials/:id",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.get",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "critical"
+        }
+      ],
+      "recommendations": []
+    },
+    {
+      "id": "credentials.update",
+      "type": "api",
+      "name": "PUT /api/v1/credentials/{id}",
+      "path": "/api/v1/credentials/:id",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.update",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "high"
+        }
+      ],
+      "recommendations": []
+    },
+    {
+      "id": "credentials.delete",
+      "type": "api",
+      "name": "DELETE /api/v1/credentials/{id}",
+      "path": "/api/v1/credentials/:id",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.delete",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "high"
+        }
+      ],
+      "recommendations": []
+    },
+    {
+      "id": "credentials.rotate",
+      "type": "api",
+      "name": "POST /api/v1/credentials/{id}/rotate",
+      "path": "/api/v1/credentials/:id/rotate",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "credentials.rotate",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "critical"
+        }
+      ],
+      "recommendations": []
+    },
+    {
+      "id": "audit.query",
+      "type": "api",
+      "name": "GET /api/v1/audit",
+      "path": "/api/v1/audit",
+      "coverage": 0,
+      "status": "untested",
+      "testCount": 0,
+      "passRate": 0,
+      "gaps": [
+        {
+          "itemId": "audit.query",
+          "type": "api",
+          "reason": "No tests ran or API unreachable",
+          "priority": "critical"
+        }
+      ],
+      "recommendations": []
+    }
+  ],
+  "recommendations": [
+    "🔴 BASELINE REPORT: Tests have not been executed yet (coverage is 0%)",
+    "💡 To enable actual testing:",
+    "  1. Set WORKER_HOST=<your-worker-hostname-or-ip>",
+    "  2. Ensure API service is running on the worker node",
+    "  3. Run: CI=true WORKER_HOST=... bash tests/e2e/run-tests.sh",
+    "  4. Re-run gap-analysis to populate with real test results"
+  ],
+  "nextSteps": [
+    "Set WORKER_HOST environment variable to target worker node",
+    "Ensure API service is running on worker at http://WORKER_HOST:3000",
+    "Run: CI=true WORKER_HOST=<host> bash tests/e2e/run-tests.sh",
+    "Re-generate reports to update with actual test results"
+  ]
+}

@@ -1,0 +1,8 @@
+ID,Type,Name,Status,Coverage %,Pass Rate %,Tests,Gaps
+credentials.list,api,"GET /api/v1/credentials",untested,0.0,0,0,"No tests ran or API unreachable"
+credentials.create,api,"POST /api/v1/credentials",untested,0.0,0,0,"No tests ran or API unreachable"
+credentials.get,api,"GET /api/v1/credentials/{id}",untested,0.0,0,0,"No tests ran or API unreachable"
+credentials.update,api,"PUT /api/v1/credentials/{id}",untested,0.0,0,0,"No tests ran or API unreachable"
+credentials.delete,api,"DELETE /api/v1/credentials/{id}",untested,0.0,0,0,"No tests ran or API unreachable"
+credentials.rotate,api,"POST /api/v1/credentials/{id}/rotate",untested,0.0,0,0,"No tests ran or API unreachable"
+audit.query,api,"GET /api/v1/audit",untested,0.0,0,0,"No tests ran or API unreachable"

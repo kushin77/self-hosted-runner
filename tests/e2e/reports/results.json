@@ -1,0 +1,131 @@
+{
+  "config": {
+    "configFile": "/home/akushnir/self-hosted-runner/tests/e2e/playwright.config.ts",
+    "rootDir": "/home/akushnir/self-hosted-runner/tests/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": "/home/akushnir/self-hosted-runner/tests/e2e/fixtures/global-setup.ts",
+    "globalTeardown": "/home/akushnir/self-hosted-runner/tests/e2e/fixtures/global-teardown.ts",
+    "globalTimeout": 1800000,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {},
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/home/akushnir/self-hosted-runner/tests/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "desktop-chrome",
+        "name": "desktop-chrome",
+        "testDir": "/home/akushnir/self-hosted-runner/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/home/akushnir/self-hosted-runner/tests/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "desktop-firefox",
+        "name": "desktop-firefox",
+        "testDir": "/home/akushnir/self-hosted-runner/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/home/akushnir/self-hosted-runner/tests/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "desktop-webkit",
+        "name": "desktop-webkit",
+        "testDir": "/home/akushnir/self-hosted-runner/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      },
+      {
+        "outputDir": "/home/akushnir/self-hosted-runner/tests/e2e/test-results",
+        "repeatEach": 1,
+        "retries": 2,
+        "metadata": {},
+        "id": "api-tests",
+        "name": "api-tests",
+        "testDir": "/home/akushnir/self-hosted-runner/tests/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/api/**/*.spec.ts"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "reports/html"
+        }
+      ],
+      [
+        "json",
+        {
+          "outputFile": "reports/results.json"
+        }
+      ],
+      [
+        "junit",
+        {
+          "outputFile": "reports/junit.xml"
+        }
+      ],
+      [
+        "list",
+        null
+      ],
+      [
+        "/home/akushnir/self-hosted-runner/tests/e2e/reporters/gap-analysis-reporter.ts",
+        null
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [],
+  "errors": [
+    {
+      "message": "SyntaxError: Invalid regular expression: /\\/gi: \\ at end of pattern",
+      "stack": "SyntaxError: Invalid regular expression: /\\/gi: \\ at end of pattern"
+    }
+  ],
+  "stats": {
+    "startTime": "2026-03-13T04:33:59.238Z",
+    "duration": 36.162000000000035,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
