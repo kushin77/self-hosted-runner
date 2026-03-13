@@ -72,6 +72,7 @@ ALLOWED_PATHS=(
     "TERRAFORM_INFRASTRUCTURE.md"
     "PHASE_5_CHECKPOINT_ACTIVATION_20260311.md"
     "PHASE_5_EXECUTION_FRAMEWORK_20260311.md"
+    "AWS_MULTICLOUD_INTEGRATION_RUNBOOK.md"
 )
 
 ##############################################################################
