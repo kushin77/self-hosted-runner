@@ -51,8 +51,8 @@ steps:
   # Step 5: Create audit entry
   - name: 'gcr.io/cloud-builders/gcloud'
     id: 'audit-deploy'
+    entrypoint: 'bash'
     args:
-      - 'bash'
       - '-c'
       - 'echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"component\":\"zero-trust-auth\",\"action\":\"deploy\",\"image\":\"gcr.io/$PROJECT_ID/zero-trust-auth:${SHORT_SHA}\",\"commit\":\"${COMMIT_SHA}\",\"status\":\"deployed\"}" >> audit-trail.jsonl'
 
