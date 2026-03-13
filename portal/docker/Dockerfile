@@ -12,8 +12,12 @@ RUN npm install -g pnpm
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
 COPY packages/ ./packages/
 
-# Install dependencies (use frozen lockfile for reproducible builds)
-RUN pnpm install --frozen-lockfile
+# Install dependencies. Use frozen lockfile if present, otherwise fall back to no-frozen-lockfile
+RUN if [ -f pnpm-lock.yaml ]; then \
+			pnpm install --frozen-lockfile; \
+		else \
+			pnpm install --no-frozen-lockfile; \
+		fi
 
 # Do not run monorepo-wide builds during image creation.
 # Compose starts service-specific commands for API and frontend.
