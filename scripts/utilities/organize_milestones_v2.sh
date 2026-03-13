@@ -161,6 +161,13 @@ echo "$CLASSIFICATION_JSON" | jq 'with_entries(select(.value | length > 0)) | to
 # Export for subprocess
 export CLASSIFICATION_JSON
 
+# Persist classification to artifacts dir if available for reporting
+if [[ -n "${ARTIFACT_DIR:-}" ]]; then
+  mkdir -p "${ARTIFACT_DIR}"
+  echo "$CLASSIFICATION_JSON" > "${ARTIFACT_DIR}/classification.json" || true
+  echo "✓ Wrote classification to ${ARTIFACT_DIR}/classification.json"
+fi
+
 # ===== DRY-RUN MODE =====
 if [ $DRY_RUN -eq 1 ]; then
   echo ""

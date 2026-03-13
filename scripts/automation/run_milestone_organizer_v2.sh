@@ -12,6 +12,7 @@ set -euo pipefail
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner 2>/dev/null || echo "kushin77/self-hosted-runner")"
 PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || echo 'unknown')}"
 ARTIFACT_DIR="artifacts/milestones-assignments"
+export ARTIFACT_DIR
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 
 ORGANIZER_V2="$(cd "$(dirname "${BASH_SOURCE[0]}")/../utilities" && pwd)/organize_milestones_v2.sh"
