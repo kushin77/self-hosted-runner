@@ -13,7 +13,6 @@ echo "Starting Vault AppRole rotation at $(date -u)"
 get_secret() {
   local name="$1"
   if [[ -n "${!name:-}" ]]; then
-    echo "Using env $name" >&2
     echo "${!name}"
     return 0
   fi
