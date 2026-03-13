@@ -12,5 +12,5 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: normalizer
-            image: gcr.io/nexusshield-prod/nexus-normalizer:20260312
+            image: us-central1-docker.pkg.dev/nexusshield-prod/nexus-registry/nexus-normalizer:sha-a96bb48d5
             imagePullPolicy: IfNotPresent
