@@ -192,3 +192,29 @@ gitleaks-report.json
 *.scan.json
 backups/secret_deployer-sa-key.txt
 backups/
+
+# Terraform state & infrastructure
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/**/*.tfstate
+terraform/**/*.tfstate.backup
+terraform/**/*.tfplan
+terraform/**/.terraform.lock.hcl
+*.terraform.lock.hcl
+
+# Terraform backup/disabled files (infrastructure refactoring)
+terraform/*.disabled
+terraform/**/*.disabled
+.terraform.backup/
+
+# Build & deployment artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+
+# Session & temporary files
+*.swp
+*.swo
+*~
+.DS_Store
