@@ -38,8 +38,6 @@ spec:
               volumeMounts:
                 - name: workspace
                   mountPath: /workspace
-                - name: secrets-store-inline
-                  mountPath: /var/run/secrets
                 - name: gh-secret
                   mountPath: /var/run/gh
           containers:
@@ -69,8 +67,6 @@ spec:
               volumeMounts:
                 - name: workspace
                   mountPath: /workspace
-                - name: secrets-store-inline
-                  mountPath: /var/run/secrets
                 - name: gh-secret
                   mountPath: /var/run/gh
           # Enforce pod and container security context
@@ -81,12 +77,9 @@ spec:
           volumes:
             - name: workspace
               emptyDir: {}
-            - name: secrets-store-inline
-              csi:
-                driver: secrets-store.csi.k8s.io
-                readOnly: true
-                volumeAttributes:
-                  secretProviderClass: "milestone-organizer-spc"
+            # CSI volume removed temporarily as provider plugin unavailable.
+            # Once the AWS provider is installed, restore the CSI volume block
+            # above to enable in-cluster secret injection via SecretProviderClass.
             - name: gh-secret
               secret:
                 secretName: github-token
