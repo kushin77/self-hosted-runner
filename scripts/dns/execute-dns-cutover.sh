@@ -25,6 +25,21 @@ NC='\033[0m' # No Color
 # Ensure directories exist
 mkdir -p "${LOGS_DIR}" "${BACKUPS_DIR}"
 
+# Attempt to source CF_API_TOKEN from environment or Google Secret Manager (idempotent/failover)
+if [ -z "${CF_API_TOKEN:-}" ]; then
+  # Try common secret names in GSM
+  for sname in cloudflare-api-token cf-api-token cloudflare-token cf_api_token cloudflare-api-key cf-token; do
+    if command -v gcloud &> /dev/null; then
+      token=$(gcloud secrets versions access latest --secret="$sname" --project=nexusshield-prod 2>/dev/null || true)
+      if [ -n "$token" ]; then
+        CF_API_TOKEN="$token"
+        echo "[INFO] CF_API_TOKEN loaded from GSM secret: $sname" | tee -a "$LOG_FILE"
+        break
+      fi
+    fi
+  done
+fi
+
 # ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================

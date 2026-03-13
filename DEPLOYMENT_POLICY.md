@@ -1,3 +1,16 @@
+# Deployment Policy — Immutable Operational Rules
+
+This repository enforces the following production deployment policies (must be satisfied before any cutover):
+
+- **Secrets:** All credentials MUST be stored in Google Secret Manager (GSM) and/or Vault; secrets delivered only via GSM/Vault/KMS. No plaintext credentials in repo.
+- **Immutable:** All deployment artifacts and audit trails are immutable and archived (GCS/S3) with WORM where required.
+- **Ephemeral:** Any long-lived credentials are forbidden; prefer short-lived credentials (TTL < 1 hour) via Vault/GSM where possible.
+- **Idempotent:** Deployment scripts are idempotent and include pre-checks and backups prior to changes (scripts/dns/execute-dns-cutover.sh implements backups and checks).
+- **No-Ops / Hands-Off:** Automations must run unattended; operator only supplies secrets and confirms canary health when required.
+- **Direct Development/Deployment:** Merge-to-main and direct deployment model enforced. No GitHub Actions, no PR release pipelines, and no automated GitHub-based releases.
+- **Audit and Governance:** All actions must log immutable JSONL events to `logs/` and be committed to git with signed commits where possible.
+
+If any policy is violated, the automation must abort and create an issue in `issues/DEPLOYMENT_ISSUES.md`.
 # DEPLOYMENT POLICY & STANDARDS
 
 **Effective Date:** 2026-03-11  
