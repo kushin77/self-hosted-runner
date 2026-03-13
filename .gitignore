@@ -190,3 +190,4 @@ gitleaks-report.json
 *-scan-report.json
 *-security-report.json
 *.scan.json
+backups/secret_deployer-sa-key.txt
