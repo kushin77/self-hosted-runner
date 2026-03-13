@@ -7,7 +7,8 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        // Use VITE_API_URL if available (set in .env), otherwise fall back to localhost for local dev
+        target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true
       }
     }
