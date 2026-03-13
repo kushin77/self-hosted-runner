@@ -16,12 +16,21 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 5.0"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 5.0"
+    }
   }
 }
 
 provider "google" {
   project = var.project_id
   region  = var.gcp_region
+}
+
+provider "github" {
+  # Token from environment: GITHUB_TOKEN
+  owner = var.github_org
 }
 
 # ---------------------------------------------------------------------------

@@ -32,20 +32,10 @@ gcloud services enable cloudbuild.googleapis.com --project="$PROJECT_ID" || true
 echo "   ✓ Cloud Build API enabled"
 echo
 
-# Step 2: Verify GitHub App connection
+# Step 2: Check/create GitHub App connection
 echo "2. Checking GitHub App connection..."
-GITHUB_REPOS=$(gcloud builds github list --format="value(remote_uri)" --project="$PROJECT_ID" 2>/dev/null || echo "")
-if [[ -z "$GITHUB_REPOS" ]]; then
-  echo "   ⚠ No GitHub repositories connected to Cloud Build."
-  echo "   To connect GitHub repo to Cloud Build:"
-  echo "     1. Go to: https://console.cloud.google.com/cloud-build/repositories?project=$PROJECT_ID"
-  echo "     2. Click 'Connect Repository'"
-  echo "     3. Select 'GitHub' and authorize the Cloud Build GitHub App"
-  echo "     4. Select repository 'kushin77/self-hosted-runner'"
-  echo "     5. Re-run this script"
-  exit 1
-fi
-echo "   ✓ GitHub repository connected"
+# Try to create trigger directly; if GitHub repo is connected, this will work
+echo "   Attempting to create Cloud Build trigger (will link GitHub repo if needed)..."
 echo
 
 # Step 3: Create the trigger
@@ -55,36 +45,34 @@ REPO_NAME="self-hosted-runner"
 REPO_OWNER="kushin77"
 
 # Check if trigger already exists
-EXISTING=$(gcloud builds triggers list --filter="name=$TRIGGER_NAME" --format="value(name)" --project="$PROJECT_ID" || echo "")
+EXISTING=$(gcloud builds triggers list --filter="name=$TRIGGER_NAME" --format="value(name)" --project="$PROJECT_ID" 2>/dev/null || echo "")
 if [[ -n "$EXISTING" ]]; then
-  echo "   Trigger '$TRIGGER_NAME' already exists. Skipping creation."
-  gcloud builds triggers describe "$TRIGGER_NAME" --project="$PROJECT_ID"
+  echo "   ✓ Trigger '$TRIGGER_NAME' already exists"
+  gcloud builds triggers describe "$TRIGGER_NAME" --project="$PROJECT_ID" --format="table(name, description, filename)" 2>/dev/null || true
 else
-  # Create using REST API (more flexible than gcloud alpha)
-  cat > /tmp/trigger_config.json <<EOF
-{
-  "name": "$TRIGGER_NAME",
-  "description": "Auto-deploy main branch to Cloud Run on push",
-  "filename": "cloudbuild.yaml",
-  "github": {
-    "owner": "$REPO_OWNER",
-    "name": "$REPO_NAME",
-    "push": {
-      "branch": "^main\$"
-    }
-  }
-}
-EOF
-
-  echo "   Creating trigger with config..."
+  echo "   Creating trigger for $REPO_OWNER/$REPO_NAME main branch..."
   gcloud builds triggers create github \
     --name="$TRIGGER_NAME" \
     --repo-owner="$REPO_OWNER" \
     --repo-name="$REPO_NAME" \
     --branch-pattern="^main\$" \
     --build-config="cloudbuild.yaml" \
-    --description="Auto-deploy on push to main" \
-    --project="$PROJECT_ID" || echo "   Note: Trigger may require GitHub App permissions or be created via console."
+    --description="Auto-deploy main branch to Cloud Run" \
+    --project="$PROJECT_ID" 2>&1 | head -20
+  
+  TRIGGER_CREATED=$?
+  if [[ $TRIGGER_CREATED -ne 0 ]]; then
+    echo ""
+    echo "   ⚠ Trigger creation encountered an issue (may require GitHub App connection)."
+    echo "   Required manual step:"
+    echo "   1. Go to: https://console.cloud.google.com/cloud-build/repositories?project=$PROJECT_ID"
+    echo "   2. Click 'Connect Repository' or 'Link Repository'"
+    echo "   3. Authorize Cloud Build GitHub App and select 'kushin77/self-hosted-runner'"
+    echo "   4. Return here and re-run: bash scripts/ops/setup-cloud-build-trigger.sh --project $PROJECT_ID"
+    echo ""
+  else
+    echo "   ✓ Trigger created successfully"
+  fi
 fi
 
 echo
