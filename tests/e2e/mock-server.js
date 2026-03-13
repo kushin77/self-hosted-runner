@@ -24,7 +24,7 @@ const db = {
 };
 
 function authMiddleware(req, res, next) {
-  if (req.path === '/health' || req.path.startsWith('/auth')) return next();
+  if (req.path === '/health' || req.path.startsWith('/api/v1/auth/')) return next();
   const auth = req.headers['authorization'];
   if (!auth) return res.status(401).json({ message: 'Missing auth' });
   if (!auth.startsWith('Bearer ')) return res.status(401).json({ message: 'Invalid auth' });
@@ -174,7 +174,7 @@ const db = {
 };
 
 function authMiddleware(req, res, next) {
-  if (req.path === '/health' || req.path.startsWith('/auth')) return next();
+  if (req.path === '/health' || req.path.startsWith('/api/v1/auth/')) return next();
   const auth = req.headers['authorization'];
   if (!auth) return res.status(401).json({ message: 'Missing auth' });
   if (!auth.startsWith('Bearer ')) return res.status(401).json({ message: 'Invalid auth' });
