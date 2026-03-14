@@ -1,0 +1,16 @@
+{
+  "id": 5,
+  "name": "remediate_network_issues",
+  "trigger": "Pod-to-pod network failures or packet loss",
+  "actions": [
+    "kubectl get pods -A --field-selector status.phase=Running -o wide | grep -v Running | head -1",
+    "kubectl logs -A --tail=20 --timestamps=true -l app=networking-debug || true",
+    "kubectl get networkpolicies -A"
+  ],
+  "timeout": 300,
+  "retries": 2,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Restart CNI plugins and verify network connectivity"
+}

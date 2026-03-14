@@ -1,0 +1,16 @@
+{
+  "id": 6,
+  "name": "remediate_pod_crash_loop",
+  "trigger": "Pod restart count > threshold",
+  "actions": [
+    "kubectl get pods -A --field-selector=status.phase=Running -o jsonpath='{range .items[*]}{.metadata.name}{\"\\t\"}{.status.containerStatuses[0].restartCount}{\"\\n\"}{end}' | awk '$2 > 5'",
+    "kubectl logs -A --previous --tail=50 2>/dev/null | grep -i 'error\\|exception\\|panic' | head -20 || true",
+    "kubectl describe pods -A | grep -A10 'CrashLoopBackOff'"
+  ],
+  "timeout": 300,
+  "retries": 1,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Analyze crash logs and apply progressive backoff"
+}

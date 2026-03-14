@@ -1,0 +1,33 @@
+{
+  "monitoring": {
+    "enabled": true,
+    "interval": 300,
+    "retention": 2592000,
+    "description": "Continuous health monitoring every 5 minutes"
+  },
+  
+  "metrics": {
+    "handler_invocations": "Total times each handler was triggered",
+    "handler_successes": "Count of successful remediations",
+    "handler_failures": "Count of failed remediations",
+    "false_positives": "Remediations that fixed nothing",
+    "false_negatives": "Issues not detected",
+    "detection_latency": "Time between issue and detection (target: <2min)",
+    "remediation_latency": "Time between detection and remediation (target: <300s)",
+    "overall_mttr": "Mean time to resolution (target: 6 minutes)"
+  },
+  
+  "alerts": {
+    "handler_failure_rate": { "threshold": ">10%", "severity": "CRITICAL" },
+    "false_positive_rate": { "threshold": ">5%", "severity": "WARNING" },
+    "detection_latency": { "threshold": ">120s", "severity": "WARNING" },
+    "service_crash": { "threshold": "any uncaught exception", "severity": "CRITICAL" }
+  },
+  
+  "slack_notifications": {
+    "enabled": true,
+    "success_webhook": "${SLACK_WEBHOOK}",
+    "channels": "#incidents",
+    "message_format": "detailed"
+  }
+}

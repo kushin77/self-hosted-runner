@@ -1,0 +1,17 @@
+{
+  "id": 7,
+  "name": "continuous_health_monitoring",
+  "trigger": "Always active (every 5 minutes)",
+  "actions": [
+    "kubectl get nodes -o wide",
+    "kubectl get pods -A --field-selector=status.phase=Failed",
+    "kubectl api-resources",
+    "kubectl cluster-info"
+  ],
+  "interval": 300,
+  "timeout": 60,
+  "backoff": {"initial": 2, "max": 32, "multiplier": 2},
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Health check every 5 minutes with exponential backoff (2s→32s)"
+}

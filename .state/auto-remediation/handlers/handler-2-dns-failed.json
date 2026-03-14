@@ -1,0 +1,17 @@
+{
+  "id": 2,
+  "name": "remediate_dns_failed",
+  "trigger": "CoreDNS pod crash or DNS resolution timeout",
+  "actions": [
+    "kubectl rollout restart deployment/coredns -n kube-system",
+    "kubectl wait --for=condition=Available deployment/coredns -n kube-system --timeout=5m",
+    "sleep 10",
+    "kubectl run test-dns --image=busybox --restart=Never --rm -i --command -- nslookup kubernetes.default"
+  ],
+  "timeout": 300,
+  "retries": 2,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Restart CoreDNS and verify DNS resolution"
+}

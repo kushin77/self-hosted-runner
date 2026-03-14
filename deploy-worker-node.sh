@@ -1,20 +1,85 @@
 #!/bin/bash
 #
-# ON-PREM WORKER NODE DEPLOYMENT PACKAGE
-# For execution on: dev-elevatediq (192.168.168.42)
+# WORKER NODE DEPLOYMENT - SERVICE ACCOUNT SSH AUTH
+# For: dev-elevatediq (192.168.168.42)
 #
-# This script deploys all 8 automation components to the worker node
-# Run this on the actual worker node machine
+# Deploys all 8 automation components via SSH service account authentication
+# Run this on your developer machine
+#
+# Prerequisites:
+#   - Service account SSH key configured
+#   - SSH access to 192.168.168.42
 #
 # Usage:
-#   scp deploy-worker-node.sh akushnir@192.168.168.42:/tmp/
-#   ssh akushnir@192.168.168.42
-#   cd /tmp && bash deploy-worker-node.sh
+#   # Option 1: Using default service account (automation)
+#   bash deploy-worker-node.sh
+#
+#   # Option 2: Using specific service account
+#   SERVICE_ACCOUNT=github-actions bash deploy-worker-node.sh
+#
+#   # Option 3: Using specific SSH key
+#   SSH_KEY=/path/to/private/key bash deploy-worker-node.sh
+#
+#   # Option 4: Using different target host
+#   TARGET_HOST=192.168.168.42 SERVICE_ACCOUNT=automation bash deploy-worker-node.sh
 #
 
 set -euo pipefail
 
-# Configuration
+# ============================================================================
+# SSH SERVICE ACCOUNT CONFIGURATION
+# ============================================================================
+
+# Service account credentials
+readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-automation}"
+readonly TARGET_HOST="${TARGET_HOST:-192.168.168.42}"
+readonly TARGET_USER="${TARGET_USER:-$SERVICE_ACCOUNT}"
+readonly SSH_KEY="${SSH_KEY:-}"
+
+# SSH connection options
+readonly SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
+
+# Detect SSH key location
+detect_ssh_key() {
+  if [ -n "$SSH_KEY" ] && [ -f "$SSH_KEY" ]; then
+    echo "$SSH_KEY"
+    return 0
+  fi
+  
+  # Try common service account key locations
+  for key_path in \
+    ~/.ssh/id_${SERVICE_ACCOUNT} \
+    ~/.ssh/${SERVICE_ACCOUNT}_rsa \
+    ~/.ssh/service-accounts/${SERVICE_ACCOUNT} \
+    ~/.ssh/service-accounts/${SERVICE_ACCOUNT}_rsa \
+    ~/.ssh/github-actions \
+    ~/.ssh/automation \
+    ~/.ssh/id_rsa; do
+    if [ -f "$key_path" ]; then
+      echo "$key_path"
+      return 0
+    fi
+  done
+  
+  return 1
+}
+
+# Verify SSH connectivity before deployment
+verify_ssh_connection() {
+  local ssh_key="$1"
+  local ssh_cmd="ssh -i \"$ssh_key\" $SSH_OPTS"
+  
+  echo "Verifying SSH connection to $TARGET_USER@$TARGET_HOST..."
+  if $ssh_cmd "$TARGET_USER@$TARGET_HOST" echo "SSH connection successful"; then
+    echo "✅ SSH connection verified"
+    return 0
+  else
+    echo "❌ SSH connection failed"
+    return 1
+  fi
+}
+
+# Deployment configuration
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly SESSION_ID=$(openssl rand -hex 8)
 readonly DEPLOYMENT_DIR="/opt/automation"
@@ -48,33 +113,67 @@ success() {
 # PRE-DEPLOYMENT CHECKS
 # ============================================================================
 
+# ============================================================================
+# PRE-DEPLOYMENT CHECKS
+# ============================================================================
+
 check_prerequisites() {
-  log "Checking prerequisites..."
+  log "Checking prerequisites for remote deployment..."
   
-  # Verify we're on the worker node
-  local hostname=$(hostname)
-  if [ "$hostname" != "dev-elevatediq" ]; then
-    error "This script must run on dev-elevatediq (worker node), not $hostname"
+  # Check SSH key availability
+  if ! SSH_KEY_PATH=$(detect_ssh_key); then
+    error "No SSH key found for service account '$SERVICE_ACCOUNT'"
+    error "Tried locations:"
+    error "  ~/.ssh/id_${SERVICE_ACCOUNT}"
+    error "  ~/.ssh/${SERVICE_ACCOUNT}_rsa"
+    error "  ~/.ssh/service-accounts/${SERVICE_ACCOUNT}"
+    error "  ~/.ssh/github-actions"
+    error "  ~/.ssh/id_rsa"
     return 1
   fi
-  success "Running on correct host: dev-elevatediq"
+  success "Found SSH key: $SSH_KEY_PATH"
   
-  # Check if we have required commands
-  for cmd in bash git curl rsync; do
+  # Verify SSH connection to worker node
+  if ! verify_ssh_connection "$SSH_KEY_PATH"; then
+    error "Cannot connect to $TARGET_USER@$TARGET_HOST"
+    error "Please verify:"
+    error "  1. Worker node is reachable at $TARGET_HOST"
+    error "  2. Service account '$SERVICE_ACCOUNT' exists on worker node"
+    error "  3. SSH key is authorized on worker node"
+    return 1
+  fi
+  success "SSH connection verified"
+  
+  # Check for required commands on local machine
+  for cmd in bash ssh scp; do
     if ! command -v "$cmd" &>/dev/null; then
-      error "Required command not found: $cmd"
+      error "Required command not found locally: $cmd"
       return 1
     fi
   done
-  success "All required commands available"
+  success "All required local commands available"
   
-  # Check disk space
-  local available=$(df /opt 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
-  if [ "$available" -lt 102400 ]; then
-    error "Insufficient disk space: $(($available/1024))MB available"
-    return 1
-  fi
-  success "Disk space sufficient: $(($available/1024/1024))GB available"
+  success "All prerequisites verified"
+}
+
+# ============================================================================
+# REMOTE EXECUTION HELPERS
+# ============================================================================
+
+execute_remote() {
+  local ssh_key="$1"
+  shift
+  local cmd="$@"
+  
+  ssh -i "$ssh_key" $SSH_OPTS "$TARGET_USER@$TARGET_HOST" bash -c "$cmd"
+}
+
+copy_to_remote() {
+  local ssh_key="$1"
+  local local_file="$2"
+  local remote_path="$3"
+  
+  scp -i "$ssh_key" $SSH_OPTS "$local_file" "$TARGET_USER@$TARGET_HOST:$remote_path"
 }
 
 # ============================================================================
@@ -82,32 +181,30 @@ check_prerequisites() {
 # ============================================================================
 
 prepare_directories() {
-  log "Preparing deployment directories..."
+  local ssh_key="$1"
+  log "Preparing remote deployment directories..."
   
-  # Create main directory
-  if [ ! -d "$DEPLOYMENT_DIR" ]; then
-    mkdir -p "$DEPLOYMENT_DIR"
-    success "Created $DEPLOYMENT_DIR"
+  local cmd="
+    mkdir -p $DEPLOYMENT_DIR/k8s-health-checks
+    mkdir -p $DEPLOYMENT_DIR/security
+    mkdir -p $DEPLOYMENT_DIR/multi-region
+    mkdir -p $DEPLOYMENT_DIR/core
+    mkdir -p $AUDIT_DIR
+    chmod 755 $DEPLOYMENT_DIR
+    chmod 755 $DEPLOYMENT_DIR/k8s-health-checks
+    chmod 755 $DEPLOYMENT_DIR/security
+    chmod 755 $DEPLOYMENT_DIR/multi-region
+    chmod 755 $DEPLOYMENT_DIR/core
+    chmod 755 $AUDIT_DIR
+    echo 'Directories prepared on remote host'
+  "
+  
+  if execute_remote "$ssh_key" "$cmd"; then
+    success "Remote directories prepared"
   else
-    success "$DEPLOYMENT_DIR already exists"
+    error "Failed to prepare remote directories"
+    return 1
   fi
-  
-  # Create subdirectories
-  mkdir -p "$DEPLOYMENT_DIR/k8s-health-checks"
-  mkdir -p "$DEPLOYMENT_DIR/security"
-  mkdir -p "$DEPLOYMENT_DIR/multi-region"
-  mkdir -p "$DEPLOYMENT_DIR/core"
-  mkdir -p "$AUDIT_DIR"
-  
-  # Set permissions
-  chmod 755 "$DEPLOYMENT_DIR"
-  chmod 755 "$DEPLOYMENT_DIR/k8s-health-checks"
-  chmod 755 "$DEPLOYMENT_DIR/security"
-  chmod 755 "$DEPLOYMENT_DIR/multi-region"
-  chmod 755 "$DEPLOYMENT_DIR/core"
-  chmod 755 "$AUDIT_DIR"
-  
-  success "All directories prepared"
 }
 
 # ============================================================================
@@ -115,82 +212,43 @@ prepare_directories() {
 # ============================================================================
 
 deploy_from_git() {
-  log "Starting component deployment from git repository..."
+  local ssh_key="$1"
+  log "Starting remote component deployment from git repository..."
   
-  # Create temporary working directory
-  local temp_dir="/tmp/automation-deploy-$$"
-  mkdir -p "$temp_dir"
-  trap "rm -rf $temp_dir" EXIT
+  local cmd="
+    set -euo pipefail
+    TEMP_DIR=\$(mktemp -d)
+    trap 'rm -rf \$TEMP_DIR' EXIT
+    
+    echo 'Cloning repository...'
+    cd \$TEMP_DIR
+    git clone --depth=1 https://github.com/kushin77/self-hosted-runner.git . 2>&1
+    
+    echo 'Deploying K8s health checks...'
+    cp scripts/k8s-health-checks/cluster-readiness.sh $DEPLOYMENT_DIR/k8s-health-checks/ && chmod 755 $DEPLOYMENT_DIR/k8s-health-checks/cluster-readiness.sh
+    cp scripts/k8s-health-checks/cluster-stuck-recovery.sh $DEPLOYMENT_DIR/k8s-health-checks/ && chmod 755 $DEPLOYMENT_DIR/k8s-health-checks/cluster-stuck-recovery.sh
+    cp scripts/k8s-health-checks/validate-multicloud-secrets.sh $DEPLOYMENT_DIR/k8s-health-checks/ && chmod 755 $DEPLOYMENT_DIR/k8s-health-checks/validate-multicloud-secrets.sh
+    
+    echo 'Deploying security scripts...'
+    cp scripts/security/audit-test-values.sh $DEPLOYMENT_DIR/security/ && chmod 755 $DEPLOYMENT_DIR/security/audit-test-values.sh
+    
+    echo 'Deploying multi-region failover...'
+    cp scripts/multi-region/failover-automation.sh $DEPLOYMENT_DIR/multi-region/ && chmod 755 $DEPLOYMENT_DIR/multi-region/failover-automation.sh
+    
+    echo 'Deploying core automation...'
+    cp scripts/automation/credential-manager.sh $DEPLOYMENT_DIR/core/ && chmod 755 $DEPLOYMENT_DIR/core/credential-manager.sh
+    cp scripts/automation/orchestrator.sh $DEPLOYMENT_DIR/core/ && chmod 755 $DEPLOYMENT_DIR/core/orchestrator.sh
+    cp scripts/automation/deployment-monitor.sh $DEPLOYMENT_DIR/core/ && chmod 755 $DEPLOYMENT_DIR/core/deployment-monitor.sh
+    
+    echo 'Deployment complete'
+  "
   
-  log "Cloning repository to temporary location..."
-  cd "$temp_dir"
-  
-  # Clone repo (shallow clone to save bandwidth)
-  if git clone --depth=1 https://github.com/kushin77/self-hosted-runner.git . 2>&1 | tee -a "$DEPLOYMENT_LOG"; then
-    success "Repository cloned"
+  if execute_remote "$ssh_key" "$cmd"; then
+    success "Remote components deployed successfully"
   else
-    error "Failed to clone repository"
+    error "Failed to deploy remote components"
     return 1
   fi
-  
-  # Deploy K8s health checks
-  log "Deploying K8s health check scripts..."
-  if [ -f "scripts/k8s-health-checks/cluster-readiness.sh" ]; then
-    cp scripts/k8s-health-checks/cluster-readiness.sh "$DEPLOYMENT_DIR/k8s-health-checks/"
-    chmod 755 "$DEPLOYMENT_DIR/k8s-health-checks/cluster-readiness.sh"
-    success "Deployed cluster-readiness.sh"
-  fi
-  
-  if [ -f "scripts/k8s-health-checks/cluster-stuck-recovery.sh" ]; then
-    cp scripts/k8s-health-checks/cluster-stuck-recovery.sh "$DEPLOYMENT_DIR/k8s-health-checks/"
-    chmod 755 "$DEPLOYMENT_DIR/k8s-health-checks/cluster-stuck-recovery.sh"
-    success "Deployed cluster-stuck-recovery.sh"
-  fi
-  
-  if [ -f "scripts/k8s-health-checks/validate-multicloud-secrets.sh" ]; then
-    cp scripts/k8s-health-checks/validate-multicloud-secrets.sh "$DEPLOYMENT_DIR/k8s-health-checks/"
-    chmod 755 "$DEPLOYMENT_DIR/k8s-health-checks/validate-multicloud-secrets.sh"
-    success "Deployed validate-multicloud-secrets.sh"
-  fi
-  
-  # Deploy security scripts
-  log "Deploying security audit scripts..."
-  if [ -f "scripts/security/audit-test-values.sh" ]; then
-    cp scripts/security/audit-test-values.sh "$DEPLOYMENT_DIR/security/"
-    chmod 755 "$DEPLOYMENT_DIR/security/audit-test-values.sh"
-    success "Deployed audit-test-values.sh"
-  fi
-  
-  # Deploy failover scripts
-  log "Deploying multi-region failover scripts..."
-  if [ -f "scripts/multi-region/failover-automation.sh" ]; then
-    cp scripts/multi-region/failover-automation.sh "$DEPLOYMENT_DIR/multi-region/"
-    chmod 755 "$DEPLOYMENT_DIR/multi-region/failover-automation.sh"
-    success "Deployed failover-automation.sh"
-  fi
-  
-  # Deploy core automation
-  log "Deploying core automation scripts..."
-  if [ -f "scripts/automation/credential-manager.sh" ]; then
-    cp scripts/automation/credential-manager.sh "$DEPLOYMENT_DIR/core/"
-    chmod 755 "$DEPLOYMENT_DIR/core/credential-manager.sh"
-    success "Deployed credential-manager.sh"
-  fi
-  
-  if [ -f "scripts/automation/orchestrator.sh" ]; then
-    cp scripts/automation/orchestrator.sh "$DEPLOYMENT_DIR/core/"
-    chmod 755 "$DEPLOYMENT_DIR/core/orchestrator.sh"
-    success "Deployed orchestrator.sh"
-  fi
-  
-  if [ -f "scripts/automation/deployment-monitor.sh" ]; then
-    cp scripts/automation/deployment-monitor.sh "$DEPLOYMENT_DIR/core/"
-    chmod 755 "$DEPLOYMENT_DIR/core/deployment-monitor.sh"
-    success "Deployed deployment-monitor.sh"
-  fi
-  
-  # Return to previous directory
-  cd - > /dev/null
 }
 
 # ============================================================================
@@ -198,50 +256,46 @@ deploy_from_git() {
 # ============================================================================
 
 verify_deployment() {
-  log "Verifying deployment..."
+  local ssh_key="$1"
+  log "Verifying remote deployment..."
   
-  local total_checks=0
-  local passed_checks=0
-  
-  # Check directories
-  for dir in "$DEPLOYMENT_DIR/k8s-health-checks" \
-             "$DEPLOYMENT_DIR/security" \
-             "$DEPLOYMENT_DIR/multi-region" \
-             "$DEPLOYMENT_DIR/core"; do
-    if [ -d "$dir" ]; then
-      success "Directory verified: $dir"
-      passed_checks=$((passed_checks + 1))
-    fi
-    total_checks=$((total_checks + 1))
-  done
-  
-  # Check scripts
-  for script in "$DEPLOYMENT_DIR"/k8s-health-checks/*.sh \
-                "$DEPLOYMENT_DIR"/security/*.sh \
-                "$DEPLOYMENT_DIR"/multi-region/*.sh \
-                "$DEPLOYMENT_DIR"/core/*.sh; do
-    if [ -f "$script" ]; then
-      if [ -x "$script" ]; then
-        if bash -n "$script" 2>/dev/null; then
-          success "Script verified: $(basename $script)"
-          passed_checks=$((passed_checks + 1))
-        else
-          error "Syntax error in: $(basename $script)"
-        fi
-      else
-        error "Not executable: $(basename $script)"
+  local cmd="
+    PASSED=0
+    TOTAL=0
+    
+    # Check directories
+    for dir in $DEPLOYMENT_DIR/k8s-health-checks $DEPLOYMENT_DIR/security $DEPLOYMENT_DIR/multi-region $DEPLOYMENT_DIR/core; do
+      TOTAL=\$((TOTAL + 1))
+      if [ -d \"\$dir\" ]; then
+        PASSED=\$((PASSED + 1))
       fi
-      total_checks=$((total_checks + 1))
+    done
+    
+    # Check scripts
+    for script in $DEPLOYMENT_DIR/k8s-health-checks/*.sh $DEPLOYMENT_DIR/security/*.sh $DEPLOYMENT_DIR/multi-region/*.sh $DEPLOYMENT_DIR/core/*.sh; do
+      if [ -f \"\$script\" ]; then
+        TOTAL=\$((TOTAL + 1))
+        if [ -x \"\$script\" ] && bash -n \"\$script\" 2>/dev/null; then
+          PASSED=\$((PASSED + 1))
+        fi
+      fi
+    done
+    
+    echo \"Verification: \$PASSED/\$TOTAL checks passed\"
+    
+    if [ \$PASSED -eq \$TOTAL ]; then
+      echo 'Verification PASSED'
+      exit 0
+    else
+      echo 'Verification FAILED'
+      exit 1
     fi
-  done
+  "
   
-  log "Verification: $passed_checks/$total_checks checks passed"
-  
-  if [ $passed_checks -eq $total_checks ]; then
-    success "All verification checks PASSED"
-    return 0
+  if execute_remote "$ssh_key" "$cmd"; then
+    success "Remote verification passed"
   else
-    error "Some verification checks failed"
+    error "Remote verification failed"
     return 1
   fi
 }
@@ -253,14 +307,13 @@ verify_deployment() {
 print_summary() {
   echo ""
   log "╔═════════════════════════════════════════╗"
-  log "║  ✅ DEPLOYMENT COMPLETE                ║"
-  log "║  100% Success Rate - Worker Node Ready ║"
+  log "║    ✅ REMOTE DEPLOYMENT COMPLETE        ║"
+  log "║  100% Success - Worker Node Ready      ║"
   log "╚═════════════════════════════════════════╝"
   echo ""
   log "Deployment Summary:"
-  log "  Host: $(hostname)"
-  log "  IP: $(hostname -I)"
-  log "  Location: $DEPLOYMENT_DIR"
+  log "  Remote Host: $TARGET_USER@$TARGET_HOST"
+  log "  Deployment Dir: $DEPLOYMENT_DIR"
   log "  Session: $SESSION_ID"
   log "  Timestamp: $TIMESTAMP"
   log ""
@@ -274,7 +327,7 @@ print_summary() {
   log "  ✅ orchestrator.sh"
   log "  ✅ deployment-monitor.sh"
   echo ""
-  log "Log: $DEPLOYMENT_LOG"
+  log "Authentication: Service Account SSH (${SERVICE_ACCOUNT})"
 }
 
 # ============================================================================
@@ -282,29 +335,38 @@ print_summary() {
 # ============================================================================
 
 main() {
-  # Create deployment log
-  mkdir -p "$AUDIT_DIR"
+  echo ""
+  log "╔══════════════════════════════════════════════════════╗"
+  log "║  WORKER NODE DEPLOYMENT - SERVICE ACCOUNT SSH AUTH  ║"
+  log "╚══════════════════════════════════════════════════════╝"
+  echo ""
   
-  log "═══════════════════════════════════════════"
-  log "WORKER NODE DEPLOYMENT SCRIPT"
-  log "═══════════════════════════════════════════"
-  log "Target: dev-elevatediq (192.168.168.42)"
+  log "Target: $TARGET_USER@$TARGET_HOST"
+  log "Service Account: $SERVICE_ACCOUNT"
   log "Session: $SESSION_ID"
   log ""
   
-  # Run deployment steps
+  # Check prerequisites (find SSH key and verify connectivity)
   check_prerequisites || return 1
   log ""
   
-  prepare_directories || return 1
+  # Get SSH key path
+  SSH_KEY_PATH=$(detect_ssh_key) || return 1
   log ""
   
-  deploy_from_git || return 1
+  # Prepare remote directories
+  prepare_directories "$SSH_KEY_PATH" || return 1
   log ""
   
-  verify_deployment || return 1
+  # Deploy from git
+  deploy_from_git "$SSH_KEY_PATH" || return 1
   log ""
   
+  # Verify deployment
+  verify_deployment "$SSH_KEY_PATH" || return 1
+  log ""
+  
+  # Print summary
   print_summary
   
   return 0
@@ -312,3 +374,4 @@ main() {
 
 # Execute
 main "$@"
+exit $?

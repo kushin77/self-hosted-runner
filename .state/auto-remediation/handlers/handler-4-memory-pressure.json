@@ -1,0 +1,16 @@
+{
+  "id": 4,
+  "name": "remediate_memory_pressure",
+  "trigger": "Memory pressure detected on node",
+  "actions": [
+    "kubectl describe nodes | grep -B3 'MemoryPressure.*True' | grep 'Name:' | awk '{print $2}' | head -1",
+    "kubectl get pods -A --field-selector status.phase=Pending --sort-by=.metadata.creationTimestamp | head -5",
+    "kubectl describe resourcequota -A"
+  ],
+  "timeout": 300,
+  "retries": 1,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Evict burstable pods to relieve memory pressure"
+}

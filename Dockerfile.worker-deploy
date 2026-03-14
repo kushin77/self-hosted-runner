@@ -1,0 +1,42 @@
+# Docker container for isolated deployment on worker nodes
+# Build: docker build -f Dockerfile.worker-deploy -t worker-deploy:latest .
+# Run:   docker run --rm -v /opt:/target worker-deploy:latest
+
+FROM ubuntu:22.04
+
+LABEL description="Worker Node Deployment Package"
+LABEL version="1.0"
+LABEL maintainer="Automation Team"
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    git \
+    curl \
+    rsync \
+    tar \
+    gzip \
+    grep \
+    sed \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /deployment
+
+# Copy deployment script
+COPY deploy-standalone.sh /deployment/
+COPY scripts/ /deployment/scripts/ 2>/dev/null || true
+COPY WORKER_DEPLOYMENT_README.md /deployment/
+
+# Make deployment script executable
+RUN chmod +x /deployment/deploy-standalone.sh
+
+# Create target directory
+RUN mkdir -p /target/automation/{k8s-health-checks,security,multi-region,core,audit}
+
+# Set environment
+ENV DEPLOYMENT_DIR=/target/automation
+ENV PATH="/deployment:${PATH}"
+
+# Entrypoint for standalone execution
+ENTRYPOINT ["/bin/bash", "/deployment/deploy-standalone.sh"]

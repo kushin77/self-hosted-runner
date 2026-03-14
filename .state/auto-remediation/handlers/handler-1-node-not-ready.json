@@ -1,0 +1,17 @@
+{
+  "id": 1,
+  "name": "remediate_node_not_ready",
+  "trigger": "node status = NotReady",
+  "actions": [
+    "kubectl cordon NODE",
+    "kubectl drain NODE --ignore-daemonsets --delete-emptydir-data",
+    "kubectl uncordon NODE",
+    "kubectl wait --for=condition=Ready node/NODE --timeout=5m"
+  ],
+  "timeout": 300,
+  "retries": 3,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Drain and reschedule pods from unready node"
+}

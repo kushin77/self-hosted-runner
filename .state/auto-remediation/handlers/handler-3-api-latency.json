@@ -1,0 +1,17 @@
+{
+  "id": 3,
+  "name": "remediate_api_latency",
+  "trigger": "API server latency > 1s (p95)",
+  "actions": [
+    "kubectl scale deployment/kube-apiserver --replicas=+1 || true",
+    "kubectl get pods -A --field-selector status.phase=Failed -o name | xargs kubectl delete || true",
+    "kubectl describe node | grep -A5 'Non-terminated Pods'",
+    "kubectl top nodes"
+  ],
+  "timeout": 300,
+  "retries": 2,
+  "backoff_multiplier": 2,
+  "dry_run_mode": true,
+  "enabled": true,
+  "description": "Scale API servers and evict failed pods"
+}

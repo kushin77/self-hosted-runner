@@ -1,0 +1,36 @@
+{
+  "week": 2,
+  "start_date": "2026-03-17T00:00:00Z",
+  "end_date": "2026-03-24T00:00:00Z",
+  "rollout_schedule": {
+    "monday_2026_03_17": {
+      "activate": ["node_not_ready"],
+      "description": "Node Not Ready handler: cordon, drain, reschedule"
+    },
+    "tuesday_2026_03_18": {
+      "activate": ["dns_failed", "network_issues"],
+      "description": "DNS & Network handlers: CoreDNS restart, CNI recovery"
+    },
+    "wednesday_2026_03_19": {
+      "activate": ["api_latency", "memory_pressure"],
+      "description": "Resource handlers: API scaling, pod eviction"
+    },
+    "thursday_2026_03_20": {
+      "activate": ["pod_crash_loop"],
+      "description": "Pod Crash Loop handler: backoff tracking, log analysis"
+    },
+    "friday_2026_03_21": {
+      "status": "full_rollout_confirmation",
+      "description": "All 7 handlers active, monitoring, threshold validation"
+    }
+  },
+  "rollback_procedure": {
+    "if_false_positive_rate_exceeds_10_percent": {
+      "step1": "Pause handler causing false positives",
+      "step2": "Restore handler to dry-run mode",
+      "step3": "Analyze logs and adjust thresholds",
+      "step4": "Re-enable handler after tuning",
+      "escalation": "Manual review before re-activation"
+    }
+  }
+}
