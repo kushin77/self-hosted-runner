@@ -15,7 +15,7 @@ services:
     depends_on:
       - zookeeper
     healthcheck:
-      test: kafka-broker-api-versions --bootstrap-server 127.0.0.1:9092  # Internal health check
+      test: kafka-broker-api-versions --bootstrap-server 192.168.168.42:9092  # Internal health check
       interval: 10s
       timeout: 5s
       retries: 3

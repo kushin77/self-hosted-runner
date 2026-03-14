@@ -18,7 +18,7 @@ services:
     command: pnpm --filter @nexus/api dev
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://192.168.168.42:5000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -33,7 +33,7 @@ services:
       - .env
     environment:
       NODE_ENV: development
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+      VITE_API_URL: ${VITE_API_URL:-http://192.168.168.42:5000}
       VITE_LOG_LEVEL: debug
     volumes:
       - ../packages/frontend/src:/app/packages/frontend/src
@@ -46,7 +46,7 @@ services:
       - portal-api
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://192.168.168.42:3000 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

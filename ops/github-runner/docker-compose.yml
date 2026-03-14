@@ -15,7 +15,7 @@ services:
       - ./_work:/actions-runner/_work
     # optional healthcheck
     healthcheck:
-      test: [ "CMD", "curl", "-fs", "http://127.0.0.1:8080/health" ]  # Internal health check
+      test: [ "CMD", "curl", "-fs", "http://192.168.168.42:8080/health" ]  # Internal health check
       interval: 30s
       timeout: 10s
       retries: 3
