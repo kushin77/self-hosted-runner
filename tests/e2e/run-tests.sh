@@ -2,7 +2,7 @@
 # E2E Test Runner Script
 # NOTE: This script runs tests against the mock server on the worker host (192.168.168.42)
 # The mock server must be started on the worker first:
-#   ssh akushnir@192.168.168.42
+#   ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42
 #   WORKER_HOST=192.168.168.42 node tests/e2e/mock-server.js &
 
 set -e
@@ -39,7 +39,7 @@ fi
 if ! curl -s "$API_BASE_URL/health" > /dev/null 2>&1; then
   echo "ERROR: Mock server not reachable at $API_BASE_URL"
   echo "Please start the mock server on the worker first:"
-  echo "  ssh akushnir@192.168.168.42"
+  echo "  ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42"
   echo "  WORKER_HOST=192.168.168.42 node tests/e2e/mock-server.js &"
   exit 1
 fi

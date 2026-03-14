@@ -290,7 +290,7 @@ Exit code: 1
 
 **Resolution**
 1. Terminate current script execution
-2. SSH to 192.168.168.42: `ssh akushnir@192.168.168.42`
+2. SSH to 192.168.168.42 using service account: `ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42`
 3. Re-run deployment script
 4. Deployment will proceed normally
 

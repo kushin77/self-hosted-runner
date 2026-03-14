@@ -16,18 +16,18 @@ chmod +x deploy-worker-node.sh
 
 ### Step 2: Transfer to worker node (one of the options below)
 
-**Option A: Direct SSH execution** (if SSH is already set up)
+**Option A: Direct SSH execution (Service Account)** (if SSH is already set up)
 ```bash
-ssh akushnir@192.168.168.42 'bash -s' < deploy-worker-node.sh
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 'bash -s' < deploy-worker-node.sh
 ```
 
-**Option B: Copy script to worker node and run manually**
+**Option B: Copy script to worker node and run manually (Service Account)**
 ```bash
-# Copy the script to worker node
-scp deploy-worker-node.sh akushnir@192.168.168.42:/tmp/
+# Copy the script to worker node (using service account key)
+scp -i ~/.ssh/git-workflow-automation deploy-worker-node.sh git-workflow-automation@192.168.168.42:/tmp/
 
-# SSH into worker node
-ssh akushnir@192.168.168.42
+# SSH into worker node (using service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42
 
 # On worker node, run:
 cd /tmp

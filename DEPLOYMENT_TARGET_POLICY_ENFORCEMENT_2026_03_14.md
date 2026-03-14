@@ -201,7 +201,7 @@ grep -i "onprem\|success\|deployed" logs/deployment-audit.jsonl
 Expected message: [FATAL] DEPLOYMENT BLOCKED: This is 192.168.168.31 (FORBIDDEN)
 Solution: 
   1. Stop current execution (Ctrl+C)
-  2. SSH to 192.168.168.42:  ssh akushnir@192.168.168.42
+  2. SSH to 192.168.168.42: `ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42` (service account auth)
   3. Re-run deployment script
   4. All systems will proceed normally
 ```

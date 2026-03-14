@@ -26,8 +26,8 @@ The NexusShield Portal deployment is **100% automated**, **fully immutable**, an
 
 ### 1. **Verify Deployment Host Accessibility**
 ```bash
-# Test SSH connectivity to fullstack host
-ssh akushnir@192.168.168.42 "echo 'SSH OK'; docker --version; docker-compose --version"
+# Test SSH connectivity to fullstack host (using service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 "echo 'SSH OK'; docker --version; docker-compose --version"
 ```
 **Expected Output:**
 ```

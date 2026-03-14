@@ -81,7 +81,7 @@ Before running the script:
 
 2. **Infrastructure SSH (for manual checks)**
    ```bash
-   ssh akushnir@192.168.168.42
+   ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42
    docker-compose -f /home/akushnir/deployments/docker-compose.yml ps  # See containers
    docker-compose logs --tail 50  # Recent logs
    ```

@@ -262,12 +262,14 @@ cat /home/akushnir/self-hosted-runner/secrets/ssh/elevatediq-svc-worker-dev/id_e
 
 ### Check if service account exists on a host:
 ```bash
-ssh akushnir@<host> "id elevatediq-svc-*"
+# Use service account key for authentication
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@<host> "id elevatediq-svc-*"
 ```
 
 ### Check authorized_keys on target host:
 ```bash
-ssh akushnir@<host> "cat ~/.ssh/authorized_keys | grep -i elevatediq"
+# Service account auth
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@<host> "cat ~/.ssh/authorized_keys | grep -i elevatediq"
 ```
 
 ---

@@ -10,11 +10,11 @@ This document describes how to ship deployment audit logs to centralized logging
 
 ### Setup
 
-1. **Update Filebeat configuration on worker:**
+1. **Update Filebeat configuration on worker (Service Account):**
 
 ```bash
-scp docs/filebeat-config-elk.yml akushnir@192.168.168.42:/tmp/
-ssh akushnir@192.168.168.42 << 'EOF'
+scp -i ~/.ssh/git-workflow-automation docs/filebeat-config-elk.yml git-workflow-automation@192.168.168.42:/tmp/
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 << 'EOF'
 sudo cp /tmp/filebeat-config-elk.yml /etc/filebeat/filebeat.yml
 # Edit with your Elasticsearch hosts:
 sudo sed -i "s/elasticsearch.example.com:9200/YOUR_ES_HOST:9200/g" /etc/filebeat/filebeat.yml
@@ -25,8 +25,8 @@ EOF
 2. **Verify logs are flowing:**
 
 ```bash
-# Check Filebeat status
-ssh akushnir@192.168.168.42 'sudo journalctl -u filebeat -n 20 --no-pager'
+# Check Filebeat status (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 'sudo journalctl -u filebeat -n 20 --no-pager'
 
 # Query Elasticsearch for logs
 curl -u elastic:password http://ES_HOST:9200/deployment-audit-*/_search?size=10
@@ -67,7 +67,7 @@ DATADOG_API_KEY="your-api-key-here"
 DATADOG_SITE="datadoghq.com"  # or "datadoghq.eu"
 
 scp scripts/provision/install-datadog-agent.sh akushnir@192.168.168.42:/tmp/
-ssh akushnir@192.168.168.42 \
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 \
   "sudo bash /tmp/install-datadog-agent.sh $DATADOG_API_KEY $DATADOG_SITE"
 ```
 
@@ -207,8 +207,8 @@ PUT _watcher/watch/deployment_failure_alert
 ### Check Filebeat Status
 
 ```bash
-# SSH to worker
-ssh akushnir@192.168.168.42 << 'EOF'
+# SSH to worker (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 << 'EOF'
 
 # Service status
 sudo systemctl status filebeat
@@ -228,8 +228,8 @@ EOF
 ### Check Datadog Agent Status
 
 ```bash
-# SSH to worker
-ssh akushnir@192.168.168.42 << 'EOF'
+# SSH to worker (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 << 'EOF'
 
 # Service status
 sudo systemctl status datadog-agent
@@ -246,17 +246,17 @@ EOF
 ### Debugging Log Shipping
 
 ```bash
-# Tail deployment audit logs locally
-ssh akushnir@192.168.168.42 'tail -f /run/app-deployment-state/deployed.state'
+# Tail deployment audit logs locally (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 'tail -f /run/app-deployment-state/deployed.state'
 
-# Manually test Elasticsearch connectivity
-ssh akushnir@192.168.168.42 << 'EOF'
+# Manually test Elasticsearch connectivity (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 << 'EOF'
 curl -X GET "http://elasticsearch.example.com:9200/_cat/indices?v" \
   -H "Content-Type: application/json"
 EOF
 
-# Manually test Datadog connectivity
-ssh akushnir@192.168.168.42 << 'EOF'
+# Manually test Datadog connectivity (service account)
+ssh -i ~/.ssh/git-workflow-automation git-workflow-automation@192.168.168.42 << 'EOF'
 curl -X POST "https://api.datadoghq.com/api/v2/logs" \
   -H "DD-API-KEY: YOUR_API_KEY" \
   -d '{"message":"test"}'

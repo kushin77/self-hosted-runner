@@ -167,8 +167,10 @@ The system has been fully validated:
 # Verify you're about to SSH to .42
 ping -c 1 192.168.168.42
 
-# Connect to production worker
-ssh akushnir@192.168.168.42
+# Connect to production worker (using service account)
+export SERVICE_ACCOUNT="git-workflow-automation"
+SSH_KEY=~/.ssh/git-workflow-automation  # Or set via SSH_KEY env var
+ssh -i "${SSH_KEY:-~/.ssh/${SERVICE_ACCOUNT}}" "${SERVICE_ACCOUNT}@192.168.168.42"
 ```
 
 ### Phase 2: Verify Target Environment
@@ -205,7 +207,8 @@ git branch                          # Should show: * main
 
 **On remote (192.168.168.42):**
 ```bash
-# Run the deployment script
+# Service account deployment (automatic OIDC auth)
+# No manual credential entry needed - service account handles auth
 bash scripts/deploy-git-workflow.sh
 
 # Expected output:
