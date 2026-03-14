@@ -3,6 +3,11 @@ variable "project_id" {
   type        = string
 }
 
+variable "project_number" {
+  description = "GCP project number"
+  type        = string
+}
+
 variable "region" {
   description = "GCP region"
   type        = string
@@ -28,11 +33,6 @@ variable "secret_data" {
   default     = ""
 }
 
-variable "cloud_build_service_account" {
-  description = "Cloud Build service account email that needs access to GSM and KMS (e.g. PROJECT_NUMBER@cloudbuild.gserviceaccount.com)"
-  type        = string
-}
-
 variable "github_owner" {
   description = "GitHub owner/org for Cloud Build trigger"
   type        = string
@@ -49,4 +49,4 @@ variable "github_branch" {
   description = "Branch regex for the trigger (e.g. ^main$ or ^refs/heads/main$)"
   type        = string
   default     = "^main$"
-} 
+}
