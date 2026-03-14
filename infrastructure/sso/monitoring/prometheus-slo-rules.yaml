@@ -1,0 +1,275 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sso-sli-slo-rules
+  namespace: monitoring
+spec:
+  groups:
+  - name: sso.sli.slo
+    interval: 30s
+    rules:
+    # Keycloak SLI/SLO
+    - record: slo:keycloak:availability:5m
+      expr: |
+        (
+          rate(http_requests_total{app="keycloak",status!~"5.."}[5m])
+          /
+          rate(http_requests_total{app="keycloak"}[5m])
+        ) * 100
+    
+    - record: slo:keycloak:latency:p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          rate(http_request_duration_seconds_bucket{app="keycloak"}[5m])
+        )
+    
+    - record: slo:keycloak:error_rate:5m
+      expr: |
+        (
+          rate(http_requests_total{app="keycloak",status=~"5.."}[5m])
+          /
+          rate(http_requests_total{app="keycloak"}[5m])
+        ) * 100
+    
+    - record: slo:keycloak:traffic:5m
+      expr: |
+        rate(http_requests_total{app="keycloak"}[5m])
+    
+    # OAuth2-Proxy SLI/SLO
+    - record: slo:oauth2_proxy:availability:5m
+      expr: |
+        (
+          rate(oauth2_proxy_requests_total{status="200"}[5m])
+          /
+          rate(oauth2_proxy_requests_total[5m])
+        ) * 100
+    
+    - record: slo:oauth2_proxy:latency:p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          rate(oauth2_proxy_duration_seconds_bucket[5m])
+        )
+    
+    - record: slo:oauth2_proxy:cache_hit_rate:5m
+      expr: |
+        (
+          rate(oauth2_proxy_cache_hits[5m])
+          /
+          (rate(oauth2_proxy_cache_hits[5m]) + rate(oauth2_proxy_cache_misses[5m]))
+        ) * 100
+    
+    - record: slo:oauth2_proxy:traffic:5m
+      expr: |
+        rate(oauth2_proxy_requests_total[5m])
+    
+    # PostgreSQL SLI/SLO
+    - record: slo:postgresql:availability:5m
+      expr: |
+        1 - (
+          rate(pg_stat_database_deadlocks[5m])
+          /
+          (rate(pg_stat_database_xact_commit[5m]) + rate(pg_stat_database_xact_rollback[5m]))
+        )
+    
+    - record: slo:postgresql:replication_lag:5m
+      expr: |
+        pg_replication_lag / 1024 / 1024
+    
+    - record: slo:postgresql:connection_utilization:5m
+      expr: |
+        pg_stat_activity_count / max_connections * 100
+    
+    - record: slo:postgresql:query_latency:p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          rate(pg_statement_mean_exec_time_seconds_bucket[5m])
+        )
+    
+    - record: slo:postgresql:queries_per_sec:5m
+      expr: |
+        rate(pg_stat_statements_calls[5m])
+    
+    # Kubernetes Cluster Health SLI/SLO
+    - record: slo:kubernetes:api_server_latency:p99:5m
+      expr: |
+        histogram_quantile(0.99,
+          rate(apiserver_request_duration_seconds_bucket[5m])
+        )
+    
+    - record: slo:kubernetes:etcd_disk_utilization:5m
+      expr: |
+        etcd_disk_backend_bytes / etcd_disk_backend_commit_duration_seconds_bucket * 100
+    
+    - record: slo:kubernetes:pod_scheduling_latency:p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          rate(scheduler_scheduling_duration_seconds_bucket[5m])
+        )
+    
+    - record: slo:kubernetes:node_ready:5m
+      expr: |
+        (
+          count(kube_node_status_condition{condition="Ready",status="true"})
+          /
+          count(kube_node_status_condition{condition="Ready"})
+        ) * 100
+    
+    # Network Performance SLI/SLO
+    - record: slo:network:latency:p95:5m
+      expr: |
+        histogram_quantile(0.95,
+          rate(container_network_transmit_latency_seconds_bucket[5m])
+        )
+    
+    - record: slo:network:packet_loss:5m
+      expr: |
+        rate(container_network_transmit_dropped_total[5m])
+        + rate(container_network_receive_dropped_total[5m])
+    
+    - record: slo:network:bandwidth:5m
+      expr: |
+        sum(rate(container_network_transmit_bytes_total[5m]))
+        + sum(rate(container_network_receive_bytes_total[5m]))
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: sso-sli-alerts
+  namespace: monitoring
+spec:
+  groups:
+  - name: sso.sli.alerts
+    interval: 30s
+    rules:
+    # Keycloak Availability Alert
+    - alert: KeycloakLowAvailability
+      expr: |
+        slo:keycloak:availability:5m < 99.5
+      for: 5m
+      labels:
+        severity: warning
+        slo: availability
+      annotations:
+        summary: "Keycloak availability below SLO target"
+        description: "Keycloak availability is {{ $value }}% (target: 99.5%)"
+    
+    # Keycloak Latency Alert
+    - alert: KeycloakHighLatency
+      expr: |
+        slo:keycloak:latency:p95:5m > 1
+      for: 5m
+      labels:
+        severity: warning
+        slo: latency
+      annotations:
+        summary: "Keycloak p95 latency above threshold"
+        description: "Keycloak p95 latency is {{ $value }}s (target: <1s)"
+    
+    # OAuth2-Proxy Availability Alert
+    - alert: OAuth2ProxyLowAvailability
+      expr: |
+        slo:oauth2_proxy:availability:5m < 99.9
+      for: 5m
+      labels:
+        severity: warning
+        slo: availability
+      annotations:
+        summary: "OAuth2-Proxy availability below SLO target"
+        description: "OAuth2-Proxy availability is {{ $value }}% (target: 99.9%)"
+    
+    # OAuth2-Proxy Cache Hit Rate Alert
+    - alert: OAuth2ProxyLowCacheHitRate
+      expr: |
+        slo:oauth2_proxy:cache_hit_rate:5m < 80
+      for: 10m
+      labels:
+        severity: info
+        slo: efficiency
+      annotations:
+        summary: "OAuth2-Proxy cache hit rate low"
+        description: "Cache hit rate is {{ $value }}% (target: >80%)"
+    
+    # PostgreSQL Replication Lag Alert
+    - alert: PostgreSQLReplicationLag
+      expr: |
+        slo:postgresql:replication_lag:5m > 100
+      for: 5m
+      labels:
+        severity: critical
+        slo: sync
+      annotations:
+        summary: "PostgreSQL replication lag too high"
+        description: "Replication lag is {{ $value }}MB (target: <10MB)"
+    
+    # PostgreSQL High Connection Usage Alert
+    - alert: PostgreSQLHighConnectionUsage
+      expr: |
+        slo:postgresql:connection_utilization:5m > 80
+      for: 10m
+      labels:
+        severity: warning
+        slo: capacity
+      annotations:
+        summary: "PostgreSQL connection pool near saturation"
+        description: "Connection utilization is {{ $value }}% (target: <80%)"
+    
+    # PostgreSQL Query Latency Alert
+    - alert: PostgreSQLHighQueryLatency
+      expr: |
+        slo:postgresql:query_latency:p95:5m > 1
+      for: 5m
+      labels:
+        severity: warning
+        slo: performance
+      annotations:
+        summary: "PostgreSQL query latency elevated"
+        description: "Query p95 latency is {{ $value }}s (target: <1s)"
+    
+    # Kubernetes API Server Latency Alert
+    - alert: KubernetesAPIServerLatency
+      expr: |
+        slo:kubernetes:api_server_latency:p99:5m > 1
+      for: 5m
+      labels:
+        severity: warning
+        slo: infrastructure
+      annotations:
+        summary: "Kubernetes API server latency high"
+        description: "API server p99 latency is {{ $value }}s (target: <1s)"
+    
+    # Kubernetes Node Readiness Alert
+    - alert: KubernetesNodeReadinessDegraded
+      expr: |
+        slo:kubernetes:node_ready:5m < 100
+      for: 5m
+      labels:
+        severity: critical
+        slo: infrastructure
+      annotations:
+        summary: "Kubernetes nodes not ready"
+        description: "Ready node ratio is {{ $value }}% (target: 100%)"
+    
+    # Network Latency Alert
+    - alert: HighNetworkLatency
+      expr: |
+        slo:network:latency:p95:5m > 100
+      for: 10m
+      labels:
+        severity: warning
+        slo: network
+      annotations:
+        summary: "Network latency elevated"
+        description: "Network p95 latency is {{ $value }}ms (target: <100ms)"
+    
+    # Packet Loss Alert
+    - alert: NetworkPacketLoss
+      expr: |
+        slo:network:packet_loss:5m > 0
+      for: 5m
+      labels:
+        severity: critical
+        slo: network
+      annotations:
+        summary: "Network packet loss detected"
+        description: "Packet loss rate is {{ $value }} packets/s"

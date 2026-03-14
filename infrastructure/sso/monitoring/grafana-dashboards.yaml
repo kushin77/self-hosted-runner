@@ -1,0 +1,421 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-sso
+  namespace: monitoring
+data:
+  keycloak-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Keycloak Identity Provider",
+        "tags": ["sso", "keycloak", "identity"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Keycloak HTTP Requests (5m)",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"keycloak\"}[5m])",
+                "legendFormat": "{{method}} {{path}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 2,
+            "title": "Request Latency (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{app=\"keycloak\"}[5m]))",
+                "legendFormat": "{{path}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 3,
+            "title": "Error Rate",
+            "targets": [
+              {
+                "expr": "rate(http_requests_total{app=\"keycloak\",status=~\"5..\"}[5m])",
+                "legendFormat": "{{status}}"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 4,
+            "title": "Active Sessions",
+            "targets": [
+              {
+                "expr": "keycloak_sessions_active"
+              }
+            ],
+            "type": "gauge"
+          },
+          {
+            "id": 5,
+            "title": "Auth Attempts (5m)",
+            "targets": [
+              {
+                "expr": "rate(keycloak_authentications_total[5m])",
+                "legendFormat": "{{status}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 6,
+            "title": "JVM Memory Usage",
+            "targets": [
+              {
+                "expr": "jvm_memory_used_bytes{app=\"keycloak\"} / jvm_memory_max_bytes{app=\"keycloak\"}",
+                "legendFormat": "{{area}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 7,
+            "title": "Pod CPU Usage",
+            "targets": [
+              {
+                "expr": "rate(container_cpu_usage_seconds_total{pod=~\"keycloak-.*\"}[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 8,
+            "title": "Pod Memory Usage",
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{pod=~\"keycloak-.*\"}",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+  oauth2-proxy-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "OAuth2-Proxy Authentication",
+        "tags": ["sso", "oauth2", "auth"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Auth Requests (5m)",
+            "targets": [
+              {
+                "expr": "rate(oauth2_proxy_requests_total[5m])",
+                "legendFormat": "{{status}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 2,
+            "title": "Request Duration (p99)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, rate(oauth2_proxy_duration_seconds_bucket[5m]))",
+                "legendFormat": "{{path}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 3,
+            "title": "Auth Success Rate",
+            "targets": [
+              {
+                "expr": "rate(oauth2_proxy_requests_total{status=\"200\"}[5m]) / rate(oauth2_proxy_requests_total[5m])",
+                "legendFormat": "success_rate"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 4,
+            "title": "Cache Hit Rate",
+            "targets": [
+              {
+                "expr": "rate(oauth2_proxy_cache_hits[5m]) / (rate(oauth2_proxy_cache_hits[5m]) + rate(oauth2_proxy_cache_misses[5m]))"
+              }
+            ],
+            "type": "gauge"
+          },
+          {
+            "id": 5,
+            "title": "Token Refresh Rate",
+            "targets": [
+              {
+                "expr": "rate(oauth2_proxy_token_refresh_total[5m])",
+                "legendFormat": "refreshes"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 6,
+            "title": "Pod Resource Usage",
+            "targets": [
+              {
+                "expr": "container_cpu_usage_seconds_total{pod=~\"oauth2-proxy-.*\"}",
+                "legendFormat": "cpu_{{pod}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+  postgresql-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "PostgreSQL Database Performance",
+        "tags": ["database", "postgresql", "performance"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Queries Per Second",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_statements_calls[5m])",
+                "legendFormat": "{{query}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 2,
+            "title": "Query Latency (p95)",
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.95, rate(pg_statement_mean_exec_time_seconds_bucket[5m]))",
+                "legendFormat": "{{query}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 3,
+            "title": "Connection Count",
+            "targets": [
+              {
+                "expr": "pg_stat_activity_count"
+              }
+            ],
+            "type": "gauge"
+          },
+          {
+            "id": 4,
+            "title": "Replication Lag (ms)",
+            "targets": [
+              {
+                "expr": "pg_replication_lag_bytes / 1024 / 1024",
+                "legendFormat": "lag_mb"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 5,
+            "title": "Transaction Rate",
+            "targets": [
+              {
+                "expr": "rate(pg_stat_user_tables_seq_scan[5m]) + rate(pg_stat_user_tables_idx_scan[5m])",
+                "legendFormat": "{{schemaname}}.{{tablename}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 6,
+            "title": "Disk Usage",
+            "targets": [
+              {
+                "expr": "pg_database_size_bytes / 1024 / 1024 / 1024",
+                "legendFormat": "{{datname}}"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 7,
+            "title": "Cache Hit Ratio",
+            "targets": [
+              {
+                "expr": "pg_index_idx_blks_hit / (pg_index_idx_blks_hit + pg_index_idx_blks_read)",
+                "legendFormat": "{{indexname}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+  kubernetes-cluster-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Kubernetes Cluster Metrics",
+        "tags": ["kubernetes", "cluster", "infrastructure"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Node CPU Usage",
+            "targets": [
+              {
+                "expr": "rate(node_cpu_seconds_total{mode!=\"idle\"}[5m])",
+                "legendFormat": "{{node}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 2,
+            "title": "Node Memory Available",
+            "targets": [
+              {
+                "expr": "node_memory_MemAvailable_bytes / 1024 / 1024 / 1024",
+                "legendFormat": "{{node}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 3,
+            "title": "Pod Count by Namespace",
+            "targets": [
+              {
+                "expr": "count(kube_pod_info) by (namespace)",
+                "legendFormat": "{{namespace}}"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 4,
+            "title": "Network I/O",
+            "targets": [
+              {
+                "expr": "rate(container_network_transmit_bytes_total[5m]) + rate(container_network_receive_bytes_total[5m])",
+                "legendFormat": "{{pod}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 5,
+            "title": "Disk I/O",
+            "targets": [
+              {
+                "expr": "rate(node_disk_io_time_seconds_total[5m])",
+                "legendFormat": "{{device}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 6,
+            "title": "Persistent Volume Usage",
+            "targets": [
+              {
+                "expr": "kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes",
+                "legendFormat": "{{persistentvolumeclaim}}"
+              }
+            ],
+            "type": "gauge"
+          }
+        ]
+      }
+    }
+  security-events-dashboard.json: |
+    {
+      "dashboard": {
+        "title": "Security Events & Compliance",
+        "tags": ["security", "compliance", "audit"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Failed Auth Attempts (5m)",
+            "targets": [
+              {
+                "expr": "rate(keycloak_authentications_total{status=\"failure\"}[5m])",
+                "legendFormat": "{{reason}}"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 2,
+            "title": "Policy Violations",
+            "targets": [
+              {
+                "expr": "rate(kubernetes_policy_violations_total[5m])",
+                "legendFormat": "{{policy}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 3,
+            "title": "RBAC Denials",
+            "targets": [
+              {
+                "expr": "rate(kubernetes_audit_event_total{verb=\"get|list|watch\",result=\"forbidden\"}[5m])",
+                "legendFormat": "{{user}} -> {{resource}}"
+              }
+            ],
+            "type": "graph"
+          },
+          {
+            "id": 4,
+            "title": "Network Policy Blocks",
+            "targets": [
+              {
+                "expr": "rate(kubernetes_network_policy_violations_total[5m])",
+                "legendFormat": "{{source}} -> {{destination}}"
+              }
+            ],
+            "type": "stat"
+          },
+          {
+            "id": 5,
+            "title": "Secret Access Attempts",
+            "targets": [
+              {
+                "expr": "rate(kubernetes_audit_event_total{verb=\"get\",objectRef_resource=\"secrets\"}[5m])",
+                "legendFormat": "{{user}}"
+              }
+            ],
+            "type": "graph"
+          }
+        ]
+      }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provisioner-sso
+  namespace: monitoring
+data:
+  sso-dashboards.yaml: |
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: grafana-dashboards-sso
+      namespace: monitoring
+    options:
+      path: /var/lib/grafana/dashboards/sso
