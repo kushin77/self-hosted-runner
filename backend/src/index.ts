@@ -839,9 +839,15 @@ app.use((req: Request, res: Response) => {
 
 const startServer = async () => {
   try {
-    // Verify database connection
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ Database connection verified');
+    // Verify database connection, but don't block service startup.
+    // This keeps health/diagnostics endpoints available during DB outages.
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      console.log('✅ Database connection verified');
+    } catch (dbError) {
+      console.warn('⚠️ Database connection unavailable at startup; continuing in degraded mode');
+      console.warn(dbError);
+    }
 
     // Create logs directory
     const logsDir = path.join(__dirname, '../logs');

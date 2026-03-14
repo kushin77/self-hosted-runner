@@ -1,5 +1,5 @@
 #!/bin/sh
-set -euo pipefail
+set -eu
 
 # Load VAULT_TKN from mounted path if provided (ephemeral token file recommended)
 if [ -n "${VAULT_TKN_MOUNT_PATH:-}" ] && [ -f "$VAULT_TKN_MOUNT_PATH" ]; then
