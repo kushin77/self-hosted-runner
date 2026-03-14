@@ -109,11 +109,18 @@ if hostname &>/dev/null && [[ "$(hostname)" == "dev-elevatediq-2" ]]; then
     exit 1
 fi
 
-# Service account credentials (on-prem SSH only)
-readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-automation}"
+# ============================================================================
+# SERVICE ACCOUNT CONFIGURATION (svc-git with GSM-backed SSH key)
+# ============================================================================
+# MANDATE: All authentication via svc-git service account with SSH keys from GSM
+# Credentials are fetched at runtime, never stored locally (ephemeral + immutable)
+
+readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-svc-git}"
+readonly SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT}"
+readonly SSH_KEY_SECRET="${SSH_KEY_SECRET:-svc-git-ssh-key}"  # GSM secret name
 readonly TARGET_HOST="${TARGET_HOST:-192.168.168.42}"
-readonly TARGET_USER="${TARGET_USER:-$SERVICE_ACCOUNT}"
-readonly SSH_KEY="${SSH_KEY:-}"
+readonly TARGET_USER="${TARGET_USER:-svc-git}"  # Service account user on worker
+readonly SSH_KEY_FILE="${SSH_KEY_FILE:-/tmp/svc-git-key-$$}"
 
 # MANDATE: Only on-prem targets allowed
 readonly ALLOWED_TARGETS=("192.168.168.42" "192.168.168.39")
@@ -156,42 +163,70 @@ fi
 # SSH connection options (no cloud)
 readonly SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
 
-# Detect SSH key location
-detect_ssh_key() {
-  if [ -n "$SSH_KEY" ] && [ -f "$SSH_KEY" ]; then
-    echo "$SSH_KEY"
-    return 0
+# ============================================================================
+# SSH KEY RETRIEVAL (from GSM at runtime - ephemeral, never cached)
+# ============================================================================
+# Fetch SSH key from GSM for svc-git service account
+# Key is stored temporarily and cleaned up after use (PrivateTmp isolation)
+
+retrieve_ssh_key_from_gsm() {
+  echo "[*] Retrieving svc-git SSH key from GSM..." >&2
+  
+  # Verify gcloud is available
+  if ! command -v gcloud &>/dev/null; then
+    echo "[ERROR] gcloud CLI not found. Install Google Cloud SDK to continue." >&2
+    return 1
   fi
   
-  # Try common service account key locations
-  for key_path in \
-    ~/.ssh/id_${SERVICE_ACCOUNT} \
-    ~/.ssh/${SERVICE_ACCOUNT}_rsa \
-    ~/.ssh/service-accounts/${SERVICE_ACCOUNT} \
-    ~/.ssh/service-accounts/${SERVICE_ACCOUNT}_rsa \
-    ~/.ssh/github-actions \
-    ~/.ssh/automation \
-    ~/.ssh/id_rsa; do
-    if [ -f "$key_path" ]; then
-      echo "$key_path"
-      return 0
-    fi
-  done
+  # Retrieve SSH key from GSM
+  local ssh_key
+  ssh_key=$(gcloud secrets versions access latest --secret="$SSH_KEY_SECRET" 2>/dev/null)
   
-  return 1
+  if [ -z "$ssh_key" ]; then
+    echo "[ERROR] Failed to retrieve SSH key from GSM: $SSH_KEY_SECRET" >&2
+    return 1
+  fi
+  
+  # Write to temporary file with secure permissions
+  echo "$ssh_key" > "$SSH_KEY_FILE"
+  chmod 600 "$SSH_KEY_FILE"
+  
+  echo "[✓] SSH key retrieved from GSM and cached at $SSH_KEY_FILE" >&2
+  return 0
 }
 
-# Verify SSH connectivity before deployment
-verify_ssh_connection() {
-  local ssh_key="$1"
-  local ssh_cmd="ssh -i \"$ssh_key\" $SSH_OPTS"
+# Cleanup SSH key after use (ephemeral principle)
+cleanup_ssh_key() {
+  if [ -f "$SSH_KEY_FILE" ]; then
+    shred -vfz -n 3 "$SSH_KEY_FILE" 2>/dev/null || rm -f "$SSH_KEY_FILE"
+    echo "[✓] SSH key cleaned up (ephemeral)" >&2
+  fi
+}
+
+# Register cleanup on exit
+trap cleanup_ssh_key EXIT
+
   
-  echo "Verifying SSH connection to $TARGET_USER@$TARGET_HOST..."
-  if $ssh_cmd "$TARGET_USER@$TARGET_HOST" echo "SSH connection successful"; then
-    echo "✅ SSH connection verified"
+
+# Verify SSH connectivity before deployment (with svc-git authentication)
+verify_ssh_connection() {
+  local ssh_key="${SSH_KEY_FILE}"
+  
+  echo "Verifying SSH connection to $TARGET_USER@$TARGET_HOST (using svc-git SSH key)..."
+  
+  # Verify SSH key exists and is readable
+  if [ ! -f "$ssh_key" ]; then
+    echo "❌ SSH key file not found: $ssh_key"
+    return 1
+  fi
+  
+  # Test SSH connection
+  local ssh_cmd="ssh -i \"$ssh_key\" $SSH_OPTS"
+  if $ssh_cmd "$TARGET_USER@$TARGET_HOST" "echo 'SSH connection test successful'" >/dev/null 2>&1; then
+    echo "✅ SSH connection verified (svc-git authenticated)"
     return 0
   else
-    echo "❌ SSH connection failed"
+    echo "❌ SSH connection failed to $TARGET_USER@$TARGET_HOST"
     return 1
   fi
 }
@@ -236,33 +271,37 @@ success() {
 
 check_prerequisites() {
   log "Checking prerequisites for remote deployment..."
+  log "Service Account: $SERVICE_ACCOUNT (svc-git)"
+  log "SSH Key Source: GSM secret '$SSH_KEY_SECRET'"
+  log "Target User: $TARGET_USER@$TARGET_HOST"
   
-  # Check SSH key availability
-  if ! SSH_KEY_PATH=$(detect_ssh_key); then
-    error "No SSH key found for service account '$SERVICE_ACCOUNT'"
-    error "Tried locations:"
-    error "  ~/.ssh/id_${SERVICE_ACCOUNT}"
-    error "  ~/.ssh/${SERVICE_ACCOUNT}_rsa"
-    error "  ~/.ssh/service-accounts/${SERVICE_ACCOUNT}"
-    error "  ~/.ssh/github-actions"
-    error "  ~/.ssh/id_rsa"
+  # Verify gcloud is available
+  if ! command -v gcloud &>/dev/null; then
+    error "gcloud CLI not found. Install Google Cloud SDK to continue."
     return 1
   fi
-  success "Found SSH key: $SSH_KEY_PATH"
   
-  # Verify SSH connection to worker node
-  if ! verify_ssh_connection "$SSH_KEY_PATH"; then
-    error "Cannot connect to $TARGET_USER@$TARGET_HOST"
-    error "Please verify:"
-    error "  1. Worker node is reachable at $TARGET_HOST"
-    error "  2. Service account '$SERVICE_ACCOUNT' exists on worker node"
-    error "  3. SSH key is authorized on worker node"
+  # Retrieve SSH key from GSM
+  log "Retrieving SSH key from GSM..."
+  if ! retrieve_ssh_key_from_gsm; then
+    error "Failed to retrieve SSH key from GSM"
     return 1
   fi
-  success "SSH connection verified"
+  
+  # Verify SSH connection
+  log "Testing SSH connection..."
+  if ! verify_ssh_connection; then
+    error "SSH connection test failed"
+    error "Verify that:"
+    error "  1. svc-git SSH key exists in GSM: $SSH_KEY_SECRET"
+    error "  2. Target host is reachable: $TARGET_HOST"
+    error "  3. svc-git user exists on target: $TARGET_USER"
+    return 1
+  fi
+  success "SSH connection verified (authenticated via svc-git)"
   
   # Check for required commands on local machine
-  for cmd in bash ssh scp; do
+  for cmd in bash ssh scp git; do
     if ! command -v "$cmd" &>/dev/null; then
       error "Required command not found locally: $cmd"
       return 1
@@ -857,33 +896,29 @@ main() {
   verify_target_is_onprem
   
   log "Target: $TARGET_USER@$TARGET_HOST (on-prem verified)"
-  log "Service Account: $SERVICE_ACCOUNT"
+  log "Service Account: $SERVICE_ACCOUNT (svc-git)"
+  log "SSH Key Source: GSM secret '$SSH_KEY_SECRET'"
   log "Session: $SESSION_ID"
   log ""
   
-  # Check prerequisites (find SSH key and verify connectivity)
+  # Check prerequisites (retrieve SSH key from GSM and verify connectivity)
   check_prerequisites || return 1
   log ""
   
-  # Get SSH key path
-  SSH_KEY_PATH=$(detect_ssh_key) || return 1
-  log ""
-  
   # Deploy from git (includes fresh build validation and directory preparation)
-  deploy_from_git "$SSH_KEY_PATH" || return 1
+  deploy_from_git "$SSH_KEY_FILE" || return 1
   log ""
   
   # Verify deployment
-  verify_deployment "$SSH_KEY_PATH" || return 1
+  verify_deployment "$SSH_KEY_FILE" || return 1
   log ""
   
   # Verify OAuth endpoint protection
-  verify_oauth_endpoints "$SSH_KEY_PATH" || true
+  verify_oauth_endpoints "$SSH_KEY_FILE" || true
   log ""
   
   # Print summary
   print_summary
-  
   return 0
 }
 
