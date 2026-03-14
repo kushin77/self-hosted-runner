@@ -254,6 +254,6 @@ options:
 # Artifact outputs
 artifacts:
   objects:
-    location: 'gs://${_ARTIFACT_REGISTRY}-phase1-reports'
+    location: 'gs://nexusshield-prod-phase1-reports'
     paths:
       - 'trivy-report.json'
