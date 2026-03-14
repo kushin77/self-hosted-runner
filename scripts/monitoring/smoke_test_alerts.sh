@@ -9,6 +9,7 @@ set -euo pipefail
 PROM_URL="${PROM_URL:-}"
 AM_URL="${AM_URL:-}"
 PUSHGATEWAY="${PUSHGATEWAY:-}"
+AUTO_TRIAGE_GITHUB_ISSUES="${AUTO_TRIAGE_GITHUB_ISSUES:-false}"
 
 if [ -z "$PROM_URL" ]; then
   echo "PROM_URL not set. Set PROM_URL to your Prometheus HTTP API endpoint." >&2
@@ -43,6 +44,12 @@ echo "$alerts" | jq '.'
 if [ -n "$AM_URL" ]; then
   echo "Querying Alertmanager for active alerts"
   curl -s "$AM_URL/api/v2/alerts" | jq '.' || true
+fi
+
+if [ "$AUTO_TRIAGE_GITHUB_ISSUES" = "true" ]; then
+  echo "AUTO_TRIAGE_GITHUB_ISSUES enabled — triaging alerts into GitHub issues"
+  PROM_URL="$PROM_URL" AM_URL="$AM_URL" \
+    ./scripts/monitoring/triage_alerts_to_github_issues.sh
 fi
 
 echo "Smoke test complete. Review outputs above for active alerts or rule evaluations."

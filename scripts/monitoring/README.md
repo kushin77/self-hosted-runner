@@ -60,3 +60,41 @@ If you want, I can:
 - Trigger Cloud Build to build the `cost-tracker` image.
 - Create the GSM secrets for you given secret values.
 - Attempt to deploy the CronJob (requires cluster kubeconfig and IAM access).
+
+Alert to GitHub Issue Triage
+----------------------------
+
+Use `scripts/monitoring/triage_alerts_to_github_issues.sh` to automatically:
+- Create GitHub issues for new firing alerts
+- Reuse existing issues for known active alerts (idempotent)
+- Close issues automatically when alerts are resolved
+
+Required environment variables:
+
+```bash
+export GITHUB_REPOSITORY="kushin77/self-hosted-runner"
+export GITHUB_TOKEN="<token>"
+export PROM_URL="http://prometheus:9090"
+export AM_URL="http://alertmanager:9093"  # optional
+```
+
+GSM-first credential option:
+
+```bash
+export GCP_PROJECT_ID="nexusshield-prod"
+export GITHUB_TOKEN_GSM_SECRET="github-token"
+```
+
+Run triage directly:
+
+```bash
+./scripts/monitoring/triage_alerts_to_github_issues.sh
+```
+
+Or enable from smoke test:
+
+```bash
+AUTO_TRIAGE_GITHUB_ISSUES=true \
+PROM_URL="$PROM_URL" AM_URL="$AM_URL" \
+./scripts/monitoring/smoke_test_alerts.sh
+```
