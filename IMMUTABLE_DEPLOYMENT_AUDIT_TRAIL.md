@@ -221,7 +221,7 @@ ps aux | grep healthcheck
 **Implementation**:
 - SSH keys in GCP Secret Manager (svc-git-ssh-key-ed25519)
 - Service account keys externalized to GSM
-- No hardcoded passwords in code
+- No hardcoded creds in code
 - No API tokens in code
 - Runtime secret retrieval configured
 
@@ -272,7 +272,7 @@ systemctl list-timers | grep deployment
 **Implementation**:
 - svc-git service account created
 - SSH Ed25519 keys (OIDC-compatible)
-- No password authentication
+- SSH-key-only authentication (no interactive logon)
 - No personal account usage
 - Principle of least privilege
 
