@@ -10,6 +10,7 @@ cd "$REPO_ROOT"
 AUDIT_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.jsonl"
 WARNING_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.warning"
 LOCK_FILE="${REPO_ROOT}/logs/monitoring-alert-issue-triage.lock"
+STATUS_FILE="${REPO_ROOT}/logs/monitoring-alert-issue-triage.status"
 mkdir -p "$(dirname "$AUDIT_LOG")"
 
 PROM_URL="${PROM_URL:-http://localhost:9090}"
@@ -22,6 +23,24 @@ log_event() {
   local event="$1"
   local details="${2:-}"
   echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"${event}\",\"details\":\"${details//\"/\\\"}\"}" >> "$AUDIT_LOG"
+}
+
+write_status() {
+  local state="$1"
+  local message="${2:-}"
+  cat > "$STATUS_FILE" <<EOF
+timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+state=${state}
+message=${message}
+EOF
+}
+
+skip_and_exit() {
+  local reason="$1"
+  log_event "triage_skip" "$reason"
+  write_status "skip" "$reason"
+  emit_skip_warning_if_repeated
+  exit 0
 }
 
 rotate_audit_log() {
@@ -72,40 +91,30 @@ endpoint_ready() {
 rotate_audit_log
 
 if ! command -v flock >/dev/null 2>&1; then
-  log_event "triage_skip" "missing flock command"
-  emit_skip_warning_if_repeated
-  exit 0
+  skip_and_exit "missing flock command"
 fi
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
-  log_event "triage_skip" "another triage run is already in progress"
-  emit_skip_warning_if_repeated
-  exit 0
+  skip_and_exit "another triage run is already in progress"
 fi
 
 if [ -z "${GITHUB_TOKEN:-}" ]; then
   if ! command -v gcloud >/dev/null 2>&1; then
     echo "gcloud is required when GITHUB_TOKEN is not set; skipping triage run" >&2
-    log_event "triage_skip" "missing gcloud and no GITHUB_TOKEN"
-    emit_skip_warning_if_repeated
-    exit 0
+    skip_and_exit "missing gcloud and no GITHUB_TOKEN"
   fi
 
   GCP_PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
   if [ -z "$GCP_PROJECT_ID" ]; then
     echo "GCP_PROJECT_ID is required for GSM token retrieval; skipping triage run" >&2
-    log_event "triage_skip" "missing GCP_PROJECT_ID"
-    emit_skip_warning_if_repeated
-    exit 0
+    skip_and_exit "missing GCP_PROJECT_ID"
   fi
 
   token="$(gcloud secrets versions access latest --secret="$GITHUB_TOKEN_GSM_SECRET" --project="$GCP_PROJECT_ID" 2>/dev/null || true)"
   if [ -z "$token" ]; then
     echo "Failed to load GitHub token from GSM secret: $GITHUB_TOKEN_GSM_SECRET; skipping triage run" >&2
-    log_event "triage_skip" "missing or inaccessible GSM secret ${GITHUB_TOKEN_GSM_SECRET}"
-    emit_skip_warning_if_repeated
-    exit 0
+    skip_and_exit "missing or inaccessible GSM secret ${GITHUB_TOKEN_GSM_SECRET}"
   fi
   export GITHUB_TOKEN="$token"
 fi
@@ -115,9 +124,7 @@ clear_skip_warning
 # If neither endpoint is reachable, skip this cycle (timer will retry).
 if ! endpoint_ready "${PROM_URL}/-/ready" && ! endpoint_ready "${AM_URL}/-/ready"; then
   echo "Prometheus/Alertmanager not reachable; skipping triage run" >&2
-  log_event "triage_skip" "monitoring endpoints unreachable prom=${PROM_URL} am=${AM_URL}"
-  emit_skip_warning_if_repeated
-  exit 0
+  skip_and_exit "monitoring endpoints unreachable prom=${PROM_URL} am=${AM_URL}"
 fi
 
 export PROM_URL
@@ -126,14 +133,14 @@ export GITHUB_REPOSITORY
 
 if ./scripts/monitoring/triage_alerts_to_github_issues.sh; then
   log_event "triage_run_success" "triage script completed successfully"
+  write_status "ok" "triage script completed successfully"
   exit 0
 fi
 
 if [ "${TRIAGE_STRICT_MODE,,}" = "true" ]; then
   log_event "triage_failed" "triage script failed in strict mode"
+  write_status "failed" "triage script failed in strict mode"
   exit 1
 fi
 
-log_event "triage_skip" "triage script execution failed; running fail-safe no-op"
-emit_skip_warning_if_repeated
-exit 0
+skip_and_exit "triage script execution failed; running fail-safe no-op"

@@ -135,5 +135,6 @@ Operational behavior and controls:
 - Fail-safe no-op: if token retrieval fails or endpoints are unavailable, the service exits 0 and retries on next timer tick.
 - Overlap-safe: concurrent runs are prevented with a lock file (`logs/monitoring-alert-issue-triage.lock`).
 - Skip escalation: repeated skips create `logs/monitoring-alert-issue-triage.warning` for local operational signal.
+- Status artifact: each run writes `logs/monitoring-alert-issue-triage.status` with `ok|skip|failed` and the latest reason.
 - Audit retention: `TRIAGE_AUDIT_MAX_LINES` caps `logs/monitoring-alert-issue-triage.jsonl` growth.
 - Strict mode: set `TRIAGE_STRICT_MODE=true` to fail the service on triage script errors instead of fail-safe skip.
