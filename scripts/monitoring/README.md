@@ -133,6 +133,7 @@ journalctl -u monitoring-alert-triage.service -n 100 --no-pager
 
 Operational behavior and controls:
 - Fail-safe no-op: if token retrieval fails or endpoints are unavailable, the service exits 0 and retries on next timer tick.
+- Endpoint GSM resolution: optional `PROM_URL_GSM_SECRET` and `AM_URL_GSM_SECRET` can supply endpoint URLs directly from GSM.
 - Endpoint fallback: optional `PROM_URL_FALLBACK` and `AM_URL_FALLBACK` are used automatically when primary endpoints fail readiness checks.
 - Overlap-safe: concurrent runs are prevented with a lock file (`logs/monitoring-alert-issue-triage.lock`).
 - Skip escalation: repeated skips create `logs/monitoring-alert-issue-triage.warning` for local operational signal.

@@ -17,6 +17,8 @@ PROM_URL="${PROM_URL:-http://localhost:9090}"
 AM_URL="${AM_URL:-http://localhost:9093}"
 PROM_URL_FALLBACK="${PROM_URL_FALLBACK:-}"
 AM_URL_FALLBACK="${AM_URL_FALLBACK:-}"
+PROM_URL_GSM_SECRET="${PROM_URL_GSM_SECRET:-}"
+AM_URL_GSM_SECRET="${AM_URL_GSM_SECRET:-}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-kushin77/self-hosted-runner}"
 GITHUB_TOKEN_GSM_SECRET="${GITHUB_TOKEN_GSM_SECRET:-github-token}"
 TRIAGE_STRICT_MODE="${TRIAGE_STRICT_MODE:-false}"
@@ -105,6 +107,24 @@ endpoint_probe() {
   return $rc
 }
 
+read_gsm_secret_value() {
+  local secret_name="$1"
+  local out
+  local rc
+
+  set +e
+  out="$(gcloud secrets versions access latest --secret="$secret_name" --project="$GCP_PROJECT_ID" 2>&1)"
+  rc=$?
+  set -e
+
+  if [ $rc -eq 0 ] && [ -n "$out" ]; then
+    printf "%s" "$out"
+    return 0
+  fi
+
+  return 1
+}
+
 rotate_audit_log
 
 if ! command -v flock >/dev/null 2>&1; then
@@ -149,6 +169,37 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
 fi
 
 clear_skip_warning
+
+if [ -n "$PROM_URL_GSM_SECRET" ] || [ -n "$AM_URL_GSM_SECRET" ]; then
+  if ! command -v gcloud >/dev/null 2>&1; then
+    log_event "endpoint_secret_skip" "gcloud unavailable for endpoint GSM secret retrieval"
+  else
+    GCP_PROJECT_ID="${GCP_PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || true)}"
+    if [ -z "$GCP_PROJECT_ID" ]; then
+      log_event "endpoint_secret_skip" "missing GCP_PROJECT_ID for endpoint GSM secret retrieval"
+    else
+      if [ -n "$PROM_URL_GSM_SECRET" ]; then
+        prom_secret_url="$(read_gsm_secret_value "$PROM_URL_GSM_SECRET" || true)"
+        if [ -n "$prom_secret_url" ]; then
+          PROM_URL="$prom_secret_url"
+          log_event "endpoint_secret_loaded" "resolved PROM_URL from GSM secret ${PROM_URL_GSM_SECRET}"
+        else
+          log_event "endpoint_secret_skip" "failed to resolve PROM_URL from GSM secret ${PROM_URL_GSM_SECRET}"
+        fi
+      fi
+
+      if [ -n "$AM_URL_GSM_SECRET" ]; then
+        am_secret_url="$(read_gsm_secret_value "$AM_URL_GSM_SECRET" || true)"
+        if [ -n "$am_secret_url" ]; then
+          AM_URL="$am_secret_url"
+          log_event "endpoint_secret_loaded" "resolved AM_URL from GSM secret ${AM_URL_GSM_SECRET}"
+        else
+          log_event "endpoint_secret_skip" "failed to resolve AM_URL from GSM secret ${AM_URL_GSM_SECRET}"
+        fi
+      fi
+    fi
+  fi
+fi
 
 prom_probe_error=""
 am_probe_error=""
