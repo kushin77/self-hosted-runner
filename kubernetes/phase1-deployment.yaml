@@ -97,8 +97,8 @@ spec:
       
       containers:
       - name: nexus-discovery
-        image: IMAGE_PLACEHOLDER
-        imagePullPolicy: IfNotPresent
+        image: IMAGE_URL
+        imagePullPolicy: Always
         
         ports:
         - name: http

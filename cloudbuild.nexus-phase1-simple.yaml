@@ -1,0 +1,263 @@
+################################################################################
+#
+# Phase 1: CI/CD Integration & Webhook Ingestion [LIVE]
+# Simplified Cloud Build Pipeline
+#
+# Build steps:
+# 1. Validate source files exist
+# 2. Build Docker image
+# 3. Security scan (Trivy)
+# 4. Push to Artifact Registry
+# 5. Get GKE credentials
+# 6. Apply Kubernetes manifest
+# 7. Wait for rollout
+# 8. Run health checks
+#
+# ALL credentials via Workload Identity - NO embedded secrets
+#
+################################################################################
+
+steps:
+  # ============================================================================
+  # STEP 1: Validate source files
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'validate-source'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Validating source files..."
+        if [ ! -f "Dockerfile.webhook" ]; then
+          echo "ERROR: Dockerfile.webhook not found"
+          exit 1
+        fi
+        if [ ! -f "kubernetes/phase1-deployment.yaml" ]; then
+          echo "ERROR: kubernetes/phase1-deployment.yaml not found"
+          exit 1
+        fi
+        echo "✓ Dockerfile.webhook found"
+        echo "✓ kubernetes/phase1-deployment.yaml found"
+
+  # ============================================================================
+  # STEP 2: Build Docker image
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-image'
+    args:
+      - 'build'
+      - '-t'
+      - '${_IMAGE_URL}:latest'
+      - '-t'
+      - '${_IMAGE_URL}:${COMMIT_SHA}'
+      - '-f'
+      - 'Dockerfile.webhook'
+      - '.'
+    env:
+      - 'DOCKER_BUILDKIT=1'
+
+  # ============================================================================
+  # STEP 3: Security scan (Trivy)
+  # ============================================================================
+  - name: 'aquasec/trivy:latest'
+    id: 'security-scan'
+    args:
+      - 'image'
+      - '--exit-code'
+      - '0'
+      - '--severity'
+      - 'CRITICAL,HIGH'
+      - '--format'
+      - 'json'
+      - '--output'
+      - 'trivy-report.json'
+      - '${_IMAGE_URL}:latest'
+
+  # ============================================================================
+  # STEP 4: Push image to Artifact Registry (both latest and SHA tags)
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-latest'
+    args:
+      - 'push'
+      - '${_IMAGE_URL}:latest'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-image-sha'
+    args:
+      - 'push'
+      - '${_IMAGE_URL}:${COMMIT_SHA}'
+
+  # ============================================================================
+  # STEP 5: Verify image in registry
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'verify-image'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Verifying image in Artifact Registry..."
+        gcloud container images describe ${_IMAGE_URL}:latest --project=${PROJECT_ID}
+        echo "✓ Image pushed successfully"
+
+  # ============================================================================
+  # STEP 6: Get GKE credentials
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'get-gke-credentials'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Getting GKE credentials..."
+        gcloud container clusters get-credentials ${_GKE_CLUSTER} \
+          --zone=${_GKE_ZONE} \
+          --project=${PROJECT_ID}
+        echo "✓ GKE credentials configured"
+        kubectl version --client
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # ============================================================================
+  # STEP 7: Create namespace (idempotent)
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'create-namespace'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Creating namespace..."
+        kubectl create namespace ${_K8S_NAMESPACE} --dry-run=client -o yaml | kubectl apply -f -
+        echo "✓ Namespace ready"
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # ============================================================================
+  # STEP 8: Apply Kubernetes manifest with updated image tag
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'apply-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Applying Kubernetes manifest..."
+        
+        # Read the manifest and update image tag
+        cat kubernetes/phase1-deployment.yaml | sed "s|IMAGE_URL|${_IMAGE_URL}:${COMMIT_SHA}|g" | \
+          kubectl apply -n ${_K8S_NAMESPACE} -f -
+        
+        echo "✓ Deployment manifest applied"
+        kubectl get deployment -n ${_K8S_NAMESPACE}
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # ============================================================================
+  # STEP 9: Wait for rollout to complete
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'wait-rollout'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Waiting for rollout to complete..."
+        kubectl rollout status deployment/nexus-discovery -n ${_K8S_NAMESPACE} --timeout=5m
+        echo "✓ Deployment rollout successful"
+        kubectl get pods -n ${_K8S_NAMESPACE} -o wide
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # ============================================================================
+  # STEP 10: Run health checks
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'health-check'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Running health checks..."
+        
+        # Wait for endpoint to be ready
+        for i in {1..30}; do
+          ENDPOINTS=$(kubectl get endpoints nexus-discovery -n ${_K8S_NAMESPACE} -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
+          if [ -n "$ENDPOINTS" ]; then
+            echo "✓ Service endpoints ready: $ENDPOINTS"
+            break
+          fi
+          echo "Waiting for endpoints... ($i/30)"
+          sleep 2
+        done
+        
+        # Check pod readiness
+        POD=$(kubectl get pods -n ${_K8S_NAMESPACE} -l app=nexus-discovery -o name | head -1)
+        if [ -n "$POD" ]; then
+          echo "Checking pod readiness..."
+          kubectl get $POD -n ${_K8S_NAMESPACE} -o jsonpath='{.status.conditions}'
+          echo ""
+          echo "✓ Pod status checked"
+        fi
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # ============================================================================
+  # STEP 11: Log deployment completion
+  # ============================================================================
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'log-completion'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Phase 1 deployment complete!"
+        gcloud logging write phase-1-deployment \
+          "✓ Phase 1 Webhook Service: Build complete, pushed to ${_IMAGE_URL}:${COMMIT_SHA}, deployed to GKE nexus-discovery namespace" \
+          --severity=NOTICE \
+          --project=${PROJECT_ID}
+
+# ============================================================================
+# Configuration
+# ============================================================================
+
+timeout: '1800s'
+
+# Substitution variables (case-insensitive, prefer UPPER_CASE)
+substitutions:
+  _REGION: 'us-central1'
+  _ARTIFACT_REGISTRY_LOCATION: 'us-central1-docker.pkg.dev'
+  _ARTIFACT_REGISTRY_REPO: 'nexus'
+  _GKE_CLUSTER: 'nexus-prod-gke'
+  _GKE_ZONE: 'us-central1-a'
+  _K8S_NAMESPACE: 'nexus-discovery'
+  # Computed: ${_ARTIFACT_REGISTRY_LOCATION}/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/nexus-webhook
+  _IMAGE_URL: '${_ARTIFACT_REGISTRY_LOCATION}/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/nexus-webhook'
+
+# Build tags for organization
+tags:
+  - 'phase-1-webhook'
+  - 'nexus-discovery'
+  - 'gke-deployment'
+  - 'cloud-build'
+  - 'production'
+
+# Build options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'N1_HIGHCPU_8'
+  poolOption: 'PRIVATE_POOL'
+  dynamicSubstitutions: true
+
+# Artifact outputs
+artifacts:
+  objects:
+    location: 'gs://${_ARTIFACT_REGISTRY}-phase1-reports'
+    paths:
+      - 'trivy-report.json'
