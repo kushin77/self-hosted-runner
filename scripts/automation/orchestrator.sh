@@ -345,11 +345,52 @@ EOF
   echo "${REPORT_FILE}"
 }
 
-# Direct deployment (no GitHub Actions, no pull requests)
-main() {
+# Parse command line arguments
+parse_arguments() {
   local OPERATION="${1:-deploy}"
   local ENVIRONMENT="${2:-prod}"
   local COMPONENT="${3:-all}"
+  
+  # Handle named arguments
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --operation)
+        OPERATION="$2"
+        shift 2
+        ;;
+      --environment)
+        ENVIRONMENT="$2"
+        shift 2
+        ;;
+      --component)
+        COMPONENT="$2"
+        shift 2
+        ;;
+      *)
+        # Positional argument
+        if [[ -z "${OPERATION}" ]] || [[ "${OPERATION}" == "deploy" ]]; then
+          OPERATION="$1"
+        elif [[ -z "${ENVIRONMENT}" ]] || [[ "${ENVIRONMENT}" == "prod" ]]; then
+          ENVIRONMENT="$1"
+        else
+          COMPONENT="$1"
+        fi
+        shift
+        ;;
+    esac
+  done
+  
+  # Export for use in main
+  export ORCHESTRATION_OPERATION="${OPERATION:-deploy}"
+  export ORCHESTRATION_ENVIRONMENT="${ENVIRONMENT:-prod}"
+  export ORCHESTRATION_COMPONENT="${COMPONENT:-all}"
+}
+
+# Direct deployment (no GitHub Actions, no pull requests)
+main() {
+  local OPERATION="${ORCHESTRATION_OPERATION:-deploy}"
+  local ENVIRONMENT="${ORCHESTRATION_ENVIRONMENT:-prod}"
+  local COMPONENT="${ORCHESTRATION_COMPONENT:-all}"
   
   log_audit "Starting orchestration: operation=${OPERATION}, env=${ENVIRONMENT}, component=${COMPONENT}"
   
@@ -404,5 +445,6 @@ main() {
   return 0
 }
 
-# Run main with all arguments
-main "$@"
+# Parse arguments and run main
+parse_arguments "$@"
+main
