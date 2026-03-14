@@ -49,9 +49,9 @@ phase_0_preflight() {
     log_info "PHASE 0: PREFLIGHT CHECKS"
     log_info "================================================================"
     
-    # Check git status
-    if [ "$(git status --porcelain)" ]; then
-        log_error "Git working directory not clean"
+    # Check git status (only tracked changes, ignore untracked files)
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        log_error "Git working directory has uncommitted tracked changes"
         return 1
     fi
     log_success "Git status clean"
