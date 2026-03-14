@@ -1,0 +1,17 @@
+[Unit]
+Description=Monitoring Alert to GitHub Issue Triage (direct deploy, no GH actions)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+EnvironmentFile=-/etc/default/monitoring-alert-triage
+ExecStart=/bin/bash -lc './scripts/monitoring/run_alert_issue_triage.sh'
+Nice=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/home/akushnir/self-hosted-runner/logs

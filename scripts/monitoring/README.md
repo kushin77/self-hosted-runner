@@ -98,3 +98,35 @@ AUTO_TRIAGE_GITHUB_ISSUES=true \
 PROM_URL="$PROM_URL" AM_URL="$AM_URL" \
 ./scripts/monitoring/smoke_test_alerts.sh
 ```
+
+Scheduled Hands-Off Triage (systemd)
+------------------------------------
+
+To run triage every 5 minutes without GitHub Actions:
+
+1. Install units:
+
+```bash
+sudo ./scripts/utilities/install-monitor-services.sh
+```
+
+2. Configure environment file:
+
+```bash
+sudo cp systemd/monitoring-alert-triage.env.example /etc/default/monitoring-alert-triage
+sudo chmod 600 /etc/default/monitoring-alert-triage
+```
+
+3. Start timer:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now monitoring-alert-triage.timer
+```
+
+4. Verify:
+
+```bash
+systemctl status monitoring-alert-triage.timer
+journalctl -u monitoring-alert-triage.service -n 100 --no-pager
+```
