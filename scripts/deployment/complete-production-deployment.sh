@@ -24,7 +24,7 @@ PROJECT="nexusshield-prod"
 REGION="us-central1"
 ENVIRONMENT="production"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 AUDIT_LOG="$REPO_ROOT/logs/complete-production-deployment-$(date +%Y%m%d-%H%M%S).jsonl"
 mkdir -p "$(dirname "$AUDIT_LOG")"
 
