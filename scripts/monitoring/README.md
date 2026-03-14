@@ -130,3 +130,9 @@ sudo systemctl enable --now monitoring-alert-triage.timer
 systemctl status monitoring-alert-triage.timer
 journalctl -u monitoring-alert-triage.service -n 100 --no-pager
 ```
+
+Operational behavior and controls:
+- Fail-safe no-op: if token retrieval fails or endpoints are unavailable, the service exits 0 and retries on next timer tick.
+- Overlap-safe: concurrent runs are prevented with a lock file (`logs/monitoring-alert-issue-triage.lock`).
+- Skip escalation: repeated skips create `logs/monitoring-alert-issue-triage.warning` for local operational signal.
+- Audit retention: `TRIAGE_AUDIT_MAX_LINES` caps `logs/monitoring-alert-issue-triage.jsonl` growth.

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 # Wrapper for scheduled monitoring -> GitHub issue triage.
-# Supports GSM-backed token retrieval and fail-fast behavior.
+# Supports GSM-backed token retrieval and fail-safe skip behavior.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
@@ -69,6 +69,12 @@ endpoint_ready() {
 }
 
 rotate_audit_log
+
+if ! command -v flock >/dev/null 2>&1; then
+  log_event "triage_skip" "missing flock command"
+  emit_skip_warning_if_repeated
+  exit 0
+fi
 
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
