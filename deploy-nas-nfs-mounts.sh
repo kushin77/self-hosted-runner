@@ -28,9 +28,9 @@ readonly WORKER_NODE="192.168.168.42"
 readonly NAS_SERVER="192.16.168.39"
 
 # Service accounts (configurable via environment variables)
-# Worker node runs as svc-git service account
-WORKER_SERVICE_ACCOUNT="${WORKER_SVC_ACCOUNT:-svc-git}"
-WORKER_SSH_KEY="${WORKER_SSH_KEY:-/home/svc-git/.ssh/id_ed25519}"
+# Worker node runs as akushnir user
+WORKER_SERVICE_ACCOUNT="${WORKER_SVC_ACCOUNT:-akushnir}"
+WORKER_SSH_KEY="${WORKER_SSH_KEY:-${HOME}/.ssh/id_ed25519}"
 
 # Dev node can use current user or service account
 DEV_SERVICE_ACCOUNT="${DEV_SVC_ACCOUNT:-$(whoami)}"
@@ -106,30 +106,30 @@ OPTIONS:
   --verbose              Enable verbose output
   --skip-worker          Skip worker node deployment (for dev-only)
   --skip-dev             Skip dev node deployment (for worker-only)
-  --worker-svc SVC       Service account for worker (default: svc-git)
+  --worker-svc SVC       Service account for worker (default: akushnir)
   --worker-key KEY       SSH key for worker service account
   --dev-svc SVC          Service account for dev node (default: current user)
   --dev-key KEY          SSH key for dev service account
   -h, --help             Show this help message
 
 ENVIRONMENT VARIABLES:
-  WORKER_SVC_ACCOUNT    Service account for worker node (default: svc-git)
-  WORKER_SSH_KEY        SSH key for worker (default: /home/svc-git/.ssh/id_ed25519)
+  WORKER_SVC_ACCOUNT    Service account for worker node (default: akushnir)
+  WORKER_SSH_KEY        SSH key for worker (default: ${HOME}/.ssh/id_ed25519)
   DEV_SVC_ACCOUNT       Service account for dev node (default: current user)
   DEV_SSH_KEY           SSH key for dev (default: \$HOME/.ssh/id_ed25519)
 
 EXAMPLES:
-  # Full production deployment (uses svc-git@worker, \$(whoami)@dev)
+  # Full production deployment (uses akushnir@worker, \$(whoami)@dev)
   $0 full
 
   # With custom service accounts
-  $0 --worker-svc svc-automation --dev-svc automation full
+  $0 --worker-svc akushnir --dev-svc automation full
 
   # Dry-run to see what would happen
   $0 --dry-run full
 
   # Deploy worker only with specific key
-  $0 --worker-svc svc-git --worker-key ~/.ssh/svc-git-key worker
+  $0 --worker-svc akushnir --worker-key ~/.ssh/id_ed25519 worker
 
 EOF
     exit 0

@@ -33,8 +33,8 @@ readonly WORKER_NODE="192.168.168.42"
 readonly DEV_NODE="192.168.168.31"
 
 # Service Accounts
-readonly WORKER_SVC="svc-git"
-readonly WORKER_SVC_KEY="/home/svc-git/.ssh/id_ed25519"
+readonly WORKER_SVC="akushnir"
+readonly WORKER_SVC_KEY="${HOME}/.ssh/id_ed25519"
 readonly DEV_SVC="$(whoami)"
 readonly DEV_SVC_KEY="${HOME}/.ssh/id_ed25519"
 
