@@ -42,42 +42,41 @@ resource "google_secret_manager_secret" "nexus_secrets" {
   }
 }
 
-# Give Cloud Build SA access to decrypt with KMS
-resource "google_kms_crypto_key_iam_member" "cloudbuild_kms" {
-  crypto_key_id = google_kms_crypto_key.nexus.id
-  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
-  member        = "serviceAccount:${var.project_number}@cloudbuild.gserviceaccount.com"
-}
+# TODO: Give Cloud Build SA access to encrypt/decrypt with KMS key
+# Commented out - will add via gcloud after service account is fully provisioned
+# resource "google_kms_crypto_key_iam_member" "cloudbuild_kms" {
+#   crypto_key_id = google_kms_crypto_key.nexus.id
+#   role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+#   member        = "serviceAccount:${var.project_number}@cloudbuild.gserviceaccount.com"
+# }
 
-# Give Cloud Build SA access to read secrets from GSM
-resource "google_secret_manager_secret_iam_member" "cloudbuild_secret" {
-  secret_id = google_secret_manager_secret.nexus_secrets.id
-  role      = "roles/secretmanager.secretAccessor"
-  member    = "serviceAccount:${var.project_number}@cloudbuild.gserviceaccount.com"
-}
+# TODO: Give Cloud Build SA access to read secrets from GSM
+# Commented out - will add via gcloud after service account is fully provisioned
+# resource "google_secret_manager_secret_iam_member" "cloudbuild_secret" {
+#   secret_id = google_secret_manager_secret.nexus_secrets.id
+#   role      = "roles/secretmanager.secretAccessor"
+#   member    = "serviceAccount:${var.project_number}@cloudbuild.gserviceaccount.com"
+# }
 
-# Basic Cloud Build trigger for the repository
-resource "google_cloudbuild_trigger" "nexus_main" {
-  count    = var.github_owner != "" && var.github_repo != "" ? 1 : 0
-  name     = "nexus-deploy-main"
-  filename = "cloudbuild.yaml"
-  
-  github {
-    owner  = var.github_owner
-    name   = var.github_repo
-    
-    push {
-      branch = "^main$"
-    }
-  }
-  
-  description = "Phase0 Nexus deployment trigger"
-  
-  depends_on = [
-    google_kms_crypto_key_iam_member.cloudbuild_kms,
-    google_secret_manager_secret_iam_member.cloudbuild_secret
-  ]
-}
+# TODO: Create Cloud Build trigger for GitHub integration
+# This requires Cloud Build GitHub connection to be set up first
+# Will configure manually via gcloud or Cloud Build console
+# resource "google_cloudbuild_trigger" "nexus_main" {
+#   count    = var.github_owner != "" && var.github_repo != "" ? 1 : 0
+#   name     = "nexus-deploy-main"
+#   filename = "cloudbuild.yaml"
+#   
+#   github {
+#     owner  = var.github_owner
+#     name   = var.github_repo
+#     
+#     push {
+#       branch = "^main$"
+#     }
+#   }
+#   
+#   description = "Phase0 Nexus deployment trigger"
+# }
 
 # Outputs
 output "kms_key_id" {
@@ -90,7 +89,8 @@ output "gsm_secret_id" {
   description = "Google Secret Manager secret ID"
 }
 
-output "cloudbuild_trigger_id" {
-  value       = try(google_cloudbuild_trigger.nexus_main[0].id, null)
-  description = "Cloud Build trigger ID"
-}
+# TODO: Enable Cloud Build trigger output when trigger is configured
+# output "cloudbuild_trigger_id" {
+#   value       = try(google_cloudbuild_trigger.nexus_main[0].id, null)
+#   description = "Cloud Build trigger ID"
+# }
