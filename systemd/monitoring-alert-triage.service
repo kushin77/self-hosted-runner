@@ -13,5 +13,5 @@ Nice=10
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
-ProtectHome=true
+ProtectHome=read-only
 ReadWritePaths=/home/akushnir/self-hosted-runner/logs
