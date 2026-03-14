@@ -347,43 +347,31 @@ EOF
 
 # Parse command line arguments
 parse_arguments() {
-  local OPERATION="${1:-deploy}"
-  local ENVIRONMENT="${2:-prod}"
-  local COMPONENT="${3:-all}"
+  # Initialize defaults
+  ORCHESTRATION_OPERATION="deploy"
+  ORCHESTRATION_ENVIRONMENT="prod"
+  ORCHESTRATION_COMPONENT="all"
   
   # Handle named arguments
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --operation)
-        OPERATION="$2"
+        ORCHESTRATION_OPERATION="$2"
         shift 2
         ;;
       --environment)
-        ENVIRONMENT="$2"
+        ORCHESTRATION_ENVIRONMENT="$2"
         shift 2
         ;;
       --component)
-        COMPONENT="$2"
+        ORCHESTRATION_COMPONENT="$2"
         shift 2
         ;;
       *)
-        # Positional argument
-        if [[ -z "${OPERATION}" ]] || [[ "${OPERATION}" == "deploy" ]]; then
-          OPERATION="$1"
-        elif [[ -z "${ENVIRONMENT}" ]] || [[ "${ENVIRONMENT}" == "prod" ]]; then
-          ENVIRONMENT="$1"
-        else
-          COMPONENT="$1"
-        fi
         shift
         ;;
     esac
   done
-  
-  # Export for use in main
-  export ORCHESTRATION_OPERATION="${OPERATION:-deploy}"
-  export ORCHESTRATION_ENVIRONMENT="${ENVIRONMENT:-prod}"
-  export ORCHESTRATION_COMPONENT="${COMPONENT:-all}"
 }
 
 # Direct deployment (no GitHub Actions, no pull requests)
@@ -393,6 +381,7 @@ main() {
   local COMPONENT="${ORCHESTRATION_COMPONENT:-all}"
   
   log_audit "Starting orchestration: operation=${OPERATION}, env=${ENVIRONMENT}, component=${COMPONENT}"
+
   
   # Verify immutability
   if ! verify_immutability; then
