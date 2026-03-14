@@ -240,10 +240,15 @@ deploy_worker_stack() {
         return 0
     fi
     
-    log_info "Deploying complete worker stack (svc-git service account)..."
+    log_info "Deploying complete worker stack (akushnir service account)..."
     
-    # Execute worker deployment
-    if bash "${REPO_ROOT}/deploy-worker-node.sh"; then
+    # Execute worker deployment with appropriate service account from deployment orchestration
+    # Use akushnir user which we've already bootstrapped
+    if SERVICE_ACCOUNT="akushnir" \
+       TARGET_USER="akushnir" \
+       TARGET_HOST="${WORKER_NODE}" \
+       SSH_KEY_FILE="${HOME}/.ssh/id_ed25519" \
+       bash "${REPO_ROOT}/deploy-worker-node.sh"; then
         log_success "Worker node stack deployed"
         audit "worker_deploy" "SUCCESS" "Full stack on worker node"
         return 0
