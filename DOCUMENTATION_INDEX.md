@@ -38,6 +38,7 @@
 | **#3** | Immutable audit trail | `bash scripts/enforce/verify-audit-trail-integrity.sh` | ✅ Enforced |
 | **#4** | Automated health gating | `bash scripts/ssh_service_accounts/preflight_health_gate.sh` | ✅ Enforced |
 | **#5** | Zero-trust credential access | `bash scripts/ssh_service_accounts/fetch-credential.sh` | ✅ Enforced |
+| **#6** | Fresh build (on-prem only) | `TARGET_HOST=192.168.168.42 bash deploy-worker-node.sh` | ✅ **NEW** |
 
 ---
 
@@ -55,15 +56,49 @@ bash scripts/enforce/verify-no-manual-changes.sh && \
   bash scripts/ssh_service_accounts/preflight_health_gate.sh && \
   bash scripts/enforce/verify-audit-trail-integrity.sh
 
-# Deploy (after pre-deployment checks pass)
-git push origin main  # Auto-deployment triggered
+# Deploy with fresh build (MANDATE: complete rebuild, on-prem only)
+# Step 1: Merge to main
+git push origin main  # Auto-deployment triggered with fresh build
+
+# Step 2: Manual deployment (if needed)
+# PHASE 1: Validate mandate (no cloud, on-prem verified)
+# PHASE 2: Clean slate (remove previous state)
+# PHASE 3: Fresh provisioning (complete rebuild)
+# PHASE 4: Fresh credentials (Ed25519 SSH keys)
+TARGET_HOST=192.168.168.42 bash deploy-worker-node.sh
 
 # Check deployment status
 git log --oneline -5
 bash scripts/ssh_service_accounts/health_check.sh report
 
+# Verify fresh build deployment
+ssh automation@192.168.168.42 "ls -l /opt/automation/deployment/ | head"
+
 # Troubleshoot issues
 bash scripts/enforce/diagnose.sh
+```
+
+---
+
+## ⚡ CRITICAL MANDATE: Fresh Build Deployment (Rule #6)
+
+> **EVERY deployment must:**
+> - ✅ Be a **FRESH BUILD** (complete rebuild from scratch)
+> - ✅ Target **ON-PREM ONLY** (192.168.168.42 or 192.168.168.39)
+> - ✅ Have **NO CLOUD** credentials (GCP, AWS, Azure blocked)
+> - ✅ Generate **FRESH CREDENTIALS** (new Ed25519 SSH keys)
+> - ✅ Remove **PREVIOUS STATE** (clean slate approach)
+
+### What Fresh Build Means
+```
+❌ NOT ALLOWED: Keep old state, incremental updates, cloud targets
+✅ REQUIRED: Complete clean rebuild, on-prem only, fresh credentials
+
+DEPLOYMENT PHASES:
+1. Mandate Validation: Detect & block cloud, verify on-prem target
+2. Clean Slate: Remove all previous deployment state
+3. Fresh Provisioning: Clone & deploy entire stack from scratch
+4. Fresh Credentials: Generate new Ed25519 SSH key pairs
 ```
 
 ---

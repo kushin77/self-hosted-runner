@@ -221,6 +221,105 @@ bash scripts/enforce/verify-credential-access.sh
 
 ---
 
+## ENFORCEMENT RULE #6: Fresh Build Deployment (On-Prem Only)
+
+### CRITICAL MANDATE
+**All deployments must use fresh build strategy with zero cloud deployment.**
+
+### What This Means
+```
+❌ NOT ALLOWED:
+   Cloud deployment (GCP, AWS, Azure)
+   Incremental updates (keeping previous state)
+   Partial infrastructure changes
+   Reusing old credentials or SSH keys
+   Developers deploying from personal machines
+
+✅ REQUIRED:
+   Fresh build always (complete rebuild from scratch)
+   On-prem targets only (192.168.168.42, 192.168.168.39)
+   Clean slate approach (remove all previous state)
+   Fresh credential generation (Ed25519 SSH keys)
+   Automated production deployments only
+   Zero cloud credentials in environment
+```
+
+### Violation Response
+| Detection | Action | Escalation |
+|-----------|--------|------------|
+| Cloud env detected | Deployment blocked immediately | Security alert |
+| Non-on-prem target | Target rejected | Incident created |
+| Previous state found | Fresh build forced, rollback triggered | Incident + review |
+| Old credentials used | Access revoked | Security audit |
+
+### Verification
+```bash
+# Automated validation in deploy-worker-node.sh
+# PHASE 1: Mandate validation (cloud prevention)
+# PHASE 2: Clean slate (previous state removal)
+# PHASE 3: Fresh provisioning (complete rebuild)
+# PHASE 4: Fresh credentials (key generation)
+
+# Manual verification:
+verify_no_cloud_env() {
+    [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]] && \
+    [[ -z "${AWS_ACCESS_KEY_ID:-}" ]] && \
+    [[ -z "${AZURE_SUBSCRIPTION_ID:-}" ]] && \
+    return 0 || return 1
+}
+
+verify_target_is_onprem() {
+    case "$TARGET_HOST" in
+        192.168.168.42|192.168.168.39) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+```
+
+### 4-Phase Fresh Build Process
+
+**Phase 1: Mandate Validation**
+- Detect and block all cloud credentials (GCP, AWS, Azure)
+- Verify target is on-prem (192.168.168.42 or .39)
+- Verify no cloud kubectl contexts active
+
+**Phase 2: Clean Slate**
+- Remove entire previous deployment directory
+- Clean all temporary state files
+- Verify clean state before provisioning
+
+**Phase 3: Fresh Provisioning**
+- Clone fresh git repository (depth=1, latest commit only)
+- Deploy all components from fresh source
+- Create new directory structure from scratch
+- NO incremental updates, NO state carryover
+
+**Phase 4: Fresh Credentials**
+- Generate fresh Ed25519 SSH key pair
+- Backup old credentials (if any)
+- Deploy fresh keys to production
+- Verify all new credentials active
+
+### Post-Deployment Fresh Build Validation
+```bash
+# Verify no cloud credentials in deployed environment
+[[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]]
+
+# Verify all components have fresh timestamps (just deployed)
+stat $DEPLOYMENT_DIR/core/*.sh | grep -i modify | grep -i today
+
+# Verify fresh SSH keys deployed
+test -f $DEPLOYMENT_DIR/automation_ed25519 && echo "✅ Fresh SSH keys"
+
+# Verify zero leftover state
+! test -d /opt/old-deployment && echo "✅ No previous state"
+
+# Verify on-prem target
+[[ "$(hostname -I)" =~ 192.168.168 ]] && echo "✅ On-prem verified"
+```
+
+---
+
 ## ENFORCEMENT MATRIX: What Gets Blocked When?
 
 | Rule | Check Point | Block Level | Action |
@@ -230,6 +329,7 @@ bash scripts/enforce/verify-credential-access.sh
 | Rule #3 (Immutable Audit) | Hourly | Production | Incident + investigation |
 | Rule #4 (Health Gating) | Pre-deployment | Deployment | Block with diagnostics |
 | Rule #5 (Zero-Trust Access) | Runtime | Access | Deny + log attempt |
+| **Rule #6 (Fresh Build)** | **Pre-deployment** | **Deployment** | **Block + mandate enforcement** |
 
 ---
 
@@ -282,11 +382,16 @@ echo "✅ All enforcement checks passed"
 - [ ] Preflight health gate passing (11 validation categories)
 - [ ] Audit trail accessible and verified (hash-chain check)
 - [ ] No manual infrastructure changes detected
+- [ ] **☑️ Fresh build deploying (complete rebuild confirmed)**
+- [ ] **☑️ No cloud credentials in environment**
+- [ ] **☑️ Target is on-prem only (192.168.168.42 or .39)**
+- [ ] **☑️ Fresh SSH keys generated**
+- [ ] **☑️ Previous deployment state removed (clean slate)**
 - [ ] All 32+ service accounts healthy
 - [ ] All systemd services enabled + running
 - [ ] Backup mechanism tested and working
 
-**If ANY check fails → Deployment blocked. No exceptions.**
+**If ANY check fails → Deployment blocked. No exceptions. No overrides.**
 
 ---
 

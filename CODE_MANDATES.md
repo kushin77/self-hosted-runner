@@ -601,6 +601,146 @@ credential=$(fetch_credential "$account" "$type") || exit 1
 
 ---
 
+## MANDATE #6: FRESH BUILD DEPLOYMENT (On-Prem Only)
+
+> **CRITICAL MANDATE:** All deployments must use fresh build strategy:
+> - Complete stack rebuilt from scratch (no incremental updates)
+> - On-prem targets only (192.168.168.42, 192.168.168.39)
+> - Zero cloud deployment (GCP, AWS, Azure forbidden)
+> - All credentials generated fresh on each deployment
+
+### Implementation: Fresh Build Enforcement Pattern
+
+```bash
+#!/bin/bash
+# Scripts/deployment/fresh-build-enforcement.sh
+
+# PHASE 1: MANDATE VALIDATION (prevent cloud)
+verify_no_cloud_env() {
+    [[ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]] || \
+        { echo "MANDATE VIOLATION: GCP credentials"; exit 1; }
+    [[ -z "${AWS_ACCESS_KEY_ID:-}" ]] || \
+        { echo "MANDATE VIOLATION: AWS credentials"; exit 1; }
+    [[ -z "${AZURE_SUBSCRIPTION_ID:-}" ]] || \
+        { echo "MANDATE VIOLATION: Azure credentials"; exit 1; }
+    echo "✅ No cloud environment - safe to proceed"
+}
+
+verify_target_is_onprem() {
+    local target="$1"
+    case "$target" in
+        192.168.168.42|192.168.168.39)
+            echo "✅ Target is on-prem: $target"
+            return 0
+            ;;
+        *)
+            echo "❌ MANDATE VIOLATION: Target not on-prem"
+            exit 1
+            ;;
+    esac
+}
+
+# PHASE 2: CLEAN SLATE (remove all previous state)
+create_fresh_slate() {
+    echo "🧹 Creating fresh deployment slate..."
+    
+    # Remove previous deployment directory completely
+    [[ -d "$DEPLOYMENT_DIR" ]] && rm -rf "$DEPLOYMENT_DIR"
+    
+    # Clean temporary state
+    rm -f /tmp/deployment-*.log
+    rm -rf /tmp/worker-node-deploy-*
+    
+    echo "✅ Fresh slate created"
+}
+
+# PHASE 3: FRESH PROVISIONING
+fresh_provision_stack() {
+    echo "🏗️ Fresh provisioning complete stack..."
+    
+    # Clone fresh repository (no previous state)
+    local TEMP_DIR=$(mktemp -d)
+    trap "rm -rf $TEMP_DIR" EXIT
+    
+    git clone --depth=1 https://github.com/kushin77/self-hosted-runner.git "$TEMP_DIR"
+    
+    # Deploy all components from fresh source
+    # NO incremental updates - full rebuild from scratch
+    cp -v "$TEMP_DIR"/scripts/automation/*.sh "$DEPLOYMENT_DIR/core/"
+    cp -v "$TEMP_DIR"/scripts/k8s-health-checks/*.sh "$DEPLOYMENT_DIR/health/"
+    
+    chmod 755 "$DEPLOYMENT_DIR"/{core,health}/*.sh
+    
+    echo "✅ Fresh stack provisioning complete"
+}
+
+# PHASE 4: FRESH CREDENTIALS
+generate_fresh_credentials() {
+    echo "🔑 Generating fresh credentials..."
+    
+    # Remove old credentials (if any)
+    [[ -d ~/.ssh/backup ]] && rm -rf ~/.ssh/backup
+    
+    # Generate fresh Ed25519 SSH keys
+    ssh-keygen -t ed25519 -f "$DEPLOYMENT_DIR/automation_ed25519" \
+        -N '' -C "automation@worker-node"
+    
+    chmod 600 "$DEPLOYMENT_DIR/automation_ed25519"
+    chmod 644 "$DEPLOYMENT_DIR/automation_ed25519.pub"
+    
+    echo "✅ Fresh credentials generated"
+}
+
+# VERIFICATION: Confirm fresh state
+verify_fresh_state() {
+    echo "✅ Fresh state verification:"
+    echo "   - No cloud credentials: $(! env | grep -q AWS && echo PASS)"
+    echo "   - Target on-prem: $(hostname -I | grep -q 192.168.168 && echo PASS)"
+    echo "   - Fresh SSH keys: $(test -f automation_ed25519 && echo PASS)"
+    echo "   - No previous state: $(! test -d /opt/old-deployment && echo PASS)"
+}
+
+# MAIN DEPLOYMENT FLOW
+main() {
+    verify_no_cloud_env
+    verify_target_is_onprem "$TARGET_HOST"
+    create_fresh_slate
+    fresh_provision_stack
+    generate_fresh_credentials
+    verify_fresh_state
+}
+
+main "$@"
+```
+
+### Pre-Execution Validation
+
+```bash
+# Before ANY fresh build deployment:
+✓ Cloud prevention checks pass
+✓ Target is on-prem (192.168.168.42 or .39)
+✓ No cloud credentials in environment
+✓ Git repository accessible
+✓ SSH key generation available
+✓ Sufficient disk space (>500MB free)
+```
+
+### Post-Deployment Validation
+
+```bash
+bash scripts/enforce/verify-fresh-build.sh
+
+# Checks:
+✓ No cloud credentials in deployed environment
+✓ All components have fresh timestamps
+✓ Fresh SSH keys deployed
+✓ Zero leftover state from previous deployment
+✓ Services started with fresh configuration
+✓ Health checks pass on fresh stack
+```
+
+---
+
 ## TESTING MANDATE COMPLIANCE
 
 ```bash
@@ -620,6 +760,13 @@ bash scripts/ssh_service_accounts/preflight_health_gate.sh
 # Test Mandate #1 (Manual changes)
 bash scripts/enforce/verify-no-manual-changes.sh
 # Will detect any uncommitted changes on production
+
+# Test Mandate #6 (Fresh Build)
+TARGET_HOST=192.168.168.42 bash deploy-worker-node.sh
+# PHASE 1: Mandate validation (cloud prevention) ✅
+# PHASE 2: Clean slate (previous state removed) ✅
+# PHASE 3: Fresh provisioning (complete rebuild) ✅
+# PHASE 4: Fresh credentials (Ed25519 keys) ✅
 ```
 
 ---

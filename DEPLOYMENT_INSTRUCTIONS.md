@@ -217,53 +217,100 @@ echo "Ready for deployment!"
 
 ## DEPLOYMENT PROCESS
 
-### Option A: Automatic Deployment (Recommended)
+### ⚡ MANDATE: Fresh Build Deployment
+
+> **CRITICAL:** All deployments must use **FRESH BUILD** strategy:
+> - ✅ Complete stack rebuilt from scratch
+> - ✅ All previous state removed (clean slate)
+> - ✅ All credentials generated fresh
+> - ✅ **ON-PREM ONLY** (192.168.168.42, 192.168.168.39)
+> - ❌ **NO CLOUD** deployment (GCP, AWS, Azure blocked)
+
+### Option A: Automatic Fresh Build Deployment (Recommended)
 
 ```bash
-# Simply merge to main
+# Simply merge to main - triggers fresh build
 git checkout main
 git merge feature/my-feature-name
 
 # OR via GitHub UI: Click "Merge pull request"
 
-# Automatic actions will trigger:
-# 1. Cloud Build triggered
-# 2. Tests run
-# 3. Secrets scan runs
-# 4. Image built and scanned
-# 5. Signature verification
-# 6. Deployed to 192.168.168.42 (5 min)
-# 7. Health checks run
-# 8. Audit trail updated
+# Automatic actions will trigger FRESH BUILD:
+# 1. Mandate validation (on-prem only, no cloud)
+# 2. Cloud environment prevention checks
+# 3. Previous state removed (clean slate)
+# 4. Fresh git clone of repository
+# 5. Fresh service account provisioning
+# 6. Fresh Ed25519 SSH key generation
+# 7. Fresh component deployment from scratch
+# 8. Fresh credential verification
+# 9. Health checks on fresh stack (10 min)
+# 10. Audit trail updated with fresh deployment marker
 ```
 
-### Option B: Manual Deployment (Development Only)
+### Option B: Manual Fresh Build Deployment (Development Only)
 
 ```bash
-# For testing in development environment only
+# For testing fresh builds in development environment only
 cd /home/akushnir/self-hosted-runner
 
-# Step 1: Verify credentials available
-echo $VAULT_ADDR
-gcloud secrets list --project=nexusshield-prod | head -5
+# Step 1: Verify on-prem environment (MANDATE)
+# Must be on-prem only, no cloud credentials
+env | grep -E 'GOOGLE_APPLICATION_CREDENTIALS|AWS_|AZURE_' && \
+  { echo "❌ MANDATE VIOLATION: Cloud credentials detected"; exit 1; } || \
+  echo "✅ No cloud credentials - safe to proceed"
 
-# Step 2: Run pre-deployment
+# Step 2: Verify target is on-prem (MANDATE)
+# Only 192.168.168.42 (primary) or 192.168.168.39 (backup)
+TARGET_HOST=192.168.168.42
+echo "✅ Target: $TARGET_HOST (on-prem verified)"
+
+# Step 3: Verify prerequisites
+bash scripts/enforce/check-prerequisites.sh
+
+# Step 4: Run pre-deployment checks
 bash scripts/enforce/verify-no-manual-changes.sh
 bash scripts/ssh_service_accounts/preflight_health_gate.sh
 
-# Step 3: Begin logging
+# Step 5: Begin logging
 source scripts/ssh_service_accounts/change_control_tracker.sh
-log_operation "deployment" "begin" "manual=true,environment=dev"
+log_operation "deployment" "begin" "build_type=fresh,environment=dev"
 
-# Step 4: Deploy
-bash scripts/deploy-worker-node.sh
+# Step 6: Deploy with fresh build (removes previous state)
+# This will:
+#   - Remove all previous deployment state
+#   - Fresh clone from git
+#   - Fresh service account setup
+#   - Fresh credential generation
+#   - Fresh systemd service startup
+TARGET_HOST=192.168.168.42 bash deploy-worker-node.sh
 
-# Step 5: Post-deployment verification
+# Step 7: Post-deployment fresh build verification
 bash scripts/enforce/verify-audit-trail-integrity.sh
 bash scripts/ssh_service_accounts/health_check.sh report
 
-# Step 6: Complete logging
-log_operation "deployment" "end" "status=success,environment=dev"
+# Step 8: Verify fresh state
+echo "✅ Verify fresh deployment:"
+ssh -i ~/.ssh/automation_ed25519 automation@192.168.168.42 \
+  "ls -l /opt/automation/deployment/ | head -10"
+# Should show recent timestamps (just deployed)
+
+# Step 9: Complete logging
+log_operation "deployment" "end" "status=success,build_type=fresh,environment=dev"
+```
+
+### Option C: Override to Incremental? (NOT RECOMMENDED)
+
+> ⚠️ **WARNING:** Only use if explicitly required by operations team
+> Fresh builds are the default and strongly preferred
+
+```bash
+# To deploy WITHOUT fresh build reset (keep previous state)
+# This is NOT RECOMMENDED and must be approved
+SKIP_FRESH_BUILD=true TARGET_HOST=192.168.168.42 bash deploy-worker-node.sh
+
+# Note: This still enforces on-prem only and cloud prevention
+# It simply skips removing previous state
 ```
 
 ---
