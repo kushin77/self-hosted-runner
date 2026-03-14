@@ -232,13 +232,10 @@ timeout: '1800s'
 # Substitution variables (case-insensitive, prefer UPPER_CASE)
 substitutions:
   _REGION: 'us-central1'
-  _ARTIFACT_REGISTRY_LOCATION: 'us-central1-docker.pkg.dev'
-  _ARTIFACT_REGISTRY_REPO: 'nexus'
   _GKE_CLUSTER: 'nexus-prod-gke'
   _GKE_ZONE: 'us-central1-a'
   _K8S_NAMESPACE: 'nexus-discovery'
-  # Computed: ${_ARTIFACT_REGISTRY_LOCATION}/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/nexus-webhook
-  _IMAGE_URL: '${_ARTIFACT_REGISTRY_LOCATION}/${PROJECT_ID}/${_ARTIFACT_REGISTRY_REPO}/nexus-webhook'
+  _IMAGE_URL: 'us-central1-docker.pkg.dev/nexusshield-prod/nexus/nexus-webhook'
 
 # Build tags for organization
 tags:
