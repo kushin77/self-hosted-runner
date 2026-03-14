@@ -47,7 +47,7 @@ echo "🔒 1. IMMUTABILITY & GIT HISTORY"
 echo "═══════════════════════════════════"
 
 # Check for immutable commits
-if git log --oneline | grep -q "oauth\|google\|credential"; then
+if git log --all --oneline | grep -q "oauth\|google\|credential"; then
   log_pass "OAuth commits present in git history"
 else
   log_warn "No OAuth commits found in recent history"
