@@ -1,0 +1,293 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-postgres-patroni-config
+  namespace: keycloak
+data:
+  patroni.yml: |
+    scope: keycloak-postgres
+    namespace: keycloak
+    name: keycloak-postgres-0
+    restapi:
+      listen: 0.0.0.0:8008
+      connect_address: keycloak-postgres-0.keycloak-postgres:8008
+    consul:
+      host: localhost
+    postgresql:
+      use_pg_rewind: true
+      use_slots: true
+      parameters:
+        max_connections: 200
+        max_prepared_transactions: 0
+        wal_buffers: -1
+        default_statistics_target: 10
+        random_page_cost: 1.1
+        shared_preload_libraries: pgextwlist
+        shared_libraries: pgextwlist
+        wal_level: replica
+        max_wal_senders: 10
+        max_replication_slots: 10
+      pg_hba:
+      - local   all             all                                   trust
+      - host    all             all             127.0.0.1/32          md5
+      - host    all             all             ::1/128               md5
+      - host    replication     all             0.0.0.0/0            md5
+      - host    replication     all             ::/0                 md5
+      - host    all             all             0.0.0.0/0            md5
+      - host    all             all             ::/0                 md5
+    bootstrap:
+      dcs:
+        ttl: 30
+        loop_wait: 10
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        postgresql:
+          use_pg_rewind: true
+          parameters:
+            wal_buffers: 16MB
+            default_statistics_target: 10
+            shared_buffers: 4GB
+            effective_cache_size: 12GB
+            work_mem: 10485kB
+            maintenance_work_mem: 1GB
+            random_page_cost: 1.1
+            log_min_duration_statement: 1000
+            log_checkpoints: on
+            log_connections: off
+            log_disconnections: off
+            log_lock_waits: on
+            max_connections: 200
+      initdb:
+      - locale: en_US.UTF-8
+      - encoding: UTF8
+      - data-checksums
+      pg_hba:
+      - local   all             all                                   trust
+      - host    all             all             127.0.0.1/32          md5
+      - host    all             all             ::1/128               md5
+      - host    replication     all             0.0.0.0/0            md5
+      - host    replication     all             ::/0                 md5
+      - host    all             all             0.0.0.0/0            md5
+      - host    all             all             ::/0                 md5
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak-postgres
+  namespace: keycloak
+spec:
+  serviceName: keycloak-postgres
+  replicas: 3
+  selector:
+    matchLabels:
+      app: keycloak-postgres
+  template:
+    metadata:
+      labels:
+        app: keycloak-postgres
+    spec:
+      serviceAccountName: keycloak-postgres
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - keycloak-postgres
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        fsGroup: 999
+        runAsUser: 999
+        runAsNonRoot: true
+      initContainers:
+      - name: data-permission-fix
+        image: busybox:1.35
+        command:
+        - sh
+        - -c
+        - |
+          mkdir -p /var/lib/postgresql/data
+          chmod 700 /var/lib/postgresql/data
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: PGDATA
+          value: /var/lib/postgresql/data/pgdata
+        - name: POSTGRES_DB
+          value: keycloak
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres
+              key: password
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U $POSTGRES_USER -h 127.0.0.1
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - exec pg_isready -U $POSTGRES_USER -h 127.0.0.1
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql
+        - name: patroni-config
+          mountPath: /etc/patroni
+          readOnly: true
+      - name: patroni
+        image: patroni:3.0-py311
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8008
+          name: patroni-api
+        env:
+        - name: SCOPE
+          value: keycloak-postgres
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres
+              key: username
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-postgres
+              key: password
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8008
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 3
+        volumeMounts:
+        - name: pgdata
+          mountPath: /var/lib/postgresql
+        - name: patroni-config
+          mountPath: /etc/patroni
+      volumes:
+      - name: patroni-config
+        configMap:
+          name: keycloak-postgres-patroni-config
+  volumeClaimTemplates:
+  - metadata:
+      name: pgdata
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "standard"
+      resources:
+        requests:
+          storage: 50Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-postgres
+  namespace: keycloak
+  labels:
+    app: keycloak-postgres
+spec:
+  clusterIP: None
+  selector:
+    app: keycloak-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  - port: 8008
+    targetPort: 8008
+    protocol: TCP
+    name: patroni-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-postgres-rw
+  namespace: keycloak
+  labels:
+    app: keycloak-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: keycloak-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak-postgres-ro
+  namespace: keycloak
+  labels:
+    app: keycloak-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: keycloak-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
