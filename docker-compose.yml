@@ -46,11 +46,12 @@ services:
       timeout: 10s
       retries: 3
 
-  # OAuth2-Proxy (Development)
+  # OAuth2-Proxy (Development) - ENFORCES OAuth for entire monitoring stack
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.5
     container_name: sso-oauth2-proxy-dev
     environment:
+      # OIDC Configuration (Keycloak)
       OAUTH2_PROXY_PROVIDER: oidc
       OAUTH2_PROXY_OIDC_ISSUER_URL: http://keycloak:8080/auth/realms/master
       OAUTH2_PROXY_CLIENT_ID: oauth2-proxy
@@ -59,16 +60,46 @@ services:
       OAUTH2_PROXY_OIDC_JWKS_URL: http://keycloak:8080/auth/realms/master/protocol/openid-connect/certs
       OAUTH2_PROXY_SCOPE: openid profile email
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      # Cookie Security (HttpOnly, SameSite, Secure)
       OAUTH2_PROXY_COOKIE_SECURE: "false"
+      OAUTH2_PROXY_COOKIE_HTTPONLY: "true"
+      OAUTH2_PROXY_COOKIE_SAMESITE: "Lax"
+      OAUTH2_PROXY_COOKIE_NAME: oauth2-proxy
+      OAUTH2_PROXY_COOKIE_EXPIRE: "3600"
+      # OAuth Validation (STRICT ENFORCEMENT)
+      OAUTH2_PROXY_VALIDATE_URL: http://keycloak:8080/auth/realms/master/protocol/openid-connect/userinfo
+      OAUTH2_PROXY_SKIP_JWT_BEARER_TOKEN: "false"
+      OAUTH2_PROXY_SKIP_OIDC_DISCOVERY: "false"
+      OAUTH2_PROXY_OIDC_VERIFY_NONCE: "true"
+      OAUTH2_PROXY_OIDC_GROUPS_CLAIM: groups
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
+      OAUTH2_PROXY_PASS_ACCESS_TOKEN: "true"
+      OAUTH2_PROXY_PASS_AUTHORIZATION_HEADER: "true"
+      OAUTH2_PROXY_PASS_USER_HEADERS: "true"
+      OAUTH2_PROXY_PREFER_EMAIL_TO_USER: "true"
+      # OAuth2-Proxy Settings
+      OAUTH2_PROXY_UPSTREAMS: http://monitoring-router:80
+      OAUTH2_PROXY_HTTP_ADDRESS: 0.0.0.0:4180
+      OAUTH2_PROXY_METRICS_ADDRESS: 0.0.0.0:8080
+      OAUTH2_PROXY_AUTH_LOGGING: "true"
+      OAUTH2_PROXY_REQUEST_LOGGING: "true"
+      # Skip auth ONLY for health checks (not for actual endpoints)
+      OAUTH2_PROXY_SKIP_AUTH_PREFIXES: /health,/ping,/oauth2/
+      # Enforce OAuth on all paths (CRITICAL: no bypass)
+      OAUTH2_PROXY_WHITELIST_DOMAINS: keycloak,monitoring-router
+      OAUTH2_PROXY_NO_FORWARDED_PROTO: "false"
       OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: "true"
-      OAUTH2_PROXY_UPSTREAMS: http://echo:8080
     ports:
       - "4180:4180"
+      - "8080:8080"
     depends_on:
       - keycloak
-      - echo
-    command:
-      - --config=/dev/null
+      - monitoring-router
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4180/oauth2/auth"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Echo Service (for testing OAuth2-Proxy)
   echo:
@@ -76,6 +107,24 @@ services:
     container_name: sso-echo-dev
     ports:
       - "8081:80"
+
+  # Monitoring Router (Nginx) - Routes to monitoring services
+  monitoring-router:
+    image: nginx:alpine
+    container_name: sso-monitoring-router-dev
+    volumes:
+      - ./docker/nginx/monitoring-router.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8888:80"
+    depends_on:
+      - prometheus
+      - grafana
+      - alertmanager
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Prometheus (Development)
   prometheus:
@@ -91,14 +140,36 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--storage.tsdb.retention.time=72h'
 
-  # Grafana (Development)
+  # Grafana (Development) - OAuth EXCLUSIVE authentication (no local auth)
   grafana:
     image: grafana/grafana:latest
     container_name: sso-grafana-dev
     environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
+      # OAuth Configuration (EXCLUSIVE)
+      GF_AUTH_GENERIC_OAUTH_ENABLED: "true"
+      GF_AUTH_GENERIC_OAUTH_NAME: Keycloak
+      GF_AUTH_GENERIC_OAUTH_CLIENT_ID: grafana
+      GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET: grafana-secret
+      GF_AUTH_GENERIC_OAUTH_SCOPES: openid profile email
+      GF_AUTH_GENERIC_OAUTH_AUTH_URL: http://keycloak:8080/auth/realms/master/protocol/openid-connect/auth
+      GF_AUTH_GENERIC_OAUTH_TOKEN_URL: http://keycloak:8080/auth/realms/master/protocol/openid-connect/token
+      GF_AUTH_GENERIC_OAUTH_API_URL: http://keycloak:8080/auth/realms/master/protocol/openid-connect/userinfo
+      GF_AUTH_GENERIC_OAUTH_REDIRECT_URL: http://localhost:3000/login/generic_oauth
+      GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE: "true"
+      GF_AUTH_GENERIC_OAUTH_ALLOW_SIGN_UP: "true"
+      GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN: "false"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: Viewer
+      GF_SECURITY_ALLOW_EMBED_INITIATE_LOGIN: "true"
+      # Disable local authentication (enforce OAuth ONLY)
+      GF_AUTH_BASIC_ENABLED: "false"
+      GF_AUTH_LOGIN_FORM_VISIBLE: "false"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_OAUTH_AUTO_LOGIN: "true"
+      # Security hardening
+      GF_SECURITY_DISABLE_INITIAL_ADMIN_CREATION: "true"
+      GF_SECURITY_ADMIN_USER: ""
+      GF_SECURITY_ADMIN_PASSWORD: ""
     ports:
       - "3000:3000"
     volumes:
@@ -107,6 +178,12 @@ services:
       - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - prometheus
+      - keycloak
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   # Redis (Development for caching)
   redis:
