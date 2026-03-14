@@ -1,5 +1,6 @@
-# 🚀 DEPLOYMENT STRATEGIES - Elite MSP Operations
+# DEPLOYMENT STRATEGIES - Elite MSP Operations (On-Premises Only)
 # Advanced deployment patterns for zero-downtime, safe releases
+# MANDATORY: All deployments on 192.168.168.42 worker nodes only
 
 ---
 

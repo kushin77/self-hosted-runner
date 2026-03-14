@@ -2,9 +2,9 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'nexusshield-dev'
-    namespace: 'phase-6'
-    environment: 'development'
+    cluster: 'nexusshield-onprem'  # On-premises cluster (192.168.168.42)
+    namespace: 'production'
+    environment: 'production'  # MANDATORY: On-prem production
 
 # Alertmanager configuration
 alerting:

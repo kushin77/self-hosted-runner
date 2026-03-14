@@ -6,6 +6,7 @@ metadata:
   labels:
     phase: phase1
     automation: nexus
+    deployment-region: onprem  # MANDATORY: On-premises only
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -42,6 +43,10 @@ kind: ServiceAccount
 metadata:
   name: nexus-discovery
   namespace: nexus-discovery
+  labels:
+    deployment-region: onprem  # MANDATORY: On-prem deployment
+  # NOTE: GCP service account only used for accessing cloud Secrets Manager (GSM)
+  # All computation stays on-prem (192.168.168.42)
   annotations:
     iam.gke.io/gcp-service-account: nexus-webhook-sa@nexusshield-prod.iam.gserviceaccount.com
 ---
@@ -69,20 +74,35 @@ spec:
       labels:
         app: nexus-discovery
         phase: phase1
+        deployment-region: onprem  # MANDATORY: On-premises only
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
         prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: nexus-discovery
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 100
-        fsGroup: 3000
-        seccompProfile:
-          type: RuntimeDefault
-      
+      # On-premises node constraint - MANDATORY
+      nodeSelector:
+        worker-node: onprem
+      # Prefer on-prem nodes (192.168.168.42)
       affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-type
+                operator: In
+                values:
+                - onprem-worker-42
+                - nexus-onprem
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: region
+                operator: In
+                values:
+                - onprem
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
           - weight: 100
@@ -95,7 +115,12 @@ spec:
                   - nexus-discovery
               topologyKey: kubernetes.io/hostname
       
-      containers:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        fsGroup: 3000
+        seccompProfile:
+          type: RuntimeDefault
       - name: nexus-discovery
         image: IMAGE_URL
         imagePullPolicy: Always

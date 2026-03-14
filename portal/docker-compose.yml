@@ -11,6 +11,7 @@ services:
       NODE_ENV: production
       LOG_LEVEL: info
       PORT: 5000
+      BIND_HOST: "0.0.0.0"  # Listen on all interfaces on .42
     volumes:
       - ./packages/api/src:/app/packages/api/src
       - ./packages/core/src:/app/packages/core/src
@@ -18,10 +19,13 @@ services:
     command: pnpm --filter @nexus/api dev
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:5000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:5000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+    # On-premises deployment on 192.168.168.42
+    networks:
+      - nexus-onprem
 
   portal-frontend:
     build:
@@ -32,24 +36,27 @@ services:
     env_file:
       - .env
     environment:
-      NODE_ENV: development
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
-      VITE_LOG_LEVEL: debug
+      NODE_ENV: production
+      VITE_API_URL: ${VITE_API_URL:-http://192.168.168.42:5000}  # On-prem .42 target
+      VITE_LOG_LEVEL: info
+      BIND_HOST: "0.0.0.0"  # Listen on all interfaces on .42
     volumes:
       - ./packages/frontend/src:/app/packages/frontend/src
       - ./packages/frontend/package.json:/app/packages/frontend/package.json
       - ./packages/frontend/index.html:/app/packages/frontend/index.html
       - ./packages/frontend/tsconfig.app.json:/app/packages/frontend/tsconfig.app.json
       - ./packages/frontend/vite.config.ts:/app/packages/frontend/vite.config.ts
-    command: pnpm --filter @nexus/frontend dev --host
+    command: pnpm --filter @nexus/frontend dev --host 0.0.0.0
     depends_on:
       - portal-api
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:3000 || exit 1"]
+      test: ["CMD-SHELL", "curl -f http://127.0.0.1:3000 || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
+    networks:
+      - nexus-onprem
 
   # Optional: Add PostgreSQL for future data persistence
   # postgres:
@@ -58,6 +65,11 @@ services:
   #     POSTGRES_DB: portal
   #     POSTGRES_USER: portal
   #     POSTGRES_PASSWORD: dev-password
+
+networks:
+  nexus-onprem:
+    driver: bridge
+    # On-premises only network (192.168.168.42)
   #   ports:
   #     - "5432:5432"
   #   volumes:

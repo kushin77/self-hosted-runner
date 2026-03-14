@@ -5,7 +5,7 @@ version: '3.9'
 # Usage: docker-compose -f frontend/docker-compose.dashboard.yml up -d
 
 services:
-  # Primary Dashboard Instance
+  # Primary Dashboard Instance - On-Premises (.42)
   dashboard-primary:
     build:
       context: dashboard/
@@ -20,7 +20,7 @@ services:
     environment:
       PORT: "3000"
       NODE_ENV: "production"
-      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://localhost:8080}"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://192.168.168.42:8080}"  # On-prem .42 target
       REACT_APP_LOG_LEVEL: "${REACT_APP_LOG_LEVEL:-info}"
       REACT_APP_SESSION_TIMEOUT: "900000"
       REACT_APP_REFRESH_INTERVAL: "5000"
@@ -50,7 +50,7 @@ services:
     depends_on:
       - dashboard-health-check
 
-  # Optional: Secondary instance for load balancing
+  # Optional: Secondary instance for load balancing - On-Premises (.42)
   dashboard-secondary:
     build:
       context: dashboard/
@@ -65,10 +65,10 @@ services:
     environment:
       PORT: "3000"
       NODE_ENV: "production"
-      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://localhost:8080}"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://192.168.168.42:8080}"  # On-prem .42 target
       REACT_APP_LOG_LEVEL: "${REACT_APP_LOG_LEVEL:-info}"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]  # Internal health check
       interval: 30s
       timeout: 3s
       retries: 3
@@ -115,7 +115,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ssl:/etc/nginx/ssl:ro
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]  # Internal health check
       interval: 30s
       timeout: 3s
       retries: 3
@@ -133,6 +133,7 @@ services:
 networks:
   nexusshield:
     driver: bridge
+    # On-premises deployment on 192.168.168.42
     ipam:
       config:
         - subnet: 172.28.0.0/16

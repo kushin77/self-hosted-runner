@@ -22,7 +22,7 @@ services:
       - UPSTREAM_2=dashboard-secondary:3000
       - UPSTREAM_3=dashboard-tertiary:3000
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:80/health"]  # Internal health check
       interval: 30s
       timeout: 3s
       retries: 3
@@ -56,9 +56,9 @@ services:
       - "3000"
     environment:
       NODE_ENV: "production"
-      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://192.168.168.42:8080}"  # On-prem .42
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]  # Internal health check
       interval: 20s
       timeout: 3s
       retries: 3
@@ -78,9 +78,9 @@ services:
       - "3000"
     environment:
       NODE_ENV: "production"
-      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://192.168.168.42:8080}"  # On-prem .42
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]  # Internal health check
       interval: 20s
       timeout: 3s
       retries: 3
@@ -102,9 +102,9 @@ services:
       - "3000"
     environment:
       NODE_ENV: "production"
-      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://api:8080}"
+      REACT_APP_API_URL: "${REACT_APP_API_URL:-http://192.168.168.42:8080}"  # On-prem .42
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3000/health"]  # Internal health check
       interval: 20s
       timeout: 3s
       retries: 3

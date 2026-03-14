@@ -1,5 +1,5 @@
 {
-  "displayName": "Production Hardening Metrics Dashboard",
+  "displayName": "Production Hardening Metrics",
   "mosaicLayout": {
     "columns": 12,
     "tiles": [
@@ -7,59 +7,75 @@
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "Hardening Framework Executions",
+          "title": "Portal Service Health",
           "xyChart": {
-            "dataSets": [{
-              "timeSeriesQuery": {
-                "timeSeriesFilter": {
-                  "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/executions\""
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type = \"http_load_balancer\" AND metric.type = \"loadbalancing.googleapis.com/https/request_latencies\""
+                  }
                 }
               }
-            }]
+            ]
           }
         }
       },
       {
+        "xPos": 6,
         "width": 6,
         "height": 4,
         "widget": {
-          "title": "Error Tracking Rate",
+          "title": "Backend Service Health",
           "xyChart": {
-            "dataSets": [{
-              "timeSeriesQuery": {
-                "timeSeriesFilter": {
-                  "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/errors\""
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "resource.type = \"k8s_container\" AND metric.type = \"kubernetes.io/container/uptime\""
+                  }
                 }
               }
-            }]
+            ]
           }
         }
       },
       {
-        "width": 12,
-        "height": 3,
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
         "widget": {
-          "title": "Portal/Backend Sync Status",
-          "scorecard": {
-            "timeSeriesQuery": {
-              "timeSeriesFilter": {
-                "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/sync_status\""
+          "title": "Error Rate Trend",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type = \"custom.googleapis.com/error_rate\""
+                  }
+                }
               }
-            }
+            ]
           }
         }
       },
       {
-        "width": 12,
-        "height": 3,
+        "xPos": 6,
+        "yPos": 4,
+        "width": 6,
+        "height": 4,
         "widget": {
-          "title": "Last Hardening Run Status",
-          "scorecard": {
-            "timeSeriesQuery": {
-              "timeSeriesFilter": {
-                "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/last_run_status\""
+          "title": "Test Pass Rate",
+          "xyChart": {
+            "dataSets": [
+              {
+                "timeSeriesQuery": {
+                  "timeSeriesFilter": {
+                    "filter": "metric.type = \"custom.googleapis.com/test_pass_rate\""
+                  }
+                }
               }
-            }
+            ]
           }
         }
       }

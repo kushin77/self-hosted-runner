@@ -9,12 +9,13 @@ services:
       - RUNNER_NAME=runner-01
       - RUNNER_REPO=<org_or_user/repo>
       - RUNNER_TOKEN=__REPLACE_WITH_TOKEN__
+      - RUNNER_HOST=192.168.168.42  # On-premises deployment target
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./_work:/actions-runner/_work
     # optional healthcheck
     healthcheck:
-      test: [ "CMD", "curl", "-fs", "http://localhost:8080/health" ]
+      test: [ "CMD", "curl", "-fs", "http://127.0.0.1:8080/health" ]  # Internal health check
       interval: 30s
       timeout: 10s
       retries: 3
