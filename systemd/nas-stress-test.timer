@@ -1,0 +1,26 @@
+[Unit]
+Description=NAS Stress Test - Daily Automated Schedule
+Documentation=file:/home/akushnir/self-hosted-runner/NAS_STRESS_TEST_COMPLETE_GUIDE.md
+Requires=nas-stress-test.service
+
+[Timer]
+# Run daily at 2 AM UTC (after-hours, low impact)
+OnCalendar=daily
+OnCalendar=*-*-* 02:00:00
+
+# Weekly deep test on Sunday at 3 AM
+OnCalendar=Sun *-*-* 03:00:00
+
+# Randomize by 5 minutes to avoid thundering herd
+RandomizedDelaySec=300
+
+# Persistent: Track missed runs
+Persistent=true
+
+# Accuracy: Run within 1 minute of scheduled time
+AccuracySec=60
+
+Unit=nas-stress-test.service
+
+[Install]
+WantedBy=timers.target

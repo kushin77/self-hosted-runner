@@ -1,0 +1,29 @@
+[Unit]
+Description=NAS Stress Test - Medium Profile (Weekly Deep Validation)
+Documentation=file:/home/akushnir/self-hosted-runner/NAS_STRESS_TEST_COMPLETE_GUIDE.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+WorkingDirectory=/home/akushnir/self-hosted-runner
+
+# Medium profile for comprehensive weekly validation
+ExecStart=/usr/bin/bash -c 'cd /home/akushnir/self-hosted-runner && EXPORT_METRICS=true bash deploy-nas-stress-tests.sh --medium'
+
+# Immutable, ephemeral, idempotent
+PrivateTmp=yes
+NoNewPrivileges=true
+ReadOnlyPaths=/
+ReadWritePaths=/home/akushnir/self-hosted-runner/nas-stress-results
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nas-stress-test-weekly
+
+Restart=no
+TimeoutStartSec=1200
+
+[Install]
+WantedBy=multi-user.target

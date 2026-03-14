@@ -1,0 +1,15 @@
+[Unit]
+Description=NAS Stress Test - Weekly Deep Validation Schedule
+Requires=nas-stress-test-weekly.service
+
+[Timer]
+# Run weekly on Sunday at 3 AM UTC
+OnCalendar=Sun *-*-* 03:00:00
+Persistent=true
+AccuracySec=60
+RandomizedDelaySec=300
+
+Unit=nas-stress-test-weekly.service
+
+[Install]
+WantedBy=timers.target

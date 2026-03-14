@@ -1,0 +1,83 @@
+{
+  "test_run": {
+    "timestamp": "2026-03-14T21:24:00+00:00",
+    "host": "dev-elevatediq-2",
+    "mode": "simulate",
+    "profile": "--quick",
+    "duration_seconds": 60,
+    "nas_host": "192.168.168.100",
+    "nas_accessible": "unknown"
+  },
+  "metrics": {
+    "ping_min_ms": {
+      "value": 0.5,
+      "unit": ""
+    },
+    "ping_max_ms": {
+      "value": 1.0,
+      "unit": ""
+    },
+    "ping_avg_ms": {
+      "value": 0.71,
+      "unit": ""
+    },
+    "upload_throughput_kbs": {
+      "value": 65000,
+      "unit": ""
+    },
+    "download_throughput_kbs": {
+      "value": 65000,
+      "unit": ""
+    },
+    "write_throughput_mbs": {
+      "value": 60,
+      "unit": ""
+    },
+    "read_throughput_mbs": {
+      "value": 100,
+      "unit": ""
+    },
+    "io_operations": {
+      "value": 1500,
+      "unit": ""
+    },
+    "io_success_rate": {
+      "value": 99.8,
+      "unit": "%"
+    },
+    "sustained_load_duration_s": {
+      "value": 60,
+      "unit": ""
+    },
+    "sustained_load_operations": {
+      "value": 300,
+      "unit": ""
+    },
+    "sustained_load_error_rate": {
+      "value": 1,
+      "unit": "%"
+    }
+  },
+  "tests": [
+    {
+      "name": "network_baseline",
+      "status": "PASS",
+      "details": "Simulated latency OK"
+    },
+    {
+      "name": "data_transfer",
+      "status": "PASS",
+      "details": "Simulated transfer complete"
+    },
+    {
+      "name": "concurrent_io",
+      "status": "PASS",
+      "details": "Simulated I/O complete"
+    },
+    {
+      "name": "sustained_load",
+      "status": "PASS",
+      "details": "Simulated load test complete"
+    }
+  ]
+}

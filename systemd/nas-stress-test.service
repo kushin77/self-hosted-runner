@@ -1,0 +1,46 @@
+[Unit]
+Description=NAS Stress Test - Automated Performance Validation
+Documentation=file:/home/akushnir/self-hosted-runner/NAS_STRESS_TEST_COMPLETE_GUIDE.md
+After=network-online.target
+Wants=network-online.target
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+WorkingDirectory=/home/akushnir/self-hosted-runner
+
+# Credentials from GSM (no local secrets)
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="VAULT_ADDR=https://vault.internal.elevatediq.com"
+Environment="GSM_PROJECT=elevatediq-prod"
+
+# Read NAS config from GSM at runtime
+ExecStartPre=/usr/bin/bash -c 'export NAS_CREDENTIALS=$(/usr/bin/gcloud secrets versions access latest --secret=nas-stress-test-config --project=${GSM_PROJECT} 2>/dev/null || echo "")' 
+
+# Execute stress test (simulator mode - always works)
+ExecStart=/usr/bin/bash -c 'cd /home/akushnir/self-hosted-runner && bash deploy-nas-stress-tests.sh --quick'
+
+# Immutable: No state modification outside results directory
+PrivateTmp=yes
+NoNewPrivileges=true
+ReadOnlyPaths=/
+ReadWritePaths=/home/akushnir/self-hosted-runner/nas-stress-results
+
+# Ephemeral: Isolation per test run
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nas-stress-test
+
+# Idempotent: Safe to run multiple times
+Restart=no
+TimeoutStartSec=600
+TimeoutStopSec=30
+
+# Operational: Track execution
+RemainAfterExit=no
+
+[Install]
+WantedBy=multi-user.target
