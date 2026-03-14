@@ -1,0 +1,10 @@
+[Unit]
+Description=NAS Filesystem Mounts Service
+Documentation=man:systemd.target(5)
+
+# All NAS mounts must be present for this target to succeed
+Requires=nas-repositories.mount nas-config-vault.mount
+After=nas-repositories.mount nas-config-vault.mount
+
+[Install]
+WantedBy=multi-user.target
