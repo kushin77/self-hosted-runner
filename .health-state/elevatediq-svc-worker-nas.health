@@ -1,7 +1,7 @@
 {
   "name": "elevatediq-svc-worker-nas",
   "status": "UNHEALTHY",
-  "timestamp": "2026-03-14T15:57:04Z",
+  "timestamp": "2026-03-14T16:59:53Z",
   "source": "192.168.168.39",
   "target": "192.168.168.42",
   "details": "SSH connectivity failed"
