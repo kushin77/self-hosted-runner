@@ -9,6 +9,7 @@ cd "$REPO_ROOT"
 
 AUDIT_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.jsonl"
 WARNING_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.warning"
+LOCK_FILE="${REPO_ROOT}/logs/monitoring-alert-issue-triage.lock"
 mkdir -p "$(dirname "$AUDIT_LOG")"
 
 PROM_URL="${PROM_URL:-http://localhost:9090}"
@@ -20,6 +21,21 @@ log_event() {
   local event="$1"
   local details="${2:-}"
   echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"${event}\",\"details\":\"${details//\"/\\\"}\"}" >> "$AUDIT_LOG"
+}
+
+rotate_audit_log() {
+  local max_lines="${TRIAGE_AUDIT_MAX_LINES:-5000}"
+  local line_count
+
+  if ! [[ "$max_lines" =~ ^[0-9]+$ ]] || [ "$max_lines" -lt 100 ]; then
+    max_lines=5000
+  fi
+
+  [ -f "$AUDIT_LOG" ] || return 0
+  line_count="$(wc -l < "$AUDIT_LOG" 2>/dev/null || echo 0)"
+  if [ "$line_count" -gt "$max_lines" ]; then
+    tail -n "$max_lines" "$AUDIT_LOG" > "${AUDIT_LOG}.tmp" && mv "${AUDIT_LOG}.tmp" "$AUDIT_LOG"
+  fi
 }
 
 emit_skip_warning_if_repeated() {
@@ -51,6 +67,15 @@ endpoint_ready() {
   [ -z "$url" ] && return 1
   curl -fsS --max-time 3 "$url" >/dev/null 2>&1
 }
+
+rotate_audit_log
+
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  log_event "triage_skip" "another triage run is already in progress"
+  emit_skip_warning_if_repeated
+  exit 0
+fi
 
 if [ -z "${GITHUB_TOKEN:-}" ]; then
   if ! command -v gcloud >/dev/null 2>&1; then
