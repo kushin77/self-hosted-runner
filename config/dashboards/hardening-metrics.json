@@ -1,0 +1,68 @@
+{
+  "displayName": "Production Hardening Metrics Dashboard",
+  "mosaicLayout": {
+    "columns": 12,
+    "tiles": [
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Hardening Framework Executions",
+          "xyChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/executions\""
+                }
+              }
+            }]
+          }
+        }
+      },
+      {
+        "width": 6,
+        "height": 4,
+        "widget": {
+          "title": "Error Tracking Rate",
+          "xyChart": {
+            "dataSets": [{
+              "timeSeriesQuery": {
+                "timeSeriesFilter": {
+                  "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/errors\""
+                }
+              }
+            }]
+          }
+        }
+      },
+      {
+        "width": 12,
+        "height": 3,
+        "widget": {
+          "title": "Portal/Backend Sync Status",
+          "scorecard": {
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/sync_status\""
+              }
+            }
+          }
+        }
+      },
+      {
+        "width": 12,
+        "height": 3,
+        "widget": {
+          "title": "Last Hardening Run Status",
+          "scorecard": {
+            "timeSeriesQuery": {
+              "timeSeriesFilter": {
+                "filter": "resource.type=\"global\" metric.type=\"custom.googleapis.com/hardening/last_run_status\""
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
