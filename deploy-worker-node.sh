@@ -110,17 +110,16 @@ if hostname &>/dev/null && [[ "$(hostname)" == "dev-elevatediq-2" ]]; then
 fi
 
 # ============================================================================
-# SERVICE ACCOUNT CONFIGURATION (svc-git with GSM-backed SSH key)
+# SERVICE ACCOUNT CONFIGURATION (elevatediq-svc-worker-dev with SSH keys)
 # ============================================================================
-# MANDATE: All authentication via svc-git service account with SSH keys from GSM
-# Credentials are fetched at runtime, never stored locally (ephemeral + immutable)
+# MANDATE: All authentication via elevatediq-svc-worker-dev service account
+# SSH keys stored in secrets/ssh/ (committed to git, immutable)
 
-readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-svc-git}"
+readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-elevatediq-svc-worker-dev}"
 readonly SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT}"
-readonly SSH_KEY_SECRET="${SSH_KEY_SECRET:-svc-git-ssh-key}"  # GSM secret name
+readonly SSH_KEY_FILE="${SSH_KEY_FILE:-$(pwd)/secrets/ssh/elevatediq-svc-worker-dev/id_ed25519}"
 readonly TARGET_HOST="${TARGET_HOST:-192.168.168.42}"
-readonly TARGET_USER="${TARGET_USER:-svc-git}"  # Service account user on worker
-readonly SSH_KEY_FILE="${SSH_KEY_FILE:-/tmp/svc-git-key-$$}"
+readonly TARGET_USER="${TARGET_USER:-elevatediq-svc-worker-dev}"  # Service account user on worker
 
 # MANDATE: Only on-prem targets allowed
 readonly ALLOWED_TARGETS=("192.168.168.42" "192.168.168.39")
@@ -164,55 +163,40 @@ fi
 readonly SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
 
 # ============================================================================
-# SSH KEY RETRIEVAL (from GSM at runtime - ephemeral, never cached)
+# SSH KEY VERIFICATION (from secrets directory)
 # ============================================================================
-# Fetch SSH key from GSM for svc-git service account
-# Key is stored temporarily and cleaned up after use (PrivateTmp isolation)
+# SSH key stored in git secrets/ssh/elevatediq-svc-worker-dev/
+# Git history provides immutability, no runtime retrieval needed
 
-retrieve_ssh_key_from_gsm() {
-  echo "[*] Retrieving svc-git SSH key from GSM..." >&2
+verify_ssh_key_exists() {
+  echo "[*] Verifying SSH key for $SERVICE_ACCOUNT..." >&2
   
-  # Verify gcloud is available
-  if ! command -v gcloud &>/dev/null; then
-    echo "[ERROR] gcloud CLI not found. Install Google Cloud SDK to continue." >&2
+  if [ ! -f "$SSH_KEY_FILE" ]; then
+    echo "[ERROR] SSH key not found: $SSH_KEY_FILE" >&2
+    echo "[ACTION] Ensure keys are committed in secrets/ssh/$SERVICE_ACCOUNT/id_ed25519" >&2
     return 1
   fi
   
-  # Retrieve SSH key from GSM
-  local ssh_key
-  ssh_key=$(gcloud secrets versions access latest --secret="$SSH_KEY_SECRET" 2>/dev/null)
-  
-  if [ -z "$ssh_key" ]; then
-    echo "[ERROR] Failed to retrieve SSH key from GSM: $SSH_KEY_SECRET" >&2
-    return 1
+  # Verify key has correct permissions
+  local perms=$(stat -c %a "$SSH_KEY_FILE" 2>/dev/null || stat -f %OLp "$SSH_KEY_FILE" 2>/dev/null)
+  if [[ "$perms" != "600" ]]; then
+    chmod 600 "$SSH_KEY_FILE"
+    echo "[✓] SSH key permissions corrected" >&2
   fi
   
-  # Write to temporary file with secure permissions
-  echo "$ssh_key" > "$SSH_KEY_FILE"
-  chmod 600 "$SSH_KEY_FILE"
-  
-  echo "[✓] SSH key retrieved from GSM and cached at $SSH_KEY_FILE" >&2
+  echo "[✓] SSH key verified: $SSH_KEY_FILE" >&2
   return 0
 }
 
-# Cleanup SSH key after use (ephemeral principle)
-cleanup_ssh_key() {
-  if [ -f "$SSH_KEY_FILE" ]; then
-    shred -vfz -n 3 "$SSH_KEY_FILE" 2>/dev/null || rm -f "$SSH_KEY_FILE"
-    echo "[✓] SSH key cleaned up (ephemeral)" >&2
-  fi
-}
-
-# Register cleanup on exit
-trap cleanup_ssh_key EXIT
+# No cleanup needed - keys are immutable in git
 
   
 
-# Verify SSH connectivity before deployment (with svc-git authentication)
+# Verify SSH connectivity before deployment (with elevatediq-svc-worker-dev authentication)
 verify_ssh_connection() {
   local ssh_key="${SSH_KEY_FILE}"
   
-  echo "Verifying SSH connection to $TARGET_USER@$TARGET_HOST (using svc-git SSH key)..."
+  echo "Verifying SSH connection to $TARGET_USER@$TARGET_HOST (using $SERVICE_ACCOUNT SSH key)..."
   
   # Verify SSH key exists and is readable
   if [ ! -f "$ssh_key" ]; then
@@ -223,7 +207,7 @@ verify_ssh_connection() {
   # Test SSH connection
   local ssh_cmd="ssh -i \"$ssh_key\" $SSH_OPTS"
   if $ssh_cmd "$TARGET_USER@$TARGET_HOST" "echo 'SSH connection test successful'" >/dev/null 2>&1; then
-    echo "✅ SSH connection verified (svc-git authenticated)"
+    echo "✅ SSH connection verified ($SERVICE_ACCOUNT authenticated)"
     return 0
   else
     echo "❌ SSH connection failed to $TARGET_USER@$TARGET_HOST"
@@ -271,20 +255,14 @@ success() {
 
 check_prerequisites() {
   log "Checking prerequisites for remote deployment..."
-  log "Service Account: $SERVICE_ACCOUNT (svc-git)"
-  log "SSH Key Source: GSM secret '$SSH_KEY_SECRET'"
+  log "Service Account: $SERVICE_ACCOUNT"
+  log "SSH Key File: $SSH_KEY_FILE"
   log "Target User: $TARGET_USER@$TARGET_HOST"
   
-  # Verify gcloud is available
-  if ! command -v gcloud &>/dev/null; then
-    error "gcloud CLI not found. Install Google Cloud SDK to continue."
-    return 1
-  fi
-  
-  # Retrieve SSH key from GSM
-  log "Retrieving SSH key from GSM..."
-  if ! retrieve_ssh_key_from_gsm; then
-    error "Failed to retrieve SSH key from GSM"
+  # Verify SSH key exists
+  log "Verifying SSH key..."
+  if ! verify_ssh_key_exists; then
+    error "SSH key verification failed"
     return 1
   fi
   
@@ -293,12 +271,12 @@ check_prerequisites() {
   if ! verify_ssh_connection; then
     error "SSH connection test failed"
     error "Verify that:"
-    error "  1. svc-git SSH key exists in GSM: $SSH_KEY_SECRET"
+    error "  1. SSH key exists: $SSH_KEY_FILE"
     error "  2. Target host is reachable: $TARGET_HOST"
-    error "  3. svc-git user exists on target: $TARGET_USER"
+    error "  3. $TARGET_USER user exists on target: $TARGET_USER"
     return 1
   fi
-  success "SSH connection verified (authenticated via svc-git)"
+  success "SSH connection verified (authenticated via $SERVICE_ACCOUNT)"
   
   # Check for required commands on local machine
   for cmd in bash ssh scp git; do
@@ -896,12 +874,12 @@ main() {
   verify_target_is_onprem
   
   log "Target: $TARGET_USER@$TARGET_HOST (on-prem verified)"
-  log "Service Account: $SERVICE_ACCOUNT (svc-git)"
-  log "SSH Key Source: GSM secret '$SSH_KEY_SECRET'"
+  log "Service Account: $SERVICE_ACCOUNT"
+  log "SSH Key File: $SSH_KEY_FILE"
   log "Session: $SESSION_ID"
   log ""
   
-  # Check prerequisites (retrieve SSH key from GSM and verify connectivity)
+  # Check prerequisites (verify SSH key and connectivity)
   check_prerequisites || return 1
   log ""
   
