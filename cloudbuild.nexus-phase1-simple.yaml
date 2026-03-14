@@ -187,20 +187,20 @@ steps:
         
         # Wait for endpoint to be ready
         for i in {1..30}; do
-          ENDPOINTS=$(kubectl get endpoints nexus-discovery -n ${_K8S_NAMESPACE} -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
-          if [ -n "$ENDPOINTS" ]; then
-            echo "✓ Service endpoints ready: $ENDPOINTS"
+          ENDPOINTS=$$(kubectl get endpoints nexus-discovery -n ${_K8S_NAMESPACE} -o jsonpath='{.subsets[*].addresses[*].ip}' 2>/dev/null)
+          if [ -n "$$ENDPOINTS" ]; then
+            echo "✓ Service endpoints ready: $$ENDPOINTS"
             break
           fi
-          echo "Waiting for endpoints... ($i/30)"
+          echo "Waiting for endpoints... ($$i/30)"
           sleep 2
         done
         
         # Check pod readiness
-        POD=$(kubectl get pods -n ${_K8S_NAMESPACE} -l app=nexus-discovery -o name | head -1)
-        if [ -n "$POD" ]; then
+        POD=$$(kubectl get pods -n ${_K8S_NAMESPACE} -l app=nexus-discovery -o name | head -1)
+        if [ -n "$$POD" ]; then
           echo "Checking pod readiness..."
-          kubectl get $POD -n ${_K8S_NAMESPACE} -o jsonpath='{.status.conditions}'
+          kubectl get $$POD -n ${_K8S_NAMESPACE} -o jsonpath='{.status.conditions}'
           echo ""
           echo "✓ Pod status checked"
         fi
