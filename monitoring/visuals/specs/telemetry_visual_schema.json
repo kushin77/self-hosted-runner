@@ -1,0 +1,72 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-03-14T00:00:00Z",
+  "domains": [
+    "app-web",
+    "sso",
+    "security",
+    "pipeline",
+    "git",
+    "cloud"
+  ],
+  "nodes": [
+    { "id": "frontend", "type": "service", "domain": "app-web" },
+    { "id": "api", "type": "service", "domain": "app-web" },
+    { "id": "keycloak", "type": "identity", "domain": "sso" },
+    { "id": "vault", "type": "secret", "domain": "security" },
+    { "id": "otel-collector", "type": "telemetry", "domain": "cloud" },
+    { "id": "prometheus", "type": "metrics", "domain": "cloud" },
+    { "id": "loki", "type": "logs", "domain": "cloud" },
+    { "id": "tempo", "type": "traces", "domain": "cloud" },
+    { "id": "grafana", "type": "visual", "domain": "cloud" },
+    { "id": "alertmanager", "type": "alert", "domain": "cloud" },
+    { "id": "falco", "type": "runtime-security", "domain": "security" },
+    { "id": "ci-runner", "type": "pipeline", "domain": "pipeline" },
+    { "id": "scm", "type": "git", "domain": "git" }
+  ],
+  "edges": [
+    { "from": "frontend", "to": "otel-collector", "signal": "traces" },
+    { "from": "api", "to": "otel-collector", "signal": "metrics" },
+    { "from": "keycloak", "to": "otel-collector", "signal": "identity-events" },
+    { "from": "vault", "to": "otel-collector", "signal": "secret-access-audit" },
+    { "from": "otel-collector", "to": "prometheus", "signal": "metrics" },
+    { "from": "otel-collector", "to": "loki", "signal": "logs" },
+    { "from": "otel-collector", "to": "tempo", "signal": "traces" },
+    { "from": "prometheus", "to": "alertmanager", "signal": "alerts" },
+    { "from": "prometheus", "to": "grafana", "signal": "query" },
+    { "from": "loki", "to": "grafana", "signal": "query" },
+    { "from": "tempo", "to": "grafana", "signal": "query" },
+    { "from": "falco", "to": "loki", "signal": "security-events" },
+    { "from": "scm", "to": "ci-runner", "signal": "build-trigger" },
+    { "from": "ci-runner", "to": "loki", "signal": "pipeline-logs" }
+  ],
+  "views": [
+    {
+      "id": "executive-risk",
+      "title": "Executive Risk",
+      "widgets": [
+        "slo-burn-rate",
+        "change-failure-rate",
+        "active-critical-incidents"
+      ]
+    },
+    {
+      "id": "secops-runtime",
+      "title": "SecOps Runtime",
+      "widgets": [
+        "falco-alerts",
+        "vault-access-anomalies",
+        "authn-authz-failures"
+      ]
+    },
+    {
+      "id": "pipeline-reliability",
+      "title": "Pipeline Reliability",
+      "widgets": [
+        "failure-heatmap",
+        "stage-latency",
+        "flaky-test-index"
+      ]
+    }
+  ]
+}

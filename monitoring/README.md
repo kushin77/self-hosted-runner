@@ -42,3 +42,18 @@ GRAFANA_API_KEY="${GRAFANA_API_KEY}" \
 ```
 
 The `ensure_grafana_dashboard.sh` script checks whether a dashboard named "Canonical Secrets API Monitoring" already exists and only imports if missing.
+
+OSS Visual Monitoring Assets
+----------------------------
+
+The repository now includes an OSS-first tooling and visualization blueprint for
+app/web, SSO, security, pipeline reliability, git, and cloud observability.
+
+- Architecture blueprint: `docs/architecture/OSS_TOOLING_AND_MONITORING_BLUEPRINT_20260314.md`
+- Draw.io automation source (Mermaid): `monitoring/visuals/drawio/observability_topology.mmd`
+- Visual schema contract: `monitoring/visuals/specs/telemetry_visual_schema.json`
+
+Recommended workflow for draw.io automation:
+1. Keep topology and signal mapping in the JSON schema.
+2. Generate Mermaid from schema as part of direct deployment scripts.
+3. Import Mermaid into draw.io and export versioned PNG/SVG artifacts.

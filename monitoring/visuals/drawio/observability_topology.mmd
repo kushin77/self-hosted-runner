@@ -1,0 +1,64 @@
+flowchart TB
+  subgraph Edge[App and Web]
+    WEB[Web Frontend]
+    API[API Services]
+    MQ[Event Bus]
+  end
+
+  subgraph Identity[SSO and Identity]
+    KC[Keycloak]
+    SP[SPIRE]
+    VT[Vault]
+    GSM[GSM]
+    KMS[KMS]
+  end
+
+  subgraph Telemetry[Open Source Observability]
+    OTEL[OpenTelemetry Collector]
+    PR[Prometheus]
+    LK[Loki]
+    TP[Tempo]
+    PY[Pyroscope]
+    AL[Alertmanager]
+    GF[Grafana]
+  end
+
+  subgraph SecOps[Security and Compliance]
+    FA[Falco]
+    OPA[OPA and Kyverno]
+    TV[Trivy and SBOM]
+  end
+
+  subgraph Delivery[Pipeline and Git]
+    SCM[Gitea or GitLab CE]
+    CI[Drone or Jenkins or Tekton]
+  end
+
+  WEB --> OTEL
+  API --> OTEL
+  MQ --> OTEL
+  KC --> OTEL
+  VT --> OTEL
+  SP --> OTEL
+  FA --> LK
+  OPA --> LK
+  TV --> LK
+
+  OTEL --> PR
+  OTEL --> LK
+  OTEL --> TP
+  OTEL --> PY
+
+  PR --> AL
+  PR --> GF
+  LK --> GF
+  TP --> GF
+  PY --> GF
+
+  CI --> LK
+  CI --> PR
+  SCM --> CI
+
+  VT <-- sync --> GSM
+  VT --> KMS
+  KC --> VT
