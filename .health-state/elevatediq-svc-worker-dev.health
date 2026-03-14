@@ -1,0 +1,8 @@
+{
+  "name": "elevatediq-svc-worker-dev",
+  "status": "UNHEALTHY",
+  "timestamp": "2026-03-14T15:53:02Z",
+  "source": "192.168.168.31",
+  "target": "192.168.168.42",
+  "details": "SSH connectivity failed"
+}
