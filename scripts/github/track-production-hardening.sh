@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Creates/updates GitHub milestone and issues for production hardening tracking.
-# Defaults to dry-run. Pass --apply to execute.
+# Create/update production hardening milestone and issues.
+# Default mode is dry-run. Use --apply for writes.
 
 DRY_RUN=true
 REPO="${GH_REPO:-}"
@@ -55,9 +55,6 @@ if [ "$DRY_RUN" = false ]; then
   if [ -z "$existing_milestone" ]; then
     gh api "repos/${REPO}/milestones" -f title="$MILESTONE_TITLE" -f state="open" >/dev/null
   fi
-  milestone_number=$(gh api "repos/${REPO}/milestones" --jq ".[] | select(.title==\"${MILESTONE_TITLE}\") | .number" | head -n1)
-else
-  milestone_number="DRY_RUN"
 fi
 
 for task in "${TASKS[@]}"; do

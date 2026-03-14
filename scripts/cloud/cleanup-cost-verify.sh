@@ -4,7 +4,10 @@ set -euo pipefail
 # Cost verification and billing checks post-cleanup
 
 DRY_RUN=${DRY_RUN:-true}
-LOGFILE="/var/log/cleanup-audit.jsonl"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+LOGFILE="${LOGFILE:-${REPO_ROOT}/logs/cleanup/cleanup-audit.jsonl}"
+
+mkdir -p "$(dirname "$LOGFILE")"
 
 log(){
   command -v jq >/dev/null 2>&1 || true

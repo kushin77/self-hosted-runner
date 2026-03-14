@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Unified production QA gate for this repository.
-# Default behavior is non-destructive and dry-run-safe.
+# Unified production QA gate.
+# Default mode avoids heavy test suites unless --full-tests is provided.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -27,13 +27,6 @@ SKIP=0
 usage() {
   cat <<EOF
 Usage: $0 [--strict] [--full-tests] [--execute-shutdown] [--portal-url URL] [--backend-url URL]
-
-Options:
-  --strict             Fail fast when a critical step fails
-  --full-tests         Run heavy test suites (backend/portal/chaos)
-  --execute-shutdown   Execute real shutdown cleanup (otherwise dry-run)
-  --portal-url URL     Portal health endpoint (default: ${PORTAL_URL})
-  --backend-url URL    Backend health endpoint (default: ${BACKEND_URL})
 EOF
 }
 
@@ -54,12 +47,7 @@ json_log() {
   local step="$2"
   local message="$3"
   if command -v jq >/dev/null 2>&1; then
-    jq -n \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" \
-      --arg level "$level" \
-      --arg step "$step" \
-      --arg message "$message" \
-      '{timestamp:$ts,level:$level,step:$step,message:$message}' >> "$JSON_LOG"
+    jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" --arg level "$level" --arg step "$step" --arg message "$message" '{timestamp:$ts,level:$level,step:$step,message:$message}' >> "$JSON_LOG"
   else
     printf '%s [%s] %s: %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$level" "$step" "$message" >> "$JSON_LOG"
   fi
@@ -85,7 +73,6 @@ run_step() {
     json_log "INFO" "$step" "pass"
     return 0
   fi
-
   FAIL=$((FAIL+1))
   record_error "$step" "step failed"
   if [ "$STRICT" = true ]; then
@@ -103,12 +90,10 @@ skip_step() {
 
 check_http_200() {
   local url="$1"
-  local name="$2"
   if ! command -v curl >/dev/null 2>&1; then
-    skip_step "$name" "curl not installed"
-    return 0
+    return 1
   fi
-
+  local code
   code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "$url" || true)
   [ "$code" = "200" ]
 }
@@ -118,8 +103,6 @@ check_no_terraform_drift() {
     skip_step "terraform-drift" "terraform not installed"
     return 0
   fi
-
-  # Conservative check: this verifies no formatting drift and validates syntax.
   terraform -chdir="$REPO_ROOT/terraform" fmt -check -recursive >/dev/null 2>&1 || return 1
   terraform -chdir="$REPO_ROOT/terraform" validate >/dev/null 2>&1 || return 1
 }
@@ -130,8 +113,7 @@ run_backend_tests() {
     return 0
   fi
   [ -f "$REPO_ROOT/backend/package.json" ] || { skip_step "backend-tests" "backend package missing"; return 0; }
-  NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" \
-    npm --prefix "$REPO_ROOT/backend" test -- --runInBand --passWithNoTests >/dev/null || return 1
+  NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" npm --prefix "$REPO_ROOT/backend" test -- --runInBand --passWithNoTests >/dev/null || return 1
 }
 
 run_portal_tests() {
@@ -140,8 +122,7 @@ run_portal_tests() {
     return 0
   fi
   [ -f "$REPO_ROOT/portal/package.json" ] || { skip_step "portal-tests" "portal package missing"; return 0; }
-  NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" \
-    pnpm -C "$REPO_ROOT/portal" test -- --runInBand >/dev/null || return 1
+  NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}" pnpm -C "$REPO_ROOT/portal" test -- --runInBand >/dev/null || return 1
 }
 
 run_security_chaos_suite() {
@@ -156,8 +137,6 @@ run_overlap_review() {
 run_secrets_sync_tests() {
   [ -f "$REPO_ROOT/scripts/secrets/mirror-all-backends.sh" ] || return 1
   [ -f "$REPO_ROOT/scripts/secrets/health-check.sh" ] || return 1
-
-  mkdir -p "$REPO_ROOT/logs/secret-mirror" || true
   local mirror_audit_dir="$REPO_ROOT/logs/qa/secret-mirror"
   mkdir -p "$mirror_audit_dir" || true
   if ! touch "$mirror_audit_dir/.write-test" 2>/dev/null; then
@@ -165,7 +144,6 @@ run_secrets_sync_tests() {
     return 1
   fi
   rm -f "$mirror_audit_dir/.write-test" || true
-
   SECRET_MIRROR_AUDIT_DIR="$mirror_audit_dir" bash "$REPO_ROOT/scripts/secrets/mirror-all-backends.sh" >/dev/null || return 1
   bash "$REPO_ROOT/scripts/secrets/health-check.sh" >/dev/null || return 1
 }
@@ -210,16 +188,12 @@ Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 - Backend health URL: ${BACKEND_URL}
 - Execute shutdown: ${EXECUTE_SHUTDOWN}
 - Strict mode: ${STRICT}
+- Full tests: ${FULL_TESTS}
 
 ## Artifacts
 
 - JSON log: ${JSON_LOG}
 - Error log: ${ERROR_LOG}
-
-## Interpretation
-
-Use this report as the production gate artifact before merge/deploy.
-If failures are present, review ${ERROR_LOG} and linked step logs.
 EOF
 }
 
@@ -236,8 +210,8 @@ else
   skip_step "chaos-suite" "full suite disabled (use --full-tests)"
 fi
 run_step "secrets-sync" run_secrets_sync_tests || true
-run_step "portal-health" check_http_200 "$PORTAL_URL" "portal-health" || true
-run_step "backend-health" check_http_200 "$BACKEND_URL" "backend-health" || true
+run_step "portal-health" check_http_200 "$PORTAL_URL" || true
+run_step "backend-health" check_http_200 "$BACKEND_URL" || true
 run_step "terraform-drift" check_no_terraform_drift || true
 run_step "shutdown-validation" run_shutdown_validation || true
 run_step "shutdown-log-check" run_log_integrity_checks || true

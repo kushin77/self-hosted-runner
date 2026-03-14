@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Reviews overlap in shell automation by finding duplicate script names and
-# duplicate content hashes. Produces a markdown report usable in PR review.
+# Review script overlap by duplicate basenames and duplicate content hashes.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 REPORT_DIR="${REPO_ROOT}/reports/qa"
@@ -17,11 +16,7 @@ json_log() {
   local level="$1"
   local msg="$2"
   if command -v jq >/dev/null 2>&1; then
-    jq -n \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" \
-      --arg level "$level" \
-      --arg msg "$msg" \
-      '{timestamp:$ts,level:$level,message:$msg}' >> "$LOG_FILE"
+    jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" --arg level "$level" --arg msg "$msg" '{timestamp:$ts,level:$level,message:$msg}' >> "$LOG_FILE"
   else
     printf '%s [%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$level" "$msg" >> "$LOG_FILE"
   fi
@@ -90,8 +85,8 @@ rm -f "$tmp_hashes"
 echo >> "$REPORT_FILE"
 echo "## Consolidation Suggestions" >> "$REPORT_FILE"
 echo >> "$REPORT_FILE"
-echo "1. Keep a single authoritative script per operational domain (cleanup, secrets, health, testing)." >> "$REPORT_FILE"
-echo "2. Repoint wrappers to canonical scripts instead of copying logic." >> "$REPORT_FILE"
-echo "3. Keep dry-run as default for any shutdown or cleanup path." >> "$REPORT_FILE"
+echo "1. Keep a single authoritative script per operational domain." >> "$REPORT_FILE"
+echo "2. Use wrappers that call canonical scripts instead of copy/paste logic." >> "$REPORT_FILE"
+echo "3. Keep dry-run default for cleanup and destructive flows." >> "$REPORT_FILE"
 
 echo "Overlap review report: $REPORT_FILE"

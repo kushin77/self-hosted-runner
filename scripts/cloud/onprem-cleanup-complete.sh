@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# On-prem cleanup: stop local services, containers, and compose stacks.
-# Default is dry-run for safety.
+# On-prem cleanup: stop local services, compose stacks, and containers.
+# Default mode is dry-run for safe operations.
 
 DRY_RUN=${DRY_RUN:-true}
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -10,18 +10,16 @@ LOG_DIR="${REPO_ROOT}/logs/cleanup"
 TIMESTAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 LOGFILE="${LOGFILE:-${LOG_DIR}/onprem-cleanup-${TIMESTAMP}.jsonl}"
 ERROR_FILE="${ERROR_FILE:-${LOG_DIR}/onprem-cleanup-errors-${TIMESTAMP}.jsonl}"
+REMOTE_DOCKER_HOST="${REMOTE_DOCKER_HOST:-akushnir@192.168.168.42}"
+REMOTE_REPO_ROOT="${REMOTE_REPO_ROOT:-/home/akushnir/self-hosted-runner}"
 
-mkdir -p "${LOG_DIR}"
+mkdir -p "$LOG_DIR"
 
 log() {
   local level="$1"
   local message="$2"
   if command -v jq >/dev/null 2>&1; then
-    jq -n \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" \
-      --arg level "$level" \
-      --arg message "$message" \
-      '{timestamp:$ts,level:$level,message:$message}' >> "$LOGFILE"
+    jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" --arg level "$level" --arg message "$message" '{timestamp:$ts,level:$level,message:$message}' >> "$LOGFILE"
   else
     printf '%s [%s] %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$level" "$message" >> "$LOGFILE"
   fi
@@ -31,10 +29,7 @@ log_error() {
   local message="$1"
   log "ERROR" "$message"
   if command -v jq >/dev/null 2>&1; then
-    jq -n \
-      --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" \
-      --arg message "$message" \
-      '{timestamp:$ts,error:$message,source:"onprem-cleanup"}' >> "$ERROR_FILE"
+    jq -n --arg ts "$(date -u +%Y-%m-%dT%H:%M:%S.%6NZ)" --arg message "$message" '{timestamp:$ts,error:$message,source:"onprem-cleanup"}' >> "$ERROR_FILE"
   else
     printf '%s ERROR %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$message" >> "$ERROR_FILE"
   fi
@@ -48,12 +43,10 @@ run_cmd() {
     log "INFO" "dry_run ${description}"
     return 0
   fi
-
   if "$@"; then
     log "INFO" "success ${description}"
     return 0
   fi
-
   log_error "failed ${description}"
   return 1
 }
@@ -75,11 +68,55 @@ stop_systemd_services() {
     canonical-secrets-api.service
   )
 
+  local svc
   for svc in "${services[@]}"; do
     if systemctl list-unit-files "$svc" >/dev/null 2>&1; then
-      run_cmd "systemctl stop ${svc}" systemctl stop "$svc" || true
+      if [ "$DRY_RUN" = "true" ]; then
+        run_cmd "systemctl stop ${svc}" true
+      else
+        # Never prompt for password in automation paths.
+        if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+          run_cmd "sudo -n systemctl stop ${svc}" sudo -n systemctl stop "$svc" || true
+        else
+          log "WARN" "insufficient privileges for ${svc}; skipping non-interactive stop"
+        fi
+      fi
     fi
   done
+}
+
+stop_compose_file() {
+  local compose_file="$1"
+  local rel
+  rel="${compose_file#${REPO_ROOT}/}"
+
+  if [ "$DRY_RUN" = "true" ]; then
+    run_cmd "docker compose down -f ${compose_file}" true
+    return 0
+  fi
+
+  local out
+  if out=$(docker compose -f "$compose_file" down --remove-orphans 2>&1); then
+    log "INFO" "compose_down_local_success file=${compose_file}"
+    return 0
+  fi
+
+  echo "$out" | grep -q "NODE POLICY VIOLATION" || {
+    log_error "compose_down_local_failed file=${compose_file}"
+    return 1
+  }
+
+  if command -v ssh >/dev/null 2>&1; then
+    if ssh -o BatchMode=yes "$REMOTE_DOCKER_HOST" "[ -f '$REMOTE_REPO_ROOT/$rel' ] && docker compose -f '$REMOTE_REPO_ROOT/$rel' down --remove-orphans" >/dev/null 2>&1; then
+      log "INFO" "compose_down_remote_success host=${REMOTE_DOCKER_HOST} file=${rel}"
+      return 0
+    fi
+    log_error "compose_down_remote_failed_or_auth_required host=${REMOTE_DOCKER_HOST} file=${rel}"
+    return 1
+  fi
+
+  log_error "compose_down_remote_unavailable ssh missing"
+  return 1
 }
 
 stop_compose_stacks() {
@@ -92,7 +129,7 @@ stop_compose_stacks() {
 
   while IFS= read -r compose_file; do
     [ -z "$compose_file" ] && continue
-    run_cmd "docker compose down -f ${compose_file}" docker compose -f "$compose_file" down --remove-orphans || true
+    stop_compose_file "$compose_file" || true
   done <<< "$compose_files"
 }
 

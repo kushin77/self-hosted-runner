@@ -39,7 +39,6 @@ run_mutation(){
     log "dry_run ${description}"
     return 0
   fi
-
   if "$@"; then
     log "success ${description}"
   else
@@ -56,7 +55,6 @@ if ! command -v aws >/dev/null 2>&1; then
 fi
 
 list_resources(){
-  echo "Listing active AWS resources in region ${AWS_REGION}"
   aws ec2 describe-instances --region "$AWS_REGION" --filters Name=instance-state-name,Values=running --query 'Reservations[].Instances[].{InstanceId:InstanceId,State:State.Name,Type:InstanceType}' --output table 2>/dev/null || true
   aws lambda list-functions --region "$AWS_REGION" --query 'Functions[].{FunctionName:FunctionName,Runtime:Runtime,LastModified:LastModified}' --output table 2>/dev/null || true
   aws ecs list-clusters --region "$AWS_REGION" --output text 2>/dev/null || true
@@ -86,6 +84,7 @@ scale_ecs_services_to_zero(){
 }
 
 if [ "$DRY_RUN" = "true" ]; then
+  echo "DRY-RUN: listing AWS resources"
   list_resources
   log "aws_dry_run_listed_resources"
   exit 0

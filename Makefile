@@ -1,4 +1,4 @@
-.PHONY: build push qa-prod-gate qa-overlap qa-prod-gate-execute
+.PHONY: build push qa-overlap qa-prod-gate qa-prod-gate-execute
 
 IMAGE ?= gcr.io/$(GCP_PROJECT)/automation-runner:latest
 

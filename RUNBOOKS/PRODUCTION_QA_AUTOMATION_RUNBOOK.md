@@ -4,7 +4,7 @@
 
 This runbook defines the automated flow to:
 
-1. Shut down on-prem, GCP, AWS, Azure workloads
+1. Shut down on-prem, GCP, AWS, and Azure workloads
 2. Validate cleanup and hibernation
 3. Execute consolidated QA checks
 4. Validate secrets sync and portal/backend health
@@ -43,7 +43,7 @@ bash scripts/qa/production-readiness-gate.sh
 bash scripts/qa/production-readiness-gate.sh --execute-shutdown --strict
 ```
 
-4. Track the complete work in GitHub milestone/issues
+4. Track complete work in GitHub milestone/issues
 
 ```bash
 bash scripts/github/track-production-hardening.sh --repo <owner/repo> --apply
@@ -63,11 +63,11 @@ bash scripts/github/track-production-hardening.sh --repo <owner/repo> --apply
 4. Immutable/ephemeral/idempotent/no-ops: dry-run defaults + JSONL logs + repeat-safe operations
 5. Overlap code review: `scripts/qa/review-overlap.sh`
 6. Consolidated tests: `scripts/qa/production-readiness-gate.sh`
-7. Secrets sync validation: `scripts/secrets/mirror-all-backends.sh` + `scripts/secrets/health-check.sh` via gate
+7. Secrets sync validation: mirror + health checks via production gate
 8. Production readiness: gate report output in `reports/qa/`
 9. Shutdown/reboot log checks: `--reboot-check` path in cleanup orchestrator
 10. Error tracking: `logs/cleanup/*errors*.jsonl` and `logs/qa/*errors*.jsonl`
-11. 10x enhancement tracking: generated issues by `track-production-hardening.sh`
+11. 10x enhancement tracking: generated issues by tracker script
 12. Portal/backend sync checks: health URL checks in production gate
 13. Commit/push/merge readiness guard: git-state check in production gate
-14. GitHub issue/milestone tracking: `scripts/github/track-production-hardening.sh`
+14. GitHub issue/milestone tracking: tracker script

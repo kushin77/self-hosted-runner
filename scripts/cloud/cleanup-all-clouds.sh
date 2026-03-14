@@ -87,16 +87,14 @@ collect_shutdown_logs(){
 }
 
 run_reboot_checks(){
-  log "running reboot checks"
   if [ "$REBOOT_CHECK" != true ]; then
     return 0
   fi
-
+  log "running reboot checks"
   if [ "$DRY_RUN" = true ]; then
     log "dry_run reboot check requested; no reboot commands executed"
     return 0
   fi
-
   if command -v journalctl >/dev/null 2>&1; then
     journalctl -b -1 --no-pager > "${LOG_DIR}/previous-boot-${TIMESTAMP}.log" 2>/dev/null || true
   fi

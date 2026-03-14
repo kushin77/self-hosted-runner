@@ -38,7 +38,6 @@ run_mutation(){
     log "dry_run ${description}"
     return 0
   fi
-
   if "$@"; then
     log "success ${description}"
   else
@@ -55,7 +54,6 @@ if ! command -v az >/dev/null 2>&1; then
 fi
 
 list_resources(){
-  echo "Listing active Azure resources"
   az vm list -d --query '[].{name:name,resourceGroup:resourceGroup,power:powerState}' -o table 2>/dev/null || true
   az webapp list --query '[].{name:name,resourceGroup:resourceGroup,state:state}' -o table 2>/dev/null || true
   az functionapp list --query '[].{name:name,resourceGroup:resourceGroup,state:state}' -o table 2>/dev/null || true
@@ -92,6 +90,7 @@ stop_function_apps(){
 }
 
 if [ "$DRY_RUN" = "true" ]; then
+  echo "DRY-RUN: listing Azure resources"
   list_resources
   log "azure_dry_run_listed_resources"
   exit 0
