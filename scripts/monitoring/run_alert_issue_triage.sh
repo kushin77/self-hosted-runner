@@ -8,6 +8,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 AUDIT_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.jsonl"
+WARNING_LOG="${REPO_ROOT}/logs/monitoring-alert-issue-triage.warning"
 mkdir -p "$(dirname "$AUDIT_LOG")"
 
 PROM_URL="${PROM_URL:-http://localhost:9090}"
@@ -21,6 +22,30 @@ log_event() {
   echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"event\":\"${event}\",\"details\":\"${details//\"/\\\"}\"}" >> "$AUDIT_LOG"
 }
 
+emit_skip_warning_if_repeated() {
+  local threshold="${TRIAGE_SKIP_ALERT_THRESHOLD:-3}"
+  local recent
+
+  if ! [[ "$threshold" =~ ^[0-9]+$ ]] || [ "$threshold" -lt 1 ]; then
+    threshold=3
+  fi
+
+  recent="$(tail -n "$threshold" "$AUDIT_LOG" 2>/dev/null || true)"
+  if [ -n "$recent" ] && [ "$(printf "%s\n" "$recent" | grep -c '"event":"triage_skip"' || true)" -ge "$threshold" ]; then
+    cat > "$WARNING_LOG" <<EOF
+timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+status=warning
+message=Repeated triage skips detected
+threshold=${threshold}
+action=Verify GITHUB_TOKEN_GSM_SECRET and GCP_PROJECT_ID; validate Prometheus/Alertmanager reachability
+EOF
+  fi
+}
+
+clear_skip_warning() {
+  rm -f "$WARNING_LOG" 2>/dev/null || true
+}
+
 endpoint_ready() {
   local url="$1"
   [ -z "$url" ] && return 1
@@ -31,6 +56,7 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
   if ! command -v gcloud >/dev/null 2>&1; then
     echo "gcloud is required when GITHUB_TOKEN is not set; skipping triage run" >&2
     log_event "triage_skip" "missing gcloud and no GITHUB_TOKEN"
+    emit_skip_warning_if_repeated
     exit 0
   fi
 
@@ -38,6 +64,7 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
   if [ -z "$GCP_PROJECT_ID" ]; then
     echo "GCP_PROJECT_ID is required for GSM token retrieval; skipping triage run" >&2
     log_event "triage_skip" "missing GCP_PROJECT_ID"
+    emit_skip_warning_if_repeated
     exit 0
   fi
 
@@ -45,15 +72,19 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
   if [ -z "$token" ]; then
     echo "Failed to load GitHub token from GSM secret: $GITHUB_TOKEN_GSM_SECRET; skipping triage run" >&2
     log_event "triage_skip" "missing or inaccessible GSM secret ${GITHUB_TOKEN_GSM_SECRET}"
+    emit_skip_warning_if_repeated
     exit 0
   fi
   export GITHUB_TOKEN="$token"
 fi
 
+clear_skip_warning
+
 # If neither endpoint is reachable, skip this cycle (timer will retry).
 if ! endpoint_ready "${PROM_URL}/-/ready" && ! endpoint_ready "${AM_URL}/-/ready"; then
   echo "Prometheus/Alertmanager not reachable; skipping triage run" >&2
   log_event "triage_skip" "monitoring endpoints unreachable prom=${PROM_URL} am=${AM_URL}"
+  emit_skip_warning_if_repeated
   exit 0
 fi
 
