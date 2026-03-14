@@ -121,6 +121,97 @@ scrape_configs:
     scrape_interval: 30s
     scrape_timeout: 10s
 
+  # ==================== NAS HOST (eiq-nas) MONITORING ====================
+  # NAS metrics ingestion for development infrastructure-as-code storage host
+  - job_name: 'eiq-nas-node-metrics'
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          service_type: 'node-exporter'
+          criticality: 'high'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'node_(cpu|memory|disk|network|filesystem|load|context).*'
+        action: 'keep'
+      - source_labels: [__name__]
+        target_label: instance
+        replacement: 'eiq-nas'
+
+  - job_name: 'eiq-nas-storage-metrics'
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          service_type: 'storage'
+          criticality: 'critical'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'node_filesystem_(avail|size|files|inodes|free|used).*'
+        action: 'keep'
+      - source_labels: [__name__]
+        target_label: instance
+        replacement: 'eiq-nas'
+
+  - job_name: 'eiq-nas-network-metrics'
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          service_type: 'network'
+          criticality: 'high'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'node_network_(transmit|receive|up).*'
+        action: 'keep'
+      - source_labels: [__name__]
+        target_label: instance
+        replacement: 'eiq-nas'
+      - source_labels: [device]
+        regex: 'lo|docker.*'
+        action: 'drop'
+
+  - job_name: 'eiq-nas-process-metrics'
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          service_type: 'processes'
+          criticality: 'medium'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'node_procs_(running|blocked|total).*'
+        action: 'keep'
+      - source_labels: [__name__]
+        target_label: instance
+        replacement: 'eiq-nas'
+
+  - job_name: 'eiq-nas-custom-metrics'
+    static_configs:
+      - targets: ['eiq-nas:9101']
+        labels:
+          instance: 'eiq-nas'
+          service_type: 'custom'
+          criticality: 'medium'
+    scrape_interval: 60s
+    scrape_timeout: 10s
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'eiq_.*'
+        action: 'keep'
+      - source_labels: [__name__]
+        target_label: instance
+        replacement: 'eiq-nas'
+
 # ==================== RECORDING RULES ====================
 # These calculate pre-aggregated metrics for faster queries
 # Stored in /etc/prometheus/rules/*.yaml
+# Additional NAS-specific rules are in /etc/prometheus/rules/nas-*.yaml

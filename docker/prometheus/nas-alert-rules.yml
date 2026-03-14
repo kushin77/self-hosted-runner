@@ -1,0 +1,175 @@
+# Prometheus Alert Rules for NAS Host Monitoring (eiq-nas)
+# Critical alerts for NAS storage, network, and process health
+#
+# Severity Levels:
+#   - critical: Immediate action required (storage full, network down, git processes failed)
+#   - warning: Monitor closely (high CPU, memory pressure, replication lag)
+#   - info: Informational alerts (maintenance mode, backups running)
+#
+
+groups:
+  - name: nas-storage-alerts
+    interval: 30s
+    rules:
+      # Alert: Filesystem space critically low
+      - alert: NASFilesystemSpaceLow
+        expr: |
+          (node_filesystem_avail_bytes{instance="eiq-nas"} / node_filesystem_size_bytes{instance="eiq-nas"}) < 0.1
+        for: 5m
+        labels:
+          severity: critical
+          service: eiq-nas
+          category: storage
+        annotations:
+          summary: "NAS filesystem space critically low ({{ $value | humanizePercentage }})"
+          description: "NAS host {{ $labels.device }} has less than 10% free space"
+          dashboard: "http://192.168.168.42:3000/d/nas-storage"
+      
+      # Alert: Filesystem space warning
+      - alert: NASFilesystemSpaceWarning
+        expr: |
+          (node_filesystem_avail_bytes{instance="eiq-nas"} / node_filesystem_size_bytes{instance="eiq-nas"}) < 0.2
+        for: 10m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: storage
+        annotations:
+          summary: "NAS filesystem space low ({{ $value | humanizePercentage }})"
+          description: "NAS host {{ $labels.device }} has less than 20% free space"
+      
+      # Alert: Filesystem inode usage critical
+      - alert: NASFilesystemInodeCritical
+        expr: |
+          (node_filesystem_files_free{instance="eiq-nas"} / node_filesystem_files{instance="eiq-nas"}) < 0.05
+        for: 5m
+        labels:
+          severity: critical
+          service: eiq-nas
+          category: storage
+        annotations:
+          summary: "NAS inode usage critical ({{ $value | humanizePercentage }} free)"
+          description: "NAS filesystem {{ $labels.device }} has critical inode exhaustion"
+
+  - name: nas-network-alerts
+    interval: 15s
+    rules:
+      # Alert: Network interface down
+      - alert: NASNetworkInterfaceDown
+        expr: |
+          node_network_up{instance="eiq-nas", device!~"lo|docker.*"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: eiq-nas
+          category: network
+        annotations:
+          summary: "NAS network interface DOWN: {{ $labels.device }}"
+          description: "NAS host {{ $labels.instance }} network interface {{ $labels.device }} is down"
+          dashboard: "http://192.168.168.42:3000/d/nas-network"
+      
+      # Alert: High network error rate
+      - alert: NASNetworkErrorRate
+        expr: |
+          rate(node_network_transmit_errs_total{instance="eiq-nas"}[5m]) > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: network
+        annotations:
+          summary: "NAS network errors detected ({{ $value }} errors/sec)"
+          description: "NAS host {{ $labels.instance }} interface {{ $labels.device }} has high error rate"
+
+  - name: nas-cpu-memory-alerts
+    interval: 30s
+    rules:
+      # Alert: CPU usage critical
+      - alert: NASCPUUsageCritical
+        expr: |
+          (100 - avg(rate(node_cpu_seconds_total{instance="eiq-nas",mode="idle"}[5m])) by (instance) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: compute
+        annotations:
+          summary: "NAS CPU usage critical ({{ $value | humanize }}%)"
+          description: "NAS host {{ $labels.instance }} CPU usage is above 90%"
+      
+      # Alert: Memory usage critical
+      - alert: NASMemoryUsageCritical
+        expr: |
+          (node_memory_MemAvailable_bytes{instance="eiq-nas"} / node_memory_MemTotal_bytes{instance="eiq-nas"}) < 0.1
+        for: 10m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: compute
+        annotations:
+          summary: "NAS memory usage critical ({{ $value | humanizePercentage }} available)"
+          description: "NAS host {{ $labels.instance }} has less than 10% available memory"
+
+  - name: nas-process-alerts
+    interval: 30s
+    rules:
+      # Alert: Git daemon not running
+      - alert: NASGitProcessDown
+        expr: |
+          up{job="eiq-nas-process-metrics", service_type="processes"} == 0
+        for: 5m
+        labels:
+          severity: critical
+          service: eiq-nas
+          category: process
+        annotations:
+          summary: "NAS git processes may be failing"
+          description: "NAS host {{ $labels.instance }} git service is not responding"
+          runbook: "https://github.com/kushin77/eiq-nas/blob/main/TROUBLESHOOTING.md#git-service"
+      
+      # Alert: High process count (potential runaway)
+      - alert: NASProcessCountHigh
+        expr: |
+          node_procs_running{instance="eiq-nas"} > 50
+        for: 15m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: process
+        annotations:
+          summary: "NAS has high number of running processes ({{ $value }})"
+          description: "NAS host {{ $labels.instance }} has {{ $value }} processes running"
+
+  - name: nas-replication-alerts
+    interval: 60s
+    rules:
+      # Alert: NAS backup/replication lag (if custom metrics available)
+      - alert: NASReplicationLag
+        expr: |
+          time() - eiq_replication_last_sync_timestamp{instance="eiq-nas"} > 3600
+        for: 10m
+        labels:
+          severity: warning
+          service: eiq-nas
+          category: replication
+        annotations:
+          summary: "NAS replication lag detected ({{ $value | humanizeDuration }})"
+          description: "NAS host {{ $labels.instance }} last replication was {{ $value | humanizeDuration }} ago"
+          dashboard: "http://192.168.168.42:3000/d/nas-replication"
+
+  - name: nas-availability-alerts
+    interval: 15s
+    rules:
+      # Alert: NAS host unreachable
+      - alert: NASHostDown
+        expr: |
+          up{instance="eiq-nas"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: eiq-nas
+          category: availability
+        annotations:
+          summary: "NAS HOST DOWN: {{ $labels.instance }}"
+          description: "NAS host {{ $labels.instance }} is not responding to monitoring requests"
+          action: "SSH to NAS host and check system status; restart monitoring if needed"

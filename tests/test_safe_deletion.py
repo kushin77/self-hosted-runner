@@ -76,7 +76,8 @@ class TestSafeDeletion:
     
     def test_recovery_from_backup(self, test_workspace):
         """Test recovery of deleted branch from backup."""
-        backup_location = test_workspace / "backup" / "feature" / "old"
+        from pathlib import Path
+        backup_location = Path(test_workspace) / "backup" / "feature" / "old"
         backup_location.parent.mkdir(parents=True, exist_ok=True)
         
         # In production, would restore from git

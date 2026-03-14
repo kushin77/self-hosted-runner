@@ -1,0 +1,193 @@
+# Prometheus Recording Rules for NAS Host (eiq-nas)
+# Pre-computed metrics for efficient Grafana dashboards
+# Interval: 30s (aligned with NAS scrape jobs)
+#
+
+groups:
+  - name: nas-storage-recording
+    interval: 30s
+    rules:
+      # Storage capacity aggregations
+      - record: nas:storage:used_bytes:5m_avg
+        expr: |
+          avg_over_time(node_filesystem_size_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"} - node_filesystem_avail_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"}[5m])
+      
+      - record: nas:storage:used_percent:5m_avg
+        expr: |
+          avg_over_time((node_filesystem_size_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"} - node_filesystem_avail_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"}) / node_filesystem_size_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"} * 100[5m])
+      
+      - record: nas:storage:available_bytes:5m_avg
+        expr: |
+          avg_over_time(node_filesystem_avail_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"}[5m])
+      
+      # Total filesystem space
+      - record: nas:storage:total_bytes
+        expr: |
+          sum(node_filesystem_size_bytes{instance="eiq-nas", fstype!~"tmpfs|fuse"})
+      
+      # Inode utilization
+      - record: nas:storage:inodes_used_percent:5m_avg
+        expr: |
+          avg_over_time((node_filesystem_files{instance="eiq-nas"} - node_filesystem_files_free{instance="eiq-nas"}) / node_filesystem_files{instance="eiq-nas"} * 100[5m])
+
+  - name: nas-network-recording
+    interval: 30s
+    rules:
+      # Network throughput (bytes per second)
+      - record: nas:network:bytes_in:1m_rate
+        expr: |
+          sum(rate(node_network_receive_bytes_total{instance="eiq-nas", device!~"lo|docker.*"}[1m]))
+      
+      - record: nas:network:bytes_out:1m_rate
+        expr: |
+          sum(rate(node_network_transmit_bytes_total{instance="eiq-nas", device!~"lo|docker.*"}[1m]))
+      
+      # Network packet rate
+      - record: nas:network:packets_in:1m_rate
+        expr: |
+          sum(rate(node_network_receive_packets_total{instance="eiq-nas", device!~"lo|docker.*"}[1m]))
+      
+      - record: nas:network:packets_out:1m_rate
+        expr: |
+          sum(rate(node_network_transmit_packets_total{instance="eiq-nas", device!~"lo|docker.*"}[1m]))
+      
+      # Network errors
+      - record: nas:network:errors:5m_sum
+        expr: |
+          sum(increase(node_network_receive_errs_total{instance="eiq-nas"}[5m])) + 
+          sum(increase(node_network_transmit_errs_total{instance="eiq-nas"}[5m]))
+      
+      # Per-device throughput
+      - record: nas:network:device:bytes_in:1m_rate
+        expr: |
+          rate(node_network_receive_bytes_total{instance="eiq-nas", device!~"lo|docker.*"}[1m])
+      
+      - record: nas:network:device:bytes_out:1m_rate
+        expr: |
+          rate(node_network_transmit_bytes_total{instance="eiq-nas", device!~"lo|docker.*"}[1m])
+
+  - name: nas-compute-recording
+    interval: 30s
+    rules:
+      # CPU usage percentage
+      - record: nas:cpu:usage_percent:5m_avg
+        expr: |
+          (1 - avg by (instance) (rate(node_cpu_seconds_total{instance="eiq-nas", mode="idle"}[5m]))) * 100
+      
+      # CPU usage by mode
+      - record: nas:cpu:mode:5m_avg
+        expr: |
+          avg_over_time(rate(node_cpu_seconds_total{instance="eiq-nas"}[5m])[5m:5m])
+      
+      # Memory metrics
+      - record: nas:memory:available_bytes:5m_avg
+        expr: |
+          avg_over_time(node_memory_MemAvailable_bytes{instance="eiq-nas"}[5m])
+      
+      - record: nas:memory:used_bytes:5m_avg
+        expr: |
+          avg_over_time((node_memory_MemTotal_bytes{instance="eiq-nas"} - node_memory_MemAvailable_bytes{instance="eiq-nas"})[5m])
+      
+      - record: nas:memory:used_percent:5m_avg
+        expr: |
+          avg_over_time((1 - node_memory_MemAvailable_bytes{instance="eiq-nas"} / node_memory_MemTotal_bytes{instance="eiq-nas"}) * 100[5m])
+      
+      # Memory pressure (buffers + cached)
+      - record: nas:memory:pressure_bytes:5m_avg
+        expr: |
+          avg_over_time((node_memory_Buffers_bytes{instance="eiq-nas"} + node_memory_Cached_bytes{instance="eiq-nas"})[5m])
+      
+      # Swap usage
+      - record: nas:memory:swap_used_percent:5m_avg
+        expr: |
+          avg_over_time((node_memory_SwapTotal_bytes{instance="eiq-nas"} - node_memory_SwapFree_bytes{instance="eiq-nas"}) / node_memory_SwapTotal_bytes{instance="eiq-nas"} * 100[5m])
+
+  - name: nas-disk-io-recording
+    interval: 30s
+    rules:
+      # Disk I/O throughput
+      - record: nas:disk:io_bytes_read:1m_rate
+        expr: |
+          sum(rate(node_disk_read_bytes_total{instance="eiq-nas"}[1m]))
+      
+      - record: nas:disk:io_bytes_write:1m_rate
+        expr: |
+          sum(rate(node_disk_written_bytes_total{instance="eiq-nas"}[1m]))
+      
+      # I/O operations per second
+      - record: nas:disk:io_ops_read:1m_rate
+        expr: |
+          sum(rate(node_disk_reads_completed_total{instance="eiq-nas"}[1m]))
+      
+      - record: nas:disk:io_ops_write:1m_rate
+        expr: |
+          sum(rate(node_disk_writes_completed_total{instance="eiq-nas"}[1m]))
+      
+      # Per-device I/O
+      - record: nas:disk:device:io_bytes_read:1m_rate
+        expr: |
+          rate(node_disk_read_bytes_total{instance="eiq-nas"}[1m])
+      
+      - record: nas:disk:device:io_bytes_write:1m_rate
+        expr: |
+          rate(node_disk_written_bytes_total{instance="eiq-nas"}[1m])
+
+  - name: nas-process-recording
+    interval: 30s
+    rules:
+      # Process metrics
+      - record: nas:processes:running:5m_avg
+        expr: |
+          avg_over_time(node_procs_running{instance="eiq-nas"}[5m])
+      
+      - record: nas:processes:blocked:5m_avg
+        expr: |
+          avg_over_time(node_procs_blocked{instance="eiq-nas"}[5m])
+      
+      - record: nas:processes:total:5m_avg
+        expr: |
+          avg_over_time(node_procs_total{instance="eiq-nas"}[5m])
+
+  - name: nas-system-recording
+    interval: 30s
+    rules:
+      # Uptime tracking
+      - record: nas:system:uptime_seconds
+        expr: |
+          node_boot_time_seconds{instance="eiq-nas"}
+      
+      # Load average
+      - record: nas:system:load:1m_avg
+        expr: |
+          avg_over_time(node_load1{instance="eiq-nas"}[5m])
+      
+      - record: nas:system:load:5m_avg
+        expr: |
+          avg_over_time(node_load5{instance="eiq-nas"}[5m])
+      
+      - record: nas:system:load:15m_avg
+        expr: |
+          avg_over_time(node_load15{instance="eiq-nas"}[5m])
+      
+      # Context switches
+      - record: nas:system:context_switches:1m_rate
+        expr: |
+          rate(node_context_switches_total{instance="eiq-nas"}[1m])
+
+  - name: nas-availability-recording
+    interval: 15s
+    rules:
+      # Host availability
+      - record: nas:availability:up
+        expr: |
+          up{instance="eiq-nas"}
+      
+      # Scrape success rate (5m window)
+      - record: nas:scrape:success_rate:5m
+        expr: |
+          avg_over_time(up{instance="eiq-nas"}[5m])
+      
+      # Scrape duration tracking
+      - record: nas:scrape:duration_seconds:5m_avg
+        expr: |
+          avg_over_time(scrape_duration_seconds{instance="eiq-nas"}[5m])

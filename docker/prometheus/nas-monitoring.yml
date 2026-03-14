@@ -1,0 +1,159 @@
+# NAS Host Monitoring Configuration (eiq-nas)
+# Scrape metrics from dedicated NAS host for development infrastructure-as-code storage
+# 
+# Metrics Sources:
+#   - Node Exporter: System metrics (CPU, memory, disk, network)
+#   - Custom Collectors: NAS-specific metrics (storage capacity, replication, backup status)
+#
+# Security: All endpoints protected by OAuth2-Proxy X-Auth header enforcement
+#
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'on-prem-worker'
+    environment: production
+    namespace: monitoring
+    source: 'eiq-nas-host'
+
+# Alerting configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Recording rules for NAS metrics aggregation
+rule_files:
+  - '/etc/prometheus/rules/nas-recording-rules.yml'
+  - '/etc/prometheus/rules/nas-alert-rules.yml'
+
+scrape_configs:
+  # NAS Host: System Metrics (Node Exporter)
+  # Monitor: CPU, Memory, Disk I/O, Network
+  - job_name: 'eiq-nas-node-metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    
+    # Static configuration for NAS Host
+    static_configs:
+      - targets: ['eiq-nas:9100']  # Node Exporter port
+        labels:
+          instance: 'eiq-nas'
+          job: 'node-metrics'
+          service_type: 'system-metrics'
+          criticality: high
+    
+    # Relabel configurations
+    relabel_configs:
+      # Add NAS instance label
+      - source_labels: [__address__]
+        target_label: 'nas_host'
+        replacement: 'eiq-nas'
+      
+      # Add environment label
+      - target_label: environment
+        replacement: production
+      
+      # Add monitoring stack label
+      - target_label: monitoring_stack
+        replacement: 'oauth-exclusive'
+    
+    # Metric relabeling: Drop unnecessary metrics
+    metric_relabel_configs:
+      # Keep only essential system metrics
+      - source_labels: [__name__]
+        regex: 'node_(cpu_seconds_total|memory_bytes|disk_.*|network_.*|filesystem_.*|processes_.*|load_.*|systemd_.*)'
+        action: keep
+  
+  # NAS Host: Storage Metrics
+  # Monitor: Disk usage, inode usage, filesystem health
+  - job_name: 'eiq-nas-storage-metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    metrics_path: '/metrics'
+    
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          job: 'storage-metrics'
+          service_type: 'storage'
+          criticality: critical
+    
+    metric_relabel_configs:
+      # Keep only storage/filesystem metrics
+      - source_labels: [__name__]
+        regex: 'node_(filesystem_.*|disk_.*|stat_.*)'
+        action: keep
+  
+  # NAS Host: Network Metrics
+  # Monitor: Network I/O, interface errors, packet loss
+  - job_name: 'eiq-nas-network-metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          job: 'network-metrics'
+          service_type: 'network'
+          criticality: high
+    
+    metric_relabel_configs:
+      # Keep only network metrics
+      - source_labels: [__name__]
+        regex: 'node_(network_.*|sockstat_.*)'
+        action: keep
+  
+  # NAS Host: Process Metrics
+  # Monitor: Git processes, backup processes, replication daemons
+  - job_name: 'eiq-nas-process-metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+    
+    static_configs:
+      - targets: ['eiq-nas:9100']
+        labels:
+          instance: 'eiq-nas'
+          job: 'process-metrics'
+          service_type: 'processes'
+          criticality: medium
+    
+    metric_relabel_configs:
+      # Keep only process-related metrics
+      - source_labels: [__name__]
+        regex: 'node_(processes_.*|systemd_unit_.*)'
+        action: keep
+  
+  # NAS Host: Custom Metrics Exporter
+  # Monitor: NAS-specific metrics (backup status, replication lag, storage quota)
+  - job_name: 'eiq-nas-custom-metrics'
+    scrape_interval: 60s
+    scrape_timeout: 10s
+    metrics_path: '/metrics/custom'
+    
+    static_configs:
+      - targets: ['eiq-nas:9101']  # Custom metrics exporter (optional)
+        labels:
+          instance: 'eiq-nas'
+          job: 'custom-metrics'
+          service_type: 'nas-custom'
+          criticality: high
+    
+    metric_relabel_configs:
+      # Keep custom NAS metrics
+      - source_labels: [__name__]
+        regex: 'eiq_.*'
+        action: keep
+
+# Service Discovery (Optional for multi-NAS environments)
+# Uncomment to enable automatic discovery of NAS hosts
+# consul_sd_configs:
+#   - server: 'consul:8500'
+#     namespace: 'monitoring'
+#     datacenter: 'on-prem'
+#     services: ['eiq-nas']
