@@ -15,14 +15,39 @@ import time
 logging.basicConfig(level=logging.INFO)
 app = Flask(__name__)
 
-GCS_BUCKET = os.environ.get("GCS_BUCKET")
+GCS_BUCKET = os.environ.get("GCS_BUCKET", "nexusshield-prod-phase1-audit")
 PROJECT = os.environ.get("PROJECT", "nexusshield-prod")
 REPO_OWNER = os.environ.get("REPO_OWNER", "kushin77")
 REPO_NAME = os.environ.get("REPO_NAME", "self-hosted-runner")
 WEBHOOK_SECRET = os.environ.get("WEBHOOK_SECRET")
 
-if not GCS_BUCKET:
-    raise RuntimeError("GCS_BUCKET must be set")
+# Health check endpoints for Cloud Run
+@app.route('/health', methods=['GET'])
+def health_check():
+    """Readiness and liveness probe endpoint."""
+    return jsonify({"status": "ok", "service": "nexus-webhook"}), 200
+
+@app.route('/health/ready', methods=['GET'])
+def readiness_probe():
+    """Kubernetes readiness probe."""
+    try:
+        # Quick check that we can access GCS
+        storage_client = storage.Client()
+        storage_client.list_buckets()
+        return jsonify({"ready": True}), 200
+    except Exception as e:
+        logging.warning("Readiness check failed: %s", e)
+        return jsonify({"ready": False, "error": str(e)}), 503
+
+@app.route('/health/live', methods=['GET'])
+def liveness_probe():
+    """Kubernetes liveness probe."""
+    return jsonify({"alive": True}), 200
+
+@app.route('/', methods=['GET'])
+def index():
+    """Default route."""
+    return jsonify({"service": "nexus-webhook", "version": "1.0.0"}), 200
 
 @app.route('/', methods=['POST'])
 def receive():
