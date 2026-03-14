@@ -1,0 +1,112 @@
+#!/bin/bash
+#
+# 🔧 GIT POST-RECEIVE HOOK - Direct Deployment Trigger
+#
+# Installed at: /opt/automation/repositories/self-hosted-runner.git/hooks/post-receive
+#
+# Triggered by: git push to any branch
+# Action: Triggers direct deployment for main branch only
+#
+# Features:
+#   ✅ Zero GitHub Actions
+#   ✅ Git push → Deployment in <30 seconds
+#   ✅ Async execution (non-blocking)
+#   ✅ Audit trail for all pushes
+#   ✅ Automatic health verification
+
+set -euo pipefail
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+readonly CONTROLLER_PATH="/opt/automation/infrastructure/direct-deploy-controller.sh"
+readonly AUDIT_LOG="/data/audit/git-hooks.jsonl"
+readonly DEPLOY_LOG_DIR="/data/logs/deployments"
+
+# ============================================================================
+# HOOK LOGIC
+# ============================================================================
+
+# Create required directories
+mkdir -p "$(dirname "$AUDIT_LOG")"
+mkdir -p "$DEPLOY_LOG_DIR"
+
+# Log hook execution
+audit_log() {
+    local event="$1"
+    local status="$2"
+    local message="$3"
+    
+    local timestamp=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    local json=$(cat <<EOF
+{
+  "timestamp": "$timestamp",
+  "hook": "post-receive",
+  "event": "$event",
+  "status": "$status",
+  "message": "$message",
+  "pusher": "${GL_USERNAME:-unknown}",
+  "repository": "${PWD##*/}",
+  "refname": "${refname:-unknown}"
+}
+EOF
+)
+    echo "$json" >> "$AUDIT_LOG"
+}
+
+# Read git refs (format: oldref newref refname)
+while read oldrev newrev refname; do
+    branch="${refname#refs/heads/}"
+    
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "📨 Git Push Received"
+    echo "   Branch: $branch"
+    echo "   Old Commit: $oldrev"
+    echo "   New Commit: $newrev"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    audit_log "git_push" "received" "Push to $branch from $oldrev to $newrev"
+    
+    # Only deploy on main branch
+    if [[ "$branch" != "main" ]]; then
+        echo "ℹ️  Skipping deployment (branch: $branch, only main auto-deploys)"
+        audit_log "deployment_skip" "skipped" "Not main branch: $branch"
+        continue
+    fi
+    
+    # Skip if delete operation
+    if [[ "$newrev" == "0000000000000000000000000000000000000000" ]]; then
+        echo "ℹ️  Skipping deletion event"
+        audit_log "git_delete" "skipped" "Branch deletion detected"
+        continue
+    fi
+    
+    echo "✅ Triggering deployment pipeline..."
+    audit_log "deployment_trigger" "starting" "Direct deployment controller invoked"
+    
+    # Execute deployment in background (non-blocking git push)
+    {
+        deployment_timestamp=$(date +%Y%m%d_%H%M%S)
+        deployment_log="${DEPLOY_LOG_DIR}/deployment-${deployment_timestamp}.log"
+        
+        # Capture deployment output
+        if bash "$CONTROLLER_PATH" >> "$deployment_log" 2>&1; then
+            audit_log "deployment_complete" "success" "Deployment successful"
+            echo "✅ Deployment successful (logs: $deployment_log)"
+        else
+            audit_log "deployment_complete" "failed" "Deployment failed (check logs)"
+            echo "❌ Deployment failed (logs: $deployment_log)"
+        fi
+    } &
+    
+    # Notify user of async execution
+    echo ""
+    echo "🔄 Deployment started in background... (check logs later)"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+done
+
+audit_log "hook_complete" "success" "Post-receive hook execution completed"
+
+exit 0
