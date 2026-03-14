@@ -167,37 +167,52 @@ git add DEPLOYMENT_ISSUES.md && git commit -m "✅ Phase 3 Complete: Full Orches
 
 ## 📈 PROGRESS LOG
 
-### `[TIMESTAMP]` PHASE 1: Worker Bootstrap
+### `2026-03-14 23:18` PHASE 1: Worker Bootstrap
 
-**Status**: 🔴 AWAITING  
-**User Action**: Execute on worker 192.168.168.42:
+**Status**: 🔴 CRITICAL BLOCKER - Awaiting manual action  
+**User Action**: Execute on worker 192.168.168.42 as root:
 ```bash
-bash /tmp/worker-bootstrap-onetime.sh
+bash /home/akushnir/self-hosted-runner/worker-bootstrap-onetime.sh
 ```
+
+**Blocker Details**:
+- SSH public key not authorized on worker
+- Error: `akushnir@192.168.168.42: Permission denied (publickey,password)`
+- Required for: NFS mount deployment, orchestrator stages 3-8
+- See: DEPLOYMENT_BLOCKER_SSH_BOOTSTRAP.md (3 resolution options)
+
+**After Bootstrap**: All subsequent phases fully automated
 
 ---
 
-### `[TIMESTAMP]` PHASE 2: SSH Distribution
+### `READY AFTER PHASE 1` PHASE 2: SSH Distribution
 
-**Status**: 🟡 READY TO RUN  
-**Command**:
+**Status**: 🟡 BLOCKED (waiting for Phase 1)  
+**Will Execute**: 
 ```bash
 bash deploy-ssh-credentials-via-gsm.sh full
 ```
 
-**Expected**: SSH access test passes
+**Purpose**: Store SSH keys in GSM vault + distribute to worker  
+**Duration**: 2 minutes (fully automated once Phase 1 done)
 
 ---
 
-### `[TIMESTAMP]` PHASE 3: Orchestrator Deployment
+### `READY AFTER PHASES 1-2` PHASE 3: Orchestrator Deployment
 
-**Status**: 🟡 READY TO RUN  
-**Command**:
+**Status**: 🟡 BLOCKED (waiting for Phases 1-2)  
+**Will Execute**:
 ```bash
 bash deploy-orchestrator.sh full 2>&1 | tee orchestration-prod-$(date +%Y%m%d-%H%M%S).log
 ```
 
-**Expected**: All 8 stages complete, full automation running
+**Stages**:
+- Stage 1: ✅ PASSED - all 8 constraints validated
+- Stage 2: ✅ PASSED - preflight checks (3/4 critical)
+- Stage 3-8: ⏳ BLOCKED - awaiting SSH auth
+
+**Duration**: 20-30 minutes (fully automated once Phase 1 done)  
+**Result**: Live production with 24/7 automation
 
 ---
 
