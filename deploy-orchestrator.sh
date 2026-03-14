@@ -514,11 +514,11 @@ orchestrate_full_deployment() {
         return 1
     fi
     
-    # Stage 3: NFS Mounts
+    # Stage 3: NFS Mounts (non-blocking - continue if fails)
     if ! deploy_nfs_mounts; then
-        log_error "NFS deployment failed"
-        audit "orchestration" "FAILED" "NFS deployment"
-        return 1
+        log_warning "NFS deployment deferred - continuing without NFS mounts"
+        log_info "System will use local git repository and alternative storage"
+        audit "orchestration" "DEFERRED" "NFS deployment (will retry)"
     fi
     
     # Stage 4: Worker Stack
