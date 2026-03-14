@@ -232,18 +232,18 @@ DIST_SCRIPT_EOF
     
     chmod +x "$dist_script"
     
-    # Copy distribution script to worker
+    # Copy distribution script to worker using akushnir user
     log_info "Copying installation script to worker..."
-    scp -o StrictHostKeyChecking=no "$dist_script" \
-        "root@${WORKER_HOST}:/tmp/install-ssh-key.sh" || {
+    scp -i "$DEV_SSH_KEY" -o StrictHostKeyChecking=no "$dist_script" \
+        "${WORKER_USER}@${WORKER_HOST}:/tmp/install-ssh-key.sh" || {
         log_error "Failed to copy installation script"
         rm -f "$dist_script"
         return 1
     }
     
-    # Execute distribution script on worker
+    # Execute distribution script on worker using sudo if needed
     log_info "Executing SSH key installation on worker..."
-    ssh -o StrictHostKeyChecking=no "root@${WORKER_HOST}" \
+    ssh -i "$DEV_SSH_KEY" -o StrictHostKeyChecking=no "${WORKER_USER}@${WORKER_HOST}" \
         "bash /tmp/install-ssh-key.sh '$GSM_SECRET_PUBKEY' '$WORKER_USER'" || {
         log_error "Failed to install SSH key on worker"
         rm -f "$dist_script"
