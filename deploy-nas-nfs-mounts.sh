@@ -25,7 +25,7 @@ readonly AUDIT_TRAIL="${LOG_DIR}/mount-audit-$(date +%Y%m%d-%H%M%S).jsonl"
 # Network topology
 readonly DEV_NODE="192.168.168.31"
 readonly WORKER_NODE="192.168.168.42"
-readonly NAS_SERVER="192.16.168.39"
+readonly NAS_SERVER="192.168.168.39"
 
 # Service accounts (configurable via environment variables)
 # Worker node runs as akushnir user

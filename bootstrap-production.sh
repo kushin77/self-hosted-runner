@@ -20,7 +20,7 @@ set -euo pipefail
 # CONFIGURATION
 # ════════════════════════════════════════════════════════════════════════════
 
-NAS_HOST="${NAS_HOST:-192.16.168.39}"
+NAS_HOST="${NAS_HOST:-192.168.168.39}"
 WORKER_HOST="${WORKER_HOST:-192.168.168.42}"
 GCP_PROJECT="${GCP_PROJECT:-}"
 DRY_RUN=false

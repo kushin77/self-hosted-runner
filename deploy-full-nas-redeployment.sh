@@ -25,7 +25,7 @@ readonly AUDIT_TRAIL="${LOG_DIR}/audit-trail-$(date +%Y%m%d-%H%M%S).jsonl"
 # Network topology
 readonly DEV_NODE="192.168.168.31"
 readonly WORKER_NODE="192.168.168.42"
-readonly NAS_SERVER="192.168.168.100"
+readonly NAS_SERVER="192.168.168.39"
 readonly AUTOMATION_USER="automation"
 
 # NAS paths

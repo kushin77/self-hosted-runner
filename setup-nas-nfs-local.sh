@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Configuration
-readonly NAS_SERVER="192.16.168.39"
+readonly NAS_SERVER="192.168.168.39"
 readonly NAS_REPOS="/repositories"
 readonly NAS_CONFIG="/config-vault"
 readonly MOUNT_BASE="/nas"

@@ -39,7 +39,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DEPLOYMENT_LOG="$SCRIPT_DIR/.deployment-logs/orchestration-$(date +%Y%m%d-%H%M%S).log"
 AUDIT_LOG="$SCRIPT_DIR/.deployment-logs/orchestration-audit-$(date +%Y%m%d-%H%M%S).jsonl"
-NAS_HOST="${NAS_HOST:-192.16.168.39}"
+NAS_HOST="${NAS_HOST:-192.168.168.39}"
 WORKER_HOST="${WORKER_HOST:-192.168.168.42}"
 DEV_HOST="${DEV_HOST:-192.168.168.31}"
 

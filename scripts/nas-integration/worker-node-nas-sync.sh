@@ -8,7 +8,7 @@
 # Usage:
 #   bash worker-node-nas-sync.sh
 #   SERVICE_ACCOUNT=automation bash worker-node-nas-sync.sh
-#   NAS_HOST=192.168.168.100 bash worker-node-nas-sync.sh
+#   NAS_HOST=192.168.168.39 bash worker-node-nas-sync.sh
 #
 # MANDATE:
 #   ✅ All configs sourced from NAS (immutable reference)
@@ -23,7 +23,7 @@ set -euo pipefail
 # ============================================================================
 
 # NAS server coordinates
-readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
+readonly NAS_HOST="${NAS_HOST:-192.168.168.39}"
 readonly NAS_PORT="${NAS_PORT:-22}"
 readonly NAS_USER="${NAS_USER:-svc-nas}"
 readonly NAS_IAC_REPO="/home/svc-nas/repositories/iac"

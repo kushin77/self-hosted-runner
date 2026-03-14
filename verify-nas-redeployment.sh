@@ -8,7 +8,7 @@
 set -euo pipefail
 
 # Configuration
-readonly NAS_SERVER="192.168.168.100"
+readonly NAS_SERVER="192.168.168.39"
 readonly WORKER_NODE="192.168.168.42"
 readonly DEV_NODE="192.168.168.31"
 readonly AUTOMATION_USER="automation"

@@ -32,7 +32,7 @@ readonly CYAN='\033[0;36m'
 readonly NC='\033[0m'
 
 # NAS Configuration
-readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
+readonly NAS_HOST="${NAS_HOST:-192.168.168.39}"
 readonly NAS_USER="${NAS_USER:-svc-nas}"
 readonly NAS_PORT="${NAS_PORT:-22}"
 

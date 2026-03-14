@@ -20,7 +20,7 @@ SYNC_STATE="/var/lib/automation/nas-sync-state.json"
 # Configuration
 NAS_GIT_REPO="${NAS_GIT_REPO:-git@github.com:kushin77/eiq-nas.git}"
 NAS_LOCAL_PATH="${NAS_LOCAL_PATH:-/home/automation/eiq-nas-local}"
-NAS_HOST="${NAS_HOST:-192.168.168.100}"
+NAS_HOST="${NAS_HOST:-192.168.168.39}"
 SSH_IDENTITY="${SSH_IDENTITY:-/home/svc-git/.ssh/id_ed25519}"
 AUTOMATION_USER="${AUTOMATION_USER:-automation}"
 

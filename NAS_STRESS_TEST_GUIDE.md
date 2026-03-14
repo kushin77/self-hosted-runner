@@ -51,7 +51,7 @@ bash scripts/nas-integration/stress-test-nas.sh --medium --nocleanup
 
 ```bash
 # Override NAS configuration
-NAS_HOST=192.168.168.100 \
+NAS_HOST=192.168.168.39 \
 NAS_USER=svc-nas \
 NAS_PORT=22 \
 NAS_KEY=~/.ssh/id_ed25519 \

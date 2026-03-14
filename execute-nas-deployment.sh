@@ -19,7 +19,7 @@ set -euo pipefail
 readonly REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly WORKER_NODE="192.168.168.42"
 readonly DEV_NODE="192.168.168.31"
-readonly NAS_HOST="192.168.168.100"
+readonly NAS_HOST="192.168.168.39"
 readonly SERVICE_ACCOUNT="automation"
 
 # Execution mode

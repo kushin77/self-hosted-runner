@@ -87,13 +87,13 @@ ssh automation@192.168.168.42 \
 # ============================================================================
 
 # Override NAS host
-NAS_HOST=192.168.168.100 bash deploy-nas-stress-tests.sh --quick
+NAS_HOST=192.168.168.39 bash deploy-nas-stress-tests.sh --quick
 
 # Override SSH key
 NAS_KEY=~/.ssh/svc-keys/elevatediq-svc-42-nas_key bash deploy-nas-stress-tests.sh --quick
 
 # Combine custom settings
-NAS_HOST=192.168.168.100 \
+NAS_HOST=192.168.168.39 \
 NAS_USER=svc-nas \
 NAS_KEY=~/.ssh/svc-keys/elevatediq-svc-42-nas_key \
   bash deploy-nas-stress-tests.sh --medium

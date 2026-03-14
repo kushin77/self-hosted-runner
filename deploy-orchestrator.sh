@@ -28,7 +28,7 @@ readonly DEPLOYMENT_LOG="${LOG_DIR}/orchestrator-$(date +%Y%m%d-%H%M%S).log"
 readonly AUDIT_TRAIL="${LOG_DIR}/orchestrator-audit-$(date +%Y%m%d-%H%M%S).jsonl"
 
 # Network & Infrastructure
-readonly NAS_SERVER="192.16.168.39"
+readonly NAS_SERVER="192.168.168.39"
 readonly WORKER_NODE="192.168.168.42"
 readonly DEV_NODE="192.168.168.31"
 
