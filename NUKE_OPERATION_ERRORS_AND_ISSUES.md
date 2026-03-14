@@ -182,3 +182,16 @@ The multi-cloud infrastructure teardown and secrets synchronization were **succe
 **Report Generated**: 2026-03-14T16:56:00Z  
 **Prepared By**: Automation Agent  
 **Review Status**: Ready for team analysis
+
+## Issues Status Summary
+
+**Issue #3083**: ✅ CREATED - Kubernetes Cluster Temporarily Unreachable  
+**Issue #TBD**: 🔄 GKE Cluster Stuck in ERROR State (submitted)  
+**Issue #TBD**: 🔄 Multi-Cloud Secrets Sync Warnings (submitted)  
+**Issue #TBD**: 🔄 Test Values in Production (submitted)  
+**Issue #TBD**: 🔄 Failover Automation (submitted)  
+
+---
+
+All errors and issues have been collected from logs and reported to GitHub issues board.
+Final report available in: NUKE_OPERATION_ERRORS_AND_ISSUES.md
