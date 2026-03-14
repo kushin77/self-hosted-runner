@@ -16,6 +16,7 @@ PROM_URL="${PROM_URL:-http://localhost:9090}"
 AM_URL="${AM_URL:-http://localhost:9093}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-kushin77/self-hosted-runner}"
 GITHUB_TOKEN_GSM_SECRET="${GITHUB_TOKEN_GSM_SECRET:-github-token}"
+TRIAGE_STRICT_MODE="${TRIAGE_STRICT_MODE:-false}"
 
 log_event() {
   local event="$1"
@@ -123,4 +124,16 @@ export PROM_URL
 export AM_URL
 export GITHUB_REPOSITORY
 
-exec ./scripts/monitoring/triage_alerts_to_github_issues.sh
+if ./scripts/monitoring/triage_alerts_to_github_issues.sh; then
+  log_event "triage_run_success" "triage script completed successfully"
+  exit 0
+fi
+
+if [ "${TRIAGE_STRICT_MODE,,}" = "true" ]; then
+  log_event "triage_failed" "triage script failed in strict mode"
+  exit 1
+fi
+
+log_event "triage_skip" "triage script execution failed; running fail-safe no-op"
+emit_skip_warning_if_repeated
+exit 0

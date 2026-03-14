@@ -136,3 +136,4 @@ Operational behavior and controls:
 - Overlap-safe: concurrent runs are prevented with a lock file (`logs/monitoring-alert-issue-triage.lock`).
 - Skip escalation: repeated skips create `logs/monitoring-alert-issue-triage.warning` for local operational signal.
 - Audit retention: `TRIAGE_AUDIT_MAX_LINES` caps `logs/monitoring-alert-issue-triage.jsonl` growth.
+- Strict mode: set `TRIAGE_STRICT_MODE=true` to fail the service on triage script errors instead of fail-safe skip.
