@@ -1,0 +1,13 @@
+[Unit]
+Description=NAS Worker Node Health Check Timer (Every 15 minutes)
+Documentation=file:///opt/automation/docs/NAS_INTEGRATION.md
+Requires=nas-worker-healthcheck.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+Accuracy=1min
+
+[Install]
+WantedBy=timers.target

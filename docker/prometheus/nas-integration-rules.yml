@@ -1,0 +1,204 @@
+# NAS Integration Alert Rules for Prometheus
+
+groups:
+  - name: nas_worker_sync
+    interval: 30s
+    rules:
+      # Critical: NAS unreachable - impacts all worker node syncs
+      - alert: NASServerUnreachable
+        expr: |
+          (time() - nas_last_connectivity_check) > 300
+          AND nas_last_connectivity_status == 0
+        for: 5m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "NAS server unreachable from {{ $labels.instance }}"
+          description: "Worker node cannot connect to NAS for {{ $value | humanizeDuration }}"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#issue-ssh-connection-fails"
+
+      # Warning: Sync stale (not updated in 1 hour)
+      - alert: NASWorkerSyncStale
+        expr: |
+          (time() - nas_last_successful_sync) > 3600
+        for: 15m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "NAS worker sync is stale on {{ $labels.instance }}"
+          description: "Last successful sync was {{ $value | humanizeDuration }} ago"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#issue-sync-stale"
+
+      # Warning: Never synced (first deployment or broken)
+      - alert: NASWorkerNeverSynced
+        expr: |
+          nas_last_successful_sync == 0
+        for: 30m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "Worker node {{ $labels.instance }} has never successfully synced from NAS"
+          description: "Check deployment and SSH key configuration"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#worker-node-setup"
+
+      # Critical: Sync failing repeatedly
+      - alert: NASWorkerSyncFailed
+        expr: |
+          rate(nas_sync_failures_total[5m]) > 0.1
+        for: 10m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "NAS sync failing repeatedly on {{ $labels.instance }}"
+          description: "{{ $value }} failures in last 5 minutes"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+      # Warning: High disk usage in NAS sync directory
+      - alert: NASHighDiskUsage
+        expr: |
+          (nas_sync_directory_size_bytes / node_filesystem_avail_bytes{mountpoint="/opt"}) > 0.85
+        for: 10m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "NAS sync directory using {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+          description: "Consider cleanup of old audit logs"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#issue-disk-usage-high"
+
+      # Critical: NAS credentials fetch failing
+      - alert: NASCredentialsFetchFailed
+        expr: |
+          rate(nas_credential_fetch_failures[5m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "Failed to fetch credentials from GSM via NAS on {{ $labels.instance }}"
+          description: "Check GCP Secret Manager access and NAS connectivity"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+  - name: nas_dev_push
+    interval: 60s
+    rules:
+      # Warning: Dev node push failing
+      - alert: NASDevPushFailed
+        expr: |
+          rate(nas_dev_push_failures[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "Dev node push to NAS failing: {{ $labels.instance }}"
+          description: "Configuration changes cannot be propagated to worker nodes"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+      # Info: Dev node push in progress (should complete quickly)
+      - alert: NASDevPushStalled
+        expr: |
+          (time() - nas_last_dev_push_start) > 1800
+          AND nas_dev_push_in_progress == 1
+        for: 5m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "Dev node push to NAS running long on {{ $labels.instance }}"
+          description: "Push started {{ $value | humanizeDuration }} ago"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+  - name: nas_integrity
+    interval: 15m
+    rules:
+      # Warning: Sync directory empty or missing files
+      - alert: NASSyncDirectoryEmpty
+        expr: |
+          nas_sync_iac_files_count == 0
+        for: 10m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "NAS IAC sync directory is empty on {{ $labels.instance }}"
+          description: "Worker node has no IAC files - configuration not loaded"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+      # Critical: Credentials directory has wrong permissions
+      - alert: NASCredentialsPermissionError
+        expr: |
+          nas_credentials_directory_permissions != 0700
+        for: 5m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "NAS credentials directory has insecure permissions on {{ $labels.instance }}"
+          description: "Permissions: {{ $value }} (should be 700)"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#issue-permission-errors"
+
+      # Warning: Sync integrity issues (zero-sized files, corruption)
+      - alert: NASSyncIntegrityIssues
+        expr: |
+          rate(nas_integrity_check_failures[15m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: nas
+        annotations:
+          summary: "NAS sync integrity check failed on {{ $labels.instance }}"
+          description: "Check for corrupt or partial files"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#issue-disk-usage-high"
+
+  - name: nas_health_check
+    interval: 5m
+    rules:
+      # Critical: Health check process itself failing
+      - alert: NASHealthCheckFailed
+        expr: |
+          rate(nas_health_check_errors[5m]) > 0
+        for: 10m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "NAS health check process failed on {{ $labels.instance }}"
+          description: "Cannot verify sync status and system health"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md#troubleshooting"
+
+      # Warning: Multiple systems showing NAS problems (cluster-wide issue)
+      - alert: NASClusterWideProblem
+        expr: |
+          count(ALERTS{alertname=~"NASServer.*", severity="critical"}) > 1
+        for: 5m
+        labels:
+          severity: critical
+          component: nas
+        annotations:
+          summary: "Multiple nodes reporting NAS issues"
+          description: "{{ $value }} nodes unable to sync - check NAS server"
+          runbook: "docs/NAS_INTEGRATION_COMPLETE.md"
+
+# Recording rules for performance tracking
+  - name: nas_metrics
+    interval: 30s
+    rules:
+      # Track average time between successful syncs
+      - record: nas:sync_interval:avg
+        expr: |
+          avg(time() - nas_last_successful_sync)
+
+      # Track sync success rate (last hour)
+      - record: nas:sync_success_rate:1h
+        expr: |
+          1 - (rate(nas_sync_failures_total[1h]) / rate(nas_sync_attempts_total[1h]))
+
+      # Track total synced data volume
+      - record: nas:synced_data_volume:total
+        expr: |
+          nas_sync_iac_bytes + nas_sync_config_bytes + nas_sync_credential_bytes

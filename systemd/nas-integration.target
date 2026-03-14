@@ -1,0 +1,7 @@
+[Unit]
+Description=NAS Integration Target (Aggregates all NAS sync services)
+Documentation=file:///opt/automation/docs/NAS_INTEGRATION.md
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target nas-worker-sync.timer nas-worker-healthcheck.timer nas-dev-push.service

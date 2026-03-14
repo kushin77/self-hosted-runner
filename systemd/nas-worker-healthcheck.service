@@ -1,0 +1,26 @@
+[Unit]
+Description=NAS Server Worker Node Health Check
+Documentation=file:///opt/automation/docs/NAS_HEALTHCHECK.md
+After=network-online.target nas-worker-sync.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+ExecStart=/opt/automation/scripts/nas-integration/healthcheck-worker-nas.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nas-worker-health
+
+# Isolation
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+
+# Log output
+Environment="HEALTHCHECK_LOG=/var/log/nas-integration/worker-health.log"
+
+[Install]
+WantedBy=multi-user.target

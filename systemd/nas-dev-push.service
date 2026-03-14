@@ -1,0 +1,29 @@
+[Unit]
+Description=Dev Node NAS Configuration Push (Manual or Watch Mode)
+Documentation=file:///opt/automation/docs/NAS_INTEGRATION.md
+After=network-online.target ssh.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+ExecStart=/opt/automation/scripts/nas-integration/dev-node-nas-push.sh push
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nas-dev-push
+RemainAfterExit=yes
+
+# Security
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/iac-configs /var/log/nas-integration /tmp/nas-push-staging
+
+# Environment
+Environment="NAS_HOST=192.168.168.100"
+Environment="DEV_IAC_DIR=/opt/iac-configs"
+
+[Install]
+WantedBy=multi-user.target

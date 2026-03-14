@@ -1,0 +1,13 @@
+[Unit]
+Description=NAS Worker Node Sync Timer (Every 30 minutes)
+Documentation=file:///opt/automation/docs/NAS_INTEGRATION.md
+Requires=nas-worker-sync.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=30min
+Persistent=true
+Accuracy=1min
+
+[Install]
+WantedBy=timers.target

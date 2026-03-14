@@ -1,0 +1,30 @@
+[Unit]
+Description=NAS Server Worker Node Configuration Sync
+Documentation=file:///opt/automation/docs/NAS_INTEGRATION.md
+After=network-online.target ssh.service
+Wants=network-online.target
+PartOf=nas-integration.target
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+ExecStart=/opt/automation/scripts/worker-node-nas-sync.sh
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nas-worker-sync
+RemainAfterExit=yes
+
+# Security isolation
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/nas-sync /var/log/nas-integration
+
+# Logging
+Environment="NAS_HOST=192.168.168.100"
+Environment="WORKER_SYNC_BASE=/opt/nas-sync"
+
+[Install]
+WantedBy=multi-user.target
