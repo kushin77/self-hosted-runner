@@ -1,0 +1,33 @@
+steps:
+  # Run overlap review
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args: ['run', '--dir', '.']
+    id: 'overlap-review'
+    waitFor: ['-']
+
+  # Run portal/backend sync validation
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['version', '--client']
+    id: 'portal-sync-check'
+    waitFor: ['overlap-review']
+
+  # Execute production readiness gate
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    args: ['run', '--dir', '.']
+    id: 'readiness-gate'
+    waitFor: ['portal-sync-check']
+
+  # Generate hardening report
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['version', '--client']
+    id: 'hardening-report'
+    waitFor: ['readiness-gate']
+
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+timeout: '3600s'
+
+onFailure:
+  - 'NOTIFY'

@@ -1,0 +1,20 @@
+alerts:
+  - name: "Portal Service Degradation"
+    condition: "portal_latency_p95 > 1000ms"
+    notification: "slack:#prod-alerts"
+    
+  - name: "Backend Service Degradation"  
+    condition: "backend_latency_p95 > 1000ms"
+    notification: "slack:#prod-alerts"
+    
+  - name: "Unhandled Errors"
+    condition: "error_rate > 0.01"
+    notification: "slack:#prod-alerts"
+    
+  - name: "Test Suite Failure"
+    condition: "test_pass_rate < 0.99"
+    notification: "slack:#qa-alerts"
+    
+  - name: "Deployment Failure"
+    condition: "deployment_status == 'FAILED'"
+    notification: "slack:#ops-alerts"

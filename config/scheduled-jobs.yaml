@@ -1,0 +1,20 @@
+jobs:
+  - name: "daily-hardening-validation"
+    schedule: "0 0 * * *"
+    command: "bash scripts/orchestration/hardening-master.sh --phase all --execute --strict"
+    description: "Daily production hardening validation"
+    
+  - name: "hourly-portal-sync-check"
+    schedule: "0 * * * *"
+    command: "bash scripts/qa/portal-backend-sync-validator.sh"
+    description: "Hourly portal/backend synchronization check"
+    
+  - name: "daily-error-analysis"
+    schedule: "0 1 * * *"
+    command: "bash scripts/qa/error-analysis.sh"
+    description: "Daily error pattern analysis"
+    
+  - name: "weekly-backlog-review"
+    schedule: "0 9 * * 1"
+    command: "bash scripts/github/prioritize-hardening-backlog.sh"
+    description: "Weekly hardening backlog prioritization"
