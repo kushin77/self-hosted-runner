@@ -8,10 +8,16 @@ set -e
 
 # Configuration
 WORKER_IP="192.168.168.42"
-WORKER_USER="elevatediq"
+WORKER_USER="elevatediq-svc-worker-dev"
+WORKER_SSH_KEY="${REPO_DIR}/secrets/ssh/elevatediq-svc-worker-dev/id_ed25519"
 REPO_DIR="${1:-.}"
 TIMEOUT=300  # 5 minutes max
 DEPLOY_ID="nas-monitoring-$(date +%Y%m%d-%H%M%S)"
+
+# SSH Key-Only Mandatory Settings (enforce zero password auth)
+export SSH_ASKPASS=none
+export SSH_ASKPASS_REQUIRE=never
+export DISPLAY=""
 
 # Colors
 RED='\033[0;31m'
@@ -39,6 +45,12 @@ validate_deployment() {
     fi
     log_ok "Git state: clean & immutable"
     
+    # Check service account key exists
+    log_step "Verifying service account SSH key"
+    [[ -f "$WORKER_SSH_KEY" ]] || log_error "Service account key not found: $WORKER_SSH_KEY"
+    chmod 600 "$WORKER_SSH_KEY"
+    log_ok "Service account key verified: $WORKER_SSH_KEY"
+    
     # Check all required files
     log_step "Verifying deployment artifacts"
     local required_files=(
@@ -54,16 +66,16 @@ validate_deployment() {
     done
     log_ok "All 5 deployment artifacts present"
     
-    # Check SSH access
-    log_step "Verifying SSH access to worker node"
-    if ! timeout 5 ssh -o ConnectTimeout=2 "$WORKER_USER@$WORKER_IP" echo "SSH OK" > /dev/null 2>&1; then
-        log_error "Cannot SSH to $WORKER_USER@$WORKER_IP - check network/credentials"
+    # Check SSH access using service account key
+    log_step "Verifying SSH access to worker node (service account: $WORKER_USER)"
+    if ! timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -i "$WORKER_SSH_KEY" -o ConnectTimeout=2 "$WORKER_USER@$WORKER_IP" echo "SSH OK" > /dev/null 2>&1; then
+        log_error "Cannot SSH to $WORKER_USER@$WORKER_IP - service account not authorized (requires one-time bootstrap)"
     fi
-    log_ok "SSH access verified: $WORKER_USER@$WORKER_IP"
+    log_ok "SSH access verified: $WORKER_USER@$WORKER_IP (service account)"
     
     # Check sudo access
     log_step "Verifying sudo access on worker node"
-    if ! timeout 5 ssh "$WORKER_USER@$WORKER_IP" sudo -n echo "SUDO OK" > /dev/null 2>&1; then
+    if ! timeout 5 ssh -o BatchMode=yes -i "$WORKER_SSH_KEY" "$WORKER_USER@$WORKER_IP" sudo -n echo "SUDO OK" > /dev/null 2>&1; then
         log_warn "Sudo may require password (acceptable, will prompt if needed)"
     else
         log_ok "Sudo access verified (passwordless)"
@@ -74,21 +86,25 @@ validate_deployment() {
 deploy_to_worker() {
     log_phase "DEPLOYING CONFIGURATION TO WORKER"
     
+    # Set SSH options for all commands
+    local ssh_opts=(-o BatchMode=yes -i "$WORKER_SSH_KEY" -o PasswordAuthentication=no)
+    local scp_opts=(-o BatchMode=yes -i "$WORKER_SSH_KEY" -o PasswordAuthentication=no)
+    
     # Copy deployment script
     log_step "Copying deploy-nas-monitoring-direct.sh"
-    scp -q "$REPO_DIR/deploy-nas-monitoring-direct.sh" "$WORKER_USER@$WORKER_IP:~/deploy-nas-monitoring-direct.sh"
+    scp "${scp_opts[@]}" -q "$REPO_DIR/deploy-nas-monitoring-direct.sh" "$WORKER_USER@$WORKER_IP:~/deploy-nas-monitoring-direct.sh"
     log_ok "Deployment script transferred"
     
     # Copy verification script
     log_step "Copying verify-nas-monitoring.sh"
-    scp -q "$REPO_DIR/verify-nas-monitoring.sh" "$WORKER_USER@$WORKER_IP:~/verify-nas-monitoring.sh"
+    scp "${scp_opts[@]}" -q "$REPO_DIR/verify-nas-monitoring.sh" "$WORKER_USER@$WORKER_IP:~/verify-nas-monitoring.sh"
     log_ok "Verification script transferred"
     
     # Copy configuration files
     log_step "Copying Prometheus configuration"
-    scp -q "$REPO_DIR/monitoring/prometheus.yml" "$WORKER_USER@$WORKER_IP:~/prometheus.yml.nas"
-    scp -q "$REPO_DIR/docker/prometheus/nas-recording-rules.yml" "$WORKER_USER@$WORKER_IP:~/nas-recording-rules.yml"
-    scp -q "$REPO_DIR/docker/prometheus/nas-alert-rules.yml" "$WORKER_USER@$WORKER_IP:~/nas-alert-rules.yml"
+    scp "${scp_opts[@]}" -q "$REPO_DIR/monitoring/prometheus.yml" "$WORKER_USER@$WORKER_IP:~/prometheus.yml.nas"
+    scp "${scp_opts[@]}" -q "$REPO_DIR/docker/prometheus/nas-recording-rules.yml" "$WORKER_USER@$WORKER_IP:~/nas-recording-rules.yml"
+    scp "${scp_opts[@]}" -q "$REPO_DIR/docker/prometheus/nas-alert-rules.yml" "$WORKER_USER@$WORKER_IP:~/nas-alert-rules.yml"
     log_ok "Configuration files transferred"
     
     echo "  (5 files copied to $WORKER_USER@$WORKER_IP:~)"
@@ -98,11 +114,13 @@ deploy_to_worker() {
 execute_deployment() {
     log_phase "EXECUTING DEPLOYMENT ON WORKER NODE"
     
+    local ssh_opts=(-o BatchMode=yes -i "$WORKER_SSH_KEY" -o PasswordAuthentication=no)
+    
     log_step "Running deployment script (sudo)"
     echo "  (This may prompt for sudo password)"
     
     # Execute deployment with timeout
-    if timeout "$TIMEOUT" ssh "$WORKER_USER@$WORKER_IP" sudo ~/deploy-nas-monitoring-direct.sh; then
+    if timeout "$TIMEOUT" ssh "${ssh_opts[@]}" "$WORKER_USER@$WORKER_IP" sudo ~/deploy-nas-monitoring-direct.sh; then
         log_ok "Deployment executed successfully"
     else
         local exit_code=$?
@@ -120,7 +138,9 @@ verify_deployment() {
     
     log_step "Running verification script (7 phases)"
     
-    if timeout 120 ssh "$WORKER_USER@$WORKER_IP" bash -c 'cd /home/akushnir/self-hosted-runner && export PATH=$PATH:/usr/local/bin && ./verify-nas-monitoring.sh --verbose' 2>&1 | head -100; then
+    local ssh_opts=(-o BatchMode=yes -i "$WORKER_SSH_KEY" -o PasswordAuthentication=no)
+    
+    if timeout 120 ssh "${ssh_opts[@]}" "$WORKER_USER@$WORKER_IP" bash -c 'cd /home/akushnir/self-hosted-runner && export PATH=$PATH:/usr/local/bin && ./verify-nas-monitoring.sh --verbose' 2>&1 | head -100; then
         log_ok "Verification completed"
     else
         log_warn "Verification incomplete (manual check recommended)"
@@ -131,10 +151,12 @@ verify_deployment() {
 test_metrics_access() {
     log_phase "TESTING METRICS ACCESS"
     
+    local ssh_opts=(-o BatchMode=yes -i "$WORKER_SSH_KEY" -o PasswordAuthentication=no)
+    
     log_step "Querying Prometheus API from worker"
     
     # Test basic Prometheus connectivity
-    if ssh "$WORKER_USER@$WORKER_IP" curl -s http://localhost:9090/api/v1/query?query='up{instance="eiq-nas"}' | grep -q "eiq-nas"; then
+    if ssh "${ssh_opts[@]}" "$WORKER_USER@$WORKER_IP" curl -s http://localhost:9090/api/v1/query?query='up{instance="eiq-nas"}' | grep -q "eiq-nas"; then
         log_ok "Prometheus API accessible"
         log_ok "NAS metrics available via Prometheus"
     else
@@ -142,7 +164,7 @@ test_metrics_access() {
     fi
     
     log_step "Testing OAuth-protected Prometheus endpoint"
-    if ssh "$WORKER_USER@$WORKER_IP" curl -s -f http://localhost:4180/prometheus > /dev/null 2>&1; then
+    if ssh "${ssh_opts[@]}" "$WORKER_USER@$WORKER_IP" curl -s -f http://localhost:4180/prometheus > /dev/null 2>&1; then
         log_ok "OAuth2-Proxy endpoint accessible (OAuth login required)"
     else
         log_warn "OAuth endpoint pending (curl cannot test interactive login)"
@@ -153,8 +175,10 @@ test_metrics_access() {
 show_rollback() {
     log_phase "ROLLBACK CAPABILITY (IF NEEDED)"
     
+    local ssh_cmd="ssh -i $WORKER_SSH_KEY $WORKER_USER@$WORKER_IP"
+    
     echo "  If issues occur, execute:"
-    echo "  ${YELLOW}ssh $WORKER_USER@$WORKER_IP 'sudo ~/deploy-nas-monitoring-direct.sh --rollback'${NC}"
+    echo "  ${YELLOW}$ssh_cmd 'sudo ~/deploy-nas-monitoring-direct.sh --rollback'${NC}"
     echo ""
     echo "  This will:"
     echo "  • Restore previous prometheus.yml"
