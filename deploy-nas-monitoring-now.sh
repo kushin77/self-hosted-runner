@@ -7,10 +7,10 @@
 set -e
 
 # Configuration
+REPO_DIR="${1:-.}"
 WORKER_IP="192.168.168.42"
 WORKER_USER="elevatediq-svc-worker-dev"
 WORKER_SSH_KEY="${REPO_DIR}/secrets/ssh/elevatediq-svc-worker-dev/id_ed25519"
-REPO_DIR="${1:-.}"
 TIMEOUT=300  # 5 minutes max
 DEPLOY_ID="nas-monitoring-$(date +%Y%m%d-%H%M%S)"
 
