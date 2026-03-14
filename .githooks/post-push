@@ -1,0 +1,105 @@
+#!/bin/bash
+################################################################################
+# 🚀 POST-PUSH HOOK - Automatic Deployment Trigger
+#
+# Triggered by: git push origin main
+# Function: Automatically initiates fresh build deployment on target host
+#
+# What It Does:
+#   1. Detects if push is to main branch
+#   2. Calls the deployment trigger script
+#   3. Provides real-time feedback to developer
+#   4. Deployment runs in background
+#
+# Install via:
+#   git config core.hooksPath .githooks
+#
+# Or manually:
+#   cp .githooks/post-push .git/hooks/post-push
+#   chmod +x .git/hooks/post-push
+#
+# Environment Variables:
+#   TARGET_HOST       - Deployment target (192.168.168.42)
+#   SKIP_DEPLOYMENT   - Set to "true" to disable auto-deployment
+#   DEPLOYMENT_DEBUG  - Set to "true" for verbose output
+#
+# Manual Override:
+#   SKIP_DEPLOYMENT=true git push origin main  (no auto-deployment)
+#
+################################################################################
+
+set -euo pipefail
+
+# Colors
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+# ============================================================================
+# CONFIGURATION
+# ============================================================================
+
+readonly REPO_ROOT="$(git rev-parse --show-toplevel)"
+readonly DEPLOYMENT_TRIGGER="${REPO_ROOT}/scripts/triggers/post-push-deploy.sh"
+readonly SKIP_DEPLOYMENT="${SKIP_DEPLOYMENT:-false}"
+readonly DEPLOYMENT_DEBUG="${DEPLOYMENT_DEBUG:-false}"
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
+
+log() {
+    echo -e "${BLUE}[post-push]${NC} $*"
+}
+
+skip_message() {
+    echo -e "${YELLOW}[post-push]${NC} $*"
+}
+
+# Determine current branch
+current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+
+log "Post-push hook triggered"
+log "Current branch: $current_branch"
+
+# Only proceed if on main branch
+if [[ "$current_branch" != "main" ]]; then
+    skip_message "Not on main branch - skipping automatic deployment"
+    exit 0
+fi
+
+# Check if deployment is disabled
+if [[ "$SKIP_DEPLOYMENT" == "true" ]]; then
+    skip_message "Automatic deployment disabled via SKIP_DEPLOYMENT=true"
+    exit 0
+fi
+
+# Verify deployment trigger script exists
+if [[ ! -x "$DEPLOYMENT_TRIGGER" ]]; then
+    skip_message "Deployment trigger script not found: $DEPLOYMENT_TRIGGER"
+    skip_message "To enable automatic deployment, install the trigger scripts:"
+    skip_message "  bash scripts/triggers/install.sh"
+    exit 0
+fi
+
+# Trigger deployment in background
+log "Triggering fresh build deployment..."
+
+if [[ "$DEPLOYMENT_DEBUG" == "true" ]]; then
+    log "Debug mode enabled"
+    # Run in foreground for debugging
+    bash "$DEPLOYMENT_TRIGGER"
+else
+    # Run in background for normal operation
+    (
+        bash "$DEPLOYMENT_TRIGGER" 2>&1 | while IFS= read -r line; do
+            echo "$line"
+        done
+    ) &
+fi
+
+log "Deployment initiated - check logs for progress"
+log "Log file: ${REPO_ROOT}/logs/deployments/$(date +%Y%m%d)_*.log"
+
+exit 0

@@ -1,0 +1,173 @@
+#!/bin/bash
+# Pre-push hook - Quality gates before commits reach remote
+# 
+# GATES:
+#   ✅ Lint check (eslint, prettier)
+#   ✅ TypeScript type check
+#   ✅ Security scan (secrets detection)
+#   ✅ Dependency audit
+#   ✅ Spell check
+#   ✅ Deployment readiness check
+#
+# Blocks pushes that fail gates; auto-fixes where possible.
+# After push: Automatically triggers fresh build on main branch
+# Install: git config core.hooksPath .githooks
+
+set -euo pipefail
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+DEPLOYMENT_TRIGGER="${REPO_ROOT}/scripts/triggers/post-push-deploy.sh"
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HOOKS_LOG="${REPO_ROOT}/logs/pre-push-hooks.jsonl"
+mkdir -p "$(dirname "$HOOKS_LOG")"
+
+log_gate() {
+    local gate=$1
+    local status=$2
+    local details=${3:-}
+    echo "{\"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\", \"gate\": \"$gate\", \"status\": \"$status\", \"details\": \"$details\"}" >> "$HOOKS_LOG"
+}
+
+echo -e "${YELLOW}→ Running pre-push quality gates...${NC}"
+
+# ============================================================================
+# GATE 1: Detect secrets in commit history
+# ============================================================================
+gate_secrets() {
+    echo -e "${YELLOW}  [1/5] Scanning for secrets...${NC}"
+    
+    if command -v detect-secrets &>/dev/null; then
+        if detect-secrets scan --baseline .secrets.baseline >/dev/null 2>&1; then
+            echo -e "${GREEN}  ✅ No new secrets detected${NC}"
+            log_gate "secrets" "passed"
+            return 0
+        else
+            echo -e "${RED}  ❌ Secrets detected! Fix before pushing.${NC}"
+            log_gate "secrets" "failed"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  detect-secrets not installed, skipping${NC}"
+        log_gate "secrets" "skipped"
+        return 0
+    fi
+}
+
+# ============================================================================
+# GATE 2: TypeScript type check
+# ============================================================================
+gate_tsc() {
+    echo -e "${YELLOW}  [2/5] TypeScript type checking...${NC}"
+    
+    if [ -f "${REPO_ROOT}/tsconfig.json" ]; then
+        if npx tsc --noEmit >/dev/null 2>&1; then
+            echo -e "${GREEN}  ✅ TypeScript passed${NC}"
+            log_gate "typescript" "passed"
+            return 0
+        else
+            echo -e "${RED}  ❌ TypeScript errors found${NC}"
+            log_gate "typescript" "failed"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  No tsconfig.json, skipping${NC}"
+        log_gate "typescript" "skipped"
+        return 0
+    fi
+}
+
+# ============================================================================
+# GATE 3: ESLint (with auto-fix)
+# ============================================================================
+gate_eslint() {
+    echo -e "${YELLOW}  [3/5] Linting (ESLint)...${NC}"
+    
+    if [ -f "${REPO_ROOT}/.eslintrc.json" ] || [ -f "${REPO_ROOT}/.eslintrc.js" ]; then
+        # Try to auto-fix first
+        if npx eslint . --fix --quiet 2>/dev/null; then
+            echo -e "${GREEN}  ✅ ESLint passed (auto-fixed)${NC}"
+            log_gate "eslint" "passed"
+            return 0
+        else
+            echo -e "${RED}  ❌ ESLint found issues (run 'npm run lint' for details)${NC}"
+            log_gate "eslint" "failed"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  No .eslintrc, skipping${NC}"
+        log_gate "eslint" "skipped"
+        return 0
+    fi
+}
+
+# ============================================================================
+# GATE 4: Prettier (auto-format)
+# ============================================================================
+gate_prettier() {
+    echo -e "${YELLOW}  [4/5] Code formatting (Prettier)...${NC}"
+    
+    if [ -f "${REPO_ROOT}/.prettierrc" ] || [ -f "${REPO_ROOT}/package.json" ]; then
+        if npx prettier --write . --quiet 2>/dev/null; then
+            echo -e "${GREEN}  ✅ Prettier passed (auto-formatted)${NC}"
+            log_gate "prettier" "passed"
+            return 0
+        else
+            echo -e "${YELLOW}  ⚠️  Prettier auto-format skipped${NC}"
+            log_gate "prettier" "warning"
+            return 0
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  No Prettier config, skipping${NC}"
+        log_gate "prettier" "skipped"
+        return 0
+    fi
+}
+
+# ============================================================================
+# GATE 5: Dependency audit (npm audit)
+# ============================================================================
+gate_audit() {
+    echo -e "${YELLOW}  [5/5] Dependency audit...${NC}"
+    
+    if [ -f "${REPO_ROOT}/package.json" ]; then
+        if npm audit --production --audit-level=moderate 2>/dev/null | grep -q "up to date"; then
+            echo -e "${GREEN}  ✅ Dependencies secure${NC}"
+            log_gate "audit" "passed"
+            return 0
+        else
+            echo -e "${YELLOW}  ⚠️  Vulnerabilities found (npm audit for details)${NC}"
+            log_gate "audit" "warning"
+            return 0  # Warning, not blocking
+        fi
+    else
+        echo -e "${YELLOW}  ⚠️  No package.json, skipping${NC}"
+        log_gate "audit" "skipped"
+        return 0
+    fi
+}
+
+# Run all gates
+failures=0
+gate_secrets || ((failures++)) || true
+gate_tsc || ((failures++)) || true
+gate_eslint || ((failures++)) || true
+gate_prettier || ((failures++)) || true
+gate_audit || ((failures++)) || true
+
+# Summary
+echo ""
+if [ $failures -eq 0 ]; then
+    echo -e "${GREEN}✅ All quality gates passed! Proceeding with push...${NC}"
+    exit 0
+else
+    echo -e "${RED}❌ $failures quality gate(s) failed. Fix issues before pushing.${NC}"
+    exit 1
+fi

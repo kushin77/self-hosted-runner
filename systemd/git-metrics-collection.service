@@ -1,0 +1,20 @@
+[Unit]
+Description=Git Metrics Collection Service
+After=network-online.target
+
+[Service]
+Type=simple
+User=automation
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/usr/bin/python3 /home/akushnir/self-hosted-runner/scripts/observability/git-metrics.py --port 8001 --interval 300
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=git-metrics
+Restart=on-failure
+RestartSec=10s
+Environment=PYTHONUNBUFFERED=1
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,12 @@
+[Unit]
+Description=Git Repository Maintenance (Garbage Collection, Reflog Cleanup)
+After=network-online.target
+
+[Timer]
+OnCalendar=daily
+OnBootSec=5min
+Unit=git-maintenance.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

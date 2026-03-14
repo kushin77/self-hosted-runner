@@ -1,0 +1,14 @@
+[Unit]
+Description=Git Repository Maintenance Service
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=automation
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/bin/bash -c 'cd /home/akushnir/self-hosted-runner && bash scripts/git-maintenance-automation.sh'
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=git-maintenance
+PrivateTmp=true
+NoNewPrivileges=true

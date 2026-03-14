@@ -3,6 +3,9 @@
 # ENTERPRISE DEPLOYMENT ORCHESTRATOR - GSM/KMS CREDENTIAL MANAGEMENT
 # Immutable • Ephemeral • Idempotent • No-Ops • Fully Automated • Hands-Off
 #
+# ⚠️  MANDATORY: Deploy to 192.168.168.42 ONLY
+# ❌ FORBIDDEN: 192.168.168.31 (localhost/developer workstation)
+#
 # For: dev-elevatediq (192.168.168.42)
 #
 # Features:
@@ -25,6 +28,15 @@
 
 set -euo pipefail
 
+# ==============================================================================
+# MANDATORY BLOCK: 192.168.168.42 ONLY - BLOCK 192.168.168.31
+# ==============================================================================
+if [[ "$(hostname -I 2>/dev/null | awk '{print $1}')" == "192.168.168.31" ]]; then
+    echo "[FATAL] DEPLOYMENT FORBIDDEN: This is 192.168.168.31" >&2
+    echo "MANDATE: 192.168.168.42 (worker node) is the ONLY valid target" >&2
+    exit 1
+fi
+
 # ============================================================================
 # CONFIGURATION - IMMUTABLE DEPLOYMENT SETTINGS
 # ============================================================================
@@ -34,6 +46,18 @@ readonly WORKER_TARGET="192.168.168.42"
 readonly WORKER_SERVICE_ACCOUNT="automation"
 readonly DEPLOYMENT_TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly DEPLOYMENT_ID="$(echo -n "$DEPLOYMENT_TIMESTAMP-$(uuidgen)" | tr -d '\n' | head -c 16)"
+
+# ============================================================================
+# MANDATORY DEPLOYMENT TARGET VALIDATION
+# ============================================================================
+# CRITICAL: This script is hardcoded for production (192.168.168.42) only
+if [[ "$WORKER_TARGET" != "192.168.168.42" ]]; then
+  echo "[FATAL ERROR] WORKER_TARGET is misconfigured: $WORKER_TARGET"
+  echo ""
+  echo "This deployment script is LOCKED to 192.168.168.42 (production worker node)"
+  echo "Do not modify WORKER_TARGET to deploy to other hosts."
+  exit 1
+fi
 
 # Cloud configuration
 readonly GCP_PROJECT="${GCP_PROJECT:-$(gcloud config get-value project 2>/dev/null || echo 'self-hosted-runner')}"

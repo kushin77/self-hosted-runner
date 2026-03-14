@@ -1,0 +1,12 @@
+[Unit]
+Description=Git Metrics Collection (Prometheus Exporter)
+After=network-online.target
+
+[Timer]
+OnBootSec=30sec
+OnUnitActiveSec=5min
+Unit=git-metrics-collection.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
