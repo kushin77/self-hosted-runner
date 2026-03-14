@@ -1,0 +1,33 @@
+name: release-flow-scaffold
+version: 1
+mode: scaffold-only
+input:
+  domain: elevatediq.ai
+snc:
+  org: elevatediq
+  project: nexusshield
+  env: dev
+  pattern: "<org>-<project>-<env>-<component>"
+stages:
+  - name: governance
+    outputs:
+      - snc_report
+      - iam_policy_report
+  - name: platform
+    outputs:
+      - terraform_plan
+      - kms_setup_manifest
+  - name: workload
+    outputs:
+      - deploy_manifest
+      - health_report
+  - name: reliability
+    outputs:
+      - slo_report
+      - backup_dr_report
+  - name: release
+    outputs:
+      - readiness_report
+      - rollback_report
+notes:
+  - This file defines process only and does not deploy resources.

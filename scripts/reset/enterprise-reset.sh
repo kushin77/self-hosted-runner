@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Ensure all cloud CLIs stay non-interactive in automation.
+export CLOUDSDK_CORE_DISABLE_PROMPTS=1
+
 # Enterprise reset for dev environment.
 # Destroys infra across on-prem + cloud while preserving:
 # - Secrets (GCP Secret Manager, Azure Key Vault, AWS Secrets Manager)
@@ -133,7 +136,7 @@ phase_nuke_gcp_runtime() {
   while IFS='|' read -r redis region; do
     [[ -z "${redis}" ]] && continue
     run_safe "nuke-gcp" gcloud redis instances delete "${redis}" --region "${region}" --project "${PROJECT_ID}" --quiet || true
-  done < <(gcloud redis instances list --project "${PROJECT_ID}" --region=- --format='value(name,region)' 2>/dev/null | awk '{print $1"|"$2}')
+  done < <(gcloud redis instances list --project "${PROJECT_ID}" --region=- --format='value(name,region)' --quiet 2>/dev/null | awk '{print $1"|"$2}')
 
   # Delete VM instances (if any)
   while IFS='|' read -r vm zone; do

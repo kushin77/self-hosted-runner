@@ -1,0 +1,7 @@
+# Only input needed for rebuild
+domain: elevatediq.ai
+standard_naming_convention:
+  org: elevatediq
+  env: dev
+  project: nexusshield
+  fqdn: elevatediq.ai
