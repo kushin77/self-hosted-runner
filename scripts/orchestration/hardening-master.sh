@@ -28,15 +28,28 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 LOGS_DIR="${REPO_ROOT}/logs/hardening"
 REPORTS_DIR="${REPO_ROOT}/reports/hardening"
-PHASE="${1:-all}"
+PHASE="all"
 EXECUTE="${EXECUTE:-false}"
 STRICT="${STRICT:-false}"
 
-# Extract flags from args
-for arg in "$@"; do
-  case "$arg" in
-    --execute) EXECUTE="true" ;;
-    --strict) STRICT="true" ;;
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --phase)
+      PHASE="$2"
+      shift 2
+      ;;
+    --execute)
+      EXECUTE="true"
+      shift
+      ;;
+    --strict)
+      STRICT="true"
+      shift
+      ;;
+    *)
+      shift
+      ;;
   esac
 done
 
