@@ -252,7 +252,6 @@ tags:
 options:
   logging: CLOUD_LOGGING_ONLY
   machineType: 'N1_HIGHCPU_8'
-  poolOption: 'PRIVATE_POOL'
   dynamicSubstitutions: true
 
 # Artifact outputs
