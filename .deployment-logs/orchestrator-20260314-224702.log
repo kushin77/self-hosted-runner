@@ -1,0 +1,21 @@
+[2026-03-14 22:47:02] 🚀 MASTER DEPLOYMENT ORCHESTRATOR STARTED
+[2026-03-14 22:47:02] INFO: === STARTING FULL DEPLOYMENT ORCHESTRATION ===
+[2026-03-14 22:47:02] INFO: NAS: 192.16.168.39
+[2026-03-14 22:47:02] INFO: Worker: 192.168.168.42
+[2026-03-14 22:47:02] INFO: Service Account: svc-git
+[2026-03-14 22:47:02] INFO: Constraints: IMMUTABLE | EPHEMERAL | IDEMPOTENT | NO-OPS | HANDS-OFF
+[2026-03-14 22:47:02] STAGE: CONSTRAINT VALIDATION
+[2026-03-14 22:47:02] WARN: Service account svc-git not found (will be created if needed)
+[2026-03-14 22:47:02] SUCCESS: All constraints validated
+[2026-03-14 22:47:02] STAGE: PREFLIGHT CHECKS
+[2026-03-14 22:47:02] INFO: Testing NAS connectivity (192.16.168.39:22)...
+[2026-03-14 22:47:07] WARN: NAS not reachable (may configure later)
+[2026-03-14 22:47:07] INFO: Testing worker connectivity (192.168.168.42:22)...
+[2026-03-14 22:47:07] SUCCESS: Worker node is reachable
+[2026-03-14 22:47:07] SUCCESS: Local git repository found
+[2026-03-14 22:47:07] WARN: Dev SSH key not found
+[2026-03-14 22:47:07] INFO: Preflight: 2/4 checks passed
+[2026-03-14 22:47:07] STAGE: NAS NFS MOUNTS (IMMUTABLE CANONICAL SOURCE)
+[2026-03-14 22:47:07] INFO: Deploying NFS mount infrastructure...
+[2026-03-14 22:47:08] ERROR: NFS mount deployment failed
+[2026-03-14 22:47:08] ERROR: NFS deployment failed

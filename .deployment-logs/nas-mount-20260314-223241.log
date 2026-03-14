@@ -1,0 +1,12 @@
+[2026-03-14 22:32:41] [INFO] Logging initialized: /home/akushnir/self-hosted-runner/.deployment-logs/nas-mount-20260314-223241.log
+[2026-03-14 22:32:41] [INFO] === Starting Full NFS Mount Deployment ===
+[2026-03-14 22:32:41] [INFO] NAS Server: 192.16.168.39
+[2026-03-14 22:32:41] [INFO] Repositories: /repositories
+[2026-03-14 22:32:41] [INFO] Config Vault: /config-vault
+[2026-03-14 22:32:41] [INFO] Mount Point: /nas
+[2026-03-14 22:32:41] [INFO] Starting preflight validation...
+[2026-03-14 22:32:41] [INFO] NAS connectivity will be validated during mount operations from nodes...
+[2026-03-14 22:32:41] [SUCCESS] NAS validation deferred to mount phase
+[2026-03-14 22:32:41] [INFO] Checking worker node SSH...
+[2026-03-14 22:32:41] [ERROR] Cannot SSH to worker node
+[2026-03-14 22:32:41] [ERROR] Preflight checks failed

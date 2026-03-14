@@ -1,0 +1,18 @@
+[2026-03-14 22:45:37] 🚀 MASTER DEPLOYMENT ORCHESTRATOR STARTED
+[2026-03-14 22:45:37] INFO: === STARTING FULL DEPLOYMENT ORCHESTRATION ===
+[2026-03-14 22:45:37] INFO: NAS: 192.16.168.39
+[2026-03-14 22:45:37] INFO: Worker: 192.168.168.42
+[2026-03-14 22:45:37] INFO: Service Account: svc-git
+[2026-03-14 22:45:37] INFO: Constraints: IMMUTABLE | EPHEMERAL | IDEMPOTENT | NO-OPS | HANDS-OFF
+[2026-03-14 22:45:37] STAGE: CONSTRAINT VALIDATION
+[2026-03-14 22:45:37] WARN: Service account svc-git not found (will be created if needed)
+[2026-03-14 22:45:37] SUCCESS: All constraints validated
+[2026-03-14 22:45:37] STAGE: PREFLIGHT CHECKS
+[2026-03-14 22:45:37] INFO: Testing NAS connectivity (192.16.168.39:22)...
+[2026-03-14 22:45:42] WARN: NAS not reachable (may configure later)
+[2026-03-14 22:45:42] INFO: Testing worker connectivity (192.168.168.42:22)...
+[2026-03-14 22:45:42] SUCCESS: Worker node is reachable
+[2026-03-14 22:45:42] SUCCESS: Local git repository found
+[2026-03-14 22:45:42] WARN: Dev SSH key not found
+[2026-03-14 22:45:42] INFO: Preflight: 2/4 checks passed
+[2026-03-14 22:45:42] ERROR: Preflight checks failed
