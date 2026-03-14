@@ -1,0 +1,245 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-check-scripts
+  namespace: kube-system
+data:
+  readiness-check.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Check API server connectivity
+    if ! kubectl cluster-info &>/dev/null; then
+      echo "ERROR: Cannot reach Kubernetes API server"
+      exit 1
+    fi
+    
+    # Check node readiness
+    TOTAL_NODES=$(kubectl get nodes --no-headers | wc -l)
+    READY_NODES=$(kubectl get nodes --no-headers | grep -c " Ready " || true)
+    
+    if [[ $READY_NODES -eq 0 ]]; then
+      echo "ERROR: No nodes are ready (total: $TOTAL_NODES)"
+      exit 1
+    fi
+    
+    # Check core namespaces
+    for ns in kube-system kube-public default; do
+      if ! kubectl get namespace "$ns" &>/dev/null; then
+        echo "ERROR: Required namespace '$ns' not found"
+        exit 1
+      fi
+    done
+    
+    # Check DNS
+    if ! kubectl get service -n kube-system kube-dns &>/dev/null; then
+      echo "ERROR: DNS service not found"
+      exit 1
+    fi
+    
+    echo "OK: Cluster is ready ($READY_NODES/$TOTAL_NODES nodes ready)"
+    exit 0
+  
+  liveness-check.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Simple check that API server is responding
+    if ! kubectl get nodes -q &>/dev/null; then
+      echo "ERROR: Cannot reach API server"
+      exit 1
+    fi
+    
+    echo "OK: API server is responding"
+    exit 0
+  
+  connectivity-check.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Check DNS resolution
+    if ! nslookup kubernetes.default.svc.cluster.local &>/dev/null; then
+      echo "ERROR: DNS resolution failed"
+      exit 1
+    fi
+    
+    # Try reaching the API server via DNS
+    if ! curl -s -k https://kubernetes.default.svc.cluster.local/api &>/dev/null; then
+      echo "ERROR: Cannot reach API server via DNS"
+      exit 1
+    fi
+    
+    echo "OK: Connectivity verified"
+    exit 0
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cluster-health-monitor
+  namespace: kube-system
+spec:
+  schedule: "*/5 * * * *"  # Every 5 minutes
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app: cluster-health-monitor
+        spec:
+          serviceAccountName: cluster-health-monitor
+          containers:
+          - name: health-check
+            image: bitnami/kubectl:latest
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: KUBECONFIG
+              value: /var/run/secrets/kubernetes.io/serviceaccount/kubeconfig
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              
+              # Run health checks
+              TOTAL_NODES=$(kubectl get nodes --no-headers | wc -l)
+              READY_NODES=$(kubectl get nodes --no-headers | grep -c " Ready " || true)
+              
+              if [[ $READY_NODES -eq 0 ]]; then
+                echo "ALERT: No nodes are ready (total: $TOTAL_NODES)"
+                kubectl create event health-check-failed \
+                  --namespace=kube-system \
+                  --type=Warning \
+                  --reason=NoReadyNodes \
+                  --message="No nodes are ready for scheduling" 2>/dev/null || true
+                exit 1
+              fi
+              
+              # Check API server
+              if ! kubectl get nodes -q &>/dev/null; then
+                echo "ALERT: API server not responding"
+                kubectl create event health-check-failed \
+                  --namespace=kube-system \
+                  --type=Warning \
+                  --reason=APIServerDown \
+                  --message="Kubernetes API server not responding" 2>/dev/null || true
+                exit 1
+              fi
+              
+              echo "OK: Health check passed ($READY_NODES/$TOTAL_NODES nodes ready)"
+            resources:
+              requests:
+                cpu: 100m
+                memory: 128Mi
+              limits:
+                cpu: 500m
+                memory: 512Mi
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/os: linux
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-health-monitor
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - namespaces
+  - services
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups: [""]
+  resources:
+  - events
+  verbs:
+  - create
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-health-monitor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-health-monitor
+subjects:
+- kind: ServiceAccount
+  name: cluster-health-monitor
+  namespace: kube-system
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-health-monitor
+  namespace: kube-system
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: cluster-health-alerts
+  namespace: kube-system
+spec:
+  groups:
+  - name: cluster.health
+    interval: 30s
+    rules:
+    - alert: KubernetesClusterUnreachable
+      expr: up{job="kubernetes-apiservers"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: kubernetes
+      annotations:
+        summary: "Kubernetes cluster unreachable (instance {{ $labels.instance }})"
+        description: "Kubernetes API server at {{ $labels.instance }} is unreachable for more than 2 minutes."
+    
+    - alert: KubernetesNodesNotReady
+      expr: count(kube_node_status_condition{condition="Ready",status="true"}) == 0
+      for: 5m
+      labels:
+        severity: critical
+        component: kubernetes
+      annotations:
+        summary: "No Kubernetes nodes are ready"
+        description: "All Kubernetes nodes are in NotReady state for more than 5 minutes."
+    
+    - alert: KubernetesMemoryPressure
+      expr: kube_node_status_condition{condition="MemoryPressure",status="true"} == 1
+      for: 5m
+      labels:
+        severity: warning
+        component: kubernetes
+      annotations:
+        summary: "Kubernetes memory pressure (instance {{ $labels.node }})"
+        description: "Node {{ $labels.node }} has MemoryPressure condition."
+    
+    - alert: KubernetesDiskPressure
+      expr: kube_node_status_condition{condition="DiskPressure",status="true"} == 1
+      for: 5m
+      labels:
+        severity: warning
+        component: kubernetes
+      annotations:
+        summary: "Kubernetes disk pressure (instance {{ $labels.node }})"
+        description: "Node {{ $labels.node }} has DiskPressure condition."
+    
+    - alert: KubernetesNetworkUnavailable
+      expr: kube_node_status_condition{condition="NetworkUnavailable",status="true"} == 1
+      for: 5m
+      labels:
+        severity: warning
+        component: kubernetes
+      annotations:
+        summary: "Kubernetes network unavailable (instance {{ $labels.node }})"
+        description: "Node {{ $labels.node }} has NetworkUnavailable condition."

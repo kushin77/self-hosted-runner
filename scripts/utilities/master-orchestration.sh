@@ -159,7 +159,67 @@ verify_cluster_readiness() {
   fi
 }
 
-# Phase 3: Deploy network policies
+# Phase 3: Cluster Health Checks (Pre-Deployment Validation)
+run_cluster_health_checks() {
+  log_phase "Cluster Health Checks"
+  PHASE_STEPS=$((PHASE_STEPS + 1))
+  
+  if [ ! -x "$REPO_ROOT/scripts/utilities/cluster-health-check.sh" ]; then
+    log_error "Cluster health check script not found"
+    return 1
+  fi
+  
+  log "Running comprehensive cluster health checks..."
+  if "$REPO_ROOT/scripts/utilities/cluster-health-check.sh" --max-retries 3 2>&1 | tee -a "$ORCHESTRATION_LOG"; then
+    log_success "Cluster health checks passed"
+    return 0
+  else
+    log_error "Cluster health checks failed"
+    return 1
+  fi
+}
+
+# Phase 3.5: Pre-Deployment Readiness Probe
+run_pre_deployment_readiness() {
+  log_phase "Pre-Deployment Readiness Probe"
+  PHASE_STEPS=$((PHASE_STEPS + 1))
+  
+  if [ ! -x "$REPO_ROOT/scripts/utilities/pre-deployment-readiness-probe.sh" ]; then
+    log_error "Pre-deployment readiness probe script not found"
+    return 1
+  fi
+  
+  log "Running pre-deployment readiness validation..."
+  if "$REPO_ROOT/scripts/utilities/pre-deployment-readiness-probe.sh" "master-orchestration" 2>&1 | tee -a "$ORCHESTRATION_LOG"; then
+    log_success "Pre-deployment readiness verified"
+    return 0
+  else
+    log_error "Pre-deployment readiness check failed"
+    return 1
+  fi
+}
+
+# Phase 4: Deploy Cluster Health Probes
+deploy_cluster_health_probes() {
+  log_phase "Deploy Cluster Health Monitoring"
+  PHASE_STEPS=$((PHASE_STEPS + 1))
+  
+  if [ ! -f "$REPO_ROOT/kubernetes/cluster-health-probes.yaml" ]; then
+    log "Cluster health probes manifest not found - creating minimal monitoring"
+    return 0
+  fi
+  
+  log "Deploying cluster health probes and monitoring..."
+  if kubectl apply -f "$REPO_ROOT/kubernetes/cluster-health-probes.yaml" 2>&1 | tee -a "$ORCHESTRATION_LOG"; then
+    log_success "Cluster health probes deployed"
+    return 0
+  else
+    log_error "Cluster health probes deployment failed"
+    return 1
+  fi
+}
+
+# Phase 5: Deploy network policies
 deploy_network_policies() {
   log_phase "Network Policies Deployment"
   PHASE_STEPS=$((PHASE_STEPS + 1))
@@ -178,7 +238,7 @@ deploy_network_policies() {
   fi
 }
 
-# Phase 4: Run E2E tests
+# Phase 6: Run E2E tests
 run_e2e_tests() {
   log_phase "End-to-End Testing"
   PHASE_STEPS=$((PHASE_STEPS + 1))
@@ -197,7 +257,7 @@ run_e2e_tests() {
   fi
 }
 
-# Phase 5: Configure secrets rotation
+# Phase 7: Configure secrets rotation
 configure_secrets_rotation() {
   log_phase "Secrets Rotation Configuration"
   PHASE_STEPS=$((PHASE_STEPS + 1))
@@ -216,7 +276,7 @@ configure_secrets_rotation() {
   return 0
 }
 
-# Phase 6: Configure automated rollback
+# Phase 8: Configure automated rollback
 configure_automated_rollback() {
   log_phase "Automated Rollback Configuration"
   PHASE_STEPS=$((PHASE_STEPS + 1))
@@ -233,7 +293,7 @@ configure_automated_rollback() {
   return 0
 }
 
-# Phase 7: Run final triage
+# Phase 9: Run final triage
 run_final_triage() {
   log_phase "Final Phase Triage"
   PHASE_STEPS=$((PHASE_STEPS + 1))
@@ -383,6 +443,9 @@ main() {
     full)
       check_prerequisites || return 1
       verify_cluster_readiness || return 1
+      run_cluster_health_checks || return 1
+      run_pre_deployment_readiness || return 1
+      deploy_cluster_health_probes || return 1
       deploy_network_policies || return 1
       run_e2e_tests || return 1
       configure_secrets_rotation || return 1
@@ -391,6 +454,8 @@ main() {
       ;;
     cluster-only)
       verify_cluster_readiness || return 1
+      run_cluster_health_checks || return 1
+      run_pre_deployment_readiness || return 1
       ;;
     test-only)
       run_e2e_tests || return 1
