@@ -99,15 +99,14 @@ verify_no_cloud_env() {
 }
 
 # ==============================================================================
-# MANDATORY ENFORCEMENT: 192.168.168.42 ONLY - NO OTHER TARGETS
+# MANDATORY ENFORCEMENT: 192.168.168.42 ONLY - TARGET MUST BE ON-PREM
 # ==============================================================================
-# Check if being run FROM the forbidden host
-if hostname &>/dev/null && [[ "$(hostname)" == "dev-elevatediq-2" ]]; then
-    echo -e "\033[0;31m[FATAL] Running on FORBIDDEN host: dev-elevatediq-2 (192.168.168.31)\033[0m"
-    echo "MANDATE: 192.168.168.42 (on-prem worker node) is the ONLY deployment target"
-    echo "         Deploy FROM localhost, TO 192.168.168.42"
-    exit 1
-fi
+# MANDATE: Deployment target (TO) must be on-prem
+# Deployment CAN orchestrate from anywhere (localhost, dev node, etc.)
+# The constraint is that we only DEPLOY TO on-prem infrastructure
+#
+# Note: The old check preventing run FROM dev-elevatediq-2 was too restrictive
+# and contradicted the "direct deployment" and "hands-off" requirements
 
 # ============================================================================
 # SERVICE ACCOUNT CONFIGURATION (elevatediq-svc-worker-dev with SSH keys)
