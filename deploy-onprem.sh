@@ -23,6 +23,16 @@
 set -euo pipefail
 
 # ============================================================================
+# MANDATORY ENFORCEMENT: 192.168.168.42 ONLY - NO OTHER TARGETS
+# ============================================================================
+# Prevent accidental deployment to developer workstation (192.168.168.31)
+if [[ "$(hostname)" == "dev-elevatediq-2" ]] || [[ "$(hostname -I 2>/dev/null | awk '{print $1}')" == "192.168.168.31" ]]; then
+    echo -e "\033[0;31m[FATAL] DEPLOYMENT BLOCKED: This is 192.168.168.31 (FORBIDDEN)\033[0m" >&2
+    echo "MANDATE: 192.168.168.42 (worker node) is the ONLY deployment target" >&2
+    exit 1
+fi
+
+# ============================================================================
 # CONFIGURATION
 # ============================================================================
 
@@ -84,6 +94,16 @@ success() {
   local msg="$*"
   echo -e "${GREEN}[${TIMESTAMP}] ✅ ${msg}${NC}" | tee -a "$AUDIT_LOG"
 }
+
+# ============================================================================
+# FRESH BUILD MANDATE ENFORCEMENT
+# ============================================================================
+# Source the fresh build enforcement library
+if [[ -f "${SCRIPT_DIR}/scripts/enforce/fresh-build-mandate.sh" ]]; then
+  source "${SCRIPT_DIR}/scripts/enforce/fresh-build-mandate.sh"
+else
+  warning "Fresh build mandate library not found - skipping fresh build checks"
+fi
 
 # ============================================================================
 # PRE-DEPLOYMENT VERIFICATION
@@ -385,6 +405,13 @@ main() {
   log "Repository: $REPO_ROOT"
   log "Session ID: $SESSION_ID"
   log "Audit Log: $AUDIT_LOG"
+  log ""
+
+  # MANDATE ENFORCEMENT: Fresh Build Deployment
+  if ! enforce_fresh_build_mandate; then
+    error "Fresh build mandate enforcement failed - deployment blocked"
+    return 1
+  fi
   log ""
 
   # Verify prerequisites

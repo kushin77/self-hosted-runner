@@ -3,6 +3,9 @@
 # SELF-CONTAINED WORKER NODE DEPLOYMENT PACKAGE
 # For Local Execution on dev-elevatediq (192.168.168.42)
 #
+# ⚠️  MANDATORY: 192.168.168.42 ONLY
+# ❌ FORBIDDEN: 192.168.168.31 (localhost/developer workstation)
+#
 # This script can be run directly on the worker node without SSH
 # It contains all deployment logic and will install the components
 #
@@ -13,6 +16,15 @@
 #
 
 set -euo pipefail
+
+# ==============================================================================
+# MANDATORY BLOCK: PREVENT DEPLOYMENT TO 192.168.168.31
+# ==============================================================================
+if [[ "$(hostname)" == "dev-elevatediq-2" ]] || [[ "$(hostname -I 2>/dev/null | awk '{print $1}')" == "192.168.168.31" ]]; then
+    echo "[FATAL] DEPLOYMENT BLOCKED: This is 192.168.168.31 (FORBIDDEN)" >&2
+    echo "MANDATE: 192.168.168.42 (worker node) is the ONLY deployment target" >&2
+    exit 1
+fi
 
 # ============================================================================
 # CONFIGURATION
@@ -26,6 +38,25 @@ readonly AUDIT_LOG="${DEPLOYMENT_DIR}/audit/deployment-${TIMESTAMP}-${SESSION_ID
 # Verify we're on the correct host
 readonly CURRENT_HOST=$(hostname)
 readonly TARGET_HOST="dev-elevatediq"
+readonly CURRENT_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+
+# ============================================================================
+# MANDATORY DEPLOYMENT TARGET VALIDATION
+# ============================================================================
+# CRITICAL: Prevent deployment to developer workstation (192.168.168.31)
+if [[ "$CURRENT_HOST" == "dev-elevatediq-2" ]] || [[ "$CURRENT_IP" == "192.168.168.31" ]]; then
+  echo -e "\033[0;31m[FATAL ERROR]\033[0m This is the developer workstation (192.168.168.31)"
+  echo ""
+  echo "MANDATE:"
+  echo "  ❌ DO NOT RUN ON THIS MACHINE"
+  echo ""
+  echo "This script MUST be run on the production worker node:"
+  echo "  Hostname: dev-elevatediq"
+  echo "  IP: 192.168.168.42"
+  echo ""
+  echo "Copy this script to the worker node and run it there."
+  exit 1
+fi
 
 # Color codes
 readonly GREEN='\033[0;32m'
@@ -55,6 +86,17 @@ success() {
   echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅ ${msg}${NC}"
   [ -d "$(dirname "$AUDIT_LOG")" ] && echo "✅ $msg" >> "$AUDIT_LOG" 2>/dev/null || true
 }
+
+# ============================================================================
+# FRESH BUILD MANDATE ENFORCEMENT
+# ============================================================================
+# Source the fresh build enforcement library
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "${SCRIPT_DIR}/scripts/enforce/fresh-build-mandate.sh" ]]; then
+  source "${SCRIPT_DIR}/scripts/enforce/fresh-build-mandate.sh"
+else
+  log "Fresh build mandate library not found - skipping fresh build checks"
+fi
 
 # ============================================================================
 # VERIFICATION
@@ -281,6 +323,13 @@ main() {
   log "Location: $DEPLOYMENT_DIR"
   log "Session: $SESSION_ID"
   log "Timestamp: $TIMESTAMP"
+  echo ""
+  
+  # MANDATE ENFORCEMENT: Fresh Build Deployment
+  if ! enforce_fresh_build_mandate; then
+    error "Fresh build mandate enforcement failed - deployment blocked"
+    return 1
+  fi
   echo ""
   
   verify_host || return 1
