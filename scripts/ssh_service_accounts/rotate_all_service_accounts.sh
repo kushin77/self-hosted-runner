@@ -259,14 +259,34 @@ rotate_account() {
         return 1
     fi
     
-    # Verify health
+    # Verify health with automatic rollback on failure
     if ! check_credential_health "$svc_name"; then
+        log_error "Health check failed for $svc_name - initiating auto-rollback..."
+        
+        # Call rollback handler to restore previous key
+        local rollback_handler="${SCRIPT_DIR}/rotation_rollback_handler.sh"
+        if [ -f "$rollback_handler" ]; then
+            if bash "$rollback_handler" rollback "$svc_name"; then
+                log_warn "Automatic rollback successful - account quarantined for review"
+                audit_log "rotation_rollback" "$svc_name" "auto_rolled_back" "Health check failed, previous key restored"
+            else
+                log_error "Rollback failed - manual intervention required"
+                audit_log "rotation_rollback" "$svc_name" "rollback_failed" "Auto-rollback attempt failed"
+            fi
+        fi
+        
         ((FAILED_ACCOUNTS++))
         return 1
     fi
     
-    # Update rotation state
-    echo "$TIMESTAMP" > "${ROTATION_STATE}/${svc_name}.last-rotation"
+    # Update rotation state only after successful health check
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "${ROTATION_STATE}/${svc_name}.last-rotation"
+    
+    # Sign audit entry with hash-chain
+    local signer="${SCRIPT_DIR}/audit_log_signer.sh"
+    if [ -f "$signer" ]; then
+        bash "$signer" sign >/dev/null 2>&1 || true
+    fi
     
     ((ROTATED_ACCOUNTS++))
     log_success "Successfully rotated $svc_name"
@@ -370,6 +390,18 @@ main() {
     case "${1:-rotate-all}" in
         rotate-all)
             log_step "Starting comprehensive credential rotation for all accounts..."
+            
+            # Run preflight checks before any rotation
+            local preflight="${SCRIPT_DIR}/preflight_health_gate.sh"
+            if [ -f "$preflight" ]; then
+                log_info "Running preflight health gate..."
+                if ! bash "$preflight"; then
+                    log_error "Preflight checks failed - rotation blocked"
+                    ((FAILED_ACCOUNTS++))
+                    cleanup_and_exit 1
+                fi
+            fi
+            
             rotate_all_accounts || true
             ;;
         report)
