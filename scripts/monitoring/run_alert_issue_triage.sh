@@ -111,9 +111,21 @@ if [ -z "${GITHUB_TOKEN:-}" ]; then
     skip_and_exit "missing GCP_PROJECT_ID"
   fi
 
-  token="$(gcloud secrets versions access latest --secret="$GITHUB_TOKEN_GSM_SECRET" --project="$GCP_PROJECT_ID" 2>/dev/null || true)"
-  if [ -z "$token" ]; then
+  token_result=""
+  token_status=0
+  token_error=""
+  set +e
+  token_result="$(gcloud secrets versions access latest --secret="$GITHUB_TOKEN_GSM_SECRET" --project="$GCP_PROJECT_ID" 2>&1)"
+  token_status=$?
+  set -e
+  if [ $token_status -eq 0 ] && [ -n "$token_result" ]; then
+    token="$token_result"
+  else
+    token_error="$(printf "%s" "$token_result" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | cut -c1-220)"
     echo "Failed to load GitHub token from GSM secret: $GITHUB_TOKEN_GSM_SECRET; skipping triage run" >&2
+    if [ -n "$token_error" ]; then
+      skip_and_exit "missing or inaccessible GSM secret ${GITHUB_TOKEN_GSM_SECRET}; gcloud_error=${token_error}"
+    fi
     skip_and_exit "missing or inaccessible GSM secret ${GITHUB_TOKEN_GSM_SECRET}"
   fi
   export GITHUB_TOKEN="$token"

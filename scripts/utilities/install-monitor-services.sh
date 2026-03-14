@@ -17,7 +17,12 @@ install_unit() {
     return 1
   fi
   if [ -f "$dst" ]; then
-    echo "$1 already installed at $dst" 
+    if cmp -s "$src" "$dst"; then
+      echo "$1 already installed at $dst"
+    else
+      echo "Updating $1 -> $dst"
+      install -m 644 "$src" "$dst"
+    fi
   else
     echo "Installing $1 -> $dst"
     install -m 644 "$src" "$dst"

@@ -10,8 +10,10 @@ WorkingDirectory=/home/akushnir/self-hosted-runner
 EnvironmentFile=-/etc/default/monitoring-alert-triage
 ExecStart=/bin/bash -lc './scripts/monitoring/run_alert_issue_triage.sh'
 Nice=10
-NoNewPrivileges=true
+# Required for snap-packaged gcloud secret access helper (snap-confine).
+NoNewPrivileges=false
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
 ReadWritePaths=/home/akushnir/self-hosted-runner/logs
+ReadWritePaths=/home/akushnir/.config/gcloud
