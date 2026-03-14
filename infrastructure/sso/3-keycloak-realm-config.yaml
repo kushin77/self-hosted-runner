@@ -1,0 +1,86 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm-config
+  namespace: keycloak
+data:
+  realm.json: |
+    {
+      "realm": "nexusshield-prod",
+      "enabled": true,
+      "sslRequired": "external",
+      "accessCodeLifespan": 60,
+      "accessTokenLifespan": 21600,
+      "accessTokenLifespanForImplicitFlow": 900,
+      "actionTokenGeneratedByAdminLifespan": 43200,
+      "actionTokenGeneratedByUserLifespan": 300,
+      "defaultRoles": [ "user" ],
+      "publicClient": false,
+      "roles": {
+        "realm": [
+          { "name": "admin", "description": "Administrator role" },
+          { "name": "operator", "description": "Operator role" },
+          { "name": "viewer", "description": "Viewer role" },
+          { "name": "service-account", "description": "Service account role" }
+        ]
+      },
+      "users": [
+        {
+          "username": "admin",
+          "enabled": true,
+          "firstName": "Admin",
+          "lastName": "User",
+          "email": "admin@nexus.local",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "changeme"
+            }
+          ],
+          "realmRoles": [ "admin", "user" ]
+        }
+      ],
+      "identityProviders": [
+        {
+          "alias": "google",
+          "displayName": "Google",
+          "providerId": "google",
+          "enabled": true,
+          "trustEmail": true,
+          "storeToken": true,
+          "config": {
+            "clientId": "GOOGLE_CLIENT_ID",
+            "clientSecret": "GOOGLE_CLIENT_SECRET",
+            "useJwksUrl": "true",
+            "defaultScope": "openid profile email"
+          }
+        }
+      ],
+      "clients": [
+        {
+          "clientId": "oauth2-proxy",
+          "name": "OAuth2-Proxy",
+          "secret": "oauth2-proxy-secret",
+          "enabled": true,
+          "publicClient": false,
+          "protocol": "openid-connect",
+          "accessType": "confidential",
+          "redirectUris": [
+            "https://api.nexus.local/oauth2/callback",
+            "https://portal.nexus.local/oauth2/callback",
+            "http://localhost:4180/oauth2/callback"
+          ],
+          "webOrigins": [ "*" ],
+          "standardFlowEnabled": true,
+          "implicitFlowEnabled": false,
+          "directAccessGrantsEnabled": false,
+          "serviceAccountsEnabled": true,
+          "useRefreshTokens": true,
+          "attributes": {
+            "access.token.lifespan": "21600",
+            "refresh.token.max.reuse": "0"
+          }
+        }
+      ]
+    }

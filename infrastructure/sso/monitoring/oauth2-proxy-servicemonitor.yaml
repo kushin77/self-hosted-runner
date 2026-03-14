@@ -1,0 +1,63 @@
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: oauth2-proxy
+  namespace: oauth2-proxy
+  labels:
+    app: oauth2-proxy
+spec:
+  selector:
+    matchLabels:
+      app: oauth2-proxy
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: keycloak
+  namespace: keycloak
+  labels:
+    app: keycloak
+spec:
+  selector:
+    matchLabels:
+      app: keycloak
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: oauth2-proxy-alerts
+  namespace: oauth2-proxy
+  labels:
+    app: oauth2-proxy
+spec:
+  groups:
+  - name: oauth2-proxy
+    interval: 30s
+    rules:
+    - alert: OAuth2ProxyAuthFailureRate
+      expr: rate(oauth2_proxy_authentication_failures_total[5m]) > 0.1
+      for: 5m
+      annotations:
+        summary: "High authentication failure rate"
+        description: "OAuth2-Proxy authentication failure rate > 10% for 5 minutes"
+    - alert: OAuth2ProxyLatencyHigh
+      expr: histogram_quantile(0.95, rate(oauth2_proxy_request_duration_seconds_bucket[5m])) > 1
+      for: 5m
+      annotations:
+        summary: "High request latency"
+        description: "OAuth2-Proxy P95 latency > 1 second"
+    - alert: OAuth2ProxyProviderDown
+      expr: up{job="oauth2-proxy"} == 0
+      for: 1m
+      annotations:
+        summary: "OAuth2-Proxy provider is down"
+        description: "OAuth2-Proxy has been down for more than 1 minute"
