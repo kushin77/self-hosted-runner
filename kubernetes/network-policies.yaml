@@ -1,0 +1,396 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nexus-discovery
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Deny all traffic by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: nexus-discovery
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Allow DNS for all pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: nexus-discovery
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Allow webhook receiver ingress on port 8080
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-webhook-ingress
+  namespace: nexus-discovery
+spec:
+  podSelector:
+    matchLabels:
+      app: webhook-receiver
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+---
+# Allow webhook receiver to communicate with internal services
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-webhook-internal
+  namespace: nexus-discovery
+spec:
+  podSelector:
+    matchLabels:
+      app: webhook-receiver
+  policyTypes:
+  - Egress
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Prometheus metrics scraper
+  - to:
+    - podSelector:
+        matchLabels:
+          app: metrics-exporter
+    ports:
+    - protocol: TCP
+      port: 9100
+  # Configuration service
+  - to:
+    - podSelector:
+        matchLabels:
+          app: config-service
+    ports:
+    - protocol: TCP
+      port: 8000
+  # Vault integration
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: vault
+    ports:
+    - protocol: TCP
+      port: 8200
+  # GCP API calls (allow HTTPS to googleapis.com)
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Allow metrics exporter to expose metrics
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-metrics-ingress
+  namespace: nexus-discovery
+spec:
+  podSelector:
+    matchLabels:
+      app: metrics-exporter
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9100
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Local service communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: webhook-receiver
+    ports:
+    - protocol: TCP
+      port: 8080
+---
+# Allow Prometheus scraping from monitoring namespace
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-scrape
+  namespace: nexus-discovery
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9100
+---
+# Allow communication to Vault for secrets
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-vault-communication
+  namespace: nexus-discovery
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: vault
+    ports:
+    - protocol: TCP
+      port: 8200
+---
+# Allow HTTPS outbound for external APIs
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-https-outbound
+  namespace: nexus-discovery
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Monitoring namespace policies
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Monitoring: Deny all by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Monitoring: Allow DNS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns
+  namespace: monitoring
+spec:
+  podSelector: {}
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+---
+# Prometheus: Allow ingress and inter-pod communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-prometheus-traffic
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: prometheus
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 9090
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Scrape endpoints
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 9090
+    - protocol: TCP
+      port: 9100
+  # HTTPS for external APIs
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Alertmanager: Allow ingress
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-alertmanager-traffic
+  namespace: monitoring
+spec:
+  podSelector:
+    matchLabels:
+      app: alertmanager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 9093
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # Communication with Prometheus
+  - to:
+    - podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 9090
+  # External HTTPS for webhooks/notifications
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+---
+# Vault namespace policies
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: vault
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Vault: Deny all by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: vault
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+# Vault: Allow secret access from other namespaces
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-vault-access
+  namespace: vault
+spec:
+  podSelector:
+    matchLabels:
+      app: vault
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8200
+  egress:
+  # DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+  # GCP API for GSM backend
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
