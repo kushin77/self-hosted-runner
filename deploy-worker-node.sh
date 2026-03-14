@@ -231,17 +231,25 @@ readonly NC='\033[0m'
 # LOGGING
 # ============================================================================
 
+# Initialize logging directories (create if they don't exist)
+init_logging() {
+    mkdir -p "$AUDIT_DIR" 2>/dev/null || true
+    # If we can't create locally, at least allow tee to continue without failing
+    export DEPLOYMENT_LOG
+
+}
+
 log() {
-  echo -e "${GREEN}[${TIMESTAMP}]${NC} $*" | tee -a "$DEPLOYMENT_LOG"
+  echo -e "${GREEN}[${TIMESTAMP}]${NC} $*" | tee -a "$DEPLOYMENT_LOG" 2>/dev/null || echo -e "${GREEN}[${TIMESTAMP}]${NC} $*"
 }
 
 error() {
-  echo -e "${RED}[${TIMESTAMP}] ERROR: $*${NC}" | tee -a "$DEPLOYMENT_LOG" >&2
+  echo -e "${RED}[${TIMESTAMP}] ERROR: $*${NC}" | tee -a "$DEPLOYMENT_LOG" 2>/dev/null || echo -e "${RED}[${TIMESTAMP}] ERROR: $*${NC}" >&2
   return 1
 }
 
 success() {
-  echo -e "${GREEN}[${TIMESTAMP}] ✅ $*${NC}" | tee -a "$DEPLOYMENT_LOG"
+  echo -e "${GREEN}[${TIMESTAMP}] ✅ $*${NC}" | tee -a "$DEPLOYMENT_LOG" 2>/dev/null || echo -e "${GREEN}[${TIMESTAMP}] ✅ $*${NC}"
 }
 
 # ============================================================================
@@ -857,6 +865,9 @@ print_summary() {
 # ============================================================================
 
 main() {
+  # Initialize logging directories first
+  init_logging
+  
   echo ""
   log "╔══════════════════════════════════════════════════════╗"
   log "║  WORKER NODE DEPLOYMENT - SERVICE ACCOUNT SSH AUTH  ║"
