@@ -141,7 +141,7 @@ resource "google_container_node_pool" "nexus_prod_nodes" {
     taint {
       key    = "workload"
       value  = "nexus"
-      effect = "NoSchedule"
+      effect = "NO_SCHEDULE"
     }
   }
 

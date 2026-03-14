@@ -9,7 +9,11 @@ groups:
       / sum(rate(canonical_secrets_api_requests_total[5m]))
 
   - record: job:canonical_secrets:request_p95
-    expr: histogram_quantile(0.95, canonical_secrets_api_response_time_ms_bucket)
+    expr: |
+      histogram_quantile(
+        0.95,
+        sum by (le) (rate(canonical_secrets_api_response_time_ms_bucket[5m]))
+      )
 
   # SLO: availability over 7d window
   - record: slo:availability:7d
@@ -21,7 +25,17 @@ groups:
 
   # Error budget burn rate (5m vs 7d budget)
   - record: slo:error_budget_burn_rate:5m
-    expr: (
-      (1 - job:canonical_secrets:request_success_rate)
-      / (1 - 0.99) # example SLO availability 99%
-    )
+    expr: |
+      (
+        1 - job:canonical_secrets:request_success_rate
+      ) / (1 - 0.99)
+
+  - record: slo:error_budget_burn_rate:1h
+    expr: |
+      (
+        1 - (
+          sum(rate(canonical_secrets_api_requests_total{status=~"2.."}[1h]))
+          /
+          sum(rate(canonical_secrets_api_requests_total[1h]))
+        )
+      ) / (1 - 0.99)

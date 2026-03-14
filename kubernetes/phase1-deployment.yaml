@@ -121,6 +121,7 @@ spec:
         fsGroup: 3000
         seccompProfile:
           type: RuntimeDefault
+      containers:
       - name: nexus-discovery
         image: IMAGE_URL
         imagePullPolicy: Always
@@ -184,7 +185,7 @@ spec:
         
         startupProbe:
           httpGet:
-            path: /health/startup
+            path: /health
             port: http
             scheme: HTTP
           initialDelaySeconds: 0
