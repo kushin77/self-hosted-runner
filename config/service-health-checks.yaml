@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: HealthCheckConfig
+
+services:
+  portal:
+    name: "Portal Service"
+    endpoint: "http://localhost:5000/health"
+    timeout: 5s
+    interval: 30s
+    retries: 3
+    expected_status: 200
+    
+  backend:
+    name: "Backend API"
+    endpoint: "http://localhost:3000/health"
+    timeout: 5s
+    interval: 30s
+    retries: 3
+    expected_status: 200
+
+monitoring:
+  metrics_enabled: true
+  metrics_port: 9090
+  logs_format: "jsonl"
+  error_tracking: true
+  
+alerting:
+  enabled: true
+  channels:
+    - type: "email"
+      priority: "high"
+    - type: "slack"
+      priority: "critical"
+  
+validation:
+  sync_check_interval: 60s
+  test_consolidation_interval: 3600s
+  error_aggregation_interval: 300s
