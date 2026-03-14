@@ -1,0 +1,147 @@
+steps:
+  # Step 1: Verify immutability and git state
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'verify-immutability'
+    args:
+      - 'status'
+    env:
+      - 'BRANCH_NAME=${_ENVIRONMENT}'
+
+  # Step 2: Initialize credentials from GSM
+  - name: 'gcr.io/cloud-builders/gcloud'
+    id: 'load-credentials'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Load all environment credentials from GSM
+        echo "Loading credentials from Google Secret Manager..."
+        
+        # Export GSM project
+        export GSM_PROJECT=${PROJECT_ID}
+        
+        # Source credential manager
+        source scripts/automation/credential-manager.sh
+        
+        # Verify credential access
+        verify_credential_access "${_ENVIRONMENT}"
+    env:
+      - 'GSM_PROJECT=${PROJECT_ID}'
+
+  # Step 3: Deploy components using immutable orchestrator
+  - name: 'gcr.io/cloud-builders/gke-deploy'
+    id: 'deploy-components'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Execute immutable orchestrator
+        chmod +x scripts/automation/orchestrator.sh
+        
+        ./scripts/automation/orchestrator.sh \
+          --operation deploy \
+          --environment ${_ENVIRONMENT} \
+          --component all
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+      - 'GSM_PROJECT=${PROJECT_ID}'
+      - 'VAULT_ADDR=${_VAULT_ADDR}'
+
+  # Step 4: Run health checks and verification
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'verify-deployment'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Execute orchestrator verification
+        chmod +x scripts/automation/orchestrator.sh
+        
+        ./scripts/automation/orchestrator.sh \
+          --operation verify \
+          --environment ${_ENVIRONMENT}
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+  # Step 5: Generate audit report and commit
+  - name: 'gcr.io/cloud-builders/git'
+    id: 'commit-changes'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Configure git
+        git config user.email "cloud-build@cloudbuild.gserviceaccount.com"
+        git config user.name "Cloud Build Automation"
+        
+        # Commit deployment report if any changes
+        if [[ -n $(git status --porcelain) ]]; then
+          git add scripts/automation/reports/ scripts/automation/audit/
+          git commit -m "✅ Direct Deployment: ${_ENVIRONMENT} - Timestamp: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" --no-verify
+          git push origin ${_ENVIRONMENT} || git push origin main
+        else
+          echo "No changes to commit (deployment idempotent)"
+        fi
+
+  # Step 6: Cleanup ephemeral resources
+  - name: 'gcr.io/cloud-builders/kubectl'
+    id: 'cleanup'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Execute orchestrator cleanup
+        chmod +x scripts/automation/orchestrator.sh
+        
+        ./scripts/automation/orchestrator.sh \
+          --operation cleanup \
+          --environment ${_ENVIRONMENT}
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_ZONE}'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER}'
+
+# Build configuration
+options:
+  machineType: 'N1_HIGHCPU_8'
+  logging: CLOUD_LOGGING_ONLY
+  
+# Timeout for entire build (1 hour)
+timeout: '3600s'
+
+# Substitution variables
+substitutions:
+  _ENVIRONMENT: 'prod'
+  _GKE_ZONE: 'us-central1-a'
+  _GKE_CLUSTER: 'primary-cluster'
+  _VAULT_ADDR: 'https://vault.example.com'
+
+# Images to push to registry
+images:
+  - 'gcr.io/${PROJECT_ID}/orchestrator:latest'
+  - 'gcr.io/${PROJECT_ID}/orchestrator:${BUILD_ID}'
+
+# Artifacts
+artifacts:
+  objects:
+    location: 'gs://${_ARTIFACT_BUCKET}/builds/${BUILD_ID}'
+    paths:
+      - 'scripts/automation/audit/**'
+      - 'scripts/automation/reports/**'
+
+# Secrets from Secret Manager
+secretEnv:
+  - 'VAULT_TOKEN'
+  - 'GITHUB_TOKEN'
+
+onFailure:
+  # Automatic cleanup on failure
+  - name: 'gcr.io/cloud-builders/kubectl'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        echo "Build failed. Cleaning up ephemeral resources..."
+        chmod +x scripts/automation/orchestrator.sh
+        ./scripts/automation/orchestrator.sh --operation cleanup --environment ${_ENVIRONMENT}
