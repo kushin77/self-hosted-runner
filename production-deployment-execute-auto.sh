@@ -51,8 +51,8 @@ attempt_bootstrap_password_ssh() {
 attempt_bootstrap_existing_key() {
     log_info "Checking if any SSH key already works..."
     
-    for keyfile in ~/.ssh/id_* ~/.ssh/automation 2>/dev/null; do
-        if [ ! -f "$keyfile" ]; then continue; fi
+    for keyfile in ~/.ssh/id_* ~/.ssh/automation; do
+        [ -f "$keyfile" ] || continue
         
         # Try root
         if timeout 3 ssh -i "$keyfile" -o BatchMode=yes -o ConnectTimeout=2 \
