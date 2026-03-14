@@ -1,0 +1,11 @@
+{
+  "trigger_name": "kushin77-self-hosted-runner-deploy",
+  "source": {
+    "owner": "kushin77",
+    "repo": "self-hosted-runner",
+    "branch_pattern": "^main$"
+  },
+  "filename": "cloudbuild-deploy.yaml",
+  "project_id": "nexusshield-prod",
+  "configured_at": "2026-03-14T13:45:53Z"
+}
