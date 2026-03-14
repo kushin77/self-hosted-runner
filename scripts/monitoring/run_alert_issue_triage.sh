@@ -15,6 +15,8 @@ mkdir -p "$(dirname "$AUDIT_LOG")"
 
 PROM_URL="${PROM_URL:-http://localhost:9090}"
 AM_URL="${AM_URL:-http://localhost:9093}"
+PROM_URL_FALLBACK="${PROM_URL_FALLBACK:-}"
+AM_URL_FALLBACK="${AM_URL_FALLBACK:-}"
 GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-kushin77/self-hosted-runner}"
 GITHUB_TOKEN_GSM_SECRET="${GITHUB_TOKEN_GSM_SECRET:-github-token}"
 TRIAGE_STRICT_MODE="${TRIAGE_STRICT_MODE:-false}"
@@ -88,6 +90,21 @@ endpoint_ready() {
   curl -fsS --max-time 3 "$url" >/dev/null 2>&1
 }
 
+endpoint_probe() {
+  local url="$1"
+  local output
+  [ -z "$url" ] && return 1
+  set +e
+  output="$(curl -fsS --max-time 3 "$url" 2>&1 >/dev/null)"
+  rc=$?
+  set -e
+  if [ $rc -eq 0 ]; then
+    return 0
+  fi
+  printf "%s" "$output" | tr '\n' ' ' | sed 's/[[:space:]]\+/ /g' | cut -c1-180
+  return $rc
+}
+
 rotate_audit_log
 
 if ! command -v flock >/dev/null 2>&1; then
@@ -133,10 +150,29 @@ fi
 
 clear_skip_warning
 
-# If neither endpoint is reachable, skip this cycle (timer will retry).
+prom_probe_error=""
+am_probe_error=""
+
+if ! endpoint_ready "${PROM_URL}/-/ready"; then
+  prom_probe_error="$(endpoint_probe "${PROM_URL}/-/ready" || true)"
+  if [ -n "$PROM_URL_FALLBACK" ] && endpoint_ready "${PROM_URL_FALLBACK}/-/ready"; then
+    PROM_URL="$PROM_URL_FALLBACK"
+    log_event "endpoint_fallback" "using PROM_URL_FALLBACK=${PROM_URL_FALLBACK}"
+  fi
+fi
+
+if ! endpoint_ready "${AM_URL}/-/ready"; then
+  am_probe_error="$(endpoint_probe "${AM_URL}/-/ready" || true)"
+  if [ -n "$AM_URL_FALLBACK" ] && endpoint_ready "${AM_URL_FALLBACK}/-/ready"; then
+    AM_URL="$AM_URL_FALLBACK"
+    log_event "endpoint_fallback" "using AM_URL_FALLBACK=${AM_URL_FALLBACK}"
+  fi
+fi
+
+# If neither endpoint is reachable (including fallback), skip this cycle.
 if ! endpoint_ready "${PROM_URL}/-/ready" && ! endpoint_ready "${AM_URL}/-/ready"; then
   echo "Prometheus/Alertmanager not reachable; skipping triage run" >&2
-  skip_and_exit "monitoring endpoints unreachable prom=${PROM_URL} am=${AM_URL}"
+  skip_and_exit "monitoring endpoints unreachable prom=${PROM_URL} am=${AM_URL} prom_error=${prom_probe_error:-none} am_error=${am_probe_error:-none}"
 fi
 
 export PROM_URL
