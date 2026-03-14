@@ -1,0 +1,31 @@
+[Unit]
+Description=Auto Remediation Controller - Phase 2
+Documentation=file:///home/akushnir/self-hosted-runner/TIER_1_4_IMPLEMENTATION_COMPLETE.md
+After=network-online.target kube-apiserver.service
+Wants=network-online.target
+Requires=kube-apiserver.service
+
+[Service]
+Type=simple
+User=akushnir
+WorkingDirectory=/home/akushnir/self-hosted-runner
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/snap/bin"
+Environment="KUBECONFIG=/root/.kube/config"
+
+ExecStart=/home/akushnir/self-hosted-runner/scripts/utilities/auto-remediation-controller.sh
+ExecReload=/bin/kill -HUP $MAINPID
+
+Restart=always
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=auto-remediation
+
+# Safety limits
+TimeoutStartSec=300
+TimeoutStopSec=30
+LimitNOFILE=65536
+LimitNPROC=512
+
+[Install]
+WantedBy=multi-user.target

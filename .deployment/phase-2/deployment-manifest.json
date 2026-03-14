@@ -1,0 +1,53 @@
+{
+  "phase": "PHASE 2: Auto-Remediation Engine",
+  "deployment_date": "2026-03-14T17:39:25Z",
+  "timeline": "Week 1 (Setup & Testing, March 14-21)",
+  "mode": "DRY_RUN",
+  
+  "components": {
+    "auto_remediation_controller": {
+      "status": "READY",
+      "location": "scripts/utilities/auto-remediation-controller.sh",
+      "version": "1.0.0",
+      "handlers": 7
+    },
+    "systemd_service": {
+      "status": "CONFIGURED",
+      "location": "/home/akushnir/self-hosted-runner/.deployment/phase-2/auto-remediation-controller.service",
+      "enabled": false,
+      "note": "Ready to enable after Week 1 testing"
+    },
+    "handlers": {
+      "handler_1_node_not_ready": "CONFIGURED",
+      "handler_2_dns_failed": "CONFIGURED",
+      "handler_3_api_latency": "CONFIGURED",
+      "handler_4_memory_pressure": "CONFIGURED",
+      "handler_5_network_issues": "CONFIGURED",
+      "handler_6_pod_crash_loop": "CONFIGURED",
+      "handler_7_continuous_monitoring": "CONFIGURED"
+    },
+    "monitoring": {
+      "status": "ENABLED",
+      "interval": 300,
+      "log_file": "/var/log/phase-2-deployment/auto-remediation.log"
+    }
+  },
+  
+  "pre_deployment_gates": {
+    "phase_1_complete": true,
+    "handlers_tested": true,
+    "monitoring_ready": true,
+    "slack_configured": "CHECK_ENV"
+  },
+  
+  "success_metrics": {
+    "target_false_positive_rate": "<5%",
+    "target_detection_latency": "<2 minutes",
+    "target_handler_accuracy": ">95%",
+    "target_mttr": "6 minutes"
+  },
+  
+  "rollback_procedure": "sudo systemctl stop auto-remediation-controller",
+  "next_phase_gate": "PHASE 1 VALIDATION + WEEK 1 DRY-RUN SUCCESS",
+  "estimated_completion": "2026-03-21"
+}
