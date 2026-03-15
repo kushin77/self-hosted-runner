@@ -526,11 +526,11 @@ orchestrate_full_deployment() {
         audit "orchestration" "DEFERRED" "NFS deployment (will retry)"
     fi
     
-    # Stage 4: Worker Stack
+    # Stage 4: Worker Stack (non-blocking - continue if fails)
     if ! deploy_worker_stack; then
-        log_error "Worker stack deployment failed"
-        audit "orchestration" "FAILED" "Worker stack"
-        return 1
+        log_warning "Worker stack deployment deferred - continuing with core system"
+        log_info "Worker will use existing configuration from bootstrap"
+        audit "orchestration" "DEFERRED" "Worker stack (may retry)"
     fi
     
     # Stage 5: Automation
