@@ -12,8 +12,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - /nas/kushin77/applications/databases/postgresql/data:/var/lib/postgresql/data
-      - /nas/kushin77/applications/databases/postgresql/logs:/var/log/postgresql
+      - postgres-data-vol:/var/lib/postgresql/data
+      - postgres-logs-vol:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 10s
@@ -22,7 +22,7 @@ services:
 
   # Keycloak (Development)
   keycloak:
-    image: quay.io/keycloak/keycloak:24
+    image: quay.io/keycloak/keycloak:24.0.5
     container_name: sso-keycloak-dev
     environment:
       KEYCLOAK_ADMIN: admin
@@ -49,7 +49,7 @@ services:
 
   # OAuth2-Proxy - Google OAuth Gateway (enforces OAuth for entire monitoring stack)
   oauth2-proxy:
-    image: quay.io/oauth2-proxy/oauth2-proxy:v7.5
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.8.1
     container_name: sso-oauth2-proxy-dev
     environment:
       # Google OAuth Configuration
@@ -126,8 +126,8 @@ services:
     container_name: sso-prometheus-dev
     volumes:
       - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
-      - /nas/kushin77/applications/databases/prometheus/data:/prometheus
-      - /nas/kushin77/applications/databases/prometheus/logs:/var/log/prometheus
+      - prometheus-data-vol:/prometheus
+      - prometheus-logs-vol:/var/log/prometheus
     ports:
       - "9090:9090"
     command:
@@ -169,7 +169,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - /nas/kushin77/applications/databases/grafana/data:/var/lib/grafana
+      - grafana-data-vol:/var/lib/grafana
       - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
@@ -188,7 +188,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - /nas/kushin77/applications/databases/redis/data:/data
+      - redis-data-vol:/data
     command: redis-server --appendonly yes
 
   # PostgreSQL Exporter (for Prometheus)
@@ -213,8 +213,50 @@ services:
     depends_on:
       - redis
 
-# volumes: Using NAS mount at /nas/kushin77/applications for all persistent data
-# No named volumes needed - all data stored on centralized NAS
+# Docker NFS volumes pointing to /nas/kushin77/applications on NAS server
+# This solution bypasses NFS root_squash limitation while maintaining centralized storage
+volumes:
+  postgres-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/postgresql/data
+  
+  postgres-logs-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/postgresql/logs
+  
+  prometheus-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/prometheus/data
+  
+  prometheus-logs-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/prometheus/logs
+  
+  grafana-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/grafana/data
+  
+  redis-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/redis/data
 
 networks:
   default:

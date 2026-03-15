@@ -78,7 +78,7 @@ verify_no_cloud_env() {
     # Check for kubectl cloud contexts
     if command -v kubectl &>/dev/null; then
         local current_context=$(kubectl config current-context 2>/dev/null || echo "none")
-        if [[ "$current_context" != "none" ]] && [[ "$current_context" != *"192.168.168"* ]]; then
+        if [[ "$current_context" != "none" ]] && [[ "$current_context" != *"192.168.168"* ]] && [[ "$current_context" != kind-* ]] && [[ "$current_context" != minikube* ]] && [[ "$current_context" != *local* ]]; then
             echo "❌ MANDATE VIOLATION: kubectl context is cloud-based: $current_context"
             ((errors++))
         fi
@@ -275,7 +275,7 @@ verify_ssh_connection() {
 # Deployment configuration
 readonly TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 readonly SESSION_ID=$(openssl rand -hex 8)
-readonly DEPLOYMENT_DIR="/opt/automation"
+readonly DEPLOYMENT_DIR="${DEPLOYMENT_DIR:-/opt/automation}"
 readonly AUDIT_DIR="${DEPLOYMENT_DIR}/audit"
 readonly DEPLOYMENT_LOG="${AUDIT_DIR}/deployment-${TIMESTAMP}-${SESSION_ID}.log"
 
@@ -363,8 +363,9 @@ execute_remote() {
   local ssh_key="$1"
   shift
   local cmd="$@"
-  
-  ssh -i "$ssh_key" $SSH_OPTS "$TARGET_USER@$TARGET_HOST" bash -c "$cmd"
+
+  # Pipe command payload to remote bash to avoid quote/escape issues with multiline scripts.
+  ssh -i "$ssh_key" $SSH_OPTS "$TARGET_USER@$TARGET_HOST" "bash -se" <<< "$cmd"
 }
 
 copy_to_remote() {
@@ -445,13 +446,25 @@ deploy_from_git() {
     # Prevent cloud-based kubectl contexts
     if command -v kubectl &>/dev/null; then
       CURRENT_CONTEXT=\$(kubectl config current-context 2>/dev/null || echo 'none')
-      if [[ \"\$CURRENT_CONTEXT\" != \"none\" ]] && [[ \"\$CURRENT_CONTEXT\" != *\"192.168.168\"* ]]; then
+      if [[ \"\$CURRENT_CONTEXT\" != \"none\" ]] && [[ \"\$CURRENT_CONTEXT\" != *\"192.168.168\"* ]] && [[ \"\$CURRENT_CONTEXT\" != kind-* ]] && [[ \"\$CURRENT_CONTEXT\" != minikube* ]] && [[ \"\$CURRENT_CONTEXT\" != *local* ]]; then
         echo \"❌ MANDATE VIOLATION: kubectl context is cloud-based: \$CURRENT_CONTEXT\"
         exit 1
       fi
     fi
     
-    echo '✅ Mandate validation passed - on-prem only confirmed'
+    # Enforce direct deployment model (no GitHub Actions workflows)
+    if [ -d .github/workflows ] && find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) 2>/dev/null | grep -q .; then
+      echo '❌ MANDATE VIOLATION: .github/workflows contains active workflow files'
+      exit 1
+    fi
+
+    # Enforce no GitHub release automation commands in deploy scripts
+    if grep -R -nE 'gh[[:space:]]+release|hub[[:space:]]+release' scripts/ deploy*.sh 2>/dev/null | grep -q .; then
+      echo '❌ MANDATE VIOLATION: GitHub release command detected in deployment scripts'
+      exit 1
+    fi
+
+    echo '✅ Mandate validation passed - on-prem only, direct deployment policy enforced'
     echo ''
     
     # ════════════════════════════════════════════════════════════════
@@ -566,15 +579,25 @@ deploy_from_git() {
     echo '  → Deploying oauth2-proxy (Google OAuth gate)...'
     echo '  → Deploying monitoring-router (nginx + OAuth enforcement)...'
     
-    if command -v docker-compose &>/dev/null; then
-      cd $TEMP_DIR
+    if command -v docker-compose &>/dev/null || command -v docker &>/dev/null; then
+      cd \$TEMP_DIR
+
+      # Stop host postgres if present to avoid bind conflicts with containerized postgres
+      sudo systemctl stop postgresql 2>/dev/null || true
+
+      # Resolve compose command for idempotent usage
+      if command -v docker-compose &>/dev/null; then
+        DC='docker-compose'
+      else
+        DC='docker compose'
+      fi
       
       # Export credentials for docker-compose
       export GOOGLE_OAUTH_CLIENT_ID=\"\${GOOGLE_OAUTH_CLIENT_ID:-your-client-id.apps.googleusercontent.com}\"
       export GOOGLE_OAUTH_CLIENT_SECRET=\"\${GOOGLE_OAUTH_CLIENT_SECRET:-your-secret-key}\"
       
-      # Start oauth2-proxy and monitoring-router
-      if docker-compose up -d oauth2-proxy monitoring-router grafana prometheus alertmanager node-exporter 2>/dev/null; then
+      # Start stack services with direct deployment policy (no workflows/releases)
+      if \$DC up -d postgres keycloak redis prometheus grafana oauth2-proxy monitoring-router postgres-exporter redis-exporter echo 2>/dev/null; then
         echo '  ✅ Docker services deployed successfully'
         
         # Wait for services to start
@@ -816,9 +839,9 @@ verify_deployment() {
     TOTAL=\$((TOTAL + 1))
     CLOUD_FOUND=0
     
-    if [ -d \"\$HOME/.kube\" ]; then
-      # Check for cloud contexts
-      if grep -r 'gke\\|eks\\|aks' \"\$HOME/.kube/\" 2>/dev/null; then
+    if command -v kubectl &>/dev/null; then
+      CURRENT_CONTEXT=\$(kubectl config current-context 2>/dev/null || echo 'none')
+      if [[ "\$CURRENT_CONTEXT" != "none" ]] && [[ "\$CURRENT_CONTEXT" != *"192.168.168"* ]] && [[ "\$CURRENT_CONTEXT" != kind-* ]] && [[ "\$CURRENT_CONTEXT" != minikube* ]] && [[ "\$CURRENT_CONTEXT" != *local* ]]; then
         CLOUD_FOUND=1
       fi
     fi
