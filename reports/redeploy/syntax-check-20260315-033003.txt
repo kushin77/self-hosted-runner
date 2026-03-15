@@ -1,0 +1,15 @@
+/home/akushnir/self-hosted-runner/scripts/automation/direct-deploy.sh: line 248: syntax error near unexpected token `fi'
+/home/akushnir/self-hosted-runner/scripts/automation/direct-deploy.sh: line 248: `fi'
+/home/akushnir/self-hosted-runner/scripts/aws/setup-aws-iam-role.sh: line 55: syntax error near unexpected token `)'
+/home/akushnir/self-hosted-runner/scripts/aws/setup-aws-iam-role.sh: line 55: `AWS_ACCESS_KEY_ID=REDACTED"$ACCESS_KEY_JSON" | jq -r '.AccessKey.AccessKeyId')'
+/home/akushnir/self-hosted-runner/scripts/aws/aws-credentials.sh: line 37: unexpected EOF while looking for matching `"'
+/home/akushnir/self-hosted-runner/scripts/phase5_deploy_monitoring.sh: line 173: warning: here-document at line 70 delimited by end-of-file (wanted `EOF')
+/home/akushnir/self-hosted-runner/scripts/phase5_deploy_monitoring.sh: line 174: unexpected EOF while looking for matching `)'
+/home/akushnir/self-hosted-runner/scripts/post-deployment/postgres-exporter-setup.sh: line 436: warning: here-document at line 280 delimited by end-of-file (wanted `DOCS')
+/home/akushnir/self-hosted-runner/scripts/autonomous-phase6-deploy.sh: line 322: syntax error: unexpected end of file
+/home/akushnir/self-hosted-runner/scripts/ops/publish_artifact_and_close_issue.sh: line 34: syntax error near unexpected token `('
+/home/akushnir/self-hosted-runner/scripts/ops/publish_artifact_and_close_issue.sh: line 34: `  echo "Artifact already exists in S3: $S3_URI (skipping upload)"'
+/home/akushnir/self-hosted-runner/scripts/validate-phase6-deployment.sh: line 141: syntax error near unexpected token `done'
+/home/akushnir/self-hosted-runner/scripts/validate-phase6-deployment.sh: line 141: `done'
+/home/akushnir/self-hosted-runner/scripts/orchestration/phases/epic-1-preflight-execute.sh: line 135: syntax error near unexpected token `2'
+/home/akushnir/self-hosted-runner/scripts/orchestration/phases/epic-1-preflight-execute.sh: line 135: `    for host in api.nexusshield.io portal.nexusshield.io redis.nexusshield.io 2>/dev/null; do'
