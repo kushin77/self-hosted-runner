@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   Legend, ResponsiveContainer, PieChart, Pie, Cell
@@ -54,6 +54,7 @@ interface HealthStatus {
 }
 
 const Dashboard: React.FC = () => {
+  const POLL_INTERVAL_MS = 30000;
   const [credentials, setCredentials] = useState<Credential[]>([]);
   const [auditTrail, setAuditTrail] = useState<AuditEntry[]>([]);
   const [metricsData, setMetricsData] = useState<MetricPoint[]>([]);
@@ -62,14 +63,23 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedTab, setSelectedTab] = useState<'overview' | 'credentials' | 'audit'>('overview');
   const [token, setToken] = useState<string>(sessionStorage.getItem('auth_token') || '');
+  const inFlightRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   // =========================================================================
   // DATA FETCHING - Ephemeral (runtime fetch, never cached)
   // =========================================================================
 
   const fetchDashboardData = useCallback(async () => {
+    if (inFlightRef.current) {
+      return;
+    }
+
     try {
-      setLoading(true);
+      inFlightRef.current = true;
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
 
       // Parallel fetch - all requests are idempotent
       const [credRes, auditRes, healthRes] = await Promise.allSettled([
@@ -105,9 +115,11 @@ const Dashboard: React.FC = () => {
       }
 
       setError(null);
+      hasLoadedRef.current = true;
     } catch (err: any) {
       setError(err.message || 'Failed to fetch dashboard data');
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [token]);
@@ -115,7 +127,7 @@ const Dashboard: React.FC = () => {
   // Initial fetch + periodic refresh (ephemeral, 30s interval)
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000);
+    const interval = setInterval(fetchDashboardData, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [fetchDashboardData]);
 

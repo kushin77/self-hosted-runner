@@ -1,28 +1,83 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api'
 
 export default function Metrics() {
+  const POLL_INTERVAL_MS = 5000
   const [metrics, setMetrics] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [showRawMetrics, setShowRawMetrics] = useState(false)
+  const inFlightRef = useRef(false)
+  const timerRef = useRef(null)
+  const abortRef = useRef(null)
+  const pollRef = useRef(null)
 
   useEffect(() => {
+    let isMounted = true
+
+    const clearPollTimer = () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+
+    const loadMetrics = async () => {
+      if (!isMounted || inFlightRef.current) {
+        return
+      }
+
+      inFlightRef.current = true
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      try {
+        const data = await api.getMetrics({ signal: controller.signal, timeoutMs: 8000 })
+        if (!isMounted) {
+          return
+        }
+
+        setMetrics(data)
+        setError(null)
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message)
+        }
+      } finally {
+        inFlightRef.current = false
+        if (isMounted) {
+          setLoading(false)
+          clearPollTimer()
+          timerRef.current = setTimeout(loadMetrics, POLL_INTERVAL_MS)
+        }
+      }
+    }
+
+    pollRef.current = loadMetrics
     loadMetrics()
-    const interval = setInterval(loadMetrics, 5000)
-    return () => clearInterval(interval)
+
+    return () => {
+      isMounted = false
+      clearPollTimer()
+      abortRef.current?.abort()
+      pollRef.current = null
+    }
   }, [])
 
-  const loadMetrics = async () => {
-    try {
-      const data = await api.getMetrics()
-      setMetrics(data)
-      setError(null)
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+  const rawMetricsPreview = useMemo(() => {
+    if (!metrics) {
+      return ''
     }
-  }
+
+    const pretty = JSON.stringify(metrics, null, 2)
+    const MAX_CHARS = 4000
+    if (pretty.length <= MAX_CHARS) {
+      return pretty
+    }
+
+    return `${pretty.slice(0, MAX_CHARS)}\n...truncated for UI responsiveness...`
+  }, [metrics])
 
   if (loading) {
     return <div className="loading"><div className="spinner"></div>Loading metrics...</div>
@@ -110,17 +165,27 @@ export default function Metrics() {
 
       {/* API Endpoint Info */}
       <div className="card" style={{ marginTop: '2rem' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Raw Metrics Data</h3>
-        <pre style={{
-          background: 'var(--bg-darker)',
-          padding: '1rem',
-          borderRadius: '4px',
-          overflow: 'auto',
-          fontSize: '0.8rem',
-          color: 'var(--text-secondary)'
-        }}>
-          {JSON.stringify(metrics, null, 2)}
-        </pre>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <h3 style={{ marginBottom: 0 }}>Raw Metrics Data</h3>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => setShowRawMetrics((prev) => !prev)}
+          >
+            {showRawMetrics ? 'Hide Raw JSON' : 'Show Raw JSON'}
+          </button>
+        </div>
+        {showRawMetrics && (
+          <pre style={{
+            background: 'var(--bg-darker)',
+            padding: '1rem',
+            borderRadius: '4px',
+            overflow: 'auto',
+            fontSize: '0.8rem',
+            color: 'var(--text-secondary)'
+          }}>
+            {rawMetricsPreview}
+          </pre>
+        )}
       </div>
     </div>
   )

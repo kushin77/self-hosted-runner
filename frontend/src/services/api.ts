@@ -13,6 +13,8 @@ interface FetchOptions {
   method?: string;
   body?: any;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
+  timeoutMs?: number;
 }
 
 /**
@@ -36,22 +38,53 @@ async function apiRequest<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const { signal, timeoutMs = 10000 } = options;
+  const abortController = new AbortController();
+  let didTimeout = false;
+  let externalAbortHandler: (() => void) | null = null;
+
+  if (signal) {
+    externalAbortHandler = () => abortController.abort();
+    signal.addEventListener('abort', externalAbortHandler, { once: true });
+  }
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true;
+    abortController.abort();
+  }, timeoutMs);
+
   const fetchOptions: RequestInit = {
     method: options.method || 'GET',
     headers,
+    signal: abortController.signal,
   };
 
   if (options.body) {
     fetchOptions.body = JSON.stringify(options.body);
   }
 
-  const response = await fetch(url, fetchOptions);
+  try {
+    const response = await fetch(url, fetchOptions);
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    if (!response.ok) {
+      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      if (didTimeout) {
+        throw new Error(`API timeout after ${timeoutMs}ms`);
+      }
+      throw new Error('Request canceled');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    if (signal && externalAbortHandler) {
+      signal.removeEventListener('abort', externalAbortHandler);
+    }
   }
-
-  return response.json();
 }
 
 // =========================================================================

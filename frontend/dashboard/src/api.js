@@ -1,5 +1,7 @@
 // API Client for NexusShield Dashboard
 const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:8080'
+const ERROR_LOG_THROTTLE_MS = 30000
+const lastErrorLogByEndpoint = new Map()
 
 // Get admin key from localStorage
 const getAdminKey = () => {
@@ -26,13 +28,27 @@ const apiFetch = async (endpoint, options = {}) => {
     ...options.headers
   }
 
+  const { timeoutMs = 10000, signal, ...requestOptions } = options
   const url = `${API_BASE}${endpoint}`
+  const abortController = new AbortController()
+  let didTimeout = false
+  let externalAbortHandler = null
+
+  if (signal) {
+    externalAbortHandler = () => abortController.abort()
+    signal.addEventListener('abort', externalAbortHandler, { once: true })
+  }
+
+  const timeoutId = setTimeout(() => {
+    didTimeout = true
+    abortController.abort()
+  }, timeoutMs)
   
   try {
     const response = await fetch(url, {
-      ...options,
+      ...requestOptions,
       headers,
-      timeout: 10000
+      signal: abortController.signal
     })
 
     if (!response.ok) {
@@ -42,8 +58,25 @@ const apiFetch = async (endpoint, options = {}) => {
 
     return await response.json()
   } catch (error) {
-    console.error(`API Error: ${endpoint}`, error)
+    if (error?.name === 'AbortError') {
+      if (didTimeout) {
+        throw new Error(`Request timeout after ${timeoutMs}ms`)
+      }
+      throw new Error('Request canceled')
+    }
+
+    const now = Date.now()
+    const lastLogTime = lastErrorLogByEndpoint.get(endpoint) || 0
+    if (now - lastLogTime >= ERROR_LOG_THROTTLE_MS) {
+      console.error(`API Error: ${endpoint}`, error)
+      lastErrorLogByEndpoint.set(endpoint, now)
+    }
     throw error
+  } finally {
+    clearTimeout(timeoutId)
+    if (signal && externalAbortHandler) {
+      signal.removeEventListener('abort', externalAbortHandler)
+    }
   }
 }
 
@@ -66,12 +99,12 @@ export const api = {
     apiFetch(`/api/v1/jobs/${jobId}/replay`, { method: 'POST' }),
 
   // Get system metrics summary
-  getMetrics: async () =>
-    apiFetch(`/api/v1/metrics/summary`),
+  getMetrics: async (requestOptions = {}) =>
+    apiFetch(`/api/v1/metrics/summary`, requestOptions),
 
   // Health check
-  health: async () =>
-    apiFetch(`/health`)
+  health: async (requestOptions = {}) =>
+    apiFetch(`/health`, requestOptions)
 }
 
 // Clear admin key

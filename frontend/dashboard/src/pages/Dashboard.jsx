@@ -1,37 +1,91 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../api'
 
 export default function Dashboard({ onNavigate }) {
+  const POLL_INTERVAL_MS = 5000
   const [metrics, setMetrics] = useState(null)
   const [health, setHealth] = useState('unknown')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const inFlightRef = useRef(false)
+  const timerRef = useRef(null)
+  const abortRef = useRef(null)
+  const pollRef = useRef(null)
 
   useEffect(() => {
+    let isMounted = true
+
+    const clearPollTimer = () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    }
+
+    const loadData = async () => {
+      if (!isMounted || inFlightRef.current) {
+        return
+      }
+
+      inFlightRef.current = true
+      abortRef.current?.abort()
+      const controller = new AbortController()
+      abortRef.current = controller
+
+      try {
+        const metricsData = await api
+          .getMetrics({ signal: controller.signal, timeoutMs: 8000 })
+          .catch(() => null)
+
+        if (!isMounted) {
+          return
+        }
+
+        setMetrics(metricsData)
+        setError(null)
+
+        try {
+          await api.health({ signal: controller.signal, timeoutMs: 5000 })
+          if (isMounted) {
+            setHealth('healthy')
+          }
+        } catch {
+          if (isMounted) {
+            setHealth('unhealthy')
+          }
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message)
+        }
+      } finally {
+        inFlightRef.current = false
+        if (isMounted) {
+          setLoading(false)
+          clearPollTimer()
+          timerRef.current = setTimeout(loadData, POLL_INTERVAL_MS)
+        }
+      }
+    }
+
+    pollRef.current = loadData
     loadData()
-    const interval = setInterval(loadData, 5000) // Refresh every 5s
-    return () => clearInterval(interval)
+
+    return () => {
+      isMounted = false
+      clearPollTimer()
+      abortRef.current?.abort()
+      pollRef.current = null
+    }
   }, [])
 
-  const loadData = async () => {
-    try {
-      const [metricsData] = await Promise.all([
-        api.getMetrics().catch(() => null)
-      ])
-      setMetrics(metricsData)
-      setError(null)
-      
-      // Check health
-      try {
-        await api.health()
-        setHealth('healthy')
-      } catch {
-        setHealth('unhealthy')
+  const handleRefresh = () => {
+    if (pollRef.current) {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current)
+        timerRef.current = null
       }
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setLoading(false)
+      pollRef.current()
     }
   }
 
@@ -65,7 +119,7 @@ export default function Dashboard({ onNavigate }) {
           </div>
           <button 
             className="btn btn-primary btn-sm"
-            onClick={loadData}
+            onClick={handleRefresh}
           >
             Refresh
           </button>

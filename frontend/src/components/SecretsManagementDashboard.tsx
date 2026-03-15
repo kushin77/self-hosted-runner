@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   BarChart, Bar, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -16,6 +16,7 @@ import {
  */
 
 const SecretsManagementDashboard = ({ token }) => {
+  const POLL_INTERVAL_MS = 30000;
   const [activeTab, setActiveTab] = useState('overview');
   const [providers, setProviders] = useState([]);
   const [credentials, setCredentials] = useState([]);
@@ -24,6 +25,8 @@ const SecretsManagementDashboard = ({ token }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedProvider, setSelectedProvider] = useState(null);
+  const inFlightRef = useRef(false);
+  const hasLoadedRef = useRef(false);
 
   // ========================================================================
   // DATA FETCHING
@@ -82,18 +85,32 @@ const SecretsManagementDashboard = ({ token }) => {
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchProvidersHealth(),
-        fetchCredentials(),
-        fetchMigrations(),
-        fetchAudit()
-      ]);
-      setLoading(false);
+      if (inFlightRef.current) {
+        return;
+      }
+
+      inFlightRef.current = true;
+      if (!hasLoadedRef.current) {
+        setLoading(true);
+      }
+
+      try {
+        await Promise.all([
+          fetchProvidersHealth(),
+          fetchCredentials(),
+          fetchMigrations(),
+          fetchAudit()
+        ]);
+
+        hasLoadedRef.current = true;
+      } finally {
+        inFlightRef.current = false;
+        setLoading(false);
+      }
     };
 
     loadData();
-    const interval = setInterval(loadData, 30000); // Refresh every 30s
+    const interval = setInterval(loadData, POLL_INTERVAL_MS); // Refresh every 30s
     return () => clearInterval(interval);
   }, [fetchProvidersHealth, fetchCredentials, fetchMigrations, fetchAudit]);
 
