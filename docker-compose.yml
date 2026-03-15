@@ -12,7 +12,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - /nas/kushin77/applications/databases/postgresql/data:/var/lib/postgresql/data
+      - /nas/kushin77/applications/databases/postgresql/logs:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 10s
@@ -126,7 +127,8 @@ services:
     container_name: sso-prometheus-dev
     volumes:
       - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
+      - /nas/kushin77/applications/databases/prometheus/data:/prometheus
+      - /nas/kushin77/applications/databases/prometheus/logs:/var/log/prometheus
     ports:
       - "9090:9090"
     command:
@@ -168,7 +170,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana_data:/var/lib/grafana
+      - /nas/kushin77/applications/databases/grafana/data:/var/lib/grafana
       - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
@@ -187,7 +189,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - /nas/kushin77/applications/databases/redis/data:/data
     command: redis-server --appendonly yes
 
   # PostgreSQL Exporter (for Prometheus)
@@ -212,11 +214,8 @@ services:
     depends_on:
       - redis
 
-volumes:
-  postgres_data:
-  prometheus_data:
-  grafana_data:
-  redis_data:
+# volumes: Using NAS mount at /nas/kushin77/applications for all persistent data
+# No named volumes needed - all data stored on centralized NAS
 
 networks:
   default:
