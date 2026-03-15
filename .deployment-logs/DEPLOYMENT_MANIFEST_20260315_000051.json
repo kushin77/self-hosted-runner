@@ -1,0 +1,21 @@
+{
+  "deployment_date": "2026-03-15T00:00:51Z",
+  "orchestrator_version": "1.0",
+  "constraints": {
+    "immutable": true,
+    "ephemeral": true,
+    "idempotent": true,
+    "no_ops": true,
+    "hands_off": true,
+    "gsm_vault": true,
+    "direct_deploy": true,
+    "on_prem_only": true
+  },
+  "infrastructure": {
+    "nas_server": "192.168.168.39",
+    "worker_node": "192.168.168.42",
+    "dev_node": "192.168.168.31",
+    "service_account": "akushnir"
+  },
+  "status": "COMPLETE"
+}

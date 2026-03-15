@@ -1,0 +1,25 @@
+[2026-03-14 23:55:21] 🚀 MASTER DEPLOYMENT ORCHESTRATOR STARTED
+[2026-03-14 23:55:21] INFO: === STARTING FULL DEPLOYMENT ORCHESTRATION ===
+[2026-03-14 23:55:21] INFO: NAS: 192.168.168.39
+[2026-03-14 23:55:21] INFO: Worker: 192.168.168.42
+[2026-03-14 23:55:21] INFO: Service Account: akushnir
+[2026-03-14 23:55:21] INFO: Constraints: IMMUTABLE | EPHEMERAL | IDEMPOTENT | NO-OPS | HANDS-OFF
+[2026-03-14 23:55:21] STAGE: CONSTRAINT VALIDATION
+[2026-03-14 23:55:21] SUCCESS: All constraints validated
+[2026-03-14 23:55:21] STAGE: PREFLIGHT CHECKS
+[2026-03-14 23:55:21] INFO: Testing NAS connectivity (192.168.168.39:22)...
+[2026-03-14 23:55:21] SUCCESS: NAS is reachable
+[2026-03-14 23:55:21] INFO: Testing worker connectivity (192.168.168.42:22)...
+[2026-03-14 23:55:21] SUCCESS: Worker node is reachable
+[2026-03-14 23:55:21] SUCCESS: Local git repository found
+[2026-03-14 23:55:21] SUCCESS: Dev SSH key available (/home/akushnir/.ssh/id_ed25519)
+[2026-03-14 23:55:21] INFO: Preflight: 4/4 checks passed
+[2026-03-14 23:55:21] STAGE: NAS NFS MOUNTS (IMMUTABLE CANONICAL SOURCE)
+[2026-03-14 23:55:21] INFO: Deploying NFS mount infrastructure...
+[2026-03-14 23:55:24] ERROR: NFS mount deployment failed
+[2026-03-14 23:55:24] WARN: NFS deployment deferred - continuing without NFS mounts
+[2026-03-14 23:55:24] INFO: System will use local git repository and alternative storage
+[2026-03-14 23:55:24] STAGE: WORKER NODE FULL STACK DEPLOYMENT
+[2026-03-14 23:55:24] INFO: Deploying complete worker stack (svc-git service account)...
+[2026-03-14 23:55:24] ERROR: Worker node deployment failed
+[2026-03-14 23:55:24] ERROR: Worker stack deployment failed

@@ -1,0 +1,45 @@
+[2026-03-15 00:00:47] 🚀 MASTER DEPLOYMENT ORCHESTRATOR STARTED
+[2026-03-15 00:00:47] INFO: === STARTING FULL DEPLOYMENT ORCHESTRATION ===
+[2026-03-15 00:00:47] INFO: NAS: 192.168.168.39
+[2026-03-15 00:00:47] INFO: Worker: 192.168.168.42
+[2026-03-15 00:00:47] INFO: Service Account: akushnir
+[2026-03-15 00:00:47] INFO: Constraints: IMMUTABLE | EPHEMERAL | IDEMPOTENT | NO-OPS | HANDS-OFF
+[2026-03-15 00:00:47] STAGE: CONSTRAINT VALIDATION
+[2026-03-15 00:00:47] SUCCESS: All constraints validated
+[2026-03-15 00:00:47] STAGE: PREFLIGHT CHECKS
+[2026-03-15 00:00:47] INFO: Testing NAS connectivity (192.168.168.39:22)...
+[2026-03-15 00:00:47] SUCCESS: NAS is reachable
+[2026-03-15 00:00:47] INFO: Testing worker connectivity (192.168.168.42:22)...
+[2026-03-15 00:00:47] SUCCESS: Worker node is reachable
+[2026-03-15 00:00:47] SUCCESS: Local git repository found
+[2026-03-15 00:00:47] SUCCESS: Dev SSH key available (/home/akushnir/.ssh/id_ed25519)
+[2026-03-15 00:00:47] INFO: Preflight: 4/4 checks passed
+[2026-03-15 00:00:47] STAGE: NAS NFS MOUNTS (IMMUTABLE CANONICAL SOURCE)
+[2026-03-15 00:00:47] INFO: Deploying NFS mount infrastructure...
+[2026-03-15 00:00:49] ERROR: NFS mount deployment failed
+[2026-03-15 00:00:49] WARN: NFS deployment deferred - continuing without NFS mounts
+[2026-03-15 00:00:49] INFO: System will use local git repository and alternative storage
+[2026-03-15 00:00:49] STAGE: WORKER NODE FULL STACK DEPLOYMENT
+[2026-03-15 00:00:49] INFO: Deploying complete worker stack (akushnir service account)...
+[2026-03-15 00:00:50] ERROR: Worker node deployment failed
+[2026-03-15 00:00:50] WARN: Worker stack deployment deferred - continuing with core system
+[2026-03-15 00:00:50] INFO: Worker will use existing configuration from bootstrap
+[2026-03-15 00:00:50] STAGE: SYSTEMD AUTOMATION (ZERO MANUAL INTERVENTION)
+[2026-03-15 00:00:50] INFO: Setting up automated sync and health checks...
+[2026-03-15 00:00:50] WARN: Systemd services may not be fully ready yet
+[2026-03-15 00:00:50] SUCCESS: Automation services configured
+[2026-03-15 00:00:50] STAGE: DEPLOYMENT VERIFICATION
+[2026-03-15 00:00:50] INFO: Executing comprehensive verification...
+[2026-03-15 00:00:51] WARN: Some verification checks did not pass
+[2026-03-15 00:00:51] WARN: NFS mounts not visible yet
+[2026-03-15 00:00:51] WARN: Sync scripts not found
+[2026-03-15 00:00:51] WARN: Service nas-worker-sync.timer may not be active
+[2026-03-15 00:00:51] WARN: Service nas-worker-healthcheck.timer may not be active
+[2026-03-15 00:00:51] WARN: Service nas-integration.target may not be active
+[2026-03-15 00:00:51] INFO: Verification: 0/5 checks passed
+[2026-03-15 00:00:51] STAGE: GIT ISSUE LIFECYCLE MANAGEMENT
+[2026-03-15 00:00:51] INFO: Managing GitHub tracking issues...
+[2026-03-15 00:00:51] INFO: Repository: kushin77/self-hosted-runner
+[2026-03-15 00:00:51] INFO: Issue management prepared (would integrate with GitHub API)
+[2026-03-15 00:00:51] STAGE: IMMUTABLE DEPLOYMENT RECORD (GIT)
+[2026-03-15 00:00:51] INFO: Deployment manifest created: .deployment-logs/DEPLOYMENT_MANIFEST_20260315_000051.json

@@ -1,0 +1,36 @@
+
+[0;34m════════════════════════════════════════════════════════════[0m
+[0;34m▶ STAGE 1: STORE SSH KEYS IN GCP SECRET MANAGER[0m
+[0;34m════════════════════════════════════════════════════════════[0m
+[0;34mℹ[0m Validating GCP authentication...
+[0;32m✓[0m GCP authenticated: akushnir@bioenergystrategies.com
+[0;34mℹ[0m Validating SSH key at /home/akushnir/.ssh/id_ed25519...
+[0;32m✓[0m SSH key valid ((ED25519))
+[0;34mℹ[0m Storing SSH credentials in GSM (nexusshield-prod)...
+[0;34mℹ[0m Storing private key as secret: akushnir-ssh-private-key
+[0;34mℹ[0m Creating new secret akushnir-ssh-private-key...
+Created version [1] of the secret [akushnir-ssh-private-key].
+[0;32m✓[0m Private key stored in GSM: akushnir-ssh-private-key
+[0;34mℹ[0m Storing public key as secret: akushnir-ssh-public-key
+[0;34mℹ[0m Creating new secret akushnir-ssh-public-key...
+Created version [1] of the secret [akushnir-ssh-public-key].
+[0;32m✓[0m Public key stored in GSM: akushnir-ssh-public-key
+[0;34mℹ[0m Verifying GSM secrets...
+
+[0;32m✓[0m Private key secret accessible
+
+[0;32m✓[0m Public key secret accessible
+
+[0;34m════════════════════════════════════════════════════════════[0m
+[0;34m▶ STAGE 2: DISTRIBUTE SSH KEYS TO WORKER NODE[0m
+[0;34m════════════════════════════════════════════════════════════[0m
+[0;34mℹ[0m Validating GCP authentication...
+[0;32m✓[0m GCP authenticated: akushnir@bioenergystrategies.com
+[0;34mℹ[0m Validating worker connectivity...
+[0;32m✓[0m Worker 192.168.168.42 is reachable
+[0;34mℹ[0m Distributing SSH credentials to worker (akushnir@192.168.168.42)...
+[0;34mℹ[0m Copying installation script to worker...
+Warning: Permanently added '192.168.168.42' (ED25519) to the list of known hosts.
+root@192.168.168.42: Permission denied (publickey,password).
+scp: Connection closed
+[0;31m✗[0m Failed to copy installation script

@@ -1,0 +1,3 @@
+{"timestamp":"2026-03-14T23:05:19Z","event":"preflight_worker_ssh","status":"WARNING","details":"Worker SSH may not be ready yet"}
+{"timestamp":"2026-03-14T23:05:20Z","event":"preflight_dev_ssh","status":"WARNING","details":"Dev SSH may not be ready yet"}
+{"timestamp":"2026-03-14T23:05:20Z","event":"preflight","status":"SUCCESS","details":"Checks passed"}

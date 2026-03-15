@@ -1,0 +1,4 @@
+{"timestamp":"2026-03-14T23:50:22Z","event":"constraints","status":"PASSED","details":"All 6 constraints validated"}
+{"timestamp":"2026-03-14T23:50:22Z","event":"preflight","status":"PASS","details":"4/4 checks"}
+{"timestamp":"2026-03-14T23:50:24Z","event":"nfs_deploy","status":"FAILED","details":"NFS mount failed"}
+{"timestamp":"2026-03-14T23:50:24Z","event":"orchestration","status":"FAILED","details":"NFS deployment"}

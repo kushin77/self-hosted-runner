@@ -1,0 +1,10 @@
+[2026-03-14 23:07:08] 🚀 MASTER DEPLOYMENT ORCHESTRATOR STARTED
+[2026-03-14 23:07:08] STAGE: DEPLOYMENT VERIFICATION
+[2026-03-14 23:07:08] INFO: Executing comprehensive verification...
+[2026-03-14 23:07:24] WARN: Some verification checks did not pass
+[2026-03-14 23:07:25] WARN: NFS mounts not visible yet
+[2026-03-14 23:07:25] WARN: Sync scripts not found
+[2026-03-14 23:07:25] WARN: Service nas-worker-sync.timer may not be active
+[2026-03-14 23:07:25] WARN: Service nas-worker-healthcheck.timer may not be active
+[2026-03-14 23:07:25] WARN: Service nas-integration.target may not be active
+[2026-03-14 23:07:25] INFO: Verification: 0/5 checks passed
