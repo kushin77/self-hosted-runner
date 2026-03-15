@@ -48,12 +48,12 @@ class TestNoPlaintextSecrets:
             {"event": "pr_list", "pr_count": 3},
         ]
 
-        for entry in entries:
-            audit_file.write_text(json.dumps(entry) + "\n", mode="a")
+        # Write entries to file
+        lines = [json.dumps(entry) + "\n" for entry in entries]
+        audit_file.write_text("".join(lines))
 
         # Scan audit file for leaked tokens
-        with open(audit_file, "r") as f:
-            content = f.read()
+        content = audit_file.read_text()
 
         # Should not match GitHub token pattern
         assert not re.search(SECRET_PATTERNS["github_token"], content), "GitHub token found in audit log"
@@ -204,8 +204,9 @@ class TestAuditTrailImmutability:
             {"id": 2, "event": "operation", "timestamp": datetime.utcnow().isoformat() + "Z"},
         ]
 
-        for entry in entries:
-            audit_file.write_text(json.dumps(entry) + "\n", mode="a")
+        with open(audit_file, "a") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
 
         # Verify both entries exist and are in order
         with open(audit_file, "r") as f:
@@ -249,8 +250,9 @@ class TestAuditTrailImmutability:
             {"event": "op3", "timestamp": datetime.utcnow().isoformat() + "Z"},
         ]
 
-        for entry in entries:
-            audit_file.write_text(json.dumps(entry) + "\n", mode="a")
+        with open(audit_file, "a") as f:
+            for entry in entries:
+                f.write(json.dumps(entry) + "\n")
 
         # Verify all entries have non-empty timestamps
         with open(audit_file, "r") as f:
