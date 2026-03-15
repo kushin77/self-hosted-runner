@@ -5,6 +5,13 @@
 
 set -euo pipefail
 
+# Allow skipping k8s checks entirely (useful for on-prem/dev environments)
+SKIP_K8S_READINESS="${SKIP_K8S_READINESS:-false}"
+if [[ "$SKIP_K8S_READINESS" == "true" ]]; then
+  echo "⏭️  Skipping Kubernetes deployment checks (SKIP_K8S_READINESS=true)"
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLUSTER_READINESS="$SCRIPT_DIR/cluster-readiness.sh"
 

@@ -52,6 +52,8 @@ run_cmd() {
     echo "[dry-run] $cmd"
     return 0
   fi
+  # Export k8s skip flag for on-prem deployments
+  export SKIP_K8S_READINESS="${SKIP_K8S_READINESS:-true}"
   bash -lc "$cmd"
 }
 
