@@ -37,7 +37,8 @@ set -euo pipefail
 PROG="$(basename "$0")"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-DEPLOYMENT_LOG="/var/log/deployment/redeploy-${TIMESTAMP}.log"
+DEPLOYMENT_LOG="${DEPLOYMENT_LOG:-"$REPO_ROOT/logs/deployment/redeploy-${TIMESTAMP}.log"}"
+mkdir -p "$(dirname "$DEPLOYMENT_LOG")"
 
 # Color output
 RED='\033[0;31m'
