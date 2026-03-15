@@ -125,14 +125,9 @@ verify_deployment_safety() {
     error "Cannot access git repository. Check SSH keys."
   fi
   
-  # Verify GCP access.
-  # Prefer ADC for workload-safe automation, but allow fallback to active user auth
-  # on developer hosts where ADC is not configured.
+  # Verify GCP access
   if ! gcloud auth application-default print-access-token &>/dev/null; then
-    log "ADC not configured; falling back to active gcloud account credentials"
-    if ! gcloud auth print-access-token &>/dev/null; then
-      error "Cannot access GCP via ADC or active gcloud account. Check authentication."
-    fi
+    error "Cannot access GCP. Check authentication."
   fi
   
   # Verify Cloud Build API enabled
