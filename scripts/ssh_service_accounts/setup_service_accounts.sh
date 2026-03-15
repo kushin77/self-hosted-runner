@@ -5,11 +5,16 @@
 
 set -e
 
+export SSH_ASKPASS=none
+export SSH_ASKPASS_REQUIRE=never
+export DISPLAY=""
+
 # Configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 SECRETS_DIR="${WORKSPACE_ROOT}/secrets/ssh"
 USERNAME="akushnir"
+SSH_OPTS="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
 # Service account configurations
 # Format: "from_host:to_host:service_account_name"
@@ -69,7 +74,7 @@ create_remote_service_account() {
     
     log_info "Creating service account $svc_name on $host..."
     
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    ssh $SSH_OPTS \
         "${USERNAME}@${host}" bash -s "$svc_name" "$public_key" <<'REMOTE_SCRIPT'
         SVC_NAME=$1
         PUBLIC_KEY=$2
@@ -112,17 +117,17 @@ test_ssh_connection() {
     log_info "Testing SSH connection from $from_host to $to_host using $svc_name..."
     
     # First, need to copy the key to the source host
-    scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    scp $SSH_OPTS \
         "$key_path" "${USERNAME}@${from_host}:/tmp/${svc_name}_key" >/dev/null 2>&1
     
     # Test the connection
-    ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+    ssh $SSH_OPTS \
         "${USERNAME}@${from_host}" bash -s "$svc_name" "$to_host" <<'TEST_SCRIPT'
         SVC_NAME=$1
         TO_HOST=$2
         KEY_FILE="/tmp/${SVC_NAME}_key"
         
-        if ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+        if ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             -i "$KEY_FILE" "$SVC_NAME@$TO_HOST" "whoami" &>/dev/null; then
             echo "✓ Connection successful"
         else
@@ -151,9 +156,15 @@ store_key_in_gsm() {
         
         # Check if secret already exists
         if gcloud secrets describe "$svc_name" &>/dev/null; then
-            gcloud secrets versions add "$svc_name" --data-file="$key_path" 2>/dev/null || true
+            if ! gcloud secrets versions add "$svc_name" --data-file="$key_path"; then
+                log_error "Failed to add version to GSM secret: $svc_name"
+                return 1
+            fi
         else
-            gcloud secrets create "$svc_name" --data-file="$key_path" 2>/dev/null || true
+            if ! gcloud secrets create "$svc_name" --data-file="$key_path"; then
+                log_error "Failed to create GSM secret: $svc_name"
+                return 1
+            fi
         fi
         
         log_success "Stored $svc_name in GSM"

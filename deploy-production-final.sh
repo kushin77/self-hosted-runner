@@ -2,11 +2,12 @@
 # 🎯 FINAL PRODUCTION DEPLOYMENT EXECUTOR
 # All Mandates Enforced • Ready for Execution
 
-set -uo pipefail
+set -euo pipefail
 
 readonly DEPLOYMENT_ID="$(date +%Y%m%d_%H%M%S)_$(openssl rand -hex 4)"
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly LOG_DIR="/var/log/deployments"
+readonly LOG_DIR="${LOG_DIR:-$SCRIPT_DIR/logs/deployments}"
+readonly SSH_OPTS="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
 # Colors
 readonly GREEN='\033[0;32m'
@@ -17,6 +18,9 @@ readonly MAGENTA='\033[0;35m'
 readonly NC='\033[0m'
 
 mkdir -p "$LOG_DIR"
+export SSH_ASKPASS=none
+export SSH_ASKPASS_REQUIRE=never
+export DISPLAY=""
 
 print_header() {
     echo ""
@@ -58,25 +62,35 @@ deploy_core() {
     echo -e "${BLUE}→${NC} Executing core deployment..."
     
     # Deploy via direct SSH
-    ssh -o ConnectTimeout=5 automation@192.168.168.42 bash << 'DEPLOY_SCRIPT'
+    if ! ssh $SSH_OPTS automation@192.168.168.42 bash << 'DEPLOY_SCRIPT'
+        set -euo pipefail
         cd /opt/automation/code
         git fetch origin main --quiet
         git reset --hard origin/main
         echo "✅ Infrastructure synchronized"
 DEPLOY_SCRIPT
-    
+    then
+        echo -e "${RED}✘${NC} Core deployment SSH execution failed"
+        return 1
+    fi
+
     return 0
 }
 
 activate_continuous() {
     echo -e "${BLUE}→${NC} Activating continuous deployment..."
     
-    ssh -o ConnectTimeout=5 automation@192.168.168.42 bash << 'TIMER_SCRIPT'
-        sudo systemctl enable nexusshield-auto-deploy.timer 2>/dev/null || true
-        sudo systemctl start nexusshield-auto-deploy.timer 2>/dev/null || true
+    if ! ssh $SSH_OPTS automation@192.168.168.42 bash << 'TIMER_SCRIPT'
+        set -euo pipefail
+        sudo systemctl enable nexusshield-auto-deploy.timer
+        sudo systemctl start nexusshield-auto-deploy.timer
         echo "✅ Continuous deployment activated"
 TIMER_SCRIPT
-    
+    then
+        echo -e "${RED}✘${NC} Failed to activate continuous deployment timer"
+        return 1
+    fi
+
     return 0
 }
 
@@ -95,8 +109,8 @@ health_check() {
         fi
     done
     
-    echo -e "${YELLOW}⚠️${NC} Services still initializing (this is normal)"
-    return 0
+    echo -e "${RED}✘${NC} Services not healthy after ${max_retries} attempts"
+    return 1
 }
 
 main() {
@@ -104,8 +118,8 @@ main() {
     
     verify_mandates || { echo -e "${RED}✘${NC} Mandate verification failed"; exit 1; }
     deploy_core || { echo -e "${RED}✘${NC} Deployment failed"; exit 1; }
-    activate_continuous
-    health_check
+    activate_continuous || { echo -e "${RED}✘${NC} Timer activation failed"; exit 1; }
+    health_check || { echo -e "${RED}✘${NC} Health check failed"; exit 1; }
     
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════════════════════════════╗${NC}"

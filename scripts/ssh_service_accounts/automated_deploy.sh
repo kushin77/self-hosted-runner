@@ -5,6 +5,10 @@
 
 set -euo pipefail
 
+export SSH_ASKPASS=none
+export SSH_ASKPASS_REQUIRE=never
+export DISPLAY=""
+
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly WORKSPACE_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 readonly SECRETS_DIR="${WORKSPACE_ROOT}/secrets/ssh"
@@ -12,6 +16,7 @@ readonly LOG_DIR="${WORKSPACE_ROOT}/logs/deployment"
 readonly STATE_DIR="${WORKSPACE_ROOT}/.deployment-state"
 readonly TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 readonly LOG_FILE="${LOG_DIR}/deployment-${TIMESTAMP}.log"
+readonly SSH_OPTS="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5"
 
 # Configuration
 readonly USERNAME="akushnir"
@@ -113,14 +118,20 @@ store_in_gsm() {
     
     local secret_name="ssh-${svc_name}"
     if gcloud secrets describe "$secret_name" --project="$PROJECT_ID" &>/dev/null 2>&1; then
-        gcloud secrets versions add "$secret_name" \
+        if ! gcloud secrets versions add "$secret_name" \
             --data-file="$key_file" \
-            --project="$PROJECT_ID" 2>/dev/null || true
+            --project="$PROJECT_ID"; then
+            log_error "Failed writing key version to GSM: $secret_name"
+            return 1
+        fi
     else
-        gcloud secrets create "$secret_name" \
+        if ! gcloud secrets create "$secret_name" \
             --data-file="$key_file" \
             --project="$PROJECT_ID" \
-            --replication-policy="automatic" 2>/dev/null || true
+            --replication-policy="automatic"; then
+            log_error "Failed creating GSM secret: $secret_name"
+            return 1
+        fi
     fi
     
     log_success "Stored in GSM: $secret_name"
@@ -160,7 +171,7 @@ create_service_account() {
     log_deploy "Creating service account: $svc_name on $target_host"
     
     # Check if account already exists
-    local account_check=$(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 \
+    local account_check=$(ssh $SSH_OPTS \
         "${USERNAME}@${target_host}" "id '$svc_name' 2>/dev/null && echo 'EXISTS' || echo 'NEW'" 2>/dev/null || echo "ERROR")
     
     if [ "$account_check" == "EXISTS" ]; then
@@ -168,7 +179,7 @@ create_service_account() {
     else
         log_info "Creating new account: $svc_name@$target_host"
         
-        ssh -o StrictHostKeyChecking=no \
+        ssh $SSH_OPTS \
             "${USERNAME}@${target_host}" bash -s "$svc_name" <<'SETUP_SCRIPT'
             SVC_NAME=$1
             
@@ -194,7 +205,7 @@ deploy_ssh_key() {
     log_deploy "Deploying SSH key: $svc_name → $target_host"
     
     # Check if key already authorized
-    local has_key=$(ssh -o StrictHostKeyChecking=no \
+    local has_key=$(ssh $SSH_OPTS \
         "${USERNAME}@${target_host}" \
         "grep -q '${public_key}' ~/.ssh/authorized_keys 2>/dev/null && echo 'YES' || echo 'NO'" || echo "ERROR")
     
@@ -205,7 +216,7 @@ deploy_ssh_key() {
     
     log_info "Adding key to authorized_keys: $svc_name@$target_host"
     
-    ssh -o StrictHostKeyChecking=no "${USERNAME}@${target_host}" bash -s "$svc_name" "$public_key" <<'DEPLOY_SCRIPT'
+    ssh $SSH_OPTS "${USERNAME}@${target_host}" bash -s "$svc_name" "$public_key" <<'DEPLOY_SCRIPT'
         SVC_NAME=$1
         PUBLIC_KEY=$2
         HOME_DIR="/home/$SVC_NAME"
@@ -233,7 +244,7 @@ deploy_key_to_source() {
     log_deploy "Deploying private key to source: $source_host"
     
     # Check if key already present
-    local has_key=$(ssh -o StrictHostKeyChecking=no \
+    local has_key=$(ssh $SSH_OPTS \
         "${USERNAME}@${source_host}" \
         "test -f ~/.ssh/svc-keys/${svc_name}_key && echo 'YES' || echo 'NO'" || echo "ERROR")
     
@@ -244,17 +255,17 @@ deploy_key_to_source() {
     
     log_info "Copying key to source host: $source_host"
     
-    ssh -o StrictHostKeyChecking=no "${USERNAME}@${source_host}" \
+    ssh $SSH_OPTS "${USERNAME}@${source_host}" \
         "mkdir -p ~/.ssh/svc-keys && chmod 700 ~/.ssh/svc-keys" || true
     
-    scp -o StrictHostKeyChecking=no \
+    scp $SSH_OPTS \
         "$key_file" \
         "${USERNAME}@${source_host}:~/.ssh/svc-keys/${svc_name}_key" || {
         log_error "Failed to deploy key to $source_host"
         return 1
     }
     
-    ssh -o StrictHostKeyChecking=no "${USERNAME}@${source_host}" \
+    ssh $SSH_OPTS "${USERNAME}@${source_host}" \
         "chmod 600 ~/.ssh/svc-keys/${svc_name}_key" || true
     
     log_success "Key deployed to source: $source_host"
@@ -268,7 +279,7 @@ test_connection() {
     
     log_info "Testing connection: $svc_name@$source_host → $target_host"
     
-    local test_result=$(ssh -o StrictHostKeyChecking=no \
+    local test_result=$(ssh $SSH_OPTS \
         "${USERNAME}@${source_host}" bash -s "$svc_name" "$target_host" <<'TEST_SCRIPT'
         SVC_NAME=$1
         TARGET_HOST=$2
@@ -279,7 +290,7 @@ test_connection() {
             exit 0
         fi
         
-        if timeout 5 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 \
+        if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=3 \
             -i "$KEY" "${SVC_NAME}@${TARGET_HOST}" "whoami" 2>/dev/null | grep -q "$SVC_NAME"; then
             echo "SUCCESS"
         else

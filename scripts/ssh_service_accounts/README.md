@@ -51,22 +51,15 @@ This script will:
 - Test connections between each source/target pair
 
 **Prerequisites:**
-- SSH access to all hosts as `akushnir` user (password or key-based)
+- SSH key-only access to all hosts as `akushnir` user (non-interactive)
 - Phase 1 keys generated and available locally
 
-## Manual Connection Testing
+## Automated Connection Validation
 
-After setup, you can test connections manually:
+After setup, run the non-interactive validation script:
 
 ```bash
-# From host 192.168.168.31 to 192.168.168.42 as elevatediq-svc-worker-dev
-ssh -i ~/.ssh/svc-keys/elevatediq-svc-worker-dev_key elevatediq-svc-worker-dev@192.168.168.42
-
-# From host 192.168.168.39 to 192.168.168.42 as elevatediq-svc-worker-nas
-ssh -i ~/.ssh/svc-keys/elevatediq-svc-worker-nas_key elevatediq-svc-worker-nas@192.168.168.42
-
-# From host 192.168.168.31 to 192.168.168.39 as elevatediq-svc-dev-nas
-ssh -i ~/.ssh/svc-keys/elevatediq-svc-dev-nas_key elevatediq-svc-dev-nas@192.168.168.39
+bash ./test_ssh_keys_only.sh
 ```
 
 ## Key Storage
@@ -97,9 +90,9 @@ ssh -i ~/.ssh/svc-keys/elevatediq-svc-dev-nas_key elevatediq-svc-dev-nas@192.168
 ## Security Considerations
 
 - Private keys should never be committed to version control
-- Keys are stored locally and optionally backed up to GSM
+- Keys are retrieved from GSM/Vault at runtime and handled ephemerally
 - Service accounts are created as system users (`-r` flag) with restricted shells
-- SSH public keys are used for authentication (key-based, not password-based)
+- SSH public keys are used for authentication (interactive auth prompts disabled)
 - Keys use Ed25519 for improved security
 
 ## Integration with Workflow

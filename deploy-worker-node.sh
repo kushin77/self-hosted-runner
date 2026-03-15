@@ -43,6 +43,10 @@
 
 set -euo pipefail
 
+export SSH_ASKPASS=none
+export SSH_ASKPASS_REQUIRE=never
+export DISPLAY=""
+
 # ============================================================================
 # MANDATORY CLOUD DEPLOYMENT PREVENTION
 # ============================================================================
@@ -112,11 +116,15 @@ verify_no_cloud_env() {
 # SERVICE ACCOUNT CONFIGURATION (elevatediq-svc-worker-dev with SSH keys)
 # ============================================================================
 # MANDATE: All authentication via elevatediq-svc-worker-dev service account
-# SSH keys stored in secrets/ssh/ (committed to git, immutable)
+# Private keys are fetched at runtime from GSM/Vault only (no repo storage)
 
 readonly SERVICE_ACCOUNT="${SERVICE_ACCOUNT:-elevatediq-svc-worker-dev}"
 readonly SERVICE_ACCOUNT_EMAIL="${SERVICE_ACCOUNT}"
-readonly SSH_KEY_FILE="${SSH_KEY_FILE:-$(pwd)/secrets/ssh/elevatediq-svc-worker-dev/id_ed25519}"
+SSH_KEY_FILE="${SSH_KEY_FILE:-}"
+readonly SSH_KEY_SOURCE="${SSH_KEY_SOURCE:-gsm}"
+readonly SSH_KEY_SECRET_NAME="${SSH_KEY_SECRET_NAME:-ssh-${SERVICE_ACCOUNT}}"
+readonly VAULT_SSH_SECRET_PATH="${VAULT_SSH_SECRET_PATH:-secret/ssh/${SERVICE_ACCOUNT}}"
+TEMP_SSH_KEY_FILE=""
 readonly TARGET_HOST="${TARGET_HOST:-192.168.168.42}"
 readonly TARGET_USER="${TARGET_USER:-elevatediq-svc-worker-dev}"  # Service account user on worker
 
@@ -158,21 +166,72 @@ if [[ "$TARGET_HOST" == "localhost" ]] || [[ "$TARGET_HOST" == "127.0.0.1" ]] ||
     exit 1
 fi
 
-# SSH connection options (no cloud)
-readonly SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
+# SSH connection options (strict key-only, non-interactive)
+readonly SSH_OPTS="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
 # ============================================================================
 # SSH KEY VERIFICATION (from secrets directory)
 # ============================================================================
-# SSH key stored in git secrets/ssh/elevatediq-svc-worker-dev/
-# Git history provides immutability, no runtime retrieval needed
+cleanup_runtime_secrets() {
+  if [[ -n "${TEMP_SSH_KEY_FILE:-}" ]] && [[ -f "$TEMP_SSH_KEY_FILE" ]]; then
+    rm -f "$TEMP_SSH_KEY_FILE"
+  fi
+}
+
+fetch_runtime_ssh_key() {
+  local key_file
+  key_file=$(mktemp)
+  chmod 600 "$key_file"
+
+  if [[ "$SSH_KEY_SOURCE" == "gsm" ]]; then
+    if ! command -v gcloud &>/dev/null; then
+      echo "[ERROR] gcloud CLI not found for GSM key retrieval" >&2
+      rm -f "$key_file"
+      return 1
+    fi
+
+    if ! gcloud secrets versions access latest --secret="$SSH_KEY_SECRET_NAME" > "$key_file"; then
+      echo "[ERROR] Failed to fetch SSH key from GSM secret: $SSH_KEY_SECRET_NAME" >&2
+      rm -f "$key_file"
+      return 1
+    fi
+  elif [[ "$SSH_KEY_SOURCE" == "vault" ]]; then
+    if ! command -v vault &>/dev/null; then
+      echo "[ERROR] vault CLI not found for Vault key retrieval" >&2
+      rm -f "$key_file"
+      return 1
+    fi
+
+    if ! vault kv get -field=private_key "$VAULT_SSH_SECRET_PATH" > "$key_file"; then
+      echo "[ERROR] Failed to fetch SSH key from Vault path: $VAULT_SSH_SECRET_PATH" >&2
+      rm -f "$key_file"
+      return 1
+    fi
+  else
+    echo "[ERROR] Invalid SSH_KEY_SOURCE: $SSH_KEY_SOURCE (supported: gsm, vault)" >&2
+    rm -f "$key_file"
+    return 1
+  fi
+
+  chmod 600 "$key_file"
+  TEMP_SSH_KEY_FILE="$key_file"
+  SSH_KEY_FILE="$key_file"
+  return 0
+}
 
 verify_ssh_key_exists() {
   echo "[*] Verifying SSH key for $SERVICE_ACCOUNT..." >&2
+
+  if [[ -z "$SSH_KEY_FILE" ]]; then
+    echo "[*] No SSH_KEY_FILE provided. Retrieving runtime key from $SSH_KEY_SOURCE..." >&2
+    if ! fetch_runtime_ssh_key; then
+      return 1
+    fi
+  fi
   
   if [ ! -f "$SSH_KEY_FILE" ]; then
     echo "[ERROR] SSH key not found: $SSH_KEY_FILE" >&2
-    echo "[ACTION] Ensure keys are committed in secrets/ssh/$SERVICE_ACCOUNT/id_ed25519" >&2
+    echo "[ACTION] Set SSH_KEY_FILE or configure GSM/Vault retrieval for $SERVICE_ACCOUNT" >&2
     return 1
   fi
   
@@ -187,7 +246,7 @@ verify_ssh_key_exists() {
   return 0
 }
 
-# No cleanup needed - keys are immutable in git
+# Runtime key cleanup handled by trap in main()
 
   
 
@@ -204,8 +263,7 @@ verify_ssh_connection() {
   fi
   
   # Test SSH connection
-  local ssh_cmd="ssh -i \"$ssh_key\" $SSH_OPTS"
-  if $ssh_cmd "$TARGET_USER@$TARGET_HOST" "echo 'SSH connection test successful'" >/dev/null 2>&1; then
+  if ssh -i "$ssh_key" $SSH_OPTS "$TARGET_USER@$TARGET_HOST" "echo 'SSH connection test successful'" >/dev/null 2>&1; then
     echo "✅ SSH connection verified ($SERVICE_ACCOUNT authenticated)"
     return 0
   else
@@ -865,6 +923,8 @@ print_summary() {
 # ============================================================================
 
 main() {
+  trap cleanup_runtime_secrets EXIT
+
   # Initialize logging directories first
   init_logging
   
