@@ -29,3 +29,9 @@
   },
   "deployment_log": "/home/akushnir/self-hosted-runner/logs/deployment-20260315-000034.log"
 }
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"INFO","message":"🚀 NAS Storage Redeployment Started"}
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"INFO","message":"Target endpoint: 192.168.168.42 (enforced)"}
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"INFO","message":"NAS mount point: /nas"}
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"INFO","message":"Project root: /home/akushnir/self-hosted-runner"}
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"INFO","message":"Step 1: Verifying NAS mount..."}
+{"timestamp":"2026-03-15T01:38:07Z","component":"nas-redeployment","level":"ERROR","message":"NAS not mounted at /nas"}
