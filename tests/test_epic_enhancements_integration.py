@@ -146,8 +146,8 @@ class TestDistributedHookRegistry:
 
         # Simulate hook storage
         hook_name = "pre-push"
-        version1 = "abc123def456"  # SHA-256 prefix
-        version2 = "xyz789uvw123"
+        version1 = "v1.0.0"  # Version identifier
+        version2 = "v1.0.1"
 
         v1_dir = hooks_dir / hook_name / version1
         v1_dir.mkdir(parents=True)
