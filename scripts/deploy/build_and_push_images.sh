@@ -1,6 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+TARGET_BUILD_HOST="${TARGET_BUILD_HOST:-192.168.168.42}"
+CURRENT_HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+if [[ "$CURRENT_HOST_IP" != "$TARGET_BUILD_HOST" ]]; then
+  echo "[FATAL] ONPREM build mandate violation: current host ${CURRENT_HOST_IP:-unknown}, required ${TARGET_BUILD_HOST}" >&2
+  exit 42
+fi
+
+if [[ -n "${BUILD_ID:-}" || -n "${CLOUD_BUILD:-}" || -n "${K_SERVICE:-}" || -n "${GOOGLE_CLOUD_PROJECT:-}" ]]; then
+  echo "[FATAL] Cloud runtime detected. NO BUILDING IN CLOUD is mandatory." >&2
+  exit 42
+fi
+
 # Idempotent build-and-push script for canonical secrets images.
 # Requires: DOCKER_REGISTRY (e.g. registry.example.com/org) and optionally IMAGE_TAG/PORTAL_IMAGE_TAG
 

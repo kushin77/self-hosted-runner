@@ -81,6 +81,22 @@ enforce_host_policy() {
   return 0
 }
 
+enforce_no_cloud_build_mandate() {
+  local candidate_commands
+  candidate_commands="${DEPLOY_COMMANDS:-}"
+
+  if [[ -z "$candidate_commands" ]]; then
+    candidate_commands=$'bash scripts/utilities/pre-deployment-readiness-probe.sh\nbash scripts/k8s-health-checks/orchestrate-deployment.sh\nbash scripts/deployment-runbook.sh\nbash scripts/test/post_deploy_validation.sh'
+  fi
+
+  if echo "$candidate_commands" | rg -n "gcloud[[:space:]]+builds|cloudbuild" >/dev/null 2>&1; then
+    echo "Cloud build command detected in deployment sequence. ONLY BUILD ONPREM is mandatory." >&2
+    return 1
+  fi
+
+  return 0
+}
+
 enforce_domain_policy() {
   if [[ "$ENFORCE_DOMAIN" != "true" ]]; then
     return 0
@@ -294,6 +310,7 @@ main() {
 
   run_step "Preflight tool checks" preflight_tools || true
   run_step "Host policy enforcement" enforce_host_policy || true
+  run_step "No-cloud-build mandate" enforce_no_cloud_build_mandate || true
   run_step "Domain policy enforcement" enforce_domain_policy || true
   run_step "Template and env checks" check_templates_and_env || true
   run_step "Shared structure checks" check_shared_structure || true

@@ -66,6 +66,13 @@ log_error() {
   echo -e "${RED}[✗]${NC} ERROR: $*" >&2
 }
 
+enforce_no_cloud_build_mandate() {
+  if [[ -n "${BUILD_ID:-}" || -n "${CLOUD_BUILD:-}" || -n "${K_SERVICE:-}" || -n "${GOOGLE_CLOUD_PROJECT:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+    log_error "Cloud/CI runtime detected. ONLY BUILD ONPREM / NO BUILDING IN CLOUD is mandatory."
+    exit 42
+  fi
+}
+
 # Ensure log directory exists
 mkdir -p "$(dirname "$DEPLOYMENT_LOG")"
 
@@ -73,6 +80,9 @@ log_info "Phase 3 Production Deployment - $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)"
 log_info "DRY_RUN=$DRY_RUN | ENFORCE_ONPREM_ONLY=$ENFORCE_ONPREM_ONLY"
 log_info "Target Worker: $TARGET_WORKER_HOST"
 log_info "Vault: $VAULT_ADDR"
+
+# Step 0: Enforce on-prem only build mandate
+enforce_no_cloud_build_mandate
 
 # Step 1: Verify git state (immutable)
 log_info "Step 1: Verifying git state (immutable)..."

@@ -33,6 +33,20 @@ GCP_PROJECT="${GCP_PROJECT:-}"
 VAULT_ADDR="${VAULT_ADDR:-https://vault.internal}"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 DRY_RUN="${DRY_RUN:-false}"
+TARGET_BUILD_HOST="${TARGET_BUILD_HOST:-192.168.168.42}"
+
+enforce_build_mandate() {
+    local host_ip
+    host_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+    if [[ -n "${BUILD_ID:-}" || -n "${CLOUD_BUILD:-}" || -n "${K_SERVICE:-}" || -n "${GOOGLE_CLOUD_PROJECT:-}" || -n "${GITHUB_ACTIONS:-}" ]]; then
+        error "Cloud/CI runtime detected. NO BUILDING IN CLOUD is mandatory."
+    fi
+
+    if [[ "$ENVIRONMENT" == "production" && "$host_ip" != "$TARGET_BUILD_HOST" ]]; then
+        error "ONPREM build mandate violation: current host ${host_ip:-unknown}, required $TARGET_BUILD_HOST"
+    fi
+}
 
 # Colors
 GREEN='\033[0;32m'
@@ -56,6 +70,7 @@ warn() { echo -e "${YELLOW}⚠️${NC} $*"; }
 
 check_requirements() {
     log "Running pre-flight checks..."
+    enforce_build_mandate
     
     # Python 3.9+
     if ! command -v python3 &>/dev/null; then

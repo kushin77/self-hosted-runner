@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+TARGET_BUILD_HOST="${TARGET_BUILD_HOST:-192.168.168.42}"
+CURRENT_HOST_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+
+if [[ "$CURRENT_HOST_IP" != "$TARGET_BUILD_HOST" ]]; then
+  echo "[FATAL] ONPREM build mandate violation: current host ${CURRENT_HOST_IP:-unknown}, required ${TARGET_BUILD_HOST}" >&2
+  exit 42
+fi
+
+# Block execution from managed CI/cloud runtimes to keep builds strictly on-prem.
+if [[ -n "${BUILD_ID:-}" || -n "${CLOUD_BUILD:-}" || -n "${K_SERVICE:-}" || -n "${GOOGLE_CLOUD_PROJECT:-}" ]]; then
+  echo "[FATAL] Cloud runtime detected. NO BUILDING IN CLOUD is mandatory." >&2
+  exit 42
+fi
+
 # Usage: ./scripts/build_and_push_images.sh <tag>
 TAG=${1:-latest}
 PROJECT=nexusshield-prod

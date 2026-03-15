@@ -8,6 +8,12 @@
 
 set -euo pipefail
 
+echo "[FATAL] Policy mandate active: ONLY BUILD ONPREM / NO BUILDING IN CLOUD." >&2
+echo "Use on-prem deployment entrypoints from 192.168.168.42 instead:" >&2
+echo "  - scripts/redeploy/execute-production-deployment.sh" >&2
+echo "  - scripts/redeploy/redeploy-100x.sh (with ENFORCE_ONPREM_ONLY=true)" >&2
+exit 42
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 export GCP_PROJECT="${GCP_PROJECT:?GCP_PROJECT not set}"
