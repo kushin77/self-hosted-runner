@@ -1,0 +1,161 @@
+version: '3.9'
+
+services:
+  # PostgreSQL - Core database with NFS-backed volume
+  postgres:
+    image: postgres:15-alpine
+    container_name: phase4-postgres-dev
+    environment:
+      POSTGRES_DB: appdb
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-vol:/var/lib/postgresql/data
+      - postgres-logs-vol:/var/log/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Cache with NFS-backed volume
+  redis:
+    image: redis:7-alpine
+    container_name: phase4-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data-vol:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus - Metrics with NFS-backed volume
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: phase4-prometheus-dev
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data-vol:/prometheus
+      - prometheus-logs-vol:/prometheus/logs
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=72h'
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Grafana - Dashboard with NFS-backed volume
+  grafana:
+    image: grafana/grafana:latest
+    container_name: phase4-grafana-dev
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_password
+      GF_SERVER_ROOT_URL: http://192.168.168.42:3000
+    secrets:
+      - grafana_password
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data-vol:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # PostgreSQL Exporter for Prometheus
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: phase4-pg-exporter-dev
+    environment:
+      DATA_SOURCE_NAME: "postgresql://appuser:changeme@postgres:5432/appdb?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Redis Exporter for Prometheus
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: phase4-redis-exporter-dev
+    environment:
+      REDIS_ADDR: redis:6379
+    ports:
+      - "9121:9121"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+# Docker NFS volumes pointing to /nas/kushin77/applications
+# Bypasses NFS root_squash while maintaining centralized storage
+volumes:
+  postgres-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/postgresql/data
+  
+  postgres-logs-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/postgresql/logs
+  
+  prometheus-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/prometheus/data
+  
+  prometheus-logs-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/prometheus/logs
+  
+  grafana-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/grafana/data
+  
+  redis-data-vol:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
+      device: :/nas/kushin77/applications/databases/redis/data
+
+secrets:
+  postgres_password:
+    environment: POSTGRES_PASSWORD
+  grafana_password:
+    environment: GRAFANA_PASSWORD
+
+networks:
+  default:
+    name: phase4-nfs-network
