@@ -41,7 +41,7 @@ readonly NC='\033[0m'
 
 # NAS Configuration
 readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
-readonly NAS_USER="${NAS_USER:-svc-nas}"
+readonly NAS_USER="${NAS_USER:-elevatediq-svc-nas}"
 readonly NAS_PORT="${NAS_PORT:-22}"
 readonly NAS_ACCESS="${NAS_ACCESS:-local}"  # local or worker
 
@@ -49,9 +49,9 @@ readonly NAS_ACCESS="${NAS_ACCESS:-local}"  # local or worker
 determine_nas_key() {
   local key_candidates=(
     "${NAS_KEY:-default}"
-    "$HOME/.ssh/svc-keys/elevatediq-svc-42-nas_key"
-    "$HOME/.ssh/svc-keys/elevatediq-svc-worker-nas_key"
-    "$HOME/.ssh/svc-keys/elevatediq-svc-dev-nas_key"
+    "$HOME/.ssh/elevatediq-svc-keys/elevatediq-svc-42-nas_key"
+    "$HOME/.ssh/elevatediq-svc-keys/elevatediq-svc-worker-nas_key"
+    "$HOME/.ssh/elevatediq-svc-keys/elevatediq-svc-dev-nas_key"
     "$HOME/.ssh/id_rsa"
   )
   

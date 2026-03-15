@@ -11,7 +11,7 @@ fi
 
 DOMAIN_NAME="${DOMAIN_NAME:-elevatediq.ai}"
 NAS_HOST="${NAS_HOST:-192.168.168.100}"
-NAS_PATH="${NAS_PATH:-/home/svc-nas/repositories/iac}"
+NAS_PATH="${NAS_PATH:-/home/elevatediq-svc-nas/repositories/iac}"
 GCP_ARCHIVE_BUCKET="${GCP_ARCHIVE_BUCKET:-gs://elevatediq-ai-archive}"
 INCREMENTAL_RETENTION_DAYS="${INCREMENTAL_RETENTION_DAYS:-14}"
 WEEKLY_FULL_RETENTION_DAYS="${WEEKLY_FULL_RETENTION_DAYS:-30}"

@@ -113,7 +113,7 @@ op_connectivity() {
   fi
   
   local nas_host="${NAS_HOST:-192.168.168.100}"
-  local nas_user="${NAS_USER:-svc-nas}"
+  local nas_user="${NAS_USER:-elevatediq-svc-nas}"
   
   if ssh -i "$key" \
     -o StrictHostKeyChecking=accept-new \
@@ -191,7 +191,7 @@ ENVIRONMENT VARIABLES:
 
   NAS_HOST=192.168.168.100      - NAS server IP
   NAS_PORT=22                   - SSH port
-  NAS_USER=svc-nas              - NAS SSH user
+  NAS_USER=elevatediq-svc-nas              - NAS SSH user
   OPT_AUTOMATION=/opt/automation - Automation directory
   OPT_IAC=/opt/iac-configs      - Local IAC directory
   LOG_DIR=/var/log/nas-integration - Logs directory

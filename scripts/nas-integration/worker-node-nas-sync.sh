@@ -25,9 +25,9 @@ set -euo pipefail
 # NAS server coordinates
 readonly NAS_HOST="${NAS_HOST:-192.168.168.39}"
 readonly NAS_PORT="${NAS_PORT:-22}"
-readonly NAS_USER="${NAS_USER:-svc-nas}"
-readonly NAS_IAC_REPO="/home/svc-nas/repositories/iac"
-readonly NAS_CONFIGS_DIR="/home/svc-nas/config-vault"
+readonly NAS_USER="${NAS_USER:-elevatediq-svc-nas}"
+readonly NAS_IAC_REPO="/home/elevatediq-svc-nas/repositories/iac"
+readonly NAS_CONFIGS_DIR="/home/elevatediq-svc-nas/config-vault"
 
 # Local sync directories
 readonly WORKER_SYNC_BASE="${WORKER_SYNC_BASE:-/opt/nas-sync}"
@@ -206,7 +206,7 @@ fetch_credentials_from_gsm() {
     
     # List of secrets to fetch
     secrets=(
-      "svc-git-key"
+      "elevatediq-svc-git-key"
       "github-deploy-token"
       "worker-node-ssh-key"
     )
@@ -223,7 +223,7 @@ fetch_credentials_from_gsm() {
     chmod 600 "$WORKER_CREDENTIALS_DIR/credentials-temp.txt"
     
     # Parse and store securely
-    if grep -q "svc-git-key" "$WORKER_CREDENTIALS_DIR/credentials-temp.txt"; then
+    if grep -q "elevatediq-svc-git-key" "$WORKER_CREDENTIALS_DIR/credentials-temp.txt"; then
       success "Credentials fetched successfully from GSM"
       
       # Clear sensitive file from disk immediately after parsing

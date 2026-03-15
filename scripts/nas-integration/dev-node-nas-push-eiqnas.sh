@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Updated NAS Dev Node Push - eiq-nas Integration
-# Pushes IAC updates to eiq-nas GitHub repository via svc-git service account
+# Pushes IAC updates to eiq-nas GitHub repository via elevatediq-svc-git service account
 #
 # Uses: git push to github.com:kushin77/eiq-nas.git
-# Auth: svc-git service account with SSH key from GSM
+# Auth: elevatediq-svc-git service account with SSH key from GSM
 # Modes: push (one-time), watch (continuous), diff (preview)
 #
 # Compliance: Immutable, ephemeral, idempotent, hands-off, GSM vault, no GitHub Actions
@@ -19,9 +19,9 @@ AUDIT_LOG="${LOG_DIR}/dev-push-audit.jsonl"
 # Configuration
 NAS_GIT_REPO="${NAS_GIT_REPO:-git@github.com:kushin77/eiq-nas.git}"
 NAS_REPO_PATH="${NAS_REPO_PATH:-/home/kushin77}"
-PUSH_USER="svc-git"
+PUSH_USER="elevatediq-svc-git"
 GCP_PROJECT="${GCP_PROJECT:-nexusshield-prod}"
-GSM_SECRET="${GSM_SECRET:-svc-git-ssh-key}"
+GSM_SECRET="${GSM_SECRET:-elevatediq-svc-git-ssh-key}"
 
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
@@ -74,21 +74,21 @@ audit_entry() {
 }
 
 verify_svc_git() {
-  # Verify svc-git user and SSH access
+  # Verify elevatediq-svc-git user and SSH access
   if ! id "$PUSH_USER" >/dev/null 2>&1; then
-    error "svc-git user not found"
+    error "elevatediq-svc-git user not found"
     audit_entry "svc_git_verify" "FAILED" "User not found"
     return 1
   fi
   
-  # Check if SSH key is accessible (should be fetched by svc-git-key.service)
+  # Check if SSH key is accessible (should be fetched by elevatediq-svc-git-key.service)
   if ! sudo -u "$PUSH_USER" -H ssh -T git@github.com >/dev/null 2>&1; then
     if ! sudo -u "$PUSH_USER" -H ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
       warn "GitHub SSH auth check returned warning (may be normal)"
     fi
   fi
   
-  log "svc-git user verified"
+  log "elevatediq-svc-git user verified"
   audit_entry "svc_git_verify" "SUCCESS" "User accessible"
   return 0
 }
@@ -245,9 +245,9 @@ echo ""
 # Initialize audit entry
 audit_entry "session_start" "INITIATED" "Mode: $MODE"
 
-# Verify svc-git user and SSH access
+# Verify elevatediq-svc-git user and SSH access
 if ! verify_svc_git; then
-  error "svc-git verification failed"
+  error "elevatediq-svc-git verification failed"
   exit 1
 fi
 

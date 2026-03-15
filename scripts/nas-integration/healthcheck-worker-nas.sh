@@ -19,7 +19,7 @@ set -euo pipefail
 # Configuration
 readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
 readonly NAS_PORT="${NAS_PORT:-22}"
-readonly NAS_USER="${NAS_USER:-svc-nas}"
+readonly NAS_USER="${NAS_USER:-elevatediq-svc-nas}"
 readonly WORKER_SYNC_BASE="${WORKER_SYNC_BASE:-/opt/nas-sync}"
 readonly HEALTHCHECK_LOG="${HEALTHCHECK_LOG:-/var/log/nas-integration/worker-health.log}"
 readonly VERBOSE="${VERBOSE:-false}"

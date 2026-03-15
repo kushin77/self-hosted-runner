@@ -35,7 +35,7 @@ readonly REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Network
 readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
 readonly NAS_PORT="${NAS_PORT:-22}"
-readonly NAS_USER="${NAS_USER:-svc-nas}"
+readonly NAS_USER="${NAS_USER:-elevatediq-svc-nas}"
 readonly DEV_HOST="192.168.168.31"
 
 # Local paths
@@ -246,7 +246,7 @@ test_nas_connectivity() {
     -o ConnectTimeout=5 \
     -o BatchMode=yes \
     "${NAS_USER}@${NAS_HOST}" \
-    "test -d /home/svc-nas/repositories/iac && echo 'NAS IAC repository accessible'" &>/dev/null; then
+    "test -d /home/elevatediq-svc-nas/repositories/iac && echo 'NAS IAC repository accessible'" &>/dev/null; then
     
     success "NAS connectivity test passed"
     return 0
@@ -277,7 +277,7 @@ setup_env_config() {
 # Network Configuration
 export NAS_HOST="192.168.168.100"
 export NAS_PORT="22"
-export NAS_USER="svc-nas"
+export NAS_USER="elevatediq-svc-nas"
 export DEV_HOST="192.168.168.31"
 export DEV_USER="automation"
 
@@ -290,8 +290,8 @@ export AUDIT_DIR="/var/audit/nas-integration"
 export SSH_KEY="/home/${DEV_USER}/.ssh/nas-push-key"
 
 # NAS Remote Paths
-export NAS_IAC_REPO="/home/svc-nas/repositories/iac"
-export NAS_CONFIGS_DIR="/home/svc-nas/config-vault"
+export NAS_IAC_REPO="/home/elevatediq-svc-nas/repositories/iac"
+export NAS_CONFIGS_DIR="/home/elevatediq-svc-nas/config-vault"
 
 # Service Account
 export SERVICE_ACCOUNT="automation"
@@ -600,7 +600,7 @@ You Edit Files          NAS Server              Worker Nodes
 
 2. Test connectivity:
    ```bash
-   ssh -i /home/automation/.ssh/nas-push-key svc-nas@192.168.168.100 "echo OK"
+   ssh -i /home/automation/.ssh/nas-push-key elevatediq-svc-nas@192.168.168.100 "echo OK"
    ```
 
 3. Verify NAS has your public key:
@@ -617,8 +617,8 @@ You Edit Files          NAS Server              Worker Nodes
 
 2. Check NAS for your files:
    ```bash
-   ssh -i /home/automation/.ssh/nas-push-key svc-nas@192.168.168.100 \
-     "ls -la /home/svc-nas/repositories/iac/"
+   ssh -i /home/automation/.ssh/nas-push-key elevatediq-svc-nas@192.168.168.100 \
+     "ls -la /home/elevatediq-svc-nas/repositories/iac/"
    ```
 
 3. Wait up to 30 minutes for worker nodes to pull
@@ -682,7 +682,7 @@ summary() {
   
   echo "📖 Getting Started:"
   echo "   1. Add SSH public key to NAS admin"
-  echo "   2. Test connection: ssh -i ${SSH_DIR}/nas-push-key svc-nas@${NAS_HOST}"
+  echo "   2. Test connection: ssh -i ${SSH_DIR}/nas-push-key elevatediq-svc-nas@${NAS_HOST}"
   echo "   3. Edit configs in: $OPT_IAC"
   echo "   4. Push: $OPT_AUTOMATION/scripts/nas-integration/dev-node-nas-push.sh push"
   echo "   5. Monitor: tail -f $LOG_DIR/dev-node-push.log"
@@ -701,7 +701,7 @@ summary() {
   echo "   1. Copy public SSH key to NAS admin:"
   echo "      cat ${SSH_DIR}/nas-push-key.pub"
   echo "   2. Once key is added to NAS, test:"
-  echo "      ssh -i ${SSH_DIR}/nas-push-key svc-nas@${NAS_HOST} 'echo OK'"
+  echo "      ssh -i ${SSH_DIR}/nas-push-key elevatediq-svc-nas@${NAS_HOST} 'echo OK'"
   echo "   3. Then push your first configs:"
   echo "      $OPT_AUTOMATION/scripts/nas-integration/dev-node-nas-push.sh push"
   echo ""

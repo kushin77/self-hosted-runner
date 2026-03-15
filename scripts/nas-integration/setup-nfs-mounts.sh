@@ -29,9 +29,9 @@ readonly NAS_PORT="${NAS_PORT:-2049}"
 readonly DEV_NODE="${DEV_NODE:-192.168.168.31}"
 
 # NFS Mount Points on NAS
-readonly NAS_REPOSITORIES="/home/svc-nas/repositories"
-readonly NAS_CONFIG_VAULT="/home/svc-nas/config-vault"
-readonly NAS_AUDIT_LOGS="/home/svc-nas/audit-logs"
+readonly NAS_REPOSITORIES="/home/elevatediq-svc-nas/repositories"
+readonly NAS_CONFIG_VAULT="/home/elevatediq-svc-nas/config-vault"
+readonly NAS_AUDIT_LOGS="/home/elevatediq-svc-nas/audit-logs"
 
 # Local Mount Points on Dev Node
 readonly LOCAL_MOUNT_BASE="/mnt/nas"

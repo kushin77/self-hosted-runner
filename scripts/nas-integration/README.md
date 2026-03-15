@@ -164,7 +164,7 @@ cat /opt/nas-sync/audit/.last-success | date -f - "+Last sync: %Y-%m-%d %H:%M:%S
 
 ```bash
 # Test SSH access
-ssh -i ~/.ssh/id_ed25519 svc-nas@192.168.168.100 echo "OK"
+ssh -i ~/.ssh/id_ed25519 elevatediq-svc-nas@192.168.168.100 echo "OK"
 
 # Check authorized_keys on NAS
 # Verify your public key is present

@@ -29,9 +29,9 @@ readonly DEV_USER="${DEV_USER:-automation}"
 # NAS server coordinates
 readonly NAS_HOST="${NAS_HOST:-192.168.168.100}"
 readonly NAS_PORT="${NAS_PORT:-22}"
-readonly NAS_USER="${NAS_USER:-svc-nas}"
-readonly NAS_IAC_REPO="/home/svc-nas/repositories/iac"
-readonly NAS_CONFIGS_DIR="/home/svc-nas/config-vault"
+readonly NAS_USER="${NAS_USER:-elevatediq-svc-nas}"
+readonly NAS_IAC_REPO="/home/elevatediq-svc-nas/repositories/iac"
+readonly NAS_CONFIGS_DIR="/home/elevatediq-svc-nas/config-vault"
 
 # Local directories on dev node
 readonly DEV_IAC_DIR="${DEV_IAC_DIR:-/opt/iac-configs}"

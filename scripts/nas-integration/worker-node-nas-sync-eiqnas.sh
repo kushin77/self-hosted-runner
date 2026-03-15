@@ -4,7 +4,7 @@
 # Pulls IAC from eiq-nas GitHub repository instead of direct NAS SSH
 # 
 # Uses: git clone/pull from github.com:kushin77/eiq-nas.git
-# Auth: svc-git service account with SSH key from GSM
+# Auth: elevatediq-svc-git service account with SSH key from GSM
 # Schedule: Every 30 minutes (via systemd timer)
 # 
 # Compliance: Immutable, ephemeral, idempotent, hands-off, GSM vault, no GitHub Actions
@@ -21,7 +21,7 @@ SYNC_STATE="/var/lib/automation/nas-sync-state.json"
 NAS_GIT_REPO="${NAS_GIT_REPO:-git@github.com:kushin77/eiq-nas.git}"
 NAS_LOCAL_PATH="${NAS_LOCAL_PATH:-/home/automation/eiq-nas-local}"
 NAS_HOST="${NAS_HOST:-192.168.168.100}"
-SSH_IDENTITY="${SSH_IDENTITY:-/home/svc-git/.ssh/id_ed25519}"
+SSH_IDENTITY="${SSH_IDENTITY:-/home/elevatediq-svc-git/.ssh/id_ed25519}"
 AUTOMATION_USER="${AUTOMATION_USER:-automation}"
 
 # Ensure log directories exist
@@ -64,7 +64,7 @@ audit_entry() {
 }
 
 verify_ssh_access() {
-  # Check SSH key accessibility via GSM (done by svc-git-key.service at boot)
+  # Check SSH key accessibility via GSM (done by elevatediq-svc-git-key.service at boot)
   if [ ! -f "$SSH_IDENTITY" ]; then
     error "SSH identity not found: $SSH_IDENTITY"
     audit_entry "ssh_verify" "FAILED" "SSH key not accessible"
