@@ -2,11 +2,11 @@
 #
 # NAS FILESYSTEM MOUNT DEPLOYMENT - PRODUCTION
 # Direct NFS mounting on dev node (.31) and worker node (.42)
-# NAS Server: 192.16.168.39
+# NAS Server: 192.168.168.39
 #
 # Architecture:
 #   Dev Node (.31)              Worker Node (.42)
-#   /nas/repositories ◄──────► /nas/repositories  ◄─────► NAS (192.16.168.39)
+#   /nas/repositories ◄──────► /nas/repositories  ◄─────► NAS (192.168.168.39)
 #   /nas/config-vault          /nas/config-vault         /repositories
 #   (direct NFS mounts)        (direct NFS mounts)       /config-vault
 
@@ -318,7 +318,7 @@ After=network-online.target
 Before=multi-user.target
 
 [Mount]
-What=192.16.168.39:/repositories
+What=192.168.168.39:/repositories
 Where=/nas/repositories
 Type=nfs4
 Options=proto=tcp,vers=4.1,hard,timeo=600,retrans=3
@@ -337,7 +337,7 @@ After=network-online.target
 Before=multi-user.target
 
 [Mount]
-What=192.16.168.39:/config-vault
+What=192.168.168.39:/config-vault
 Where=/nas/config-vault
 Type=nfs4
 Options=proto=tcp,vers=4.1,hard,timeo=600,retrans=3

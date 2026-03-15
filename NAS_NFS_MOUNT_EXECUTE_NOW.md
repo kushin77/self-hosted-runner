@@ -2,7 +2,7 @@
 
 **Status**: APPROVED - PROCEEDING NOW  
 **Date**: March 14, 2026  
-**NAS Server**: 192.16.168.39  
+**NAS Server**: 192.168.168.39  
 **Architecture**: Direct NFS v4 mounts on both nodes  
 **Estimated Duration**: 10-15 minutes  
 
@@ -80,7 +80,7 @@ ssh automation@192.168.168.31 "ls -lh /nas/repositories | head -10"
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                  NAS (192.16.168.39)                    │
+│                  NAS (192.168.168.39)                    │
 │  /repositories  (/mnt/export1)                          │
 │  /config-vault  (/mnt/export2)                          │
 └────────────────┬──────────────┬───────────────────────┘
@@ -206,17 +206,17 @@ grep -i "error\|fail" /var/log/nas-nfs-health.log
 
 ```bash
 # Verify NAS is up
-ping 192.16.168.39
+ping 192.168.168.39
 
 # Check NFS exports on NAS
-ssh admin@192.16.168.39 "showmount -e"
+ssh admin@192.168.168.39 "showmount -e"
 
 # Check firewall (NFS uses port 2049)
 sudo ufw status | grep 2049
-ssh admin@192.16.168.39 "sudo ufw allow 2049"
+ssh admin@192.168.168.39 "sudo ufw allow 2049"
 
 # Try manual mount with verbose
-sudo mount -t nfs4 -v 192.16.168.39:/repositories /nas/repositories
+sudo mount -t nfs4 -v 192.168.168.39:/repositories /nas/repositories
 ```
 
 ### "Permission denied" after mount
@@ -230,7 +230,7 @@ sudo chown automation:automation /nas/repositories
 sudo chmod 755 /nas/repositories
 
 # Verify NAS export permissions
-ssh admin@192.16.168.39 "exportfs -v"
+ssh admin@192.168.168.39 "exportfs -v"
 ```
 
 ### "Stale NFS file handle"
@@ -239,7 +239,7 @@ ssh admin@192.16.168.39 "exportfs -v"
 # Unmount and remount
 sudo umount /nas/repositories
 sudo mount -t nfs4 -o proto=tcp,vers=4.1,hard,timeo=600,retrans=3 \
-    192.16.168.39:/repositories /nas/repositories
+    192.168.168.39:/repositories /nas/repositories
 ```
 
 ### "Device or resource busy" when unmounting
@@ -272,7 +272,7 @@ sudo umount /nas/repositories
 
 ```bash
 # On NAS server, verify /etc/exports
-ssh admin@192.16.168.39 "cat /etc/exports"
+ssh admin@192.168.168.39 "cat /etc/exports"
 
 # Expected: Something like
 # /repositories 192.168.168.31(rw,sync) 192.168.168.42(rw,sync)
@@ -284,7 +284,7 @@ ssh admin@192.16.168.39 "cat /etc/exports"
 ## 📞 DEPLOYMENT CHECKLIST
 
 Before starting:
-- [ ] NAS IP verified: 192.16.168.39
+- [ ] NAS IP verified: 192.168.168.39
 - [ ] Network connectivity confirmed (ping test)
 - [ ] SSH access working to both nodes
 - [ ] /etc/exports configured on NAS

@@ -9,7 +9,7 @@
 ## 1. IMMUTABILITY CONSTRAINT
 
 ### Definition
-NAS storage (192.16.168.39) is the **canonical and only mutable source** of all configuration and code. Worker nodes maintain **zero mutable state**.
+NAS storage (192.168.168.39) is the **canonical and only mutable source** of all configuration and code. Worker nodes maintain **zero mutable state**.
 
 ### Implementation
 ```
@@ -28,7 +28,7 @@ WORKER NODES:
 ### Verification
 ```bash
 # NAS is writable (master)
-ssh root@192.16.168.39 "test -w /repositories"
+ssh root@192.168.168.39 "test -w /repositories"
 
 # Workers are read-only mounts
 ssh svc-git@192.168.168.42 "touch /nas/test" && echo "FAILED" || echo "PASS"
@@ -275,7 +275,7 @@ test ! -d .github/workflows && echo "OK" || echo "FAILED"
 ALLOWED TARGETS:
 ├── 192.168.168.31 (Dev workstation)
 ├── 192.168.168.42 (Production compute)
-├── 192.16.168.39 (NAS storage)
+├── 192.168.168.39 (NAS storage)
 └── Local 127.0.0.1 (localhost)
 
 BLOCKED TARGETS:
