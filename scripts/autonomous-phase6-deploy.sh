@@ -131,6 +131,7 @@ log_event "INFO" "Exporting Terraform outputs"
 terraform output -json > "${PROJECT_ROOT}/.deployments/tf-outputs-${TIMESTAMP}.json" 2>/dev/null || true
 
 cd "${PROJECT_ROOT}"
+fi
 
 # ============================================================================
 # PHASE 3: DOCKER BUILD & REGISTRY PUSH

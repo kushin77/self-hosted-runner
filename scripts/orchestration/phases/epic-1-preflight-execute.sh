@@ -132,7 +132,7 @@ echo "7/8: Auditing DNS configuration..."
     gcloud dns record-sets list --zone-prefix="nexusshield" --format="table(NAME,TYPE,TTL,RRDATAS)" 2>/dev/null || echo "No DNS zones available"
     echo ""
     echo "=== DNS RESOLUTION TESTS ==="
-    for host in api.nexusshield.io portal.nexusshield.io redis.nexusshield.io 2>/dev/null; do
+    for host in api.nexusshield.io portal.nexusshield.io redis.nexusshield.io; do
         echo "Testing: $host"
         nslookup "$host" 2>&1 | head -5 || true
     done

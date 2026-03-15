@@ -7,11 +7,11 @@ SHA256="878fd9a490d2ae18c06ac5c80367683a72271093599498f86d806c761b597719"
 BRANCH="canonical-secrets-impl-1773247600"
 RECORD_FILE="/home/akushnir/self-hosted-runner/DEPLOYMENT_ARTIFACTS_RECORD.md"
 
-: "${S3_BUCKET:?S3_BUCKET must be set}
-: "${GITHUB_TOKEN:?GITHUB_TOKEN must be set}
-: "${OWNER:?OWNER must be set}
-: "${REPO:?REPO must be set}
-: "${ISSUE_NUMBER:?ISSUE_NUMBER must be set}
+: "${S3_BUCKET:?S3_BUCKET must be set}"
+: "${GITHUB_TOKEN:?GITHUB_TOKEN must be set}"
+: "${OWNER:?OWNER must be set}"
+: "${REPO:?REPO must be set}"
+: "${ISSUE_NUMBER:?ISSUE_NUMBER must be set}"
 
 OBJECT_KEY="$(basename "$ARTIFACT_FILE")"
 S3_URI="s3://$S3_BUCKET/$OBJECT_KEY"

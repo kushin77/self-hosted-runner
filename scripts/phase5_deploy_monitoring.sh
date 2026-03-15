@@ -68,16 +68,16 @@ if [ "$HELM_DEPLOY_STATUS" = "connected" ]; then
   echo "Step 4: Applying PrometheusRule..."
   if kubectl apply -f monitoring/alert_rules/canonical_secrets_rules.yaml -n "$NAMESPACE" 2>/dev/null || \
      kubectl apply -f <(cat <<EOF
-+apiVersion: monitoring.coreos.com/v1
-+kind: PrometheusRule
-+metadata:
-+  name: canonical-secrets-rules
-+  namespace: $NAMESPACE
-+  labels:
-+    role: alert-rules
-+spec:
-+  groups: []
-+EOF
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: canonical-secrets-rules
+  namespace: $NAMESPACE
+  labels:
+    role: alert-rules
+spec:
+  groups: []
+EOF
 ); then
     echo "✅ PrometheusRule created/updated"
     PR_STATUS="success"

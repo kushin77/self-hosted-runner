@@ -242,7 +242,7 @@ echo -e "${GREEN}✓${NC} Idempotent: Infrastructure validated for drift"
 VALIDATION_PASSED=$((VALIDATION_PASSED + 1))
 
 # Check 4: No-Ops
-if gcloud scheduler jobs list --project="$GCP_PROJECT" 2>/dev/null | grep -q ".", then
+if gcloud scheduler jobs list --project="$GCP_PROJECT" 2>/dev/null | grep -q "."; then
     echo -e "${GREEN}✓${NC} No-Ops: Automated scheduler jobs active"
     VALIDATION_PASSED=$((VALIDATION_PASSED + 1))
 fi

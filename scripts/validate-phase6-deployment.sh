@@ -138,7 +138,7 @@ if response=$(curl -s -X GET "http://localhost:8080/api/credentials" -H "Content
   fi
 else
   echo -e "${RED}❌ FAIL${NC}"
-done
+fi
 
 echo -n "Testing GET /api/audit ... "
 if response=$(curl -s -X GET "http://localhost:8080/api/audit" -H "Content-Type: application/json" 2>/dev/null); then
@@ -150,7 +150,7 @@ if response=$(curl -s -X GET "http://localhost:8080/api/audit" -H "Content-Type:
   fi
 else
   echo -e "${RED}❌ FAIL${NC}"
-done
+fi
 
 # ============================================================================
 # PHASE 5: SECURITY VALIDATION

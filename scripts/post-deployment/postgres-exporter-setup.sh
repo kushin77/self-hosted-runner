@@ -402,7 +402,7 @@ docker restart postgres-exporter
 **Status**: ✅ Operational  
 **Health Check**: ✅ Passing  
 **Metrics**: 10+ collected  
-DOC
+DOCS
 
 log_info "✓ Documentation created"
 
