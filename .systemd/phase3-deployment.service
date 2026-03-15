@@ -1,0 +1,35 @@
+[Unit]
+Description=Phase 3 Distributed Deployment (100x Infrastructure Expansion)
+Documentation=file:///home/akushnir/self-hosted-runner/PHASE_3_READINESS_REPORT.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=automation
+Group=automation
+WorkingDirectory=/home/akushnir/self-hosted-runner
+ExecStart=/home/akushnir/self-hosted-runner/scripts/redeploy/phase3-deployment-trigger.sh
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="DRY_RUN=false"
+Environment="DEPLOYMENT_TYPE=phase3_100x_expansion"
+Environment="NO_GITHUB_ACTIONS=true"
+Environment="SERVICE_ACCOUNT_ONLY=true"
+Environment="CREDENTIALS_MODEL=GSM_VAULT_KMS"
+
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=3600
+KillMode=process
+
+# Immutability & Security Constraints
+InaccessiblePaths=/etc /home /root
+ReadWritePaths=/home/automation /tmp %(T)
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=yes
+ProtectHome=yes
+ReadOnlyPaths=/home/akushnir/self-hosted-runner
+
+[Install]
+WantedBy=multi-user.target

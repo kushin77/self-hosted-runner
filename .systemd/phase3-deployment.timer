@@ -1,0 +1,23 @@
+[Unit]
+Description=Phase 3 Distributed Deployment Timer (Daily Health Check)
+Documentation=file:///home/akushnir/self-hosted-runner/PHASE_3_READINESS_REPORT.md
+Requires=phase3-deployment.service
+
+[Timer]
+# Run Phase 3 deployment validation daily at 02:00 UTC
+OnCalendar=daily
+OnCalendar=*-*-* 02:00:00
+
+# Also run on boot after network is available
+OnBootSec=5min
+
+# Randomize start time by ±5 minutes to avoid thundering herd
+RandomizedDelaySec=5min
+
+# Run only if system has been up for at least 5 minutes
+Persistent=true
+
+Unit=phase3-deployment.service
+
+[Install]
+WantedBy=timers.target
