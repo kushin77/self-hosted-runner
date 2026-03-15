@@ -42,6 +42,8 @@ AUDIT_LOG="$SCRIPT_DIR/.deployment-logs/orchestration-audit-$(date +%Y%m%d-%H%M%
 NAS_HOST="${NAS_HOST:-192.168.168.39}"
 WORKER_HOST="${WORKER_HOST:-192.168.168.42}"
 DEV_HOST="${DEV_HOST:-192.168.168.31}"
+NAS_SSH_USER="${NAS_SSH_USER:-elevatediq-svc-dev-nas}"
+NAS_SSH_KEY="${NAS_SSH_KEY:-$HOME/.ssh/svc-keys/${NAS_SSH_USER}_key}"
 
 # Ensure directories exist
 mkdir -p "$SCRIPT_DIR/.deployment-logs"
@@ -62,6 +64,18 @@ log_audit() {
     
     echo "$log_entry" >> "$AUDIT_LOG"
     echo "[$(date +'%Y-%m-%d %H:%M:%S')] $event ($status)" | tee -a "$DEPLOYMENT_LOG"
+}
+
+# SSH wrapper for NAS operations (key-only, no password prompts)
+nas_ssh() {
+    local remote_cmd="$1"
+    local ssh_opts=(-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5)
+
+    if [ -f "$NAS_SSH_KEY" ]; then
+        ssh_opts+=( -i "$NAS_SSH_KEY" )
+    fi
+
+    ssh "${ssh_opts[@]}" "${NAS_SSH_USER}@${NAS_HOST}" "$remote_cmd"
 }
 
 # Function to check target enforcement
@@ -107,7 +121,7 @@ validate_prerequisites() {
     done
     log_audit "PREREQUISITES_COMMANDS" "passed" "All required commands available"
     
-    # Check NAS connectivity
+    # Check NAS network reachability
     if ping -c 1 "$NAS_HOST" &> /dev/null; then
         log_audit "NAS_CONNECTIVITY_CHECK" "passed" "NAS reachable at $NAS_HOST"
         echo -e "${GREEN}✅ NAS reachable: $NAS_HOST${NC}"
@@ -115,9 +129,23 @@ validate_prerequisites() {
         log_audit "NAS_CONNECTIVITY_CHECK" "failed" "NAS not reachable at $NAS_HOST"
         echo -e "${YELLOW}⚠️  NAS not reachable yet (will retry): $NAS_HOST${NC}"
     fi
+
+    # Check NAS SSH auth with configured service account/key
+    if nas_ssh "echo ok" &> /dev/null; then
+        log_audit "NAS_SSH_AUTH_CHECK" "passed" "Authenticated as ${NAS_SSH_USER}@${NAS_HOST}"
+        echo -e "${GREEN}✅ NAS SSH auth verified: ${NAS_SSH_USER}@${NAS_HOST}${NC}"
+    else
+        log_audit "NAS_SSH_AUTH_CHECK" "failed" "Unable to authenticate as ${NAS_SSH_USER}@${NAS_HOST} with key ${NAS_SSH_KEY}"
+        echo -e "${RED}❌ NAS SSH auth failed for ${NAS_SSH_USER}@${NAS_HOST}${NC}"
+        echo -e "${YELLOW}ℹ️  Required: authorize this key on NAS: ${NAS_SSH_KEY}${NC}"
+        exit 1
+    fi
     
     # Check worker connectivity
-    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new root@"$WORKER_HOST" "echo ok" &> /dev/null; then
+    if [ "$(hostname -I 2>/dev/null | tr ' ' '\n' | grep -Fx "$WORKER_HOST" | head -n1)" = "$WORKER_HOST" ]; then
+        log_audit "WORKER_CONNECTIVITY_CHECK" "passed" "Already executing on worker host $WORKER_HOST"
+        echo -e "${GREEN}✅ Worker execution context verified: $WORKER_HOST${NC}"
+    elif ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${USER:-akushnir}"@"$WORKER_HOST" "echo ok" &> /dev/null; then
         log_audit "WORKER_CONNECTIVITY_CHECK" "passed" "Worker reachable at $WORKER_HOST"
         echo -e "${GREEN}✅ Worker reachable: $WORKER_HOST${NC}"
     else
@@ -188,7 +216,7 @@ NASEOF
 )
     
     # Execute on NAS via SSH (idempotent)
-    echo "$nas_config_script" | ssh root@"$NAS_HOST" bash
+    nas_ssh "$nas_config_script"
     
     log_audit "NAS_EXPORTS_CONFIGURED" "passed" "NAS exports configured at $NAS_HOST"
     echo -e "${GREEN}✅ NAS exports configured (#3172 - COMPLETE)${NC}"
