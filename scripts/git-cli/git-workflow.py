@@ -292,18 +292,34 @@ class GitWorkflow:
         logger.info(f"Starting parallel merge batch: {len(pr_numbers)} PRs, max_parallel={max_parallel}")
         
         results = []
-        
+        CIRCUIT_BREAKER_THRESHOLD = 3
+        consecutive_failures = 0
+        circuit_open = False
+
         with ThreadPoolExecutor(max_workers=max_parallel) as executor:
             futures = {
                 executor.submit(self.merge_pr, pr_num, method, protect_branches): pr_num
                 for pr_num in pr_numbers
             }
-            
+
             for future in as_completed(futures):
+                if circuit_open:
+                    pr_num = futures[future]
+                    results.append({
+                        "pr_number": pr_num,
+                        "status": "aborted",
+                        "error": "circuit breaker open",
+                    })
+                    continue
+
                 pr_num = futures[future]
                 try:
                     result = future.result()
                     results.append(result)
+                    if result["status"] in ("failed", "conflict", "error"):
+                        consecutive_failures += 1
+                    else:
+                        consecutive_failures = 0  # reset on success
                 except Exception as e:
                     logger.error(f"Exception in merge worker for PR #{pr_num}: {e}")
                     results.append({
@@ -311,18 +327,30 @@ class GitWorkflow:
                         "status": "error",
                         "error": str(e),
                     })
-        
+                    consecutive_failures += 1
+
+                if consecutive_failures >= CIRCUIT_BREAKER_THRESHOLD:
+                    logger.error(
+                        f"Circuit breaker tripped after {consecutive_failures} consecutive failures"
+                    )
+                    self._audit_log("circuit_breaker_tripped", {
+                        "consecutive_failures": consecutive_failures,
+                        "threshold": CIRCUIT_BREAKER_THRESHOLD,
+                    })
+                    circuit_open = True
+
         # Summary
         merged = sum(1 for r in results if r["status"] == "merged")
-        failed = sum(1 for r in results if r["status"] in ["failed", "conflict", "error"])
-        
-        logger.info(f"Merge batch complete: {merged} merged, {failed} failed")
+        failed = sum(1 for r in results if r["status"] in ["failed", "conflict", "error", "aborted"])
+
+        logger.info(f"Merge batch complete: {merged} merged, {failed} failed, circuit_open={circuit_open}")
         self._audit_log("merge_batch_complete", {
             "total": len(pr_numbers),
             "merged": merged,
             "failed": failed,
+            "circuit_breaker_tripped": circuit_open,
         })
-        
+
         return results
     
     def safe_delete(self, branch: str, backup: bool = True) -> Dict[str, Any]:
@@ -337,7 +365,33 @@ class GitWorkflow:
             Deletion result
         """
         logger.info(f"Safe delete: {branch} (backup={backup})")
-        
+
+        # Check for open PRs targeting this branch
+        open_prs: List[Dict[str, Any]] = []
+        try:
+            pr_check = subprocess.run(
+                [
+                    "gh", "pr", "list",
+                    "--head", branch,
+                    "--state", "open",
+                    "--json", "number,title",
+                    "--repo", "kushin77/self-hosted-runner",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if pr_check.returncode == 0 and pr_check.stdout.strip():
+                open_prs = json.loads(pr_check.stdout)
+        except Exception as e:
+            logger.warning(f"Could not check for open PRs (gh not available?): {e}")
+
+        if open_prs:
+            logger.warning(
+                f"Branch '{branch}' has {len(open_prs)} open PR(s): "
+                + ", ".join(f"#{p['number']} {p['title']}" for p in open_prs)
+            )
+
         # Check if branch has dependents
         rc, stdout, stderr = self._run_git(
             "branch", "-a", "--contains", branch,
@@ -363,8 +417,9 @@ class GitWorkflow:
             "status": "deleted",
             "backup_created": backup,
             "dependents": dependents,
+            "open_prs_at_deletion": open_prs,
         }
-        
+
         self._audit_log("branch_deleted", result)
         logger.info(f"✅ Branch {branch} deleted safely")
         

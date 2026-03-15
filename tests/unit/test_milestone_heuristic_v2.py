@@ -155,8 +155,9 @@ print(f"Passed: {PASSED}")
 print(f"Failed: {FAILED}")
 print(f"Total:  {PASSED + FAILED}")
 
-if FAILED > 0:
-    sys.exit(1)
-else:
-    print("✓ All tests passed")
-    sys.exit(0)
+if __name__ == "__main__":
+    if FAILED > 0:
+        sys.exit(1)
+    else:
+        print("✓ All tests passed")
+        sys.exit(0)

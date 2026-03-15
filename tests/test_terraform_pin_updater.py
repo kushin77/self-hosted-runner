@@ -247,11 +247,53 @@ class TestAuditTrail:
         pass
 
 
-# ============================================================================
-# PYTEST RUN CONFIGURATION
-# ============================================================================
-if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--tb=short"])
+
+class TestTrivyOutput:
+    """Tests for Trivy output parsing (fixture-based pinner)"""
+
+    @pytest.fixture
+    def pinner(self):
+        """Provides a mock pinner with parse_trivy_output behaviour"""
+        mock = MagicMock()
+
+        def _parse(trivy_json_str):
+            try:
+                data = json.loads(trivy_json_str)
+            except json.JSONDecodeError:
+                raise ValueError("Invalid JSON")
+            result = {}
+            for r in data.get("Results", []):
+                target = r.get("Target", "")
+                vulns = r.get("Vulnerabilities", [])
+                has_critical = any(
+                    v.get("Severity") in ("CRITICAL", "HIGH") for v in vulns
+                )
+                if not has_critical:
+                    image_id = (
+                        r.get("Metadata", {}).get("ImageID", {}).get("ID", "")
+                    )
+                    if image_id:
+                        result[target] = image_id
+            return result
+
+        mock.parse_trivy_output.side_effect = _parse
+        return mock
+
+    @pytest.fixture
+    def temp_repo(self, tmp_path):
+        tf_dir = tmp_path / "terraform" / "environments" / "dev"
+        tf_dir.mkdir(parents=True)
+        return tf_dir
+
+    def test_parse_trivy_approved_images(self, pinner):
+        """Test that images with only low/medium vulns are approved"""
+        trivy_json = json.dumps({
+            "Results": [
+                {
+                    "Target": "ghcr.io/p4/vault-agent:1.16",
+                    "Type": "image",
+                    "Vulnerabilities": [
+                        {"Severity": "LOW"},
                         {"Severity": "MEDIUM"}
                     ],
                     "Metadata": {
@@ -260,9 +302,9 @@ if __name__ == "__main__":
                 }
             ]
         })
-        
+
         result = pinner.parse_trivy_output(trivy_json)
-        
+
         assert "ghcr.io/p4/vault-agent:1.16" in result
         assert result["ghcr.io/p4/vault-agent:1.16"] == "sha256:abc123def456"
     

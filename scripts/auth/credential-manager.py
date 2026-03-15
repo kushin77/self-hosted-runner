@@ -271,6 +271,104 @@ class CredentialManager:
         logger.info(f"Vault secret retrieved from {path}")
         return secret
     
+    def kms_sign(self, plaintext: bytes, algorithm: str = "RSA_SIGN_PKCS1_4096_SHA512") -> str:
+        """
+        Sign arbitrary data with Cloud KMS asymmetric key.
+
+        Args:
+            plaintext: Data to sign (raw bytes)
+            algorithm: KMS signing algorithm
+
+        Returns:
+            Base64-encoded DER signature
+        """
+        import base64
+        import hashlib
+
+        digest = hashlib.sha512(plaintext).hexdigest()
+        try:
+            result = subprocess.run(
+                [
+                    "gcloud", "kms", "asymmetric-sign",
+                    "--keyring", self.kms_keyring,
+                    "--key", self.kms_key,
+                    "--version", "1",
+                    "--digest-algorithm", "sha512",
+                    "--input-file", "-",
+                    "--signature-file", "-",
+                    "--location", os.getenv("KMS_LOCATION", "global"),
+                    "--project", self.gsm_project,
+                ],
+                input=plaintext,
+                capture_output=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"KMS sign failed: {result.stderr.decode()[:200]}")
+
+            sig_b64 = base64.b64encode(result.stdout).decode()
+            logger.info(f"KMS signature produced (algorithm={algorithm}, data_sha={digest[:16]})")
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "event": "kms_sign",
+                "algorithm": algorithm,
+                "data_digest_sha512_prefix": digest[:16],
+            }
+            with open(self.cache_dir / "kms-audit.jsonl", "a") as f:
+                f.write(json.dumps(entry) + "\n")
+            return sig_b64
+
+        except FileNotFoundError:
+            logger.warning("gcloud not available; returning mock signature (dev mode)")
+            mock_sig = base64.b64encode(b"mock-signature-" + plaintext[:8]).decode()
+            return mock_sig
+
+    def rotate_vault_secret(self, path: str, new_value: str) -> bool:
+        """
+        Rotate a secret in HashiCorp Vault at the given path.
+
+        Args:
+            path: Vault KV path (e.g. 'secret/data/my-app/db-password')
+            new_value: New secret value (stored encrypted by Vault)
+
+        Returns:
+            True on success
+        """
+        gcp_token = self._oidc_auth_to_gcp()
+        vault_token = self._oidc_auth_to_vault(gcp_token)
+
+        payload = json.dumps({"data": {"value": new_value}})
+        try:
+            result = subprocess.run(
+                [
+                    "curl", "-sf",
+                    "-X", "POST",
+                    "-H", f"X-Vault-Token: {vault_token}",
+                    "-H", "Content-Type: application/json",
+                    "-d", payload,
+                    f"{self.vault_addr}/v1/{path}",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            if result.returncode != 0:
+                raise RuntimeError(f"Vault write failed: {result.stderr[:200]}")
+
+            entry = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "event": "vault_secret_rotated",
+                "path": path,
+            }
+            with open(self.cache_dir / "vault-rotation-audit.jsonl", "a") as f:
+                f.write(json.dumps(entry) + "\n")
+            logger.info(f"Vault secret rotated at {path}")
+            return True
+
+        except Exception as exc:
+            logger.error(f"Secret rotation failed at {path}: {exc}")
+            return False
+
     def cleanup(self) -> None:
         """Clean up ephemeral cache directory."""
         try:

@@ -1,0 +1,116 @@
+# grafana/git-workflow-alerts.yaml
+# Prometheus/Grafana alert rules for git workflow health monitoring.
+#
+# DEPLOYMENT: Copy to Prometheus rules directory or load via Grafana API.
+# CONSTRAINTS: No GitHub Actions — apply via Prometheus reload endpoint or
+#              systemd unit restart.
+#
+# Apply:
+#   curl -X POST http://localhost:9090/-/reload
+#
+groups:
+  - name: git_workflow
+    interval: 60s
+    rules:
+      # ─── Merge success rate ───────────────────────────────────────────
+      - alert: GitMergeSuccessRateLow
+        expr: git_merge_success_rate_percent < 99
+        for: 5m
+        labels:
+          severity: warning
+          component: git-workflow
+        annotations:
+          summary: "Git merge success rate below 99%"
+          description: >
+            Merge success rate is {{ $value | humanize }}%.
+            Expected ≥99%. Check conflict analyzer and branch protection rules.
+
+      - alert: GitMergeSuccessRateCritical
+        expr: git_merge_success_rate_percent < 95
+        for: 2m
+        labels:
+          severity: critical
+          component: git-workflow
+        annotations:
+          summary: "Git merge success rate critically low (< 95%)"
+          description: >
+            Merge success rate has dropped to {{ $value | humanize }}%.
+            Immediate investigation required.
+
+      # ─── Merge duration ───────────────────────────────────────────────
+      - alert: GitMergeDurationHigh
+        expr: git_merge_duration_seconds > 120
+        for: 10m
+        labels:
+          severity: warning
+          component: git-workflow
+        annotations:
+          summary: "Average merge duration exceeds 2 minutes"
+          description: >
+            Average merge duration is {{ $value | humanizeDuration }}.
+            SLO is <2 min for 50 PRs.
+
+      # ─── Conflict rate ────────────────────────────────────────────────
+      - alert: GitConflictRateHigh
+        expr: git_conflict_rate_percent > 10
+        for: 10m
+        labels:
+          severity: warning
+          component: git-workflow
+        annotations:
+          summary: "Git conflict rate exceeds 10%"
+          description: >
+            {{ $value | humanize }}% of merges are encountering conflicts.
+            Review branch hygiene and rebase practices.
+
+      # ─── Hook execution time ──────────────────────────────────────────
+      - alert: GitHookExecutionSlow
+        expr: git_hook_duration_seconds{type="avg"} > 5
+        for: 5m
+        labels:
+          severity: warning
+          component: git-workflow
+        annotations:
+          summary: "Pre-push hook taking > 5 seconds"
+          description: >
+            Hook '{{ $labels.hook }}' average execution is {{ $value | humanizeDuration }}.
+            SLO is <2s. Investigate lint/type-check performance.
+
+      # ─── Rollback frequency ───────────────────────────────────────────
+      - alert: GitRollbackFrequencyHigh
+        expr: increase(git_rollback_frequency[1h]) > 3
+        for: 0m
+        labels:
+          severity: critical
+          component: git-workflow
+        annotations:
+          summary: "Multiple git rollbacks in the last hour"
+          description: >
+            {{ $value }} rollbacks in the last hour. This may indicate
+            systematic issues with the verify phase or network instability.
+
+      # ─── Audit trail freshness ────────────────────────────────────────
+      - alert: GitAuditTrailStale
+        expr: time() - git_audit_last_write_timestamp_seconds > 3600
+        for: 5m
+        labels:
+          severity: warning
+          component: git-workflow
+        annotations:
+          summary: "Audit trail has not been written to in over 1 hour"
+          description: >
+            Last audit entry was {{ $value | humanizeDuration }} ago.
+            Expected at least one entry per hour during business hours.
+
+      # ─── Branch protection violations ─────────────────────────────────
+      - alert: GitBranchProtectionViolation
+        expr: increase(git_branch_protection_violations[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          component: git-workflow
+        annotations:
+          summary: "Branch protection violation detected"
+          description: >
+            {{ $value }} branch protection bypass attempt(s) detected.
+            All pushes must go through the service account workflow.
