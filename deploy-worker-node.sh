@@ -558,18 +558,18 @@ deploy_from_git() {
     
     # Validate Google OAuth environment variables exist
     echo '  → Validating Google OAuth credentials...'
-    if [[ -z \"\${GOOGLE_OAUTH_CLIENT_ID:-}\" ]] || [[ -z \"\${GOOGLE_OAUTH_CLIENT_SECRET:-}\" ]]; then
-      echo '  ⚠️  Google OAuth credentials not configured'
+    if [[ -z \"\${GOOGLE_OAUTH_CLIENT_ID:-}\" ]] || [[ -z \"\${GOOGLE_OAUTH_CLIENT_SECRET:-}\" ]] || [[ -z \"\${OAUTH2_PROXY_COOKIE_SECRET:-}\" ]]; then
+      echo '  ❌ Missing required runtime secrets'
       echo '  Instructions: Follow GOOGLE_OAUTH_SETUP.md Steps 1-2'
       echo '    Step 1: Create Google Cloud OAuth project (https://console.cloud.google.com)'
       echo '    Step 2: Set environment variables:'
-      echo '      export GOOGLE_OAUTH_CLIENT_ID=\"YOUR_CLIENT_ID.apps.googleusercontent.com\"'
-      echo '      export GOOGLE_OAUTH_CLIENT_SECRET=\"YOUR_CLIENT_SECRET\"'
+      echo '      export GOOGLE_OAUTH_CLIENT_ID=\"<from-secret-manager>\"'
+      echo '      export GOOGLE_OAUTH_CLIENT_SECRET=\"<from-secret-manager>\"'
+      echo '      export OAUTH2_PROXY_COOKIE_SECRET=\"<from-secret-manager>\"'
       echo ''
-      echo '  RESUMING WITH PLACEHOLDER VALUES - Update before production'
+      echo '  MANDATE: Runtime secret injection required from GSM/Vault/KMS'
       echo ''
-      GOOGLE_OAUTH_CLIENT_ID=\"\${GOOGLE_OAUTH_CLIENT_ID:-your-client-id.apps.googleusercontent.com}\"
-      GOOGLE_OAUTH_CLIENT_SECRET=\"\${GOOGLE_OAUTH_CLIENT_SECRET:-your-secret-key}\"
+      exit 1
     else
       echo '  ✅ Google OAuth credentials found'
     fi
@@ -593,8 +593,9 @@ deploy_from_git() {
       fi
       
       # Export credentials for docker-compose
-      export GOOGLE_OAUTH_CLIENT_ID=\"\${GOOGLE_OAUTH_CLIENT_ID:-your-client-id.apps.googleusercontent.com}\"
-      export GOOGLE_OAUTH_CLIENT_SECRET=\"\${GOOGLE_OAUTH_CLIENT_SECRET:-your-secret-key}\"
+      export GOOGLE_OAUTH_CLIENT_ID=\"\${GOOGLE_OAUTH_CLIENT_ID}\"
+      export GOOGLE_OAUTH_CLIENT_SECRET=\"\${GOOGLE_OAUTH_CLIENT_SECRET}\"
+      export OAUTH2_PROXY_COOKIE_SECRET=\"\${OAUTH2_PROXY_COOKIE_SECRET}\"
       
       # Start stack services with direct deployment policy (no workflows/releases)
       if \$DC up -d postgres keycloak redis prometheus grafana oauth2-proxy monitoring-router postgres-exporter redis-exporter echo 2>/dev/null; then

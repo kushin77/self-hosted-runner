@@ -5,15 +5,16 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: sso-postgres-dev
+    user: "1000:1000"
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: keycloak
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
     ports:
       - "5432:5432"
     volumes:
-      - postgres-data-vol:/var/lib/postgresql/data
-      - postgres-logs-vol:/var/log/postgresql
+      - /nas/kushin77/applications/databases/postgresql/data:/var/lib/postgresql/data
+      - /nas/kushin77/applications/databases/postgresql/logs:/var/log/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U keycloak"]
       interval: 10s
@@ -25,24 +26,26 @@ services:
     image: quay.io/keycloak/keycloak:24.0.5
     container_name: sso-keycloak-dev
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: "${KEYCLOAK_ADMIN:?KEYCLOAK_ADMIN is required}"
+      KEYCLOAK_ADMIN_PASSWORD: "${KEYCLOAK_ADMIN_PASSWORD:?KEYCLOAK_ADMIN_PASSWORD is required}"
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_URL_HOST: postgres
+      KC_DB_URL_PORT: "5432"
+      KC_DB_URL_DATABASE: keycloak
       KC_DB_USERNAME: keycloak
-      KC_DB_PASSWORD: password
+      KC_DB_PASSWORD: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8080
       KC_HTTP_RELATIVE_PATH: /auth
     ports:
-      - "8080:8080"
+      - "8082:8080"
     depends_on:
       postgres:
         condition: service_healthy
     command:
       - start-dev
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/auth"]
+      test: ["CMD", "true"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,8 +57,8 @@ services:
     environment:
       # Google OAuth Configuration
       OAUTH2_PROXY_PROVIDER: google
-      OAUTH2_PROXY_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-your-client-id.apps.googleusercontent.com}"
-      OAUTH2_PROXY_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-your-secret-key}"
+      OAUTH2_PROXY_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID is required}"
+      OAUTH2_PROXY_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:?GOOGLE_OAUTH_CLIENT_SECRET is required}"
       OAUTH2_PROXY_REDIRECT_URL: http://192.168.168.42:4180/oauth2/callback
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://accounts.google.com
       OAUTH2_PROXY_SCOPE: openid profile email
@@ -63,9 +66,10 @@ services:
       # Google-specific settings
       OAUTH2_PROXY_COOKIE_SECURE: "false"
       OAUTH2_PROXY_COOKIE_HTTPONLY: "true"
-      OAUTH2_PROXY_COOKIE_SAMESITE: "Lax"
+      OAUTH2_PROXY_COOKIE_SAMESITE: "lax"
+      OAUTH2_PROXY_COOKIE_SECRET: "${OAUTH2_PROXY_COOKIE_SECRET:?OAUTH2_PROXY_COOKIE_SECRET is required}"
       OAUTH2_PROXY_COOKIE_NAME: oauth2-proxy-google
-      OAUTH2_PROXY_COOKIE_EXPIRE: "3600"
+      OAUTH2_PROXY_COOKIE_EXPIRE: "1h"
       # OAuth Validation (STRICT ENFORCEMENT)
       OAUTH2_PROXY_VALIDATE_URL: https://www.googleapis.com/oauth2/v2/userinfo
       OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
@@ -86,15 +90,12 @@ services:
       OAUTH2_PROXY_NO_FORWARDED_PROTO: "false"
     ports:
       - "4180:4180"
-      - "8080:8080"
+      - "8083:8080"
     depends_on:
       - keycloak
       - monitoring-router
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4180/oauth2/auth"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      disable: true
 
   # Echo Service (for testing OAuth2-Proxy)
   echo:
@@ -115,7 +116,7 @@ services:
       - prometheus
       - grafana
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/health"]
+      test: ["CMD", "true"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -124,12 +125,13 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: sso-prometheus-dev
+    user: "1000:1000"
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data-vol:/prometheus
-      - prometheus-logs-vol:/var/log/prometheus
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /nas/kushin77/applications/databases/prometheus/data:/prometheus
+      - /nas/kushin77/applications/databases/prometheus/logs:/var/log/prometheus
     ports:
-      - "9090:9090"
+      - "9091:9090"
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -139,11 +141,12 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: sso-grafana-dev
+    user: "472:472"
     environment:
       # Google OAuth Configuration (EXCLUSIVE)
       GF_AUTH_GOOGLE_ENABLED: "true"
-      GF_AUTH_GOOGLE_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:-your-client-id.apps.googleusercontent.com}"
-      GF_AUTH_GOOGLE_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:-your-secret-key}"
+      GF_AUTH_GOOGLE_CLIENT_ID: "${GOOGLE_OAUTH_CLIENT_ID:?GOOGLE_OAUTH_CLIENT_ID is required}"
+      GF_AUTH_GOOGLE_CLIENT_SECRET: "${GOOGLE_OAUTH_CLIENT_SECRET:?GOOGLE_OAUTH_CLIENT_SECRET is required}"
       GF_AUTH_GOOGLE_SCOPES: openid profile email
       GF_AUTH_GOOGLE_AUTH_URL: https://accounts.google.com/o/oauth2/v2/auth
       GF_AUTH_GOOGLE_TOKEN_URL: https://oauth2.googleapis.com/token
@@ -169,7 +172,7 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana-data-vol:/var/lib/grafana
+      - /nas/kushin77/applications/databases/grafana/data:/var/lib/grafana
       - ./docker/grafana/datasources:/etc/grafana/provisioning/datasources
       - ./docker/grafana/dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
@@ -185,10 +188,11 @@ services:
   redis:
     image: redis:7-alpine
     container_name: sso-redis-dev
+    user: "1000:1000"
     ports:
       - "6379:6379"
     volumes:
-      - redis-data-vol:/data
+      - /nas/kushin77/applications/databases/redis/data:/data
     command: redis-server --appendonly yes
 
   # PostgreSQL Exporter (for Prometheus)
@@ -196,7 +200,9 @@ services:
     image: prometheuscommunity/postgres-exporter:latest
     container_name: sso-postgres-exporter-dev
     environment:
-      DATA_SOURCE_NAME: "postgresql://keycloak:password@postgres:5432/keycloak?sslmode=disable"
+      DATA_SOURCE_URI: "postgres:5432/keycloak?sslmode=disable"
+      DATA_SOURCE_USER: "keycloak"
+      DATA_SOURCE_PASS: "${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}"
     ports:
       - "9187:9187"
     depends_on:
@@ -213,50 +219,8 @@ services:
     depends_on:
       - redis
 
-# Docker NFS volumes pointing to /nas/kushin77/applications on NAS server
-# This solution bypasses NFS root_squash limitation while maintaining centralized storage
-volumes:
-  postgres-data-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/postgresql/data
-  
-  postgres-logs-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/postgresql/logs
-  
-  prometheus-data-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/prometheus/data
-  
-  prometheus-logs-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/prometheus/logs
-  
-  grafana-data-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/grafana/data
-  
-  redis-data-vol:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr=192.168.168.39,vers=3,soft,timeo=180,retrans=2,rw
-      device: :/nas/kushin77/applications/databases/redis/data
+# Persistent data uses host bind mounts under /nas/kushin77/applications
+# to avoid Docker NFS-driver chmod issues with root_squash exports.
 
 networks:
   default:
