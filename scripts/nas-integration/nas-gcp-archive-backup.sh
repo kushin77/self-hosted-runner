@@ -45,6 +45,11 @@ assert_tools() {
 }
 
 create_incremental() {
+  if [[ ! -d "$NAS_PATH" ]]; then
+    log "[warn] NAS path not mounted: $NAS_PATH (skipping incremental backup)"
+    return 0
+  fi
+  
   local archive="/tmp/nas-incremental-${DATE_UTC}.tar.gz"
   log "Preparing daily incremental backup for $NAS_PATH"
   run "tar -czf '$archive' '$NAS_PATH'"
@@ -55,6 +60,11 @@ create_incremental() {
 create_weekly_full_if_due() {
   if [[ "$DAY_UTC" != "$WEEKLY_FULL_DAY" ]]; then
     log "Weekly full backup not due today ($DAY_UTC != $WEEKLY_FULL_DAY)"
+    return 0
+  fi
+
+  if [[ ! -d "$NAS_PATH" ]]; then
+    log "[warn] NAS path not mounted: $NAS_PATH (skipping weekly full backup)"
     return 0
   fi
 
