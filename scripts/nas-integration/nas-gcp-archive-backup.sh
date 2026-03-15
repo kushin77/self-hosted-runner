@@ -82,12 +82,15 @@ cleanup_old_backups() {
   cutoff_inc="$(date -u -d "$INCREMENTAL_RETENTION_DAYS days ago" +%Y%m%d)"
   cutoff_weekly="$(date -u -d "$WEEKLY_FULL_RETENTION_DAYS days ago" +%Y%m%d)"
 
-  # Cleanup incremental older than cutoff.
-  run "gsutil ls '$GCP_ARCHIVE_BUCKET/incremental/' 2>/dev/null | awk -F'[-.]' '{print \$(NF-1)}' >/tmp/inc-dates.txt || true"
-  run "gsutil ls '$GCP_ARCHIVE_BUCKET/incremental/' 2>/dev/null | while read -r f; do d=\$(echo \"$f\" | grep -oE '[0-9]{8}' | tail -1); if [[ -n \"$d\" && \"$d\" < '$cutoff_inc' ]]; then gsutil rm \"$f\"; fi; done"
+  # Cleanup incremental older than cutoff (skip if no backups)
+  if gsutil ls "$GCP_ARCHIVE_BUCKET/incremental/" >/dev/null 2>&1; then
+    run "gsutil ls '$GCP_ARCHIVE_BUCKET/incremental/' 2>/dev/null | while read -r f; do d=\$(echo \"\$f\" | grep -oE '[0-9]{8}' | tail -1); if [[ -n \"\$d\" && \"\$d\" < '$cutoff_inc' ]]; then gsutil rm \"\$f\"; fi; done || true"
+  fi
 
-  # Cleanup weekly full older than cutoff.
-  run "gsutil ls '$GCP_ARCHIVE_BUCKET/weekly-full/' 2>/dev/null | while read -r f; do d=\$(echo \"$f\" | grep -oE '[0-9]{8}' | tail -1); if [[ -n \"$d\" && \"$d\" < '$cutoff_weekly' ]]; then gsutil rm \"$f\"; fi; done"
+  # Cleanup weekly full older than cutoff (skip if no backups)
+  if gsutil ls "$GCP_ARCHIVE_BUCKET/weekly-full/" >/dev/null 2>&1; then
+    run "gsutil ls '$GCP_ARCHIVE_BUCKET/weekly-full/' 2>/dev/null | while read -r f; do d=\$(echo \"\$f\" | grep -oE '[0-9]{8}' | tail -1); if [[ -n \"\$d\" && \"\$d\" < '$cutoff_weekly' ]]; then gsutil rm \"\$f\"; fi; done || true"
+  fi
 }
 
 generate_report() {
