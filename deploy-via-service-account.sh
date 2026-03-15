@@ -123,7 +123,7 @@ verify_service_account_connection() {
   info "   Target: $TARGET_USER@$TARGET_HOST"
   info "   Key: $ssh_key"
   
-  local ssh_opts="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
+  local ssh_opts="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
   
   if ssh -i "$ssh_key" $ssh_opts "$TARGET_USER@$TARGET_HOST" "echo 'Service account authentication successful'" 2>/dev/null; then
     success "Service account SSH connection verified"
@@ -148,7 +148,7 @@ execute_remote_deployment() {
   
   log "4️⃣ DEPLOYMENT: Executing production activation via service account..."
   
-  local ssh_opts="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+  local ssh_opts="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=30"
   
   # Remote deployment commands (executed on worker node as service account)
   local deployment_commands="
@@ -218,7 +218,7 @@ verify_deployment() {
   
   log "5️⃣ VERIFICATION: Confirming production deployment..."
   
-  local ssh_opts="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=10"
+  local ssh_opts="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
   
   # Check timer status remotely
   info "   Checking active timers..."

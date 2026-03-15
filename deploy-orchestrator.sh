@@ -276,7 +276,7 @@ setup_automation() {
     # These are already deployed by deploy-nas-nfs-mounts.sh
     # Just enable and start them
     
-    ssh -i "$WORKER_SVC_KEY" -o StrictHostKeyChecking=no \
+    ssh -i "$WORKER_SVC_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${WORKER_SVC}@${WORKER_NODE}" \
         "sudo systemctl enable nas-integration.target && \
          sudo systemctl start nas-integration.target && \
@@ -308,7 +308,7 @@ verify_deployment() {
     local checks_total=5
     
     # Check 1: NFS mounts
-    if ssh -i "$WORKER_SVC_KEY" -o StrictHostKeyChecking=no \
+    if ssh -i "$WORKER_SVC_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${WORKER_SVC}@${WORKER_NODE}" "mount | grep -q nfs4"; then
         log_success "NFS mounts verified"
         ((checks_passed++))
@@ -317,7 +317,7 @@ verify_deployment() {
     fi
     
     # Check 2: Sync scripts
-    if ssh -i "$WORKER_SVC_KEY" -o StrictHostKeyChecking=no \
+    if ssh -i "$WORKER_SVC_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${WORKER_SVC}@${WORKER_NODE}" "test -x /opt/automation/scripts/nas-integration/worker-node-nas-sync.sh"; then
         log_success "Sync scripts deployed"
         ((checks_passed++))
@@ -327,7 +327,7 @@ verify_deployment() {
     
     # Checks 3-5: Service status
     for svc in nas-worker-sync.timer nas-worker-healthcheck.timer nas-integration.target; do
-        if ssh -i "$WORKER_SVC_KEY" -o StrictHostKeyChecking=no \
+        if ssh -i "$WORKER_SVC_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             "${WORKER_SVC}@${WORKER_NODE}" "sudo systemctl is-active --quiet $svc"; then
             log_success "Service $svc is active"
             ((checks_passed++))

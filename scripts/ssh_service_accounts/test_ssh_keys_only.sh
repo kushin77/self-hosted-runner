@@ -156,8 +156,8 @@ test_ssh_without_password() {
         
         # Test with strictly no passwords allowed
         if timeout 5 ssh \
-            -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
+            -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
+ \
             -o BatchMode=yes \
             -o ConnectTimeout=5 \
             -o PasswordAuthentication=no \

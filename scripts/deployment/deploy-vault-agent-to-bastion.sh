@@ -66,7 +66,7 @@ verify_prerequisites() {
     local missing_tools=0
     
     # Check SSH connectivity to bastion
-    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${BASTION_USER}@${BASTION_HOST}" "echo ok" &>/dev/null; then
+    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${BASTION_USER}@${BASTION_HOST}" "echo ok" &>/dev/null; then
         log ERROR "Cannot SSH to ${BASTION_USER}@${BASTION_HOST}:22"
         missing_tools=1
     else

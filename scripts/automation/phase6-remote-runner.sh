@@ -12,7 +12,7 @@ source "${REPO_ROOT}/scripts/lib/load_credentials.sh"
 : ${FULLSTACK_USER:?Need FULLSTACK_USER}
 : ${FULLSTACK_HOST:?Need FULLSTACK_HOST}
 : ${REMOTE_REPO_PATH:="/home/${FULLSTACK_USER}/self-hosted-runner"}
-: ${SSH_OPTS:="-o BatchMode=yes -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=accept-new"}
+: ${SSH_OPTS:="-o BatchMode=yes -o StrictHostKeyChecking=accept-new"}
 
 TIMESTAMP=$(date -u +"%Y%m%d-%H%M%SZ")
 LOG_REMOTE="/tmp/phase6-quickstart-${TIMESTAMP}.log"

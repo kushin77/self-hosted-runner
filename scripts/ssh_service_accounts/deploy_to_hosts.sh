@@ -41,7 +41,7 @@ log_deploy() { echo -e "${MAGENTA}[DEPLOY]${NC} $1"; }
 check_ssh_connectivity() {
     local host=$1
     
-    if timeout 5 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 \
+    if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=3 \
         "${USERNAME}@${host}" "echo 'Connected'" &>/dev/null; then
         return 0
     fi
@@ -56,7 +56,7 @@ create_service_account_on_host() {
     
     log_deploy "Creating service account $svc_name on $target_host..."
     
-    ssh -o StrictHostKeyChecking=no \
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${USERNAME}@${target_host}" bash -s <<SETUP_SCRIPT
 set -e
 
@@ -113,12 +113,12 @@ deploy_key_to_host() {
     log_deploy "Deploying $svc_name key to $source_host..."
     
     # Copy the private key
-    scp -o StrictHostKeyChecking=no \
+    scp -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "$key_file" "${USERNAME}@${source_host}:/tmp/${svc_name}_id_ed25519" \
         || log_warn "Failed to deploy key to $source_host"
     
     # Setup the key on the source host
-    ssh -o StrictHostKeyChecking=no "${USERNAME}@${source_host}" bash -s <<DEPLOY_SCRIPT
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${USERNAME}@${source_host}" bash -s <<DEPLOY_SCRIPT
 set -e
 SVC_NAME='$svc_name'
 KEY_FILE="/tmp/\${SVC_NAME}_id_ed25519"
@@ -147,7 +147,7 @@ test_connection() {
     
     log_info "Testing connection: $svc_name from $from_host to $to_host..."
     
-    ssh -o StrictHostKeyChecking=no "${USERNAME}@${from_host}" bash -s <<TEST_SCRIPT
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${USERNAME}@${from_host}" bash -s <<TEST_SCRIPT
 SVC_NAME='$svc_name'
 TO_HOST='$to_host'
 KEY="/home/${USERNAME}/.ssh/svc-keys/\${SVC_NAME}_key"
@@ -158,7 +158,7 @@ if [ ! -f "\$KEY" ]; then
 fi
 
 echo "[*] Testing SSH connection as \$SVC_NAME to \$TO_HOST..."
-if timeout 5 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 \
+if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=3 \
     -i "\$KEY" "\$SVC_NAME@\$TO_HOST" "whoami" &>/dev/null; then
     echo "[✓] Connection successful!"
 else

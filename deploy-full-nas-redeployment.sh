@@ -138,7 +138,7 @@ preflight_checks() {
     # Check 1: SSH access to NAS
     checks_total=$((checks_total + 1))
     log_info "Checking NAS connectivity (${NAS_SERVER}:22)..."
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${AUTOMATION_USER}@${NAS_SERVER}" "exit 0" &>/dev/null; then
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${AUTOMATION_USER}@${NAS_SERVER}" "exit 0" &>/dev/null; then
         log_success "NAS server is reachable"
         checks_passed=$((checks_passed + 1))
     else
@@ -150,7 +150,7 @@ preflight_checks() {
     # Check 2: SSH access to worker node
     checks_total=$((checks_total + 1))
     log_info "Checking worker node connectivity (${WORKER_NODE}:22)..."
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${AUTOMATION_USER}@${WORKER_NODE}" "exit 0" &>/dev/null; then
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${AUTOMATION_USER}@${WORKER_NODE}" "exit 0" &>/dev/null; then
         log_success "Worker node is reachable"
         checks_passed=$((checks_passed + 1))
     else
@@ -162,7 +162,7 @@ preflight_checks() {
     # Check 3: NAS directory structure
     checks_total=$((checks_total + 1))
     log_info "Validating NAS directory structure..."
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "${AUTOMATION_USER}@${NAS_SERVER}" \
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${AUTOMATION_USER}@${NAS_SERVER}" \
         "test -d ${NAS_REPO_ROOT} && test -d ${NAS_CONFIG_VAULT} && test -d ${NAS_AUDIT_TRAIL}"; then
         log_success "NAS directories exist and are accessible"
         checks_passed=$((checks_passed + 1))
@@ -273,7 +273,7 @@ EOF
     
     log_info "Pushing repo to NAS (rsync)..."
     if rsync -av --delete --exclude-from="$exclude_file" \
-        --rsh="ssh -o StrictHostKeyChecking=no" \
+        --rsh="ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new" \
         "${REPO_ROOT}/" \
         "${AUTOMATION_USER}@${NAS_SERVER}:${NAS_REPO_ROOT}/"; then
         log_success "Repository synced to NAS"
@@ -319,7 +319,7 @@ sync_configs_to_nas() {
     for path in "${config_paths[@]}"; do
         if [[ -e "${REPO_ROOT}/${path}" ]]; then
             log_info "Syncing ${path}..."
-            if rsync -av --rsh="ssh -o StrictHostKeyChecking=no" \
+            if rsync -av --rsh="ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new" \
                 "${REPO_ROOT}/${path}" \
                 "${AUTOMATION_USER}@${NAS_SERVER}:${NAS_CONFIG_VAULT}/"; then
                 log_success "Synced ${path}"
@@ -462,7 +462,7 @@ verify_deployment() {
     verify_total=$((verify_total + 1))
     log_info "Verifying NAS accessibility from worker..."
     if ssh "${AUTOMATION_USER}@${WORKER_NODE}" \
-        "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+        "ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             ${AUTOMATION_USER}@${NAS_SERVER} exit 0" &>/dev/null; then
         log_success "Worker can reach NAS"
         verify_passed=$((verify_passed + 1))

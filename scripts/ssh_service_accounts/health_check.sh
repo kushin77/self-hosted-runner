@@ -67,7 +67,7 @@ check_ssh_connectivity() {
     fi
     
     # Test SSH connection
-    if timeout 5 ssh -o StrictHostKeyChecking=no \
+    if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${USERNAME}@${from_host}" bash -s "$svc_name" "$to_host" <<'TEST_SSH'
         SVC_NAME=$1
         TARGET_HOST=$2
@@ -77,7 +77,7 @@ check_ssh_connectivity() {
             exit 1
         fi
         
-        if timeout 5 ssh -o StrictHostKeyChecking=no -i "$KEY" \
+        if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$KEY" \
             "${SVC_NAME}@${TARGET_HOST}" "whoami" &>/dev/null; then
             exit 0
         else

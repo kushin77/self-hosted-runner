@@ -96,7 +96,7 @@ check_sudo_access_available() {
   fi
   
   # Try the check - but be lenient since operator may not have set up SSH agent yet
-  if timeout 2 ssh -o StrictHostKeyChecking=no \
+  if timeout 2 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -o PasswordAuthentication=no \
     -o StrictHostKeyChecking=accept-new \
     "${ONPREM_USER}@${ONPREM_HOST}" \

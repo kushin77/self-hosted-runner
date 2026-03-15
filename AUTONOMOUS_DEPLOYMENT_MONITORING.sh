@@ -137,7 +137,7 @@ check_remote_connectivity() {
     if ssh -i "$ssh_key" \
         -o StrictHostKeyChecking=accept-new \
         -o ConnectTimeout=10 \
-        -o UserKnownHostsFile=/dev/null \
+ \
         "$service_account@$target_host" \
         "echo 'Remote OK' && hostname && hostname -I" 2>/dev/null; then
         success "Remote SSH connection verified to $target_host"
@@ -332,7 +332,7 @@ main() {
     echo "📋 NEXT STEPS:"
     echo "  1. Execute deployment command:"
     echo "     ssh -i ~/.ssh/svc-keys/elevatediq-svc-42_key \\"
-    echo "         -o StrictHostKeyChecking=no \\"
+    echo "         -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \\"
     echo "         elevatediq-svc-42@192.168.168.42 \\"
     echo "         \"cd /home/elevatediq-svc-42/self-hosted-runner && \\"
     echo "          bash scripts/deploy-git-workflow.sh\""

@@ -99,7 +99,7 @@ test_suite_ssh_auth() {
 
   # Test 1.3: SSH connectivity to worker node
   test_start "SSH Connectivity to Worker Node ($WORKER_HOST)"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" "echo 'SSH connection successful'" 2>/dev/null; then
     test_pass "SSH connection to worker node successful"
   else
@@ -109,7 +109,7 @@ test_suite_ssh_auth() {
 
   # Test 1.4: Service account verification on worker
   test_start "Service Account Verification ($SERVICE_ACCOUNT)"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" "whoami" 2>/dev/null | grep -q "$SERVICE_ACCOUNT"; then
     test_pass "Service account $SERVICE_ACCOUNT verified on worker"
   else
@@ -194,7 +194,7 @@ test_suite_worker_components() {
 
   # Test 3.1: Check /opt/automation directory
   test_start "/opt/automation Directory Exists"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" "test -d /opt/automation" 2>/dev/null; then
     test_pass "/opt/automation directory exists on worker"
   else
@@ -204,7 +204,7 @@ test_suite_worker_components() {
 
   # Test 3.2: Count deployed components
   test_start "Deployed Components Count (Expected 8)"
-  local component_count=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  local component_count=$(ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
     "$SERVICE_ACCOUNT@$WORKER_HOST" \
     "find /opt/automation -name '*.sh' -type f | wc -l" 2>/dev/null || echo "0")
   
@@ -230,7 +230,7 @@ test_suite_worker_components() {
   
   local missing_components=0
   for component in "${required_components[@]}"; do
-    if ! ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+    if ! ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
         "$SERVICE_ACCOUNT@$WORKER_HOST" \
         "test -f /opt/automation/*/$component" 2>/dev/null; then
       ((missing_components++))
@@ -247,7 +247,7 @@ test_suite_worker_components() {
 
   # Test 3.4: Component executable permissions
   test_start "Component Executable Permissions"
-  local not_executable=$(ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  local not_executable=$(ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
     "$SERVICE_ACCOUNT@$WORKER_HOST" \
     "find /opt/automation -name '*.sh' ! -perm -u+x | wc -l" 2>/dev/null || echo "unknown")
   
@@ -308,7 +308,7 @@ test_suite_multicloud() {
 
   # Test 5.1: Multi-cloud secret validation component
   test_start "Multi-Cloud Secret Validation Component"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" \
       "test -f /opt/automation/k8s-health-checks/validate-multicloud-secrets.sh" 2>/dev/null; then
     test_pass "validate-multicloud-secrets.sh present"
@@ -319,7 +319,7 @@ test_suite_multicloud() {
 
   # Test 5.2: Component syntax validation
   test_start "Multi-Cloud Component Syntax"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" \
       "bash -n /opt/automation/k8s-health-checks/validate-multicloud-secrets.sh" 2>/dev/null; then
     test_pass "validate-multicloud-secrets.sh syntax valid"
@@ -341,7 +341,7 @@ test_suite_audit_compliance() {
 
   # Test 6.1: Audit directory
   test_start "Audit Directory Exists"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" \
       "test -d /opt/automation/audit" 2>/dev/null; then
     test_pass "/opt/automation/audit directory exists"
@@ -352,7 +352,7 @@ test_suite_audit_compliance() {
 
   # Test 6.2: Audit log writeable
   test_start "Audit Log Writeability"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i "$SSH_KEY" \
+  if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY" \
       "$SERVICE_ACCOUNT@$WORKER_HOST" \
       "touch /opt/automation/audit/.test 2>/dev/null && rm /opt/automation/audit/.test 2>/dev/null" && [ $? -eq 0 ]; then
     test_pass "Audit directory is writable"

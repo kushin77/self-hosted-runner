@@ -88,7 +88,7 @@ log "Testing SSH connectivity to $SERVICE_ACCOUNT@$TARGET_HOST..."
 if ssh -i "$SSH_KEY" \
     -o StrictHostKeyChecking=accept-new \
     -o ConnectTimeout=10 \
-    -o UserKnownHostsFile=/dev/null \
+ \
     "$SERVICE_ACCOUNT@$TARGET_HOST" \
     "echo 'SSH OK' && hostname && hostname -I" 2>/dev/null; then
     success "SSH connection verified to $TARGET_HOST"
@@ -142,7 +142,7 @@ cat <<'DEPLOY_CMD'
 
 # Option 1: Full one-liner deployment
 ssh -i ~/.ssh/svc-keys/elevatediq-svc-42_key \
-    -o StrictHostKeyChecking=no \
+    -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     elevatediq-svc-42@192.168.168.42 \
     "cd /home/elevatediq-svc-42/self-hosted-runner && \
      bash scripts/deploy-git-workflow.sh"

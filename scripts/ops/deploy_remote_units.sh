@@ -48,7 +48,7 @@ REMOTE_SERVICE="/etc/systemd/system/auto_reverify.service"
 REMOTE_TIMER="/etc/systemd/system/auto_reverify.timer"
 REMOTE_ENV="/etc/default/auto_reverify_env"
 
-SSH_OPTS=( -i "$SSH_KEY" -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null )
+SSH_OPTS=( -i "$SSH_KEY" -o BatchMode=yes -o ConnectTimeout=10 -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new )
 
 echo "Deploying auto_reverify to $USER@$HOST"
 

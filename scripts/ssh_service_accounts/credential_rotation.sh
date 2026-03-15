@@ -141,7 +141,7 @@ revoke_credentials() {
     log_info "Revoking old credentials: $svc_name@$hostname"
     
     # Remove from authorized_keys
-    ssh -o StrictHostKeyChecking=no "${USER}@${hostname}" bash -s "$svc_name" "$old_key_fingerprint" <<'REVOKE_SCRIPT'
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${USER}@${hostname}" bash -s "$svc_name" "$old_key_fingerprint" <<'REVOKE_SCRIPT'
         SVC_NAME=$1
         OLD_FINGERPRINT=$2
         HOME_DIR="/home/$SVC_NAME"

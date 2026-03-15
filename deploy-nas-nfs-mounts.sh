@@ -155,7 +155,7 @@ preflight_checks() {
     checks_total=$((checks_total + 1))
     if [[ $SKIP_WORKER == false ]]; then
         log_info "Checking worker node SSH (${WORKER_SERVICE_ACCOUNT}@${WORKER_NODE})..."
-        if ssh -i "${WORKER_SSH_KEY}" -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+        if ssh -i "${WORKER_SSH_KEY}" -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             "${WORKER_SERVICE_ACCOUNT}@${WORKER_NODE}" "exit 0" &>/dev/null; then
             log_success "Worker node SSH access OK (${WORKER_SERVICE_ACCOUNT})"
             checks_passed=$((checks_passed + 1))
@@ -169,7 +169,7 @@ preflight_checks() {
     checks_total=$((checks_total + 1))
     if [[ $SKIP_DEV == false ]]; then
         log_info "Checking dev node SSH (${DEV_SERVICE_ACCOUNT}@${DEV_NODE})..."
-        if ssh -i "${DEV_SSH_KEY}" -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+        if ssh -i "${DEV_SSH_KEY}" -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             "${DEV_SERVICE_ACCOUNT}@${DEV_NODE}" "exit 0" &>/dev/null; then
             log_success "Dev node SSH access OK (${DEV_SERVICE_ACCOUNT})"
             checks_passed=$((checks_passed + 1))
@@ -223,7 +223,7 @@ deploy_nfs_mounts() {
     
     # Step 1: Install NFS client tools
     log_info "Installing NFS client packages..."
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "sudo apt-get update -qq && sudo apt-get install -y nfs-common" || {
         log_error "Failed to install NFS tools on ${node_name}"
         return 1
@@ -231,7 +231,7 @@ deploy_nfs_mounts() {
     
     # Step 2: Create mount directory
     log_info "Creating mount point directory ${MOUNT_POINT}..."
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "sudo mkdir -p ${REPOS_MOUNT} ${CONFIG_MOUNT} && \
          sudo chown -R root:root ${MOUNT_POINT} && \
          sudo chmod 0755 ${MOUNT_POINT}" || {
@@ -241,7 +241,7 @@ deploy_nfs_mounts() {
     
     # Step 3: Test NFS connectivity from node
     log_info "Testing NFS connectivity from ${node_name}..."
-    if ! ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    if ! ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "showmount -e ${NAS_SERVER} &>/dev/null"; then
         log_warning "Cannot enumerate NFS exports from ${node_name} (may still work)"
     else
@@ -250,7 +250,7 @@ deploy_nfs_mounts() {
     
     # Step 4: Mount repositories
     log_info "Mounting ${NAS_REPOS} on ${node_name}..."
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "sudo mount -t nfs4 -o proto=tcp,vers=4.1,hard,timeo=600,retrans=3 \
             ${NAS_SERVER}:${NAS_REPOS} ${REPOS_MOUNT}" || {
         log_error "Failed to mount repositories on ${node_name}"
@@ -259,7 +259,7 @@ deploy_nfs_mounts() {
     
     # Step 5: Mount config vault
     log_info "Mounting ${NAS_CONFIG} on ${node_name}..."
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "sudo mount -t nfs4 -o proto=tcp,vers=4.1,hard,timeo=600,retrans=3 \
             ${NAS_SERVER}:${NAS_CONFIG} ${CONFIG_MOUNT}" || {
         log_error "Failed to mount config vault on ${node_name}"
@@ -268,7 +268,7 @@ deploy_nfs_mounts() {
     
     # Step 6: Verify mounts
     log_info "Verifying mounts..."
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "mount | grep ${MOUNT_POINT}" | head -5 || {
         log_error "Mount verification failed"
         return 1
@@ -276,7 +276,7 @@ deploy_nfs_mounts() {
     
     # Step 7: Test read access
     log_info "Testing read access..."
-    if ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    if ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "ls -la ${REPOS_MOUNT} &>/dev/null"; then
         log_success "Read access verified on repositories mount"
     else
@@ -349,10 +349,10 @@ EOF
     
     # Deploy units
     log_info "Deploying systemd mount units..."
-    scp -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "$repos_unit" "${WORKER_SERVICE_ACCOUNT}@${node_ip}:/tmp/nas-repositories.mount"
-    scp -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "$config_unit" "${WORKER_SERVICE_ACCOUNT}@${node_ip}:/tmp/nas-config-vault.mount"
+    scp -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$repos_unit" "${WORKER_SERVICE_ACCOUNT}@${node_ip}:/tmp/nas-repositories.mount"
+    scp -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$config_unit" "${WORKER_SERVICE_ACCOUNT}@${node_ip}:/tmp/nas-config-vault.mount"
     
-    ssh -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "${WORKER_SERVICE_ACCOUNT}@${node_ip}" \
+    ssh -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_SERVICE_ACCOUNT}@${node_ip}" \
         "sudo mv /tmp/nas-repositories.mount /etc/systemd/system/ && \
          sudo mv /tmp/nas-config-vault.mount /etc/systemd/system/ && \
          sudo systemctl daemon-reload"
@@ -385,7 +385,7 @@ setup_fstab() {
     local svc_key="${WORKER_SSH_KEY}"
     
     # Add to fstab with NFS options
-    ssh -i "${svc_key}" -o StrictHostKeyChecking=no "${svc_account}@${node_ip}" \
+    ssh -i "${svc_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${svc_account}@${node_ip}" \
         "echo '# NAS Mounts - Added $(date)' | sudo tee -a /etc/fstab > /dev/null && \
          echo '${NAS_SERVER}:${NAS_REPOS}    ${REPOS_MOUNT}     nfs4    proto=tcp,vers=4.1,hard,timeo=600,retrans=3,_netdev,x-systemd.automount 0 0' | sudo tee -a /etc/fstab > /dev/null && \
          echo '${NAS_SERVER}:${NAS_CONFIG}   ${CONFIG_MOUNT}    nfs4    proto=tcp,vers=4.1,hard,timeo=600,retrans=3,_netdev,x-systemd.automount 0 0' | sudo tee -a /etc/fstab > /dev/null" || {
@@ -409,19 +409,19 @@ verify_mounts() {
     
     # Check mount status
     log_info "Mount status:"
-    ssh -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "${WORKER_SERVICE_ACCOUNT}@${node_ip}" "mount | grep -E '${MOUNT_POINT}|nfs4'" | while read line; do
+    ssh -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_SERVICE_ACCOUNT}@${node_ip}" "mount | grep -E '${MOUNT_POINT}|nfs4'" | while read line; do
         log_info "  $line"
     done
     
     # Check disk space
     log_info "NFS mount disk usage:"
-    ssh -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "${WORKER_SERVICE_ACCOUNT}@${node_ip}" "df -h ${MOUNT_POINT}" | tail -2 | while read line; do
+    ssh -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_SERVICE_ACCOUNT}@${node_ip}" "df -h ${MOUNT_POINT}" | tail -2 | while read line; do
         log_info "  $line"
     done
     
     # Test read/write
     log_info "Testing mount access..."
-    if ssh -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "${WORKER_SERVICE_ACCOUNT}@${node_ip}" \
+    if ssh -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_SERVICE_ACCOUNT}@${node_ip}" \
         "test -r ${REPOS_MOUNT} && test -r ${CONFIG_MOUNT}"; then
         log_success "Both mounts readable on ${node_name}"
         audit_log "verify_mounts_${target_node}" "SUCCESS" "Mounts verified"
@@ -451,7 +451,7 @@ unmount_nfs() {
         return 0
     fi
     
-    ssh -i "${ssh_key}" -o StrictHostKeyChecking=no "${service_account}@${node_ip}" \
+    ssh -i "${ssh_key}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${service_account}@${node_ip}" \
         "sudo umount -l ${CONFIG_MOUNT} 2>/dev/null || true && \
          sudo umount -l ${REPOS_MOUNT} 2>/dev/null || true" || true
     
@@ -579,11 +579,11 @@ main() {
                 log_info "=== NFS Mount Status ==="
                 if [[ $SKIP_WORKER == false ]]; then
                     log_info "Worker node status (${WORKER_SERVICE_ACCOUNT}@${WORKER_NODE}):"
-                    ssh -i "${WORKER_SSH_KEY}" -o StrictHostKeyChecking=no "${WORKER_SERVICE_ACCOUNT}@${WORKER_NODE}" "mount | grep nfs4" || log_warning "No NFS mounts found"
+                    ssh -i "${WORKER_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_SERVICE_ACCOUNT}@${WORKER_NODE}" "mount | grep nfs4" || log_warning "No NFS mounts found"
                 fi
                 if [[ $SKIP_DEV == false ]]; then
                     log_info "Dev node status (${DEV_SERVICE_ACCOUNT}@${DEV_NODE}):"
-                    ssh -i "${DEV_SSH_KEY}" -o StrictHostKeyChecking=no "${DEV_SERVICE_ACCOUNT}@${DEV_NODE}" "mount | grep nfs4" || log_warning "No NFS mounts found"
+                    ssh -i "${DEV_SSH_KEY}" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${DEV_SERVICE_ACCOUNT}@${DEV_NODE}" "mount | grep nfs4" || log_warning "No NFS mounts found"
                 fi
                 exit 0
                 ;;

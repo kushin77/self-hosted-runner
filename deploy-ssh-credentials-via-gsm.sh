@@ -234,7 +234,7 @@ DIST_SCRIPT_EOF
     
     # Copy distribution script to worker using akushnir user
     log_info "Copying installation script to worker..."
-    scp -i "$DEV_SSH_KEY" -o StrictHostKeyChecking=no "$dist_script" \
+    scp -i "$DEV_SSH_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$dist_script" \
         "${WORKER_USER}@${WORKER_HOST}:/tmp/install-ssh-key.sh" || {
         log_error "Failed to copy installation script"
         rm -f "$dist_script"
@@ -243,7 +243,7 @@ DIST_SCRIPT_EOF
     
     # Execute distribution script on worker using sudo if needed
     log_info "Executing SSH key installation on worker..."
-    ssh -i "$DEV_SSH_KEY" -o StrictHostKeyChecking=no "${WORKER_USER}@${WORKER_HOST}" \
+    ssh -i "$DEV_SSH_KEY" -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${WORKER_USER}@${WORKER_HOST}" \
         "bash /tmp/install-ssh-key.sh '$GSM_SECRET_PUBKEY' '$WORKER_USER'" || {
         log_error "Failed to install SSH key on worker"
         rm -f "$dist_script"
@@ -261,7 +261,7 @@ DIST_SCRIPT_EOF
     
     # Cleanup
     rm -f "$dist_script"
-    ssh -o StrictHostKeyChecking=no "root@${WORKER_HOST}" \
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "root@${WORKER_HOST}" \
         "rm -f /tmp/install-ssh-key.sh" &>/dev/null || true
     
     return 0

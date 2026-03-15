@@ -88,7 +88,7 @@ verify_network() {
     
     # NAS Connectivity
     check_start "NAS server reachability (${NAS_SERVER}:22)"
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${AUTOMATION_USER}@${NAS_SERVER}" "exit 0" &>/dev/null; then
         check_pass "NAS is reachable and SSH working"
     else
@@ -97,7 +97,7 @@ verify_network() {
     
     # Worker Node Connectivity
     check_start "Worker node reachability (${WORKER_NODE}:22)"
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "${AUTOMATION_USER}@${WORKER_NODE}" "exit 0" &>/dev/null; then
         check_pass "Worker node is reachable and SSH working"
     else
@@ -107,7 +107,7 @@ verify_network() {
     # Worker to NAS Connectivity
     check_start "Worker → NAS connectivity"
     if ssh "${AUTOMATION_USER}@${WORKER_NODE}" \
-        "ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+        "ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
             ${AUTOMATION_USER}@${NAS_SERVER} exit 0" &>/dev/null; then
         check_pass "Worker can reach NAS (verified)"
     else

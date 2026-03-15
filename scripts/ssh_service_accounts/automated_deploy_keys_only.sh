@@ -91,8 +91,8 @@ ssh_cmd() {
     local target=$1
     shift
     
-    ssh -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
+ \
         -o BatchMode=yes \
         -o ConnectTimeout=5 \
         -o PasswordAuthentication=no \
@@ -107,8 +107,8 @@ scp_cmd() {
     local src=$1
     local dst=$2
     
-    scp -o StrictHostKeyChecking=no \
-        -o UserKnownHostsFile=/dev/null \
+    scp -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
+ \
         -o BatchMode=yes \
         -o ConnectTimeout=5 \
         -o PasswordAuthentication=no \
@@ -249,8 +249,8 @@ test_connection() {
         fi
         
         # Test with key-only authentication
-        if timeout 5 ssh -o StrictHostKeyChecking=no \
-            -o UserKnownHostsFile=/dev/null \
+        if timeout 5 ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
+ \
             -o BatchMode=yes \
             -o PasswordAuthentication=no \
             -o PubkeyAuthentication=yes \

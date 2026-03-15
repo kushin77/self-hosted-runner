@@ -163,7 +163,7 @@ execute_bootstrap() {
     log_info "Executing bootstrap script on $WORKER_IP..."
     
     # First attempt: direct SSH as root (if initial key auth works)
-    if ssh -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
+    if ssh -o ConnectTimeout=2 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         -i "$SSH_KEY" "elevatediq@$WORKER_IP" \
         bash "$bootstrap_script" "$public_key" 2>/dev/null; then
         log_success "Bootstrap executed successfully"

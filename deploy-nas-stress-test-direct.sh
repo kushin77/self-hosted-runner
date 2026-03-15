@@ -37,7 +37,7 @@ readonly VAULT_ADDR="${VAULT_ADDR:-https://vault.internal.elevatediq.com}"
 
 # SSH Configuration
 readonly SSH_KEY="${SSH_KEY:-$HOME/.ssh/svc-keys/elevatediq-svc-42_key}"
-readonly SSH_OPTS="-o ConnectTimeout=10 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+readonly SSH_OPTS="-o ConnectTimeout=10 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new"
 
 # Colors
 readonly GREEN='\033[0;32m'

@@ -77,7 +77,7 @@ fi
 # SSH helper — runs a command on the on-prem host via the secret-fetched key.
 # Usage: ssh_exec "command" (returns stdout; exit code forwarded)
 ssh_exec() {
-  ssh -o BatchMode=yes -o StrictHostKeyChecking=no -o ConnectTimeout=10 \
+  ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10 \
       -i "$SSH_KEY_PATH" "$ONPREM_USER@$ONPREM_HOST" "$1" 2>/dev/null
 }
 

@@ -77,7 +77,7 @@ WORKER_DEPLOY
     chmod +x /tmp/deploy-nas-worker-${node_ip}.sh
     
     # Execute deployment via SSH
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no "automation@${node_ip}" "bash -s ${node_ip}" < /tmp/deploy-nas-worker-${node_ip}.sh >> "$DEPLOYMENT_LOG" 2>&1; then
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "automation@${node_ip}" "bash -s ${node_ip}" < /tmp/deploy-nas-worker-${node_ip}.sh >> "$DEPLOYMENT_LOG" 2>&1; then
         echo -e "${GREEN}[✓] Node $node_num ($node_ip): DEPLOYED${NC}"
         return 0
     else

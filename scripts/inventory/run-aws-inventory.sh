@@ -70,7 +70,7 @@ fi
 
 log INFO "Provisioning AWS credentials to bastion Vault..."
 
-ssh -o StrictHostKeyChecking=no "${BASTION_USER}@${BASTION_HOST}" "
+ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${BASTION_USER}@${BASTION_HOST}" "
     set -e
     export VAULT_ADDR='${VAULT_ADDR}'
     export VAULT_TOKEN=\$(cat /root/vault_root_token 2>/dev/null | tr -d '\n')
@@ -107,7 +107,7 @@ template {
 }
 '
 
-ssh -o StrictHostKeyChecking=no "${BASTION_USER}@${BASTION_HOST}" "
+ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${BASTION_USER}@${BASTION_HOST}" "
     # Restart agent to pick up new template configuration
     sudo systemctl restart vault-agent.service
     sleep 2
@@ -127,7 +127,7 @@ ssh -o StrictHostKeyChecking=no "${BASTION_USER}@${BASTION_HOST}" "
 
 log INFO "Step 3: Collecting AWS inventory..."
 
-ssh -o StrictHostKeyChecking=no "${BASTION_USER}@${BASTION_HOST}" "
+ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "${BASTION_USER}@${BASTION_HOST}" "
     set -e
     cd /home/akushnir/self-hosted-runner
     mkdir -p cloud-inventory

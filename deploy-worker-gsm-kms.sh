@@ -221,8 +221,7 @@ deploy_components_idempotent() {
     "-o" "PasswordAuthentication=no"
     "-o" "PubkeyAuthentication=yes"
     "-o" "ConnectTimeout=10"
-    "-o" "UserKnownHostsFile=/dev/null"
-  )
+      )
   
   # Remote deployment command (idempotent)
   local remote_cmd=$(cat << 'REMOTE_CMD'
@@ -288,8 +287,7 @@ verify_deployment() {
     "-i" "$temp_ssh_key"
     "-o" "StrictHostKeyChecking=accept-new"
     "-o" "ConnectTimeout=10"
-    "-o" "UserKnownHostsFile=/dev/null"
-  )
+      )
   
   # Verify remote directory structure
   local remote_verify=$(cat << 'REMOTE_VERIFY'

@@ -73,7 +73,7 @@ echo ""
 # Test SSH connectivity
 echo -e "${BLUE}Testing SSH connectivity to worker...${NC}"
 if ! ssh -i "$SSH_KEY_PATH" \
-    -o StrictHostKeyChecking=no \
+    -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -o ConnectTimeout=10 \
     root@"$WORKER_HOST" "echo 'SSH connection verified'" 2>/dev/null; then
     
@@ -95,7 +95,7 @@ echo ""
 # Copy deployment orchestrator script to worker 
 echo -e "${BLUE}Deploying orchestration script to worker...${NC}"
 scp -i "$SSH_KEY_PATH" \
-    -o StrictHostKeyChecking=no \
+    -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -q "$SCRIPT_DIR/orchestrate-production-deployment.sh" \
     root@"$WORKER_HOST":/tmp/
 
@@ -108,7 +108,7 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 
 ssh -i "$SSH_KEY_PATH" \
-    -o StrictHostKeyChecking=no \
+    -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -o BatchMode=no \
     root@"$WORKER_HOST" \
     'cd /home/akushnir/self-hosted-runner && bash /tmp/orchestrate-production-deployment.sh'

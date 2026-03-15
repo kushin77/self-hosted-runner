@@ -95,7 +95,7 @@ if [ -n "$ONPREM_HOST" ]; then
     echo "Using SSH key at $SSH_KEY_PATH to connect to $ONPREM_HOST" | tee -a "$OUT"
     REMOTE_CMD="sudo /opt/runner/repo/scripts/ops/verify_deployment.sh ${S3_BUCKET:-} || true"
     echo "Running remote verifier..." | tee -a "$OUT"
-    ssh -o BatchMode=yes -o StrictHostKeyChecking=no -i "$SSH_KEY_PATH" "$ONPREM_USER@$ONPREM_HOST" "$REMOTE_CMD" 2>&1 | tee -a "$OUT" || echo "Remote command failed or unreachable" | tee -a "$OUT"
+    ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -i "$SSH_KEY_PATH" "$ONPREM_USER@$ONPREM_HOST" "$REMOTE_CMD" 2>&1 | tee -a "$OUT" || echo "Remote command failed or unreachable" | tee -a "$OUT"
   else
     echo "SSH key not available; cannot run remote verifier on $ONPREM_HOST" | tee -a "$OUT"
   fi

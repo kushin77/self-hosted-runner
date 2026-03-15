@@ -80,7 +80,7 @@ log_msg "=== PHASE 3 AUDIT UPLOAD COMPLETE ==="
 log_msg "=== PHASE 3B: CRONJOB DEPLOYMENT START ==="
 log_msg "Deploying CronJob to worker cluster..."
 
-ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no akushnir@192.168.168.42 "set -euo pipefail; \
+ssh -i ~/.ssh/id_rsa -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new akushnir@192.168.168.42 "set -euo pipefail; \
   kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f - 2>&1; \
   kubectl apply -f ~/self-hosted-runner/k8s/monitoring/host-crash-analysis-cronjob.yaml -n monitoring 2>&1; \
   echo 'CronJob deployment complete'; \

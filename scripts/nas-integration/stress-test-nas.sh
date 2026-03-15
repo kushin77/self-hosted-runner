@@ -127,21 +127,21 @@ fail() { echo -e "${RED}[✗]${NC} $*"; }
 # ============================================================================
 
 nas_command() {
-  ssh -i "$NAS_KEY" -p "$NAS_PORT" -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+  ssh -i "$NAS_KEY" -p "$NAS_PORT" -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     "${NAS_USER}@${NAS_HOST}" "$@" 2>/dev/null || return 1
 }
 
 nas_scp_push() {
   local local_file="$1"
   local remote_path="$2"
-  scp -i "$NAS_KEY" -P "$NAS_PORT" -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+  scp -i "$NAS_KEY" -P "$NAS_PORT" -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     "$local_file" "${NAS_USER}@${NAS_HOST}:${remote_path}" 2>/dev/null || return 1
 }
 
 nas_scp_pull() {
   local remote_path="$1"
   local local_file="$2"
-  scp -i "$NAS_KEY" -P "$NAS_PORT" -o ConnectTimeout=5 -o StrictHostKeyChecking=no \
+  scp -i "$NAS_KEY" -P "$NAS_PORT" -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     "${NAS_USER}@${NAS_HOST}:${remote_path}" "$local_file" 2>/dev/null || return 1
 }
 

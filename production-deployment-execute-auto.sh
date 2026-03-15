@@ -35,7 +35,7 @@ attempt_bootstrap_password_ssh() {
         log_info "sshpass available, attempting ssh-copy-id with common passwords..."
         
         for pwd in "password" "root" "12345" "123456" "changeme"; do
-            if timeout 3 sshpass -p "$pwd" ssh-copy-id -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
+            if timeout 3 sshpass -p "$pwd" ssh-copy-id -o ConnectTimeout=2 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
                 -i "$SSH_KEY" root@"$WORKER" &>/dev/null 2>&1; then
                 log_success "SSH key installed via password SSH"
                 return 0
@@ -56,7 +56,7 @@ attempt_bootstrap_existing_key() {
         
         # Try root
         if timeout 3 ssh -i "$keyfile" -o BatchMode=yes -o ConnectTimeout=2 \
-            -o StrictHostKeyChecking=no root@"$WORKER" "echo OK" &>/dev/null 2>&1; then
+            -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new root@"$WORKER" "echo OK" &>/dev/null 2>&1; then
             log_success "Found working SSH key: $keyfile (root)"
             
             # Bootstrap with this key
@@ -74,7 +74,7 @@ BOOTSTRAP
         
         # Try akushnir
         if timeout 3 ssh -i "$keyfile" -o BatchMode=yes -o ConnectTimeout=2 \
-            -o StrictHostKeyChecking=no akushnir@"$WORKER" "echo OK" &>/dev/null 2>&1; then
+            -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new akushnir@"$WORKER" "echo OK" &>/dev/null 2>&1; then
             log_success "Found working SSH key: $keyfile (akushnir)"
             return 0
         fi
@@ -102,7 +102,7 @@ attempt_bootstrap_cloud_init() {
 verify_bootstrap() {
     log_info "Verifying bootstrap success..."
     
-    if timeout 3 ssh -i "$SSH_KEY" -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
+    if timeout 3 ssh -i "$SSH_KEY" -o ConnectTimeout=2 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "$USER_ACCT@$WORKER" "whoami" &>/dev/null 2>&1; then
         log_success "✅ Bootstrap verified! SSH access confirmed"
         return 0
@@ -114,7 +114,7 @@ verify_bootstrap() {
 check_bootstrap_needed() {
     log_info "Checking if bootstrap is needed..."
     
-    if timeout 3 ssh -i "$SSH_KEY" -o ConnectTimeout=2 -o StrictHostKeyChecking=no \
+    if timeout 3 ssh -i "$SSH_KEY" -o ConnectTimeout=2 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
         "$USER_ACCT@$WORKER" "whoami" &>/dev/null 2>&1; then
         log_success "SSH access already available, no bootstrap needed"
         return 1  # Bootstrap NOT needed

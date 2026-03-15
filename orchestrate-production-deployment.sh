@@ -114,7 +114,7 @@ validate_prerequisites() {
     fi
     
     # Check worker connectivity
-    if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no root@"$WORKER_HOST" "echo ok" &> /dev/null; then
+    if ssh -o ConnectTimeout=5 -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new root@"$WORKER_HOST" "echo ok" &> /dev/null; then
         log_audit "WORKER_CONNECTIVITY_CHECK" "passed" "Worker reachable at $WORKER_HOST"
         echo -e "${GREEN}✅ Worker reachable: $WORKER_HOST${NC}"
     else

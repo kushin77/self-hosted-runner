@@ -84,8 +84,8 @@ if [[ ! -f "$ADC_FILE" ]]; then
 fi
 
 echo "  Copying ADC to worker..."
-ssh -o StrictHostKeyChecking=no "$WORKER_HOST" "mkdir -p ~/.config/gcloud"
-scp -o StrictHostKeyChecking=no "$ADC_FILE" "${WORKER_HOST}:~/.config/gcloud/"
+ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$WORKER_HOST" "mkdir -p ~/.config/gcloud"
+scp -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$ADC_FILE" "${WORKER_HOST}:~/.config/gcloud/"
 
 echo "  ✅ Credentials synced"
 echo ""
@@ -96,7 +96,7 @@ echo ""
 echo "📋 Step 3/3: Deploying staging infrastructure via terraform..."
 echo ""
 
-ssh -o StrictHostKeyChecking=no "$WORKER_HOST" bash << 'REMOTE_SCRIPT'
+ssh -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new "$WORKER_HOST" bash << 'REMOTE_SCRIPT'
 set -euo pipefail
 
 cd /opt/self-hosted-runner/terraform/environments/staging-tenant-a

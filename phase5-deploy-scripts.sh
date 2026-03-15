@@ -10,7 +10,7 @@ readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly WORKER_NODES=(192.168.168.{42..51})
 readonly DEV_NODES=(192.168.168.{31..40})
 readonly DEPLOY_DIR="/opt/nas"
-readonly SSH_OPTS="-o StrictHostKeyChecking=no -o ConnectTimeout=10 -o BatchMode=yes"
+readonly SSH_OPTS="-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10"
 
 # Get service account SSH key from GSM
 get_svc_git_key() {
