@@ -17,6 +17,8 @@ Action taken:
 - Installed and pinned missing build dependency (terser) required by current Vite config.
 - Added timeout/cancellation support in TypeScript API client for portal frontend service calls.
 - Added non-overlapping in-flight guards to TypeScript dashboard refresh loops.
+- Added frontend entrypoint async loading (`React.lazy` + `Suspense`) to reduce initial main-thread pressure.
+- Added deterministic Vite chunk splitting with dedicated `recharts` vendor chunk for lower parse/compile overhead at startup.
 
 Files updated:
 - frontend/dashboard/src/api.js
@@ -27,11 +29,15 @@ Files updated:
 - frontend/src/services/api.ts
 - frontend/src/components/Dashboard_v2.tsx
 - frontend/src/components/SecretsManagementDashboard.tsx
+- frontend/src/main.tsx
+- frontend/vite.config.ts
 
 Validation:
 - Static diagnostics: no editor errors in modified source files.
 - Production build: successful via npm run build in frontend/dashboard.
 - Production build: successful via npm run build in frontend.
+- Live smoke probe: `http://192.168.168.42:3919` returned 200 with single JS asset size ~750195 bytes before optimization update.
+- Post-optimization local build output: entry bootstrap ~2.20 kB, dashboard chunk ~13.87 kB, shared vendor ~141.91 kB, recharts vendor ~383.32 kB.
 
 Operational policy alignment:
 - Immutable: issue closure and remediation are append-only in repository history.
