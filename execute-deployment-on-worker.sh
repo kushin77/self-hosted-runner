@@ -13,11 +13,12 @@
 # ✅ Idempotent - Safe to re-run
 #
 # Usage:
-#   bash execute-deployment-on-worker.sh [worker_host] [ssh_key_path]
+#   bash execute-deployment-on-worker.sh [worker_host] [ssh_key_path] [ssh_user]
 #
 # Defaults:
 #   WORKER_HOST: 192.168.168.42
 #   SSH_KEY: ~/.ssh/svc-keys/elevatediq-svc-42_key (auto-detected)
+#   SSH_USER: akushnir (override via third arg)
 ################################################################################
 
 set -e
@@ -25,6 +26,7 @@ set -e
 # Configuration
 WORKER_HOST="${1:-192.168.168.42}"
 SSH_KEY_PATH="${2}"
+SSH_USER="${3:-akushnir}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Color codes
@@ -45,7 +47,7 @@ if [ -z "$SSH_KEY_PATH" ]; then
         SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
     else
         echo -e "${RED}❌ SSH key not found. Provide path as second argument.${NC}"
-        echo "Usage: $0 [worker_host] [ssh_key_path]"
+        echo "Usage: $0 [worker_host] [ssh_key_path] [ssh_user]"
         exit 1
     fi
 fi
@@ -64,6 +66,7 @@ echo "╔═══════════════════════�
 echo "║          REMOTE PRODUCTION DEPLOYMENT EXECUTION (SSH Service Account)         ║"
 echo "║                                                                                ║"
 echo "║ Target Worker: $WORKER_HOST                                                   ║"
+echo "║ SSH User: $SSH_USER                                                           ║"
 echo "║ SSH Key: $(basename "$SSH_KEY_PATH")                                                       ║"
 echo "║ Method: Service Account SSH (OIDC-compatible)                                 ║"
 echo "║ Status: EXECUTING NOW                                                         ║"
@@ -75,13 +78,13 @@ echo -e "${BLUE}Testing SSH connectivity to worker...${NC}"
 if ! ssh -i "$SSH_KEY_PATH" \
     -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -o ConnectTimeout=10 \
-    root@"$WORKER_HOST" "echo 'SSH connection verified'" 2>/dev/null; then
+    "${SSH_USER}@${WORKER_HOST}" "echo 'SSH connection verified'" 2>/dev/null; then
     
     echo -e "${RED}❌ SSH connection failed to $WORKER_HOST${NC}"
-    echo -e "${YELLOW}Note: Worker may need manual setup for service account SSH key${NC}"
+    echo -e "${YELLOW}Note: Worker may need manual setup for SSH key/user ($SSH_USER)${NC}"
     echo ""
     echo "Manual Worker Setup (if needed):"
-    echo "  ssh root@$WORKER_HOST"
+    echo "  ssh ${SSH_USER}@$WORKER_HOST"
     echo "  sudo useradd -m automation 2>/dev/null || true"
     echo "  sudo mkdir -p ~/.ssh"
     echo "  sudo tee ~/.ssh/authorized_keys <<< 'PASTE_PUBLIC_KEY_HERE'"
@@ -97,7 +100,7 @@ echo -e "${BLUE}Deploying orchestration script to worker...${NC}"
 scp -i "$SSH_KEY_PATH" \
     -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -q "$SCRIPT_DIR/orchestrate-production-deployment.sh" \
-    root@"$WORKER_HOST":/tmp/
+    "${SSH_USER}@${WORKER_HOST}":/tmp/
 
 echo -e "${GREEN}✅ Orchestration script deployed${NC}"
 echo ""
@@ -110,7 +113,7 @@ echo ""
 ssh -i "$SSH_KEY_PATH" \
     -o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes -o StrictHostKeyChecking=accept-new \
     -o BatchMode=no \
-    root@"$WORKER_HOST" \
+    "${SSH_USER}@${WORKER_HOST}" \
     'cd /home/akushnir/self-hosted-runner && bash /tmp/orchestrate-production-deployment.sh'
 
 DEPLOYMENT_EXIT_CODE=$?
@@ -123,11 +126,11 @@ if [ $DEPLOYMENT_EXIT_CODE -eq 0 ]; then
     echo ""
     echo "📊 Next Steps:"
     echo "   1. Verify worker deployment logs:"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'tail -50 /tmp/orchestration*.log'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'tail -50 /tmp/orchestration*.log'"
     echo "   2. Monitor systemd timers:"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'systemctl list-timers git-* nas-*'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'systemctl list-timers git-* nas-*'"
     echo "   3. Check audit trail:"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'tail -20 .deployment-logs/orchestration-audit*.jsonl'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'tail -20 .deployment-logs/orchestration-audit*.jsonl'"
     echo "   4. Verify GitHub issues updated (check repository main branch)"
     echo ""
 else
@@ -135,11 +138,11 @@ else
     echo ""
     echo "📊 Troubleshooting:"
     echo "   1. Check deployment logs on worker:"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'cat /tmp/orchestration*.log'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'cat /tmp/orchestration*.log'"
     echo "   2. Check if prerequisites are met:"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'which gcloud git ssh'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'which gcloud git ssh'"
     echo "   3. Verify connectivity to NAS (192.16.168.39):"
-    echo "      ssh -i $SSH_KEY_PATH root@$WORKER_HOST 'ping -c 1 192.16.168.39'"
+    echo "      ssh -i $SSH_KEY_PATH ${SSH_USER}@$WORKER_HOST 'ping -c 1 192.16.168.39'"
     echo ""
     exit 1
 fi

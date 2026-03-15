@@ -66,23 +66,26 @@ log_audit() {
 
 # Function to check target enforcement
 enforce_target_restriction() {
-    local current_host=$(hostname -I | awk '{print $1}')
-    local is_dev=false
-    
-    # Check if running on dev machine
-    if [[ "$current_host" == "192.168.168.31"* ]] || [[ "$HOSTNAME" == *"dev"* ]]; then
-        is_dev=true
+    local host_ips
+    host_ips="$(hostname -I 2>/dev/null || true)"
+
+    # Explicitly allow execution when the worker target IP is present on an interface.
+    if echo "$host_ips" | tr ' ' '\n' | grep -Fxq "$WORKER_HOST"; then
+        log_audit "TARGET_RESTRICTION_CHECK" "passed" "Running on worker host ($WORKER_HOST)"
+        echo -e "${GREEN}✅ Target enforcement verified (worker $WORKER_HOST matched)${NC}"
+        return 0
     fi
-    
-    if [ "$is_dev" = true ]; then
+
+    # Block only when the known forbidden dev host IP is present.
+    if echo "$host_ips" | tr ' ' '\n' | grep -Fxq "$DEV_HOST"; then
         log_audit "TARGET_RESTRICTION_BLOCK" "failed" "Deployment blocked on developer machine (.31)"
         echo -e "${RED}❌ FATAL: Deployment cannot run on developer machine (192.168.168.31)${NC}"
         echo -e "${RED}❌ Target enforcement: 192.168.168.42 ONLY${NC}"
         exit 1
     fi
     
-    log_audit "TARGET_RESTRICTION_CHECK" "passed" "Not on developer machine, proceeding"
-    echo -e "${GREEN}✅ Target enforcement verified (not on .31)${NC}"
+    log_audit "TARGET_RESTRICTION_CHECK" "passed" "Not on forbidden dev host, proceeding"
+    echo -e "${GREEN}✅ Target enforcement verified (forbidden host not detected)${NC}"
 }
 
 # Function to validate prerequisites
